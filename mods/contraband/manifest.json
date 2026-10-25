@@ -1,0 +1,13 @@
+{
+  "id": "contraband",
+  "name": "Contraband economy (optional)",
+  "author": "MadColony",
+  "version": "1.0.0",
+  "gameApi": "^1.0",
+  "description": "Optional and off by default. Adds five fictional controlled commodities — cannabis/weed, cocaine, heroin, meth and MDMA — made only through abstract game recipes from invented wild plants and generic materials (no real-world methods or ingredients). Production follows your own stock targets; selling them is governed by each village's laws. No consumption, dependency or health effects.",
+  "dependencies": [{ "id": "core", "version": "^1.1" }],
+  "loadAfter": ["core"],
+  "loadBefore": [],
+  "incompatibleWith": [],
+  "content": ["contraband.json"]
+}

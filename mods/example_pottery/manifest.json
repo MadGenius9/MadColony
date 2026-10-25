@@ -1,0 +1,14 @@
+{
+  "id": "example_pottery",
+  "name": "Example: Riverbank Pottery",
+  "author": "MadColony examples",
+  "version": "1.0.0",
+  "gameApi": "^1.0",
+  "description": "Adds clay deposits (a new resource), a pot-firing recipe, and a pottery shelf that colonists choose by themselves to fill empty decor slots in their homes. Pure data: no code.",
+  "dependencies": [{ "id": "core", "version": "^1.0" }],
+  "loadAfter": ["core"],
+  "loadBefore": [],
+  "incompatibleWith": [],
+  "content": ["pottery.json"],
+  "art": "art/atlas.json"
+}

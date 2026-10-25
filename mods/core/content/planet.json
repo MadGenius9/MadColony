@@ -1,0 +1,72 @@
+{
+  "$comment": "Phase 2b: the planet generator (Vast and World sizes). Continents from plates, mountain ranges along plate edges, climate bands by latitude and height, moisture from the sea, drainage-basin rivers. Heights and moisture in the biome rules are shares of the land (0.9 = the highest 10% of the land); temperature runs from 0 at the poles to 1 at the equator, less on the heights.",
+  "terrain": [
+    { "id": "core:tundra", "name": "Tundra", "color": "#8e977a", "passable": true, "buildable": true, "fertility": 0.25, "moveCost": 1.2, "render": { "style": "plain" } },
+    { "id": "core:taiga", "name": "Taiga floor", "color": "#3f5e3c", "passable": true, "buildable": true, "fertility": 0.55, "render": { "style": "grass" } },
+    { "id": "core:jungle", "name": "Jungle floor", "color": "#2f6a2c", "passable": true, "buildable": true, "fertility": 1.1, "moveCost": 1.3, "render": { "style": "grass" } },
+    { "id": "core:savanna", "name": "Dry grassland", "color": "#a3a057", "passable": true, "buildable": true, "fertility": 0.6, "render": { "style": "grass" } }
+  ],
+  "worldgen": [
+    {
+      "id": "core:planet",
+      "name": "Planet",
+      "width": 1536,
+      "height": 1152,
+      "noiseScale": 40,
+      "startClearRadius": 6,
+      "startTerrain": "core:grass",
+      "layers": [{ "terrain": "core:grass", "below": 2 }],
+      "climate": { "yearDays": 30, "summer": 22, "winter": -6, "daySwing": 5 },
+      "planet": {
+        "oceanShare": 0.6,
+        "plates": { "count": 22, "continental": 0.4, "continents": 4, "landHeight": 0.55, "oceanHeight": 0, "jitter": 0.2, "warp": 0.1, "warpScale": 0.12, "blend": 0.03, "dome": 0.6, "channel": 0.002 },
+        "ridges": { "height": [0.15, 0.6, 0.9], "convergent": 0.6, "rift": 0.3, "width": 0.011, "scale": 26, "oceanSide": 0, "split": 0.8, "splitWidth": 0.03, "segments": { "scale": 0.03, "cut": 0.35, "soft": 0.3 }, "widthVary": 0.12, "fadeBelow": 0.02, "fadeWidth": 0.12 },
+        "shapeScale": 0.07,
+        "shapeWeight": 0.5,
+        "detailScale": 22,
+        "detailWeight": 0.16,
+        "edgeWidth": 0.12,
+        "edgeFalloff": 1.2,
+        "continentMinShare": 0.02,
+        "coast": { "shallowWidth": 4 },
+        "climate": { "lapse": 0.3, "lapseFrom": 0.8, "jitter": 0.06, "noiseScale": 0.05, "seaReach": 60, "seaWeight": 0.5, "beltWeight": 0.35, "noiseWeight": 0.35 },
+        "lakes": { "minDepth": 0.004, "share": 0.015, "minArea": 12 },
+        "rivers": { "terrain": "core:shallows", "minDrainage": 900, "mountainRain": 3 },
+        "terrain": { "ocean": "core:deep_water", "shallow": "core:water", "lake": "core:water", "mountain": "core:mountain" },
+        "passTerrain": "core:hills",
+        "minPocket": 8,
+        "start": { "terrain": ["core:grass", "core:soil"], "areaRadius": 7 },
+        "biomes": [
+          { "terrain": "core:mountain", "heightAbove": 0.94 },
+          { "terrain": "core:snow", "tempBelow": 0.08 },
+          { "terrain": "core:hills", "heightAbove": 0.87 },
+          { "terrain": "core:sand", "coastWithin": 1, "heightBelow": 0.4, "tempAbove": 0.25 },
+          { "terrain": "core:tundra", "tempBelow": 0.2 },
+          { "terrain": "core:taiga", "tempBelow": 0.36, "moistureAbove": 0.35 },
+          { "terrain": "core:tundra", "tempBelow": 0.36 },
+          { "terrain": "core:marsh", "moistureAbove": 0.93, "heightBelow": 0.35 },
+          { "terrain": "core:jungle", "tempAbove": 0.72, "moistureAbove": 0.6 },
+          { "terrain": "core:sand", "tempAbove": 0.6, "moistureBelow": 0.15 },
+          { "terrain": "core:savanna", "tempAbove": 0.66 },
+          { "terrain": "core:forest_floor", "moistureAbove": 0.62 },
+          { "terrain": "core:soil", "moistureAbove": 0.47 },
+          { "terrain": "core:gravel", "moistureBelow": 0.06 },
+          { "terrain": "core:grass" }
+        ],
+        "nodeBudget": 0.05,
+        "nodes": [
+          { "node": "core:pine", "terrain": ["core:forest_floor", "core:taiga"], "density": 0.3, "minDistFromStart": 5 },
+          { "node": "core:pine", "terrain": ["core:jungle"], "density": 0.4, "minDistFromStart": 5 },
+          { "node": "core:pine", "terrain": ["core:grass", "core:soil"], "density": 0.35, "noiseScale": 7, "noiseAbove": 0.6, "minDistFromStart": 5 },
+          { "node": "core:pine", "terrain": ["core:grass", "core:savanna", "core:tundra", "core:snow"], "density": 0.012, "minDistFromStart": 5 },
+          { "node": "core:boulder", "terrain": ["core:hills"], "density": 0.09, "minDistFromStart": 6 },
+          { "node": "core:boulder", "terrain": ["core:gravel"], "density": 0.3, "minDistFromStart": 6 },
+          { "node": "core:boulder", "terrain": ["core:tundra", "core:grass", "core:sand", "core:savanna"], "density": 0.012, "minDistFromStart": 7 },
+          { "node": "core:berry_bush", "terrain": ["core:forest_floor", "core:jungle", "core:grass", "core:soil", "core:taiga"], "density": 0.018, "minDistFromStart": 4 },
+          { "node": "core:brush", "terrain": ["core:marsh"], "density": 0.12, "minDistFromStart": 3 },
+          { "node": "core:brush", "terrain": ["core:grass", "core:soil", "core:savanna"], "density": 0.05, "minDistFromStart": 3 }
+        ]
+      }
+    }
+  ]
+}

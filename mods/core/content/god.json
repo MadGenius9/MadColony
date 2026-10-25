@@ -1,0 +1,19 @@
+{
+  "$comment": "Phase 2c: god powers. The numbers behind every power (src/sim/god.js). Favour regenerates perDay per game day up to max and is charged when a command is applied; in a Sandbox game every power is free. costs.settler is per settler. A scenario may name a different godRules with its optional `god` id; otherwise core:god applies. costs.omen is the harmless test power (it only writes a line in the log) that exercises the command queue.",
+  "godRules": [
+    {
+      "id": "core:god",
+      "name": "Core god powers",
+      "favour": { "start": 30, "max": 100, "perDay": 5 },
+      "costs": { "settler": 4, "bless": 25, "inspire": 30, "omen": 1 },
+      "bless": { "days": 5, "maxDays": 15, "work": 1.5, "growth": 2 },
+      "inspire": { "fraction": 0.4 },
+      "spawn": {
+        "maxCount": 10,
+        "suppliesPerSettler": [{ "item": "core:wood", "qty": 12 }, { "item": "core:stone", "qty": 3 }, { "item": "core:stew", "qty": 3 }, { "item": "core:potato", "qty": 10 }, { "item": "core:bean", "qty": 6 }],
+        "joinSupplies": [{ "item": "core:stew", "qty": 2 }, { "item": "core:potato", "qty": 4 }],
+        "joinOverHousing": 2
+      }
+    }
+  ]
+}

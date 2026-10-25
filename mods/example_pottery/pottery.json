@@ -1,0 +1,120 @@
+{
+  "item": [
+    {
+      "id": "example_pottery:clay",
+      "name": "Clay",
+      "color": "#b5653a",
+      "stackLimit": 75,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "clay"
+      }
+    },
+    {
+      "id": "example_pottery:fired_pot",
+      "name": "Fired pot",
+      "color": "#d0824a",
+      "stackLimit": 20,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "pots",
+        "icon": "pot"
+      }
+    }
+  ],
+  "node": [
+    {
+      "id": "example_pottery:clay_deposit",
+      "name": "Clay bank",
+      "workType": "core:mine",
+      "work": 80,
+      "yields": [
+        {
+          "item": "example_pottery:clay",
+          "qty": 4
+        }
+      ],
+      "chunks": 4,
+      "passable": true,
+      "tags": [
+        "example_pottery:clay"
+      ],
+      "render": {
+        "shape": "patch",
+        "color": "#a85a36",
+        "color2": "#c47a4e"
+      }
+    }
+  ],
+  "spawnRule": [
+    {
+      "id": "example_pottery:clay_banks",
+      "node": "example_pottery:clay_deposit",
+      "terrain": [
+        "core:sand",
+        "core:soil"
+      ],
+      "density": 0.05,
+      "minDistFromStart": 4
+    }
+  ],
+  "recipe": [
+    {
+      "id": "example_pottery:fire_pot",
+      "name": "Fire a clay pot",
+      "station": "core:campfire",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "example_pottery:clay",
+          "qty": 4
+        }
+      ],
+      "outputs": [
+        {
+          "item": "example_pottery:fired_pot",
+          "qty": 1
+        }
+      ],
+      "work": 120,
+      "skill": "core:crafting"
+    }
+  ],
+  "building": [
+    {
+      "id": "example_pottery:pot_shelf",
+      "name": "Pottery shelf",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "example_pottery:fired_pot",
+          "qty": 2
+        },
+        {
+          "item": "core:wood",
+          "qty": 4
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:decor"
+      ],
+      "furnishing": {
+        "score": 2
+      },
+      "color": "#d0824a",
+      "render": {
+        "shape": "shelf",
+        "color2": "#d0824a",
+        "sprite": "furniture.shelf"
+      }
+    }
+  ]
+}

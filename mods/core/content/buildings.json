@@ -1,0 +1,266 @@
+{
+  "building": [
+    {
+      "id": "core:wood_wall",
+      "name": "Log wall",
+      "category": "wall",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 3
+        }
+      ],
+      "work": 90,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:wall"
+      ],
+      "color": "#7d5228",
+      "render": {
+        "shape": "log_wall",
+        "color2": "#c99a5e"
+      },
+      "upgrade": {
+        "to": "core:stone_wall"
+      }
+    },
+    {
+      "id": "core:stone_wall",
+      "name": "Fieldstone wall",
+      "category": "wall",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 3
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:wall"
+      ],
+      "color": "#8e8e88",
+      "render": {
+        "shape": "stone_wall",
+        "color2": "#b5b5ae"
+      }
+    },
+    {
+      "id": "core:door",
+      "name": "Plank door",
+      "category": "door",
+      "passable": true,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 5
+        }
+      ],
+      "work": 110,
+      "skill": "core:construction",
+      "color": "#b98a4e",
+      "render": {
+        "shape": "door",
+        "color2": "#6b4523"
+      }
+    },
+    {
+      "id": "core:bed",
+      "name": "Straw bed",
+      "category": "furniture",
+      "passable": true,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "work": 140,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:bed"
+      ],
+      "bed": {
+        "restRate": 3.4
+      },
+      "furnishing": {
+        "score": 1
+      },
+      "color": "#c9b07a",
+      "render": {
+        "shape": "bed",
+        "color2": "#4f6fa0"
+      }
+    },
+    {
+      "id": "core:table",
+      "name": "Plank table",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 8
+        }
+      ],
+      "work": 110,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:table"
+      ],
+      "furnishing": {
+        "score": 1
+      },
+      "color": "#94612f",
+      "render": {
+        "shape": "table"
+      }
+    },
+    {
+      "id": "core:stool",
+      "name": "Stool",
+      "category": "furniture",
+      "passable": true,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 4
+        }
+      ],
+      "work": 70,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:chair"
+      ],
+      "furnishing": {
+        "score": 1
+      },
+      "color": "#a8743e",
+      "render": {
+        "shape": "chair"
+      }
+    },
+    {
+      "id": "core:campfire",
+      "name": "Cooking fire",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 8
+        }
+      ],
+      "work": 100,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#d6662a",
+      "render": {
+        "shape": "campfire"
+      },
+      "light": {
+        "radius": 4
+      }
+    },
+    {
+      "id": "core:workbench",
+      "name": "Workbench",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 18
+        },
+        {
+          "item": "core:stone",
+          "qty": 4
+        }
+      ],
+      "work": 220,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#6f4c2a",
+      "render": {
+        "shape": "workbench"
+      }
+    },
+    {
+      "id": "core:well",
+      "name": "Well",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 18
+        },
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "work": 280,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "water": {
+        "clean": true
+      },
+      "color": "#8a8780",
+      "render": {
+        "shape": "well"
+      }
+    },
+    {
+      "id": "core:hearth",
+      "name": "Hearth",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 12
+        },
+        {
+          "item": "core:wood",
+          "qty": 2
+        }
+      ],
+      "work": 160,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:decor"
+      ],
+      "furnishing": {
+        "score": 1
+      },
+      "heat": {
+        "output": 6,
+        "fuel": {
+          "tag": "core:fuel",
+          "burnTicks": 300,
+          "capacity": 8
+        }
+      },
+      "light": {
+        "radius": 2
+      },
+      "color": "#7a6a5e",
+      "render": {
+        "shape": "hearth",
+        "color2": "#e8742a"
+      }
+    }
+  ]
+}

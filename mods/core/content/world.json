@@ -1,0 +1,107 @@
+{
+  "worldgen": [
+    {
+      "id": "core:temperate",
+      "name": "Temperate valley",
+      "width": 72,
+      "height": 52,
+      "noiseScale": 14,
+      "startClearRadius": 6,
+      "startTerrain": "core:grass",
+      "layers": [
+        {
+          "terrain": "core:water",
+          "below": 0.2
+        },
+        {
+          "terrain": "core:sand",
+          "below": 0.25
+        },
+        {
+          "terrain": "core:grass",
+          "below": 0.56
+        },
+        {
+          "terrain": "core:soil",
+          "below": 0.72
+        },
+        {
+          "terrain": "core:grass",
+          "below": 0.82
+        },
+        {
+          "terrain": "core:gravel",
+          "below": 2
+        }
+      ],
+      "climate": {
+        "yearDays": 30,
+        "summer": 22,
+        "winter": -6,
+        "daySwing": 5
+      }
+    }
+  ],
+  "spawnRule": [
+    {
+      "id": "core:pine_groves",
+      "node": "core:pine",
+      "terrain": [
+        "core:grass",
+        "core:soil"
+      ],
+      "density": 0.35,
+      "noiseScale": 7,
+      "noiseAbove": 0.58,
+      "minDistFromStart": 5
+    },
+    {
+      "id": "core:lone_pines",
+      "node": "core:pine",
+      "terrain": [
+        "core:grass"
+      ],
+      "density": 0.015,
+      "minDistFromStart": 5
+    },
+    {
+      "id": "core:rock_fields",
+      "node": "core:boulder",
+      "terrain": [
+        "core:gravel"
+      ],
+      "density": 0.5,
+      "minDistFromStart": 6
+    },
+    {
+      "id": "core:scattered_boulders",
+      "node": "core:boulder",
+      "terrain": [
+        "core:grass",
+        "core:sand"
+      ],
+      "density": 0.012,
+      "minDistFromStart": 7
+    },
+    {
+      "id": "core:berry_patches",
+      "node": "core:berry_bush",
+      "terrain": [
+        "core:grass",
+        "core:soil"
+      ],
+      "density": 0.018,
+      "minDistFromStart": 4
+    },
+    {
+      "id": "core:brush_patches",
+      "node": "core:brush",
+      "terrain": [
+        "core:grass",
+        "core:soil"
+      ],
+      "density": 0.06,
+      "minDistFromStart": 3
+    }
+  ]
+}

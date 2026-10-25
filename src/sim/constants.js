@@ -1,0 +1,14 @@
+// Engine-wide constants. Content values (costs, rates, yields) live in mod data, not here.
+export const GAME_API_VERSION = '1.0.0';
+export const SAVE_FORMAT = 14; // 2: settlements, ownership, research; 3: per-settlement stockpiles, villages, relations, trade; 4: compact terrain and nodes; 5: level of detail (village detail, watch, caravans); 6: alliances (optional s.alliances, proposal kind 'alliance'), diplomacy validated on load; 7: the planner's state (plans, pending replans) is saved beside the state (plancodec.js), so saving never changes the game; 8: kingdoms (optional s.kingdoms, settlement.kingdom), formed on load for villages founded before them (migrate.js); 9: markets (optional s.markets, trade.market), absent in older saves; 10: organic territory (optional s.claims: claim grid as runs, territory.js), absent in older saves (they keep the nearest-centre rule); 11: contact over distance (optional s.contact: explorers, traders, discovered chunks, contact.js), absent in older saves (no explorers or traders); 12: finished trades pruned in contact games, counted per pair (optional relation tradesDone); 13: god powers (optional s.god: sandbox, favour, the command queue and log, people spawned, blessings; god.js), absent until the first power is used or a Sandbox game starts; 14: power storage (optional structure.charge on batteries, power.js), absent means empty
+
+export const TICKS_PER_HOUR = 100;
+export const TICKS_PER_DAY = 24 * TICKS_PER_HOUR;
+export const MOVE_TICKS = 4; // ticks to cross one tile orthogonally at normal speed
+export const PLAN_INTERVAL = 60; // colony planner runs every N ticks
+export const CARRY_LIMIT = 40; // max units one colonist carries at once
+export const BLOCK_COOLDOWN = 600; // ticks a failed target is skipped by everyone
+export const CHUNK = 32; // chunk size in tiles (derived indices for big worlds)
+export const BIG_WORLD_TILES = 192 * 144; // worlds larger than Large use bounded, chunk-based searches
+export const WATER_REACH_WALK = 40; // big worlds: a lake shore this many tiles' walk from a village centre counts as water within reach (planner and level of detail alike)
+export const NEAR_RADIUS = 72; // big worlds: how far from its centre a village looks for resources to gather

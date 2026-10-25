@@ -1,0 +1,130 @@
+{
+  "skill": [
+    {
+      "id": "core:construction",
+      "name": "Construction"
+    },
+    {
+      "id": "core:mining",
+      "name": "Mining"
+    },
+    {
+      "id": "core:woodcutting",
+      "name": "Woodcutting"
+    },
+    {
+      "id": "core:farming",
+      "name": "Farming"
+    },
+    {
+      "id": "core:cooking",
+      "name": "Cooking"
+    },
+    {
+      "id": "core:crafting",
+      "name": "Crafting"
+    }
+  ],
+  "need": [
+    {
+      "id": "core:hunger",
+      "name": "Food",
+      "behavior": "core:eat",
+      "decayPerDay": 0.9,
+      "seekBelow": 0.4,
+      "urgentBelow": 0.2,
+      "color": "#e0a040"
+    },
+    {
+      "id": "core:thirst",
+      "name": "Water",
+      "behavior": "core:drink",
+      "decayPerDay": 1.4,
+      "seekBelow": 0.4,
+      "urgentBelow": 0.18,
+      "sleepDecayMult": 0.5,
+      "beforeSleepBelow": 0.6,
+      "color": "#5aa8e8"
+    },
+    {
+      "id": "core:energy",
+      "name": "Rest",
+      "behavior": "core:sleep",
+      "decayPerDay": 1.35,
+      "seekBelow": 0.28,
+      "urgentBelow": 0.1,
+      "nightSeekBelow": 0.62,
+      "maxBedDistance": 20,
+      "criticalBelow": 0.08,
+      "color": "#6f95e0"
+    },
+    {
+      "id": "core:shelter",
+      "name": "Shelter",
+      "behavior": "core:shelter",
+      "decayPerDay": 0.4,
+      "seekBelow": 0.5,
+      "urgentBelow": 0.2,
+      "color": "#a888d8"
+    }
+  ],
+  "terrain": [
+    {
+      "id": "core:grass",
+      "name": "Grass",
+      "color": "#5f8f45",
+      "passable": true,
+      "buildable": true,
+      "fertility": 1,
+      "render": {
+        "style": "grass"
+      }
+    },
+    {
+      "id": "core:soil",
+      "name": "Rich soil",
+      "color": "#6e5a34",
+      "passable": true,
+      "buildable": true,
+      "fertility": 1.35,
+      "render": {
+        "style": "soil"
+      }
+    },
+    {
+      "id": "core:sand",
+      "name": "Sand",
+      "color": "#cdbb86",
+      "passable": true,
+      "buildable": true,
+      "fertility": 0.2,
+      "moveCost": 1.2,
+      "render": {
+        "style": "sand"
+      }
+    },
+    {
+      "id": "core:gravel",
+      "name": "Stony ground",
+      "color": "#7d7b72",
+      "passable": true,
+      "buildable": true,
+      "fertility": 0,
+      "render": {
+        "style": "gravel"
+      }
+    },
+    {
+      "id": "core:water",
+      "name": "Water",
+      "color": "#3d6ea5",
+      "passable": false,
+      "buildable": false,
+      "fertility": 0,
+      "render": {
+        "style": "water"
+      },
+      "drinkable": true
+    }
+  ]
+}

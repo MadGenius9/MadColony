@@ -1,0 +1,289 @@
+{
+  "aiProfile": [
+    {
+      "id": "core:default_ai",
+      "name": "Balanced overseers",
+      "workWeights": {},
+      "distanceWeight": 0.05,
+      "sameWorkBonus": 0.15,
+      "skillWeight": 0.06,
+      "policy": {
+        "mealsPerColonist": 2,
+        "foodDays": 3,
+        "stock": {
+          "core:wood": 40,
+          "core:stone": 25
+        },
+        "maxActiveProjects": 2,
+        "equipTools": true,
+        "armColonists": false,
+        "fillDecorSlots": true,
+        "stockpileMinFree": 4,
+        "maxFieldTiles": 80,
+        "fieldSize": [
+          4,
+          4
+        ]
+      }
+    }
+  ],
+  "scenario": [
+    {
+      "id": "core:standard",
+      "name": "Five settlers",
+      "colonists": 5,
+      "startItems": [
+        {
+          "item": "core:wood",
+          "qty": 60
+        },
+        {
+          "item": "core:stone",
+          "qty": 20
+        },
+        {
+          "item": "core:stew",
+          "qty": 20
+        },
+        {
+          "item": "core:potato",
+          "qty": 60
+        },
+        {
+          "item": "core:bean",
+          "qty": 40
+        }
+      ],
+      "namePool": "core:names",
+      "skillMin": 0,
+      "skillMax": 6
+    },
+    {
+      "id": "core:neighbours",
+      "name": "Five settlers and a neighbouring village",
+      "colonists": 5,
+      "startItems": [
+        {
+          "item": "core:wood",
+          "qty": 60
+        },
+        {
+          "item": "core:stone",
+          "qty": 20
+        },
+        {
+          "item": "core:stew",
+          "qty": 20
+        },
+        {
+          "item": "core:potato",
+          "qty": 60
+        },
+        {
+          "item": "core:bean",
+          "qty": 40
+        }
+      ],
+      "namePool": "core:names",
+      "skillMin": 0,
+      "skillMax": 6,
+      "neighbors": [
+        "core:willowmere"
+      ],
+      "neighborDistance": 24
+    }
+  ],
+  "namePool": [
+    {
+      "id": "core:names",
+      "name": "Settler names",
+      "names": [
+        "Ada",
+        "Bram",
+        "Cora",
+        "Desh",
+        "Elin",
+        "Fenna",
+        "Garo",
+        "Hale",
+        "Iris",
+        "Jory",
+        "Kesh",
+        "Lune",
+        "Milo",
+        "Nell",
+        "Orin",
+        "Pell",
+        "Quill",
+        "Rhea",
+        "Soren",
+        "Tamsin",
+        "Ulla",
+        "Vero",
+        "Wren",
+        "Yara",
+        "Zev"
+      ],
+      "surnames": [
+        "Ashford",
+        "Barrow",
+        "Brook",
+        "Carver",
+        "Dale",
+        "Elderwood",
+        "Fallow",
+        "Fenwick",
+        "Glen",
+        "Hartley",
+        "Hollow",
+        "Ivers",
+        "Kestrel",
+        "Linden",
+        "Marsh",
+        "Moss",
+        "Nettle",
+        "Oakes",
+        "Pike",
+        "Quarry",
+        "Reed",
+        "Rowan",
+        "Sedge",
+        "Stone",
+        "Thorne",
+        "Tallow",
+        "Underhill",
+        "Vale",
+        "Wells",
+        "Whitlock",
+        "Willow",
+        "Yarrow",
+        "Birch",
+        "Cobb",
+        "Ferris",
+        "Heath",
+        "Lark",
+        "Mallow",
+        "Rook",
+        "Sparrow"
+      ]
+    }
+  ],
+  "villageProfile": [
+    {
+      "id": "core:willowmere",
+      "name": "Farming village",
+      "settlementNames": [
+        "Willowmere",
+        "Barleyford",
+        "Greenhollow"
+      ],
+      "color": "#7fc8a0",
+      "colonists": 3,
+      "startItems": [
+        {
+          "item": "core:wood",
+          "qty": 45
+        },
+        {
+          "item": "core:stone",
+          "qty": 10
+        },
+        {
+          "item": "core:stew",
+          "qty": 12
+        },
+        {
+          "item": "core:potato",
+          "qty": 50
+        },
+        {
+          "item": "core:bean",
+          "qty": 40
+        }
+      ],
+      "research": {
+        "core:agriculture": 3,
+        "core:construction": 2,
+        "core:industry": 1,
+        "core:utilities": 2,
+        "core:defense": 0
+      },
+      "policy": {
+        "foodDays": 5,
+        "mealsPerColonist": 3,
+        "stock": {
+          "core:wood": 30,
+          "core:stone": 10
+        }
+      },
+      "trade": {
+        "willingness": 0.9,
+        "generosity": 0.4,
+        "keepExtra": 15
+      },
+      "laws": {
+        "core:arms": "restricted",
+        "contraband:soft": "legal",
+        "contraband:synthetic": "restricted",
+        "default": "banned"
+      },
+      "enforcement": 0.45
+    },
+    {
+      "id": "core:stonebrook",
+      "name": "Quarry village",
+      "settlementNames": [
+        "Stonebrook",
+        "Granitefell",
+        "Cragmoor"
+      ],
+      "color": "#b0a0e0",
+      "colonists": 3,
+      "startItems": [
+        {
+          "item": "core:wood",
+          "qty": 40
+        },
+        {
+          "item": "core:stone",
+          "qty": 40
+        },
+        {
+          "item": "core:stew",
+          "qty": 15
+        },
+        {
+          "item": "core:potato",
+          "qty": 40
+        },
+        {
+          "item": "core:bean",
+          "qty": 30
+        }
+      ],
+      "research": {
+        "core:agriculture": 1,
+        "core:construction": 3,
+        "core:industry": 3,
+        "core:utilities": 1,
+        "core:defense": 1
+      },
+      "policy": {
+        "stock": {
+          "core:wood": 40,
+          "core:stone": 60
+        }
+      },
+      "trade": {
+        "willingness": 0.7,
+        "generosity": 0.15,
+        "keepExtra": 20
+      },
+      "laws": {
+        "core:arms": "legal",
+        "default": "banned"
+      },
+      "enforcement": 0.85
+    }
+  ]
+}

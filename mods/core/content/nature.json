@@ -1,0 +1,129 @@
+{
+  "node": [
+    {
+      "id": "core:pine",
+      "name": "Pine tree",
+      "workType": "core:chop",
+      "work": 110,
+      "yields": [
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "chunks": 2,
+      "passable": false,
+      "tags": [
+        "core:tree"
+      ],
+      "render": {
+        "shape": "tree",
+        "color": "#2f6436",
+        "color2": "#5b3d22"
+      }
+    },
+    {
+      "id": "core:boulder",
+      "name": "Granite boulder",
+      "workType": "core:mine",
+      "work": 140,
+      "yields": [
+        {
+          "item": "core:stone",
+          "qty": 5
+        }
+      ],
+      "chunks": 5,
+      "passable": false,
+      "tags": [
+        "core:rock"
+      ],
+      "render": {
+        "shape": "rock",
+        "color": "#8a8a86",
+        "color2": "#6b6b67"
+      }
+    },
+    {
+      "id": "core:berry_bush",
+      "name": "Berry bush",
+      "workType": "core:forage",
+      "work": 50,
+      "yields": [
+        {
+          "item": "core:berry",
+          "qty": 5
+        }
+      ],
+      "chunks": 1,
+      "regrowDays": 2,
+      "passable": true,
+      "tags": [
+        "core:wild_food"
+      ],
+      "render": {
+        "shape": "bush",
+        "color": "#3d7a3a",
+        "color2": "#c2365e"
+      }
+    },
+    {
+      "id": "core:brush",
+      "name": "Thick brush",
+      "workType": "core:farm",
+      "work": 25,
+      "yields": [],
+      "chunks": 1,
+      "passable": true,
+      "tags": [
+        "core:weeds"
+      ],
+      "render": {
+        "shape": "brush",
+        "color": "#4f7a33"
+      }
+    }
+  ],
+  "crop": [
+    {
+      "id": "core:potato_crop",
+      "name": "Potato plants",
+      "seed": "core:potato",
+      "harvest": [
+        {
+          "item": "core:potato",
+          "qty": 7
+        }
+      ],
+      "growDays": 2.5,
+      "minFertility": 0.5,
+      "sowWork": 25,
+      "harvestWork": 30,
+      "color": "#7fae4c",
+      "render": {
+        "shape": "bush",
+        "color2": "#f0f0d0"
+      }
+    },
+    {
+      "id": "core:bean_crop",
+      "name": "Bean vines",
+      "seed": "core:bean",
+      "harvest": [
+        {
+          "item": "core:bean",
+          "qty": 6
+        }
+      ],
+      "growDays": 2,
+      "minFertility": 0.5,
+      "sowWork": 25,
+      "harvestWork": 30,
+      "color": "#5fa04a",
+      "render": {
+        "shape": "vine",
+        "color2": "#a8c060"
+      }
+    }
+  ]
+}

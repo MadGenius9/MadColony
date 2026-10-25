@@ -1,0 +1,62 @@
+{
+  "$comment": "Fictional, abstract content. Source plants are invented; recipes are generic game steps with made-up inputs. Nothing here describes real production. Products are controlled goods (core:controlled): each village's laws decide where they may be sold.",
+  "item": [
+    { "id": "contraband:dreamleaf", "name": "Dreamleaf", "color": "#7aa848", "stackLimit": 60, "tags": ["core:material"], "render": { "shape": "basket", "icon": "produce" }, "value": 0.8 },
+    { "id": "contraband:snowberry", "name": "Snowberry sprigs", "color": "#d8e8e0", "stackLimit": 60, "tags": ["core:material"], "render": { "shape": "basket", "icon": "berries" }, "value": 0.9 },
+    { "id": "contraband:gloomcap", "name": "Gloomcaps", "color": "#6a5a7a", "stackLimit": 60, "tags": ["core:material"], "render": { "shape": "basket", "icon": "produce" }, "value": 0.9 },
+    { "id": "contraband:reagent_kit", "name": "Reagent kit", "color": "#8a9aa8", "stackLimit": 30, "tags": ["core:material"], "render": { "shape": "crate", "icon": "crate" }, "value": 2.5 },
+    { "id": "contraband:cannabis", "name": "Cannabis (weed)", "color": "#5f8f3a", "stackLimit": 50, "tags": ["core:controlled", "contraband:soft"], "render": { "shape": "sack", "icon": "sack" }, "value": 4 },
+    { "id": "contraband:cocaine", "name": "Cocaine", "color": "#f2f2ee", "stackLimit": 50, "tags": ["core:controlled", "contraband:hard"], "render": { "shape": "crate", "icon": "crate" }, "value": 12 },
+    { "id": "contraband:heroin", "name": "Heroin", "color": "#b8a890", "stackLimit": 50, "tags": ["core:controlled", "contraband:hard"], "render": { "shape": "crate", "icon": "crate" }, "value": 12 },
+    { "id": "contraband:meth", "name": "Meth", "color": "#c8e4f0", "stackLimit": 50, "tags": ["core:controlled", "contraband:synthetic"], "render": { "shape": "crate", "icon": "crate" }, "value": 9 },
+    { "id": "contraband:mdma", "name": "MDMA", "color": "#e8b8d8", "stackLimit": 50, "tags": ["core:controlled", "contraband:synthetic"], "render": { "shape": "crate", "icon": "crate" }, "value": 8 }
+  ],
+  "node": [
+    { "id": "contraband:wild_dreamleaf", "name": "Wild dreamleaf", "workType": "core:forage", "work": 45, "yields": [{ "item": "contraband:dreamleaf", "qty": 4 }], "chunks": 1, "regrowDays": 2, "passable": true, "render": { "shape": "brush", "color": "#6a9a3a" } },
+    { "id": "contraband:snowberry_shrub", "name": "Snowberry shrub", "workType": "core:forage", "work": 55, "yields": [{ "item": "contraband:snowberry", "qty": 4 }], "chunks": 1, "regrowDays": 3, "passable": true, "render": { "shape": "bush", "color": "#4a7a5a", "color2": "#e8f0ee" } },
+    { "id": "contraband:gloomcap_patch", "name": "Gloomcap patch", "workType": "core:forage", "work": 50, "yields": [{ "item": "contraband:gloomcap", "qty": 3 }], "chunks": 1, "regrowDays": 3, "passable": true, "render": { "shape": "patch", "color": "#5a4a6a", "color2": "#8a7a9a" } }
+  ],
+  "spawnRule": [
+    { "id": "contraband:dreamleaf_stands", "node": "contraband:wild_dreamleaf", "terrain": ["core:grass", "core:soil"], "density": 0.008, "minDistFromStart": 5 },
+    { "id": "contraband:snowberry_thickets", "node": "contraband:snowberry_shrub", "terrain": ["core:grass"], "density": 0.005, "minDistFromStart": 6 },
+    { "id": "contraband:gloomcap_rings", "node": "contraband:gloomcap_patch", "terrain": ["core:soil", "core:grass"], "density": 0.005, "minDistFromStart": 6 }
+  ],
+  "building": [
+    { "id": "contraband:drying_rack", "name": "Drying rack", "category": "station", "passable": false,
+      "cost": [{ "item": "core:wood", "qty": 14 }], "work": 180, "skill": "core:construction", "interaction": [0, 1],
+      "color": "#8a6a42", "render": { "shape": "shelf", "color2": "#7aa848" } },
+    { "id": "contraband:lab_bench", "name": "Back-room bench", "category": "station", "passable": false,
+      "cost": [{ "item": "core:wood", "qty": 12 }, { "item": "core:stone", "qty": 8 }], "work": 260, "skill": "core:construction", "interaction": [0, 1],
+      "color": "#5a6068", "render": { "shape": "desk", "color2": "#c8d0d8" } }
+  ],
+  "template": [
+    { "id": "contraband:curing_shed", "name": "Curing shed", "kind": "station", "provides": ["contraband:drying_rack"],
+      "layout": ["R", "."], "legend": { "R": { "build": "contraband:drying_rack" }, ".": { "floor": true } } },
+    { "id": "contraband:back_room", "name": "Back room", "kind": "workshop", "provides": ["contraband:lab_bench"],
+      "layout": ["###", "#L#", "#.#", "#D#", " _ "],
+      "legend": { "#": { "slot": "core:wall" }, "D": { "build": "core:door" }, "L": { "build": "contraband:lab_bench" }, ".": { "floor": true }, "_": { "clear": true } } }
+  ],
+  "recipe": [
+    { "id": "contraband:cure_cannabis", "name": "Cure cannabis", "station": "contraband:drying_rack", "workType": "core:craft",
+      "inputs": [{ "item": "contraband:dreamleaf", "qty": 6 }], "outputs": [{ "item": "contraband:cannabis", "qty": 3 }], "work": 200, "skill": "core:crafting" },
+    { "id": "contraband:make_reagent_kit", "name": "Assemble reagent kit", "station": "contraband:lab_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:stone", "qty": 3 }, { "item": "core:wood", "qty": 1 }], "outputs": [{ "item": "contraband:reagent_kit", "qty": 1 }], "work": 120, "skill": "core:crafting" },
+    { "id": "contraband:process_cocaine", "name": "Process cocaine", "station": "contraband:lab_bench", "workType": "core:craft",
+      "inputs": [{ "item": "contraband:snowberry", "qty": 8 }, { "item": "contraband:reagent_kit", "qty": 1 }], "outputs": [{ "item": "contraband:cocaine", "qty": 2 }], "work": 300, "skill": "core:crafting" },
+    { "id": "contraband:process_heroin", "name": "Process heroin", "station": "contraband:lab_bench", "workType": "core:craft",
+      "inputs": [{ "item": "contraband:gloomcap", "qty": 6 }, { "item": "contraband:reagent_kit", "qty": 1 }], "outputs": [{ "item": "contraband:heroin", "qty": 2 }], "work": 300, "skill": "core:crafting" },
+    { "id": "contraband:process_meth", "name": "Process meth", "station": "contraband:lab_bench", "workType": "core:craft",
+      "inputs": [{ "item": "contraband:reagent_kit", "qty": 3 }], "outputs": [{ "item": "contraband:meth", "qty": 2 }], "work": 280, "skill": "core:crafting" },
+    { "id": "contraband:process_mdma", "name": "Process MDMA", "station": "contraband:lab_bench", "workType": "core:craft",
+      "inputs": [{ "item": "contraband:reagent_kit", "qty": 2 }, { "item": "contraband:dreamleaf", "qty": 2 }], "outputs": [{ "item": "contraband:mdma", "qty": 2 }], "work": 260, "skill": "core:crafting" }
+  ],
+  "tech": [
+    { "id": "contraband:curing", "name": "Curing", "field": "core:agriculture", "era": "core:settlement",
+      "description": "A drying rack for curing dreamleaf into cannabis.", "research": 900,
+      "cost": [{ "item": "core:wood", "qty": 8 }], "unlocks": { "buildings": ["contraband:drying_rack"], "templates": ["contraband:curing_shed"], "recipes": ["contraband:cure_cannabis"] } },
+    { "id": "contraband:back_room_work", "name": "Back-room work", "field": "core:industry", "era": "core:workshops", "prerequisites": ["contraband:curing"],
+      "description": "A hidden bench and abstract reagent kits for processing the harder goods.", "research": 1600,
+      "cost": [{ "item": "core:stone", "qty": 12 }],
+      "unlocks": { "buildings": ["contraband:lab_bench"], "templates": ["contraband:back_room"], "recipes": ["contraband:make_reagent_kit", "contraband:process_cocaine", "contraband:process_heroin", "contraband:process_meth", "contraband:process_mdma"] } }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "$comment": "Phase 1: more kinds of AI village and the 'Living world' scenario (many villages spread over a continent). The profiles differ in priorities, stock and trade habits only: every village uses the same rules and economy as the player.",
+  "villageProfile": [
+    {
+      "id": "core:lumber_camp", "name": "Lumber camp",
+      "settlementNames": ["Pinecroft", "Oakmere", "Timberley", "Fernwick", "Larchholt", "Sprucedale"],
+      "kingdomNames": ["Kingdom of {capital}", "{capital} Woodland Realm", "Timber Crown of {capital}"],
+      "color": "#8fb860", "colonists": 3,
+      "startItems": [{ "item": "core:wood", "qty": 70 }, { "item": "core:stone", "qty": 8 }, { "item": "core:stew", "qty": 12 }, { "item": "core:potato", "qty": 45 }, { "item": "core:bean", "qty": 35 }],
+      "research": { "core:agriculture": 2, "core:construction": 3, "core:industry": 2, "core:utilities": 1, "core:defense": 1 },
+      "policy": { "maxPopulation": 6, "foodDays": 4, "stock": { "core:wood": 80, "core:stone": 10 } },
+      "trade": { "willingness": 0.8, "generosity": 0.3, "keepExtra": 25 },
+      "laws": { "core:arms": "restricted", "default": "banned" }, "enforcement": 0.5
+    },
+    {
+      "id": "core:hill_fort", "name": "Hill fort",
+      "settlementNames": ["Highwatch", "Stonegard", "Ravenhold", "Brackenmoor", "Kestrel Tor", "Dunmere"],
+      "kingdomNames": ["Kingdom of {capital}", "March of {capital}", "Iron Crown of {capital}"],
+      "color": "#d08a6a", "colonists": 4,
+      "startItems": [{ "item": "core:wood", "qty": 50 }, { "item": "core:stone", "qty": 25 }, { "item": "core:stew", "qty": 14 }, { "item": "core:potato", "qty": 50 }, { "item": "core:bean", "qty": 40 }],
+      "research": { "core:agriculture": 1, "core:construction": 2, "core:industry": 2, "core:utilities": 1, "core:defense": 3 },
+      "policy": { "maxPopulation": 6, "foodDays": 6, "stock": { "core:wood": 40, "core:stone": 40 } },
+      "trade": { "willingness": 0.4, "generosity": 0.1, "keepExtra": 30 },
+      "laws": { "core:arms": "legal", "default": "banned" }, "enforcement": 0.9
+    },
+    {
+      "id": "core:trading_post", "name": "Trading post",
+      "settlementNames": ["Crossways", "Marketon", "Fairhaven", "Tollbridge", "Wayfarer's Rest", "Copperford"],
+      "kingdomNames": ["Kingdom of {capital}", "{capital} League", "Merchant Crown of {capital}"],
+      "color": "#e0c060", "colonists": 3,
+      "startItems": [{ "item": "core:wood", "qty": 50 }, { "item": "core:stone", "qty": 15 }, { "item": "core:stew", "qty": 15 }, { "item": "core:potato", "qty": 55 }, { "item": "core:bean", "qty": 45 }],
+      "research": { "core:agriculture": 2, "core:construction": 2, "core:industry": 2, "core:utilities": 2, "core:defense": 1 },
+      "policy": { "maxPopulation": 6, "foodDays": 5, "stock": { "core:wood": 30, "core:stone": 15 } },
+      "trade": { "willingness": 1, "generosity": 0.5, "keepExtra": 10 },
+      "laws": { "core:arms": "restricted", "contraband:soft": "legal", "default": "restricted" }, "enforcement": 0.3
+    },
+    {
+      "id": "core:river_hamlet", "name": "River hamlet",
+      "settlementNames": ["Reedwater", "Millbrook", "Otterford", "Willowbend", "Fishgate", "Rushmead"],
+      "kingdomNames": ["Kingdom of {capital}", "{capital} Riverlands", "Crown of {capital}"],
+      "color": "#70b8d8", "colonists": 3,
+      "startItems": [{ "item": "core:wood", "qty": 40 }, { "item": "core:stone", "qty": 10 }, { "item": "core:stew", "qty": 14 }, { "item": "core:potato", "qty": 60 }, { "item": "core:bean", "qty": 50 }],
+      "research": { "core:agriculture": 3, "core:construction": 2, "core:industry": 1, "core:utilities": 3, "core:defense": 0 },
+      "policy": { "maxPopulation": 6, "foodDays": 6, "mealsPerColonist": 3, "stock": { "core:wood": 30, "core:stone": 10 } },
+      "trade": { "willingness": 0.9, "generosity": 0.45, "keepExtra": 15 },
+      "laws": { "core:arms": "banned", "default": "banned" }, "enforcement": 0.4
+    },
+    {
+      "id": "core:highland_steading", "name": "Highland steading",
+      "settlementNames": ["Frostholm", "Whitecairn", "Snowmere", "Icebrook", "Coldharbour", "Wintersett"],
+      "kingdomNames": ["Kingdom of {capital}", "{capital} Highlands", "Snow Crown of {capital}"],
+      "color": "#c8d8e8", "colonists": 3,
+      "startItems": [{ "item": "core:wood", "qty": 65 }, { "item": "core:stone", "qty": 20 }, { "item": "core:stew", "qty": 16 }, { "item": "core:potato", "qty": 55 }, { "item": "core:bean", "qty": 40 }],
+      "research": { "core:agriculture": 2, "core:construction": 3, "core:industry": 1, "core:utilities": 3, "core:defense": 1 },
+      "policy": { "maxPopulation": 6, "foodDays": 8, "stock": { "core:wood": 60, "core:stone": 20 } },
+      "trade": { "willingness": 0.6, "generosity": 0.25, "keepExtra": 20 },
+      "laws": { "core:arms": "legal", "default": "banned" }, "enforcement": 0.6
+    },
+    {
+      "id": "core:scholars_retreat", "name": "Scholars' retreat",
+      "settlementNames": ["Lanternhill", "Quillmere", "Inkwell", "Bookham", "Sagecross", "Lorewick"],
+      "kingdomNames": ["Kingdom of {capital}", "{capital} Realm", "Lantern Crown of {capital}"],
+      "color": "#c890d0", "colonists": 3,
+      "startItems": [{ "item": "core:wood", "qty": 50 }, { "item": "core:stone", "qty": 15 }, { "item": "core:stew", "qty": 14 }, { "item": "core:potato", "qty": 50 }, { "item": "core:bean", "qty": 40 }],
+      "research": { "core:agriculture": 2, "core:construction": 2, "core:industry": 3, "core:utilities": 3, "core:defense": 0 },
+      "policy": { "maxPopulation": 6, "foodDays": 5, "maxResearchers": 2, "stock": { "core:wood": 30, "core:stone": 15 } },
+      "trade": { "willingness": 0.7, "generosity": 0.35, "keepExtra": 15 },
+      "laws": { "core:arms": "banned", "default": "banned" }, "enforcement": 0.5
+    }
+  ],
+  "scenario": [
+    {
+      "id": "core:living_world", "name": "Living world: your village among many on a continent",
+      "colonists": 5,
+      "startItems": [{ "item": "core:wood", "qty": 60 }, { "item": "core:stone", "qty": 20 }, { "item": "core:stew", "qty": 20 }, { "item": "core:potato", "qty": 60 }, { "item": "core:bean", "qty": 40 }],
+      "namePool": "core:names", "skillMin": 0, "skillMax": 6,
+      "neighbors": ["core:willowmere", "core:stonebrook", "core:lumber_camp", "core:hill_fort", "core:trading_post", "core:river_hamlet", "core:highland_steading", "core:scholars_retreat"],
+      "villages": 10,
+      "worldgen": "core:continent",
+      "size": "huge",
+      "placement": "spread",
+      "siteWaterWalk": 24,
+      "neighborDistance": 40,
+      "eraDrive": { "urgency": 0.3, "afterDays": 5 },
+      "founding": {
+        "maxVillages": 40,
+        "minAdults": 5,
+        "crowdedDays": 3,
+        "foodDaysLeft": 5,
+        "cooldownDays": 20,
+        "founders": [2, 4],
+        "sendFoodDays": 3,
+        "sendItems": { "core:wood": 20, "core:stone": 10 },
+        "searchRadius": 36,
+        "minSpacing": 22,
+        "siteRetryDays": 5,
+        "growBeds": 1,
+        "growAfterDays": 5
+      },
+      "market": {
+        "reach": 120,
+        "k": 200,
+        "minFactor": 0.5,
+        "maxFactor": 2,
+        "step": 0.25,
+        "minContacts": 2,
+        "researchContacts": 3
+      }
+    }
+  ]
+}

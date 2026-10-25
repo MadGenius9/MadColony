@@ -1,0 +1,19 @@
+{
+  "name": "madcolony",
+  "version": "0.1.0",
+  "description": "An original, moddable autonomous colony-management prototype (browser, 2D top-down).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node tools/serve.js",
+    "test": "node --test \"tests/*.test.js\"",
+    "sim": "node tools/simulate.js",
+    "pack-mod": "node tools/pack-mod.js",
+    "build-mod-index": "node tools/build-mod-index.js",
+    "world-report": "node tools/world-report.mjs",
+    "balance-check": "node tools/balance-check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

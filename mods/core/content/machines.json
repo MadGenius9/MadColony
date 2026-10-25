@@ -1,0 +1,398 @@
+{
+  "$comment": "Phase 3 slice 2: more machines and recipes. Planks and machine parts, a powered sawmill, machine-made parts and gun parts, and plank furniture that is chosen only while planks are in stock. Loaded last so nothing earlier changes order. Which tech unlocks what is listed in research.json. Machines and generators are serviced with a machine part, so parts stay in demand while machines run. Phase 3 slice 4: power storage. A battery bank (unlocked by Power storage, which needs Electricity) stores a generator's surplus and covers shortfalls; the colony puts one beside the generator of each network.",
+  "tech": [
+    {
+      "id": "core:power_storage",
+      "name": "Power storage",
+      "field": "core:utilities",
+      "era": "core:electric",
+      "prerequisites": [
+        "core:electricity"
+      ],
+      "description": "A battery bank stores what the generators make beyond the machines' needs and gives it back when they fall short, or when the fuel runs out.",
+      "research": 2200,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 3
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 3
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:battery"
+        ],
+        "templates": [
+          "core:battery_spot"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "id": "core:planks",
+      "name": "Planks",
+      "color": "#d2ab72",
+      "stackLimit": 60,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "logs",
+        "color2": "#ecd3a2",
+        "icon": "logs"
+      },
+      "value": 1.2
+    },
+    {
+      "id": "core:machine_parts",
+      "name": "Machine parts",
+      "color": "#7d858e",
+      "stackLimit": 40,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "crate",
+        "color2": "#c0582a",
+        "icon": "crate"
+      },
+      "value": 9
+    }
+  ],
+  "recipe": [
+    {
+      "id": "core:hand_planks",
+      "name": "Saw planks by hand",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:planks",
+          "qty": 2
+        }
+      ],
+      "work": 120,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:saw_planks",
+      "name": "Saw planks",
+      "station": "core:sawmill",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:planks",
+          "qty": 2
+        }
+      ],
+      "work": 40,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_machine_parts",
+      "name": "Make machine parts by hand",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 1
+        },
+        {
+          "item": "core:planks",
+          "qty": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:machine_parts",
+          "qty": 1
+        }
+      ],
+      "work": 300,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:machine_machine_parts",
+      "name": "Machine-make machine parts",
+      "station": "core:machine_bench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 1
+        },
+        {
+          "item": "core:planks",
+          "qty": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:machine_parts",
+          "qty": 1
+        }
+      ],
+      "work": 100,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:machine_gun_parts",
+      "name": "Machine-make gun parts",
+      "station": "core:machine_bench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 2
+        },
+        {
+          "item": "core:wood",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:gun_parts",
+          "qty": 2
+        }
+      ],
+      "work": 70,
+      "skill": "core:crafting"
+    }
+  ],
+  "building": [
+    {
+      "id": "core:sawmill",
+      "name": "Sawmill",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 4
+        },
+        {
+          "item": "core:wood",
+          "qty": 10
+        },
+        {
+          "item": "core:stone",
+          "qty": 4
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 2
+        }
+      ],
+      "work": 340,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "power": {
+        "use": 6,
+        "reach": 2
+      },
+      "machineHours": 8,
+      "maxMachines": 3,
+      "color": "#6a5a48",
+      "render": {
+        "shape": "machine",
+        "color2": "#d2ab72"
+      },
+      "maintenance": {
+        "wearPerHour": 2.5,
+        "cost": [
+          {
+            "item": "core:machine_parts",
+            "qty": 1
+          }
+        ],
+        "work": 120
+      }
+    },
+    {
+      "id": "core:plank_bed",
+      "name": "Plank bed",
+      "category": "furniture",
+      "passable": true,
+      "stockedOnly": true,
+      "cost": [
+        {
+          "item": "core:planks",
+          "qty": 6
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:bed"
+      ],
+      "bed": {
+        "restRate": 3.6
+      },
+      "furnishing": {
+        "score": 1.4
+      },
+      "color": "#d2ab72",
+      "render": {
+        "shape": "bed",
+        "color2": "#4f6fa0"
+      }
+    },
+    {
+      "id": "core:plank_table",
+      "name": "Joined table",
+      "category": "furniture",
+      "passable": false,
+      "stockedOnly": true,
+      "cost": [
+        {
+          "item": "core:planks",
+          "qty": 5
+        }
+      ],
+      "work": 100,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:table"
+      ],
+      "furnishing": {
+        "score": 1.4
+      },
+      "color": "#b8864e",
+      "render": {
+        "shape": "table"
+      }
+    },
+    {
+      "id": "core:plank_chair",
+      "name": "Joined chair",
+      "category": "furniture",
+      "passable": true,
+      "stockedOnly": true,
+      "cost": [
+        {
+          "item": "core:planks",
+          "qty": 3
+        }
+      ],
+      "work": 70,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:chair"
+      ],
+      "furnishing": {
+        "score": 1.4
+      },
+      "color": "#c08c50",
+      "render": {
+        "shape": "chair"
+      }
+    },
+    {
+      "id": "core:battery",
+      "name": "Battery bank",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 4
+        },
+        {
+          "item": "core:stone",
+          "qty": 6
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 2
+        }
+      ],
+      "work": 220,
+      "skill": "core:construction",
+      "power": {
+        "store": 3000,
+        "charge": 6,
+        "reach": 3
+      },
+      "color": "#4a5560",
+      "render": {
+        "shape": "battery",
+        "color2": "#6ab8e8"
+      }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:sawmill_shop",
+      "name": "Sawmill shop",
+      "kind": "workshop",
+      "provides": [
+        "core:sawmill"
+      ],
+      "layout": [
+        "###",
+        "#S#",
+        "#.#",
+        "#D#",
+        " _ "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "S": {
+          "build": "core:sawmill"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:battery_spot",
+      "name": "Battery bank",
+      "kind": "station",
+      "provides": [
+        "core:battery"
+      ],
+      "layout": [
+        "B",
+        "_"
+      ],
+      "legend": {
+        "B": {
+          "build": "core:battery"
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    }
+  ]
+}

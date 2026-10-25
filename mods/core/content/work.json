@@ -1,0 +1,149 @@
+{
+  "workType": [
+    {
+      "id": "core:care",
+      "name": "Care",
+      "priority": 2,
+      "givers": [
+        {
+          "giver": "core:tend"
+        }
+      ],
+      "color": "#e06a8a"
+    },
+    {
+      "id": "core:cook",
+      "name": "Cooking",
+      "skill": "core:cooking",
+      "priority": 1,
+      "givers": [
+        {
+          "giver": "core:bills"
+        }
+      ],
+      "color": "#e39a3b"
+    },
+    {
+      "id": "core:farm",
+      "name": "Farming",
+      "skill": "core:farming",
+      "priority": 0.95,
+      "givers": [
+        {
+          "giver": "core:harvest"
+        },
+        {
+          "giver": "core:sow"
+        },
+        {
+          "giver": "core:gather_nodes"
+        }
+      ],
+      "color": "#7fae4c"
+    },
+    {
+      "id": "core:construct",
+      "name": "Construction",
+      "skill": "core:construction",
+      "priority": 0.9,
+      "givers": [
+        {
+          "giver": "core:maintain"
+        },
+        {
+          "giver": "core:construct"
+        }
+      ],
+      "color": "#c9a46a",
+      "hazard": {
+        "chance": 0.002,
+        "min": 5,
+        "max": 15,
+        "text": "Hurt while building"
+      }
+    },
+    {
+      "id": "core:craft",
+      "name": "Crafting",
+      "skill": "core:crafting",
+      "priority": 0.85,
+      "givers": [
+        {
+          "giver": "core:bills"
+        }
+      ],
+      "color": "#b0b8c0"
+    },
+    {
+      "id": "core:chop",
+      "name": "Woodcutting",
+      "skill": "core:woodcutting",
+      "priority": 0.8,
+      "givers": [
+        {
+          "giver": "core:gather_nodes"
+        }
+      ],
+      "color": "#a0703c",
+      "hazard": {
+        "chance": 0.004,
+        "min": 6,
+        "max": 18,
+        "text": "Cut by a slipping axe"
+      }
+    },
+    {
+      "id": "core:mine",
+      "name": "Mining",
+      "skill": "core:mining",
+      "priority": 0.75,
+      "givers": [
+        {
+          "giver": "core:gather_nodes"
+        }
+      ],
+      "color": "#a3a39c",
+      "hazard": {
+        "chance": 0.005,
+        "min": 8,
+        "max": 22,
+        "text": "Hit by a flying rock chip"
+      }
+    },
+    {
+      "id": "core:forage",
+      "name": "Foraging",
+      "skill": "core:farming",
+      "priority": 0.75,
+      "givers": [
+        {
+          "giver": "core:gather_nodes"
+        }
+      ],
+      "color": "#b8345a"
+    },
+    {
+      "id": "core:haul",
+      "name": "Hauling",
+      "priority": 0.75,
+      "givers": [
+        {
+          "giver": "core:trade_deliver"
+        },
+        {
+          "giver": "core:refuel"
+        },
+        {
+          "giver": "core:haul_sites"
+        },
+        {
+          "giver": "core:haul_stockpile"
+        },
+        {
+          "giver": "core:scout"
+        }
+      ],
+      "color": "#d0d0d0"
+    }
+  ]
+}

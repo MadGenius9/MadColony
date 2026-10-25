@@ -1,0 +1,163 @@
+{
+  "item": [
+    {
+      "id": "core:wood",
+      "name": "Wood",
+      "color": "#a0703c",
+      "stackLimit": 75,
+      "tags": [
+        "core:material",
+        "core:fuel"
+      ],
+      "render": {
+        "shape": "logs",
+        "color2": "#d9b47a",
+        "icon": "logs"
+      },
+      "value": 1,
+      "fuel": 1
+    },
+    {
+      "id": "core:stone",
+      "name": "Stone",
+      "color": "#a3a39c",
+      "stackLimit": 75,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "stones",
+        "color2": "#7b7b74",
+        "icon": "stones"
+      },
+      "value": 1.2
+    },
+    {
+      "id": "core:potato",
+      "name": "Potatoes",
+      "color": "#c9a46a",
+      "stackLimit": 75,
+      "nutrition": 0.12,
+      "tags": [
+        "core:food",
+        "core:raw_food"
+      ],
+      "render": {
+        "shape": "basket",
+        "icon": "potatoes"
+      },
+      "value": 1.4
+    },
+    {
+      "id": "core:bean",
+      "name": "Beans",
+      "color": "#7b9a36",
+      "stackLimit": 75,
+      "nutrition": 0.12,
+      "tags": [
+        "core:food",
+        "core:raw_food"
+      ],
+      "render": {
+        "shape": "basket",
+        "icon": "beans"
+      },
+      "value": 1.4
+    },
+    {
+      "id": "core:berry",
+      "name": "Wild berries",
+      "color": "#b8345a",
+      "stackLimit": 75,
+      "nutrition": 0.1,
+      "tags": [
+        "core:food",
+        "core:raw_food"
+      ],
+      "render": {
+        "shape": "basket",
+        "icon": "berries"
+      },
+      "value": 1.2
+    },
+    {
+      "id": "core:stew",
+      "name": "Hearty stew",
+      "color": "#e39a3b",
+      "stackLimit": 25,
+      "nutrition": 0.55,
+      "tags": [
+        "core:food",
+        "core:meal"
+      ],
+      "render": {
+        "shape": "meal",
+        "color2": "#6b4a2a",
+        "icon": "bowl"
+      },
+      "value": 4
+    },
+    {
+      "id": "core:stone_axe",
+      "name": "Stone axe",
+      "color": "#c8b090",
+      "stackLimit": 1,
+      "tags": [
+        "core:tool"
+      ],
+      "equipment": {
+        "slot": "tool",
+        "workBoost": {
+          "core:chop": 1.9
+        },
+        "durability": 2600
+      },
+      "render": {
+        "shape": "axe"
+      },
+      "value": 12
+    },
+    {
+      "id": "core:stone_pickaxe",
+      "name": "Stone pickaxe",
+      "color": "#b0b8c0",
+      "stackLimit": 1,
+      "tags": [
+        "core:tool"
+      ],
+      "equipment": {
+        "slot": "tool",
+        "workBoost": {
+          "core:mine": 2
+        },
+        "durability": 2600
+      },
+      "render": {
+        "shape": "pickaxe"
+      },
+      "value": 14
+    },
+    {
+      "id": "core:spear",
+      "name": "Fire-hardened spear",
+      "color": "#d4a35c",
+      "stackLimit": 1,
+      "tags": [
+        "core:weapon"
+      ],
+      "equipment": {
+        "slot": "weapon",
+        "damage": 8,
+        "durability": 1500,
+        "range": 1.5,
+        "cooldown": 45,
+        "accuracy": 0.8
+      },
+      "render": {
+        "shape": "spear",
+        "icon": "spear"
+      },
+      "value": 10
+    }
+  ]
+}

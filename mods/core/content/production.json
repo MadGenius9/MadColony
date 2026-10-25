@@ -1,0 +1,28 @@
+{
+  "recipe": [
+    {
+      "id": "core:cook_stew", "name": "Cook hearty stew", "station": "core:campfire", "workType": "core:cook",
+      "inputs": [{ "tag": "core:raw_food", "qty": 9 }],
+      "outputs": [{ "item": "core:stew", "qty": 3 }],
+      "work": 140, "skill": "core:cooking"
+    },
+    {
+      "id": "core:make_axe", "name": "Make stone axe", "station": "core:workbench", "workType": "core:craft",
+      "inputs": [{ "item": "core:wood", "qty": 3 }, { "item": "core:stone", "qty": 4 }],
+      "outputs": [{ "item": "core:stone_axe", "qty": 1 }],
+      "work": 200, "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_pickaxe", "name": "Make stone pickaxe", "station": "core:workbench", "workType": "core:craft",
+      "inputs": [{ "item": "core:wood", "qty": 3 }, { "item": "core:stone", "qty": 5 }],
+      "outputs": [{ "item": "core:stone_pickaxe", "qty": 1 }],
+      "work": 200, "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_spear", "name": "Make spear", "station": "core:workbench", "workType": "core:craft",
+      "inputs": [{ "item": "core:wood", "qty": 5 }, { "item": "core:stone", "qty": 1 }],
+      "outputs": [{ "item": "core:spear", "qty": 1 }],
+      "work": 160, "skill": "core:crafting"
+    }
+  ]
+}

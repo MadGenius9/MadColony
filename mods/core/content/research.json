@@ -1,0 +1,1708 @@
+{
+  "$comment": "Technology content. Researching a tech only unlocks the listed recipes/buildings/templates; colonists still have to gather, craft and build everything. Anything no tech unlocks is available from the start (basic food, shelter, gathering and starter tools).",
+  "techField": [
+    {
+      "id": "core:agriculture",
+      "name": "Agriculture",
+      "color": "#7fae4c",
+      "order": 0
+    },
+    {
+      "id": "core:construction",
+      "name": "Construction",
+      "color": "#c9a46a",
+      "order": 1
+    },
+    {
+      "id": "core:industry",
+      "name": "Industry",
+      "color": "#b0b8c0",
+      "order": 2
+    },
+    {
+      "id": "core:utilities",
+      "name": "Utilities",
+      "color": "#7fb8e0",
+      "order": 3
+    },
+    {
+      "id": "core:defense",
+      "name": "Defense",
+      "color": "#d07060",
+      "order": 4
+    }
+  ],
+  "era": [
+    {
+      "id": "core:settlement",
+      "name": "Early settlement",
+      "order": 0,
+      "description": "Hand tools, log cabins, campfire cooking.",
+      "milestones": []
+    },
+    {
+      "id": "core:workshops",
+      "name": "Advanced workshops",
+      "order": 1,
+      "description": "Better tools, joinery and stone halls.",
+      "milestones": [
+        {
+          "type": "techs",
+          "era": "core:settlement",
+          "count": 3,
+          "text": "Research 3 early-settlement technologies"
+        },
+        {
+          "type": "buildings",
+          "building": "core:research_desk",
+          "count": 1,
+          "text": "Build a research desk"
+        },
+        {
+          "type": "colonists",
+          "count": 3,
+          "text": "Have at least 3 settlers"
+        }
+      ]
+    },
+    {
+      "id": "core:industry",
+      "name": "Industrialization",
+      "order": 2,
+      "description": "Charcoal, smelted iron and iron tools.",
+      "milestones": [
+        {
+          "type": "techs",
+          "era": "core:workshops",
+          "count": 3,
+          "text": "Research 3 advanced-workshop technologies"
+        },
+        {
+          "type": "buildings",
+          "building": "core:workbench",
+          "count": 2,
+          "text": "Run 2 workbenches"
+        }
+      ]
+    },
+    {
+      "id": "core:electric",
+      "name": "Electrification",
+      "order": 3,
+      "description": "A fuel-fired generator, power lines and powered machines.",
+      "milestones": [
+        {
+          "type": "techs",
+          "era": "core:industry",
+          "count": 2,
+          "text": "Research 2 industrialization technologies"
+        }
+      ]
+    },
+    {
+      "id": "core:modern",
+      "name": "Modern infrastructure",
+      "order": 4,
+      "description": "Planned: utilities networks and vehicles (roadmap).",
+      "milestones": [
+        {
+          "type": "techs",
+          "era": "core:electric",
+          "count": 2,
+          "text": "Research 2 electrification technologies"
+        }
+      ]
+    }
+  ],
+  "tech": [
+    {
+      "id": "core:masonry",
+      "name": "Masonry",
+      "field": "core:construction",
+      "era": "core:settlement",
+      "description": "Cut and fit fieldstone. Unlocks stone walls; colonists will renovate log homes into stone when stone is plentiful. Stone hearths to heat homes.",
+      "research": 800,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 10
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:stone_wall",
+          "core:hearth"
+        ]
+      }
+    },
+    {
+      "id": "core:food_preservation",
+      "name": "Food preservation",
+      "field": "core:agriculture",
+      "era": "core:settlement",
+      "description": "Cook in large batches that stretch ingredients further.",
+      "research": 700,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "unlocks": {
+        "recipes": [
+          "core:cook_stew_batch"
+        ]
+      }
+    },
+    {
+      "id": "core:woodworking",
+      "name": "Woodworking",
+      "field": "core:industry",
+      "era": "core:settlement",
+      "description": "Properly hafted axes cut faster and last longer.",
+      "research": 700,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 12
+        }
+      ],
+      "unlocks": {
+        "recipes": [
+          "core:make_hafted_axe"
+        ]
+      }
+    },
+    {
+      "id": "core:lanterns",
+      "name": "Lanterns",
+      "field": "core:utilities",
+      "era": "core:settlement",
+      "description": "Simple lanterns that colonists hang in their homes.",
+      "research": 500,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 4
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:lantern"
+        ]
+      }
+    },
+    {
+      "id": "core:bowyery",
+      "name": "Bowyery",
+      "field": "core:defense",
+      "era": "core:workshops",
+      "description": "Bows outrange spears (weapons are craftable and equippable; combat is not implemented yet).",
+      "research": 900,
+      "prerequisites": [
+        "core:woodworking"
+      ],
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 8
+        }
+      ],
+      "unlocks": {
+        "recipes": [
+          "core:make_bow",
+          "core:make_arrows"
+        ]
+      }
+    },
+    {
+      "id": "core:advanced_tools",
+      "name": "Advanced tools",
+      "field": "core:industry",
+      "era": "core:workshops",
+      "description": "Hafted pickaxes for faster mining.",
+      "research": 1600,
+      "prerequisites": [
+        "core:woodworking"
+      ],
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 20
+        },
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "unlocks": {
+        "recipes": [
+          "core:make_hafted_pickaxe"
+        ]
+      }
+    },
+    {
+      "id": "core:joinery",
+      "name": "Joinery",
+      "field": "core:construction",
+      "era": "core:workshops",
+      "description": "Cupboards that colonists add to their homes.",
+      "research": 1400,
+      "prerequisites": [
+        "core:woodworking",
+        "core:masonry"
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:cupboard",
+          "core:plank_bed",
+          "core:plank_table",
+          "core:plank_chair"
+        ],
+        "recipes": [
+          "core:hand_planks"
+        ]
+      }
+    },
+    {
+      "id": "core:stone_halls",
+      "name": "Stone halls",
+      "field": "core:construction",
+      "era": "core:workshops",
+      "description": "A larger four-bed stone home plan for growing settlements.",
+      "research": 1800,
+      "prerequisites": [
+        "core:masonry"
+      ],
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 15
+        }
+      ],
+      "unlocks": {
+        "templates": [
+          "core:stone_hall"
+        ]
+      }
+    },
+    {
+      "id": "core:charcoal_burning",
+      "name": "Charcoal burning",
+      "field": "core:industry",
+      "era": "core:industry",
+      "description": "A clay-sealed kiln turns wood into charcoal, a hotter, cleaner fuel.",
+      "research": 1800,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 30
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:charcoal_kiln"
+        ],
+        "templates": [
+          "core:kiln_yard"
+        ],
+        "recipes": [
+          "core:burn_charcoal"
+        ]
+      }
+    },
+    {
+      "id": "core:smelting",
+      "name": "Smelting",
+      "field": "core:industry",
+      "era": "core:industry",
+      "prerequisites": [
+        "core:charcoal_burning"
+      ],
+      "description": "A charcoal-fired bloomery smelts iron from ore-bearing stone.",
+      "research": 2200,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 30
+        },
+        {
+          "item": "core:charcoal",
+          "qty": 9
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:bloomery"
+        ],
+        "templates": [
+          "core:smithy"
+        ],
+        "recipes": [
+          "core:smelt_iron"
+        ]
+      }
+    },
+    {
+      "id": "core:ironworking",
+      "name": "Ironworking",
+      "field": "core:industry",
+      "era": "core:industry",
+      "prerequisites": [
+        "core:smelting"
+      ],
+      "description": "Iron axes and pickaxes: much faster and far more durable than stone.",
+      "research": 2400,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 4
+        }
+      ],
+      "unlocks": {
+        "recipes": [
+          "core:make_iron_axe",
+          "core:make_iron_pickaxe"
+        ]
+      }
+    },
+    {
+      "id": "core:electricity",
+      "name": "Electricity",
+      "field": "core:utilities",
+      "era": "core:electric",
+      "prerequisites": [
+        "core:ironworking"
+      ],
+      "description": "A fuel-fired steam generator and power poles to carry its current.",
+      "research": 2600,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 6
+        },
+        {
+          "item": "core:charcoal",
+          "qty": 12
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:generator",
+          "core:power_pole"
+        ],
+        "templates": [
+          "core:power_house",
+          "core:pole_spot"
+        ],
+        "recipes": [
+          "core:hand_planks",
+          "core:make_machine_parts"
+        ]
+      }
+    },
+    {
+      "id": "core:electric_lighting",
+      "name": "Electric lighting",
+      "field": "core:utilities",
+      "era": "core:electric",
+      "prerequisites": [
+        "core:electricity"
+      ],
+      "description": "Electric lamps that light workplaces after dark. They draw power only at night.",
+      "research": 1800,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 2
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 2
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:electric_lamp"
+        ],
+        "templates": [
+          "core:lamp_spot"
+        ]
+      }
+    },
+    {
+      "id": "core:plumbing",
+      "name": "Plumbing",
+      "field": "core:utilities",
+      "era": "core:electric",
+      "prerequisites": [
+        "core:electricity"
+      ],
+      "description": "An electric pump, a water tower, pipes and taps: clean running water close to where people live and work.",
+      "research": 2000,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 3
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 3
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:electric_pump",
+          "core:water_tower",
+          "core:water_tap",
+          "core:water_pipe"
+        ],
+        "templates": [
+          "core:pump_house",
+          "core:tower_spot",
+          "core:tap_spot",
+          "core:pipe_run"
+        ]
+      }
+    },
+    {
+      "id": "core:electric_heating",
+      "name": "Electric heating",
+      "field": "core:utilities",
+      "era": "core:electric",
+      "prerequisites": [
+        "core:electricity"
+      ],
+      "description": "Electric heaters that keep homes warm without anyone fetching wood. They use power only while a room is cold.",
+      "research": 1800,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 2
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 2
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:electric_heater"
+        ]
+      }
+    },
+    {
+      "id": "core:machine_tools",
+      "name": "Machine tools",
+      "field": "core:industry",
+      "era": "core:electric",
+      "prerequisites": [
+        "core:electricity"
+      ],
+      "description": "A powered machine workbench makes iron tools, machine parts and gun parts about three times faster than by hand, and a powered sawmill cuts planks.",
+      "research": 2800,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 4
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 4
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:machine_bench",
+          "core:sawmill"
+        ],
+        "templates": [
+          "core:machine_shop",
+          "core:sawmill_shop"
+        ],
+        "recipes": [
+          "core:machine_iron_axe",
+          "core:machine_iron_pickaxe",
+          "core:machine_machine_parts",
+          "core:saw_planks",
+          "core:machine_gun_parts"
+        ]
+      }
+    }
+  ],
+  "skill": [
+    {
+      "id": "core:research",
+      "name": "Research"
+    }
+  ],
+  "workType": [
+    {
+      "id": "core:research",
+      "name": "Research",
+      "skill": "core:research",
+      "priority": 0.55,
+      "givers": [
+        {
+          "giver": "core:research"
+        }
+      ],
+      "color": "#9fe0d0"
+    }
+  ],
+  "item": [
+    {
+      "id": "core:hafted_axe",
+      "name": "Hafted axe",
+      "color": "#d0b890",
+      "stackLimit": 1,
+      "tags": [
+        "core:tool"
+      ],
+      "equipment": {
+        "slot": "tool",
+        "workBoost": {
+          "core:chop": 2.4
+        },
+        "durability": 4000
+      },
+      "render": {
+        "shape": "axe"
+      }
+    },
+    {
+      "id": "core:hafted_pickaxe",
+      "name": "Hafted pickaxe",
+      "color": "#c0c8d0",
+      "stackLimit": 1,
+      "tags": [
+        "core:tool"
+      ],
+      "equipment": {
+        "slot": "tool",
+        "workBoost": {
+          "core:mine": 2.6
+        },
+        "durability": 4000
+      },
+      "render": {
+        "shape": "pickaxe"
+      }
+    },
+    {
+      "id": "core:bow",
+      "name": "Hunting bow",
+      "color": "#b98a4e",
+      "stackLimit": 1,
+      "tags": [
+        "core:weapon"
+      ],
+      "equipment": {
+        "slot": "weapon",
+        "damage": 12,
+        "durability": 1800,
+        "range": 7,
+        "cooldown": 60,
+        "accuracy": 0.7,
+        "ammo": "core:arrow"
+      },
+      "render": {
+        "shape": "spear",
+        "icon": "bow"
+      }
+    },
+    {
+      "id": "core:charcoal",
+      "name": "Charcoal",
+      "color": "#3a3836",
+      "stackLimit": 75,
+      "tags": [
+        "core:material",
+        "core:fuel"
+      ],
+      "render": {
+        "shape": "stones",
+        "color2": "#1f1e1d",
+        "icon": "stones"
+      },
+      "value": 1.6,
+      "fuel": 2.5
+    },
+    {
+      "id": "core:iron",
+      "name": "Iron bar",
+      "color": "#8d949c",
+      "stackLimit": 40,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "crate",
+        "color2": "#5f666e",
+        "icon": "crate"
+      },
+      "value": 5
+    },
+    {
+      "id": "core:iron_axe",
+      "name": "Iron axe",
+      "color": "#9aa2aa",
+      "stackLimit": 1,
+      "tags": [
+        "core:tool"
+      ],
+      "equipment": {
+        "slot": "tool",
+        "workBoost": {
+          "core:chop": 3.1
+        },
+        "durability": 7000
+      },
+      "render": {
+        "shape": "axe"
+      },
+      "value": 16
+    },
+    {
+      "id": "core:iron_pickaxe",
+      "name": "Iron pickaxe",
+      "color": "#aab2ba",
+      "stackLimit": 1,
+      "tags": [
+        "core:tool"
+      ],
+      "equipment": {
+        "slot": "tool",
+        "workBoost": {
+          "core:mine": 3.3
+        },
+        "durability": 7000
+      },
+      "render": {
+        "shape": "pickaxe"
+      },
+      "value": 18
+    },
+    {
+      "id": "core:arrow",
+      "name": "Arrows",
+      "color": "#c8a070",
+      "stackLimit": 60,
+      "tags": [
+        "core:ammo"
+      ],
+      "render": {
+        "shape": "logs",
+        "color2": "#e8e0c8",
+        "icon": "spear"
+      },
+      "value": 0.4
+    }
+  ],
+  "recipe": [
+    {
+      "id": "core:cook_stew_batch",
+      "name": "Cook a big pot of stew",
+      "station": "core:campfire",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "tag": "core:raw_food",
+          "qty": 18
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:stew",
+          "qty": 7
+        }
+      ],
+      "work": 230,
+      "skill": "core:cooking"
+    },
+    {
+      "id": "core:make_hafted_axe",
+      "name": "Make hafted axe",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 4
+        },
+        {
+          "item": "core:stone",
+          "qty": 4
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:hafted_axe",
+          "qty": 1
+        }
+      ],
+      "work": 260,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_hafted_pickaxe",
+      "name": "Make hafted pickaxe",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 4
+        },
+        {
+          "item": "core:stone",
+          "qty": 6
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:hafted_pickaxe",
+          "qty": 1
+        }
+      ],
+      "work": 280,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_bow",
+      "name": "Make hunting bow",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:bow",
+          "qty": 1
+        }
+      ],
+      "work": 180,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:burn_charcoal",
+      "name": "Burn charcoal",
+      "station": "core:charcoal_kiln",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:charcoal",
+          "qty": 3
+        }
+      ],
+      "work": 240,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:smelt_iron",
+      "name": "Smelt iron",
+      "station": "core:bloomery",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:stone",
+          "qty": 6
+        },
+        {
+          "item": "core:charcoal",
+          "qty": 3
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:iron",
+          "qty": 1
+        }
+      ],
+      "work": 320,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_iron_axe",
+      "name": "Make iron axe",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 2
+        },
+        {
+          "item": "core:wood",
+          "qty": 3
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:iron_axe",
+          "qty": 1
+        }
+      ],
+      "work": 300,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_iron_pickaxe",
+      "name": "Make iron pickaxe",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 3
+        },
+        {
+          "item": "core:wood",
+          "qty": 3
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:iron_pickaxe",
+          "qty": 1
+        }
+      ],
+      "work": 320,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:machine_iron_axe",
+      "name": "Machine-make iron axe",
+      "station": "core:machine_bench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 2
+        },
+        {
+          "item": "core:wood",
+          "qty": 3
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:iron_axe",
+          "qty": 1
+        }
+      ],
+      "work": 90,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:machine_iron_pickaxe",
+      "name": "Machine-make iron pickaxe",
+      "station": "core:machine_bench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:iron",
+          "qty": 3
+        },
+        {
+          "item": "core:wood",
+          "qty": 3
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:iron_pickaxe",
+          "qty": 1
+        }
+      ],
+      "work": 100,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_arrows",
+      "name": "Make arrows",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:arrow",
+          "qty": 8
+        }
+      ],
+      "work": 120,
+      "skill": "core:crafting"
+    }
+  ],
+  "building": [
+    {
+      "id": "core:research_desk",
+      "name": "Research desk",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 20
+        },
+        {
+          "item": "core:stone",
+          "qty": 5
+        }
+      ],
+      "work": 200,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "research": {
+        "speed": 1
+      },
+      "color": "#7a5a3a",
+      "render": {
+        "shape": "desk",
+        "color2": "#e8e0c8"
+      }
+    },
+    {
+      "id": "core:cupboard",
+      "name": "Cupboard",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:decor"
+      ],
+      "furnishing": {
+        "score": 1.5
+      },
+      "color": "#8a5a30",
+      "render": {
+        "shape": "cabinet",
+        "color2": "#d9b47a"
+      }
+    },
+    {
+      "id": "core:lantern",
+      "name": "Lantern",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 3
+        },
+        {
+          "item": "core:stone",
+          "qty": 2
+        }
+      ],
+      "work": 80,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:decor"
+      ],
+      "furnishing": {
+        "score": 1.2
+      },
+      "color": "#6b5a40",
+      "render": {
+        "shape": "lamp",
+        "color2": "#ffd36b"
+      },
+      "light": {
+        "radius": 3
+      }
+    },
+    {
+      "id": "core:charcoal_kiln",
+      "name": "Charcoal kiln",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 24
+        },
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "work": 260,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#6c6a64",
+      "render": {
+        "shape": "kiln",
+        "color2": "#3a3836"
+      }
+    },
+    {
+      "id": "core:bloomery",
+      "name": "Bloomery",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 30
+        },
+        {
+          "item": "core:wood",
+          "qty": 8
+        },
+        {
+          "item": "core:charcoal",
+          "qty": 6
+        }
+      ],
+      "work": 320,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#7a6a5a",
+      "render": {
+        "shape": "furnace",
+        "color2": "#c0582a"
+      }
+    },
+    {
+      "id": "core:generator",
+      "name": "Steam generator",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 6
+        },
+        {
+          "item": "core:stone",
+          "qty": 20
+        },
+        {
+          "item": "core:wood",
+          "qty": 10
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 2
+        }
+      ],
+      "work": 400,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "power": {
+        "output": 10,
+        "reach": 4,
+        "fuel": {
+          "tag": "core:fuel",
+          "burnTicks": 300,
+          "capacity": 16
+        }
+      },
+      "maxMachines": 3,
+      "color": "#5f666e",
+      "render": {
+        "shape": "generator",
+        "color2": "#c0582a"
+      },
+      "maintenance": {
+        "wearPerHour": 2.5,
+        "cost": [
+          {
+            "item": "core:machine_parts",
+            "qty": 1
+          }
+        ],
+        "work": 160
+      }
+    },
+    {
+      "id": "core:power_pole",
+      "name": "Power pole",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 5
+        },
+        {
+          "item": "core:iron",
+          "qty": 1
+        }
+      ],
+      "work": 90,
+      "skill": "core:construction",
+      "power": {
+        "reach": 6
+      },
+      "color": "#7a5638",
+      "render": {
+        "shape": "pole"
+      }
+    },
+    {
+      "id": "core:machine_bench",
+      "name": "Machine workbench",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 7
+        },
+        {
+          "item": "core:wood",
+          "qty": 12
+        },
+        {
+          "item": "core:stone",
+          "qty": 6
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 3
+        }
+      ],
+      "work": 360,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "power": {
+        "use": 8,
+        "reach": 2
+      },
+      "machineHours": 8,
+      "maxMachines": 3,
+      "color": "#5a6068",
+      "render": {
+        "shape": "machine"
+      },
+      "maintenance": {
+        "wearPerHour": 3,
+        "cost": [
+          {
+            "item": "core:machine_parts",
+            "qty": 1
+          }
+        ],
+        "work": 140
+      }
+    },
+    {
+      "id": "core:electric_lamp",
+      "name": "Electric lamp",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 3
+        },
+        {
+          "item": "core:iron",
+          "qty": 2
+        }
+      ],
+      "work": 100,
+      "skill": "core:construction",
+      "power": {
+        "use": 1,
+        "reach": 4
+      },
+      "light": {
+        "radius": 6
+      },
+      "color": "#5a4a38",
+      "render": {
+        "shape": "streetlamp",
+        "color2": "#ffe6a0"
+      }
+    },
+    {
+      "id": "core:electric_pump",
+      "name": "Electric pump",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 4
+        },
+        {
+          "item": "core:wood",
+          "qty": 4
+        },
+        {
+          "item": "core:stone",
+          "qty": 6
+        },
+        {
+          "item": "core:machine_parts",
+          "qty": 2
+        }
+      ],
+      "work": 260,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "power": {
+        "use": 4,
+        "reach": 2
+      },
+      "water": {
+        "pump": 40
+      },
+      "maintenance": {
+        "wearPerHour": 1.5,
+        "cost": [
+          {
+            "item": "core:iron",
+            "qty": 1
+          }
+        ],
+        "work": 120
+      },
+      "color": "#5a6a78",
+      "render": {
+        "shape": "pump",
+        "color2": "#4a90c0"
+      }
+    },
+    {
+      "id": "core:water_tower",
+      "name": "Water tower",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 20
+        },
+        {
+          "item": "core:stone",
+          "qty": 10
+        },
+        {
+          "item": "core:iron",
+          "qty": 2
+        }
+      ],
+      "work": 300,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "water": {
+        "storage": 150
+      },
+      "color": "#7a5a3a",
+      "render": {
+        "shape": "tower",
+        "color2": "#4a90c0"
+      }
+    },
+    {
+      "id": "core:water_tap",
+      "name": "Water tap",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 1
+        },
+        {
+          "item": "core:stone",
+          "qty": 2
+        }
+      ],
+      "work": 80,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "water": {
+        "tap": true,
+        "clean": true
+      },
+      "color": "#7a8088",
+      "render": {
+        "shape": "tap",
+        "color2": "#6ab0e0"
+      }
+    },
+    {
+      "id": "core:water_pipe",
+      "name": "Water pipe",
+      "category": "furniture",
+      "passable": true,
+      "cost": [
+        {
+          "item": "core:stone",
+          "qty": 2
+        }
+      ],
+      "work": 30,
+      "skill": "core:construction",
+      "water": {
+        "pipe": true
+      },
+      "color": "#6a7a88",
+      "render": {
+        "shape": "pipe"
+      }
+    },
+    {
+      "id": "core:electric_heater",
+      "name": "Electric heater",
+      "category": "furniture",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:iron",
+          "qty": 3
+        },
+        {
+          "item": "core:stone",
+          "qty": 2
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "slotTags": [
+        "core:decor"
+      ],
+      "furnishing": {
+        "score": 1.1
+      },
+      "power": {
+        "use": 3,
+        "reach": 4
+      },
+      "heat": {
+        "output": 8
+      },
+      "color": "#8a8478",
+      "render": {
+        "shape": "heater",
+        "color2": "#e8742a"
+      }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:study_corner",
+      "name": "Study corner",
+      "kind": "station",
+      "provides": [
+        "core:research_desk"
+      ],
+      "layout": [
+        "R",
+        "."
+      ],
+      "legend": {
+        "R": {
+          "build": "core:research_desk"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:stone_hall",
+      "name": "Stone hall",
+      "kind": "home",
+      "weight": 1,
+      "layout": [
+        "#######",
+        "#B.B.B#",
+        "#.....#",
+        "#B.TC.#",
+        "#d...d#",
+        "###D###",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "build": "core:stone_wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:kiln_yard",
+      "name": "Kiln yard",
+      "kind": "station",
+      "provides": [
+        "core:charcoal_kiln"
+      ],
+      "layout": [
+        "K",
+        "."
+      ],
+      "legend": {
+        "K": {
+          "build": "core:charcoal_kiln"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:smithy",
+      "name": "Smithy",
+      "kind": "workshop",
+      "provides": [
+        "core:bloomery"
+      ],
+      "layout": [
+        "###",
+        "#B#",
+        "#.#",
+        "#D#",
+        " _ "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "build": "core:bloomery"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:power_house",
+      "name": "Power house",
+      "kind": "station",
+      "provides": [
+        "core:generator"
+      ],
+      "layout": [
+        "G",
+        "."
+      ],
+      "legend": {
+        "G": {
+          "build": "core:generator"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:pole_spot",
+      "name": "Power pole",
+      "kind": "station",
+      "layout": [
+        "P",
+        "_"
+      ],
+      "legend": {
+        "P": {
+          "build": "core:power_pole"
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:machine_shop",
+      "name": "Machine shop",
+      "kind": "workshop",
+      "provides": [
+        "core:machine_bench"
+      ],
+      "layout": [
+        "###",
+        "#M#",
+        "#.#",
+        "#D#",
+        " _ "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "M": {
+          "build": "core:machine_bench"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:lamp_spot",
+      "name": "Electric lamp",
+      "kind": "station",
+      "layout": [
+        "L",
+        "_"
+      ],
+      "legend": {
+        "L": {
+          "build": "core:electric_lamp"
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:pump_house",
+      "name": "Pump",
+      "kind": "station",
+      "provides": [
+        "core:electric_pump"
+      ],
+      "layout": [
+        "P",
+        "."
+      ],
+      "legend": {
+        "P": {
+          "build": "core:electric_pump"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:tower_spot",
+      "name": "Water tower",
+      "kind": "station",
+      "provides": [
+        "core:water_tower"
+      ],
+      "layout": [
+        "T",
+        "."
+      ],
+      "legend": {
+        "T": {
+          "build": "core:water_tower"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:tap_spot",
+      "name": "Water tap",
+      "kind": "station",
+      "provides": [
+        "core:water_tap"
+      ],
+      "layout": [
+        "W",
+        "."
+      ],
+      "legend": {
+        "W": {
+          "build": "core:water_tap"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:pipe_run",
+      "name": "Water pipe",
+      "kind": "station",
+      "layout": [
+        "="
+      ],
+      "legend": {
+        "=": {
+          "build": "core:water_pipe"
+        }
+      }
+    }
+  ]
+}

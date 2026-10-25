@@ -1,0 +1,13 @@
+{
+  "id": "example_herbalism",
+  "name": "Example: Herbalism",
+  "author": "MadColony examples",
+  "version": "1.0.0",
+  "gameApi": "^1.0",
+  "description": "Adds a technology (Herbalism) that unlocks brewing berry tea at the cooking fire. Colonists research it on their own when the settlement needs tea, then brew it. Pure data: no code.",
+  "dependencies": [{ "id": "core", "version": "^1.1" }],
+  "loadAfter": ["core"],
+  "loadBefore": [],
+  "incompatibleWith": [],
+  "content": ["herbalism.json"]
+}

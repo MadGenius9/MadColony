@@ -1,0 +1,345 @@
+{
+  "$comment": "Schools, teachers, colleges and qualifications (Phase 5b/5c). Anyone can teach; qualifications speed work up but are never required.",
+  "skill": [
+    {
+      "id": "core:teaching",
+      "name": "Teaching"
+    }
+  ],
+  "workType": [
+    {
+      "id": "core:teach",
+      "name": "Teaching",
+      "skill": "core:teaching",
+      "priority": 1,
+      "givers": [
+        {
+          "giver": "core:teach"
+        }
+      ],
+      "color": "#7aa0d8"
+    },
+    {
+      "id": "core:study",
+      "name": "Schooling",
+      "priority": 1.5,
+      "givers": [
+        {
+          "giver": "core:attend"
+        }
+      ],
+      "color": "#d8c87a"
+    },
+    {
+      "id": "core:train",
+      "name": "College training",
+      "priority": 1.3,
+      "givers": [
+        {
+          "giver": "core:train"
+        }
+      ],
+      "color": "#c8a0d8"
+    }
+  ],
+  "qualification": [
+    {
+      "id": "core:schooled",
+      "name": "Basic schooling",
+      "description": "Finished school (founders and newcomers grew up elsewhere and have it). Needed for college."
+    },
+    {
+      "id": "core:teacher",
+      "name": "Teacher",
+      "workTypes": [
+        "core:teach"
+      ],
+      "speed": 1.5,
+      "practice": {
+        "skill": "core:teaching",
+        "level": 6
+      },
+      "course": true,
+      "requires": [
+        "core:schooled"
+      ],
+      "staffing": "school"
+    },
+    {
+      "id": "core:physician",
+      "name": "Doctor",
+      "workTypes": [
+        "core:doctor"
+      ],
+      "speed": 1.6,
+      "practice": {
+        "skill": "core:medicine",
+        "level": 7
+      },
+      "course": true,
+      "requires": [
+        "core:schooled"
+      ],
+      "staffing": "perPeople",
+      "per": 8
+    },
+    {
+      "id": "core:engineer",
+      "name": "Industrial specialist",
+      "workTypes": [
+        "core:craft"
+      ],
+      "speed": 1.25,
+      "practice": {
+        "skill": "core:crafting",
+        "level": 8
+      },
+      "course": true,
+      "requires": [
+        "core:schooled"
+      ],
+      "staffing": "machines"
+    }
+  ],
+  "building": [
+    {
+      "id": "core:teacher_desk",
+      "name": "Teacher's desk",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 8
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "education": {
+        "role": "teacher"
+      },
+      "color": "#8a6a44",
+      "render": {
+        "shape": "desk",
+        "color2": "#e8e0c8"
+      }
+    },
+    {
+      "id": "core:school_desk",
+      "name": "School desk",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 4
+        }
+      ],
+      "work": 70,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "education": {
+        "role": "desk"
+      },
+      "color": "#9a7a50",
+      "render": {
+        "shape": "table"
+      }
+    },
+    {
+      "id": "core:lectern",
+      "name": "Lectern",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        },
+        {
+          "item": "core:stone",
+          "qty": 4
+        }
+      ],
+      "work": 160,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "education": {
+        "role": "lectern"
+      },
+      "color": "#6a4a34",
+      "render": {
+        "shape": "desk",
+        "color2": "#c8a0d8"
+      }
+    },
+    {
+      "id": "core:lecture_bench",
+      "name": "Lecture bench",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "work": 90,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "education": {
+        "role": "bench"
+      },
+      "color": "#7a5a3a",
+      "render": {
+        "shape": "table"
+      }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:schoolhouse",
+      "name": "Schoolhouse",
+      "kind": "workshop",
+      "provides": [
+        "core:teacher_desk",
+        "core:school_desk"
+      ],
+      "layout": [
+        "#######",
+        "#T....#",
+        "#.....#",
+        "#S.S.S#",
+        "#.....#",
+        "###D###",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "T": {
+          "build": "core:teacher_desk"
+        },
+        "S": {
+          "build": "core:school_desk"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:lecture_hall",
+      "name": "Lecture hall",
+      "kind": "workshop",
+      "provides": [
+        "core:lectern",
+        "core:lecture_bench"
+      ],
+      "layout": [
+        "#######",
+        "#L....#",
+        "#.....#",
+        "#B.B..#",
+        "#.....#",
+        "###D###",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "L": {
+          "build": "core:lectern"
+        },
+        "B": {
+          "build": "core:lecture_bench"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    }
+  ],
+  "tech": [
+    {
+      "id": "core:schooling",
+      "name": "Schooling",
+      "field": "core:utilities",
+      "era": "core:settlement",
+      "description": "A schoolhouse where children learn, faster with a teacher.",
+      "research": 700,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 6
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:teacher_desk",
+          "core:school_desk"
+        ],
+        "templates": [
+          "core:schoolhouse"
+        ]
+      }
+    },
+    {
+      "id": "core:higher_learning",
+      "name": "Higher learning",
+      "field": "core:utilities",
+      "era": "core:workshops",
+      "prerequisites": [
+        "core:schooling"
+      ],
+      "description": "A lecture hall where schooled adults train as teachers, doctors and industrial specialists when the colony lacks them.",
+      "research": 1500,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        },
+        {
+          "item": "core:stone",
+          "qty": 6
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:lectern",
+          "core:lecture_bench"
+        ],
+        "templates": [
+          "core:lecture_hall"
+        ]
+      }
+    }
+  ]
+}

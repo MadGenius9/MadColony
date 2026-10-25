@@ -1,0 +1,63 @@
+{
+  "item": [
+    {
+      "id": "example_herbalism:berry_tea",
+      "name": "Berry tea",
+      "color": "#c0506a",
+      "stackLimit": 20,
+      "nutrition": 0.3,
+      "tags": [
+        "core:food",
+        "core:meal"
+      ],
+      "render": {
+        "shape": "meal",
+        "color2": "#7a3a2a",
+        "icon": "cup"
+      }
+    }
+  ],
+  "recipe": [
+    {
+      "id": "example_herbalism:brew_tea",
+      "name": "Brew berry tea",
+      "station": "core:campfire",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "item": "core:berry",
+          "qty": 6
+        }
+      ],
+      "outputs": [
+        {
+          "item": "example_herbalism:berry_tea",
+          "qty": 2
+        }
+      ],
+      "work": 90,
+      "skill": "core:cooking"
+    }
+  ],
+  "tech": [
+    {
+      "id": "example_herbalism:herbalism",
+      "name": "Herbalism",
+      "field": "core:agriculture",
+      "era": "core:settlement",
+      "description": "Steep wild berries into a warming tea.",
+      "research": 500,
+      "cost": [
+        {
+          "item": "core:berry",
+          "qty": 5
+        }
+      ],
+      "unlocks": {
+        "recipes": [
+          "example_herbalism:brew_tea"
+        ]
+      }
+    }
+  ]
+}

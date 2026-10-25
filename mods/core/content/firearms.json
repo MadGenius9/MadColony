@@ -1,0 +1,63 @@
+{
+  "$comment": "Firearms (combat stage 2). Abstract game content: generic gun parts and rounds made from iron, wood and charcoal through labour at a gunsmith's bench. Nothing here describes real manufacturing. Every gun and round is a controlled good (core:controlled + core:arms), so each village's arms laws decide where it may be sold. Weapon roles come from their stats: the pistol is a quick sidearm, the shotgun hits hard up close, the rifle is the all-rounder and the sniper rifle reaches far but fires slowly.",
+  "item": [
+    { "id": "core:gun_parts", "name": "Gun parts", "color": "#7a8088", "stackLimit": 40, "tags": ["core:material"], "render": { "shape": "crate", "color2": "#4a5058", "icon": "crate" }, "value": 6 },
+    { "id": "core:pistol_rounds", "name": "Pistol rounds", "color": "#c8a050", "stackLimit": 120, "tags": ["core:ammo", "core:controlled", "core:arms"], "render": { "shape": "crate", "color2": "#8a6a30", "icon": "ammo" }, "value": 0.6 },
+    { "id": "core:rifle_rounds", "name": "Rifle rounds", "color": "#d0b060", "stackLimit": 120, "tags": ["core:ammo", "core:controlled", "core:arms"], "render": { "shape": "crate", "color2": "#907038", "icon": "ammo" }, "value": 0.9 },
+    { "id": "core:shotgun_shells", "name": "Shotgun shells", "color": "#b84a3a", "stackLimit": 100, "tags": ["core:ammo", "core:controlled", "core:arms"], "render": { "shape": "crate", "color2": "#c8a050", "icon": "ammo" }, "value": 0.8 },
+    { "id": "core:pistol", "name": "Pistol", "color": "#4a4e56", "stackLimit": 1, "tags": ["core:weapon", "core:firearm", "core:controlled", "core:arms"],
+      "equipment": { "slot": "weapon", "damage": 9, "range": 6, "cooldown": 28, "accuracy": 0.75, "ammo": "core:pistol_rounds", "durability": 2600 },
+      "render": { "shape": "gun", "color2": "#6a4a30", "icon": "gun" }, "value": 22 },
+    { "id": "core:shotgun", "name": "Shotgun", "color": "#5a4e46", "stackLimit": 1, "tags": ["core:weapon", "core:firearm", "core:controlled", "core:arms"],
+      "equipment": { "slot": "weapon", "damage": 24, "range": 4, "cooldown": 75, "accuracy": 0.9, "ammo": "core:shotgun_shells", "durability": 2400 },
+      "render": { "shape": "gun", "color2": "#7a5434", "icon": "gun" }, "value": 28 },
+    { "id": "core:rifle", "name": "Rifle", "color": "#3e4248", "stackLimit": 1, "tags": ["core:weapon", "core:firearm", "core:controlled", "core:arms"],
+      "equipment": { "slot": "weapon", "damage": 15, "range": 12, "cooldown": 55, "accuracy": 0.8, "ammo": "core:rifle_rounds", "durability": 3000 },
+      "render": { "shape": "gun", "color2": "#7a5434", "icon": "gun" }, "value": 34 },
+    { "id": "core:sniper_rifle", "name": "Sniper rifle", "color": "#2e3236", "stackLimit": 1, "tags": ["core:weapon", "core:firearm", "core:controlled", "core:arms"],
+      "equipment": { "slot": "weapon", "damage": 30, "range": 20, "cooldown": 140, "accuracy": 0.95, "ammo": "core:rifle_rounds", "durability": 2600 },
+      "render": { "shape": "gun", "color2": "#5a5040", "icon": "gun" }, "value": 48 }
+  ],
+  "building": [
+    { "id": "core:gunsmith_bench", "name": "Gunsmith's bench", "category": "station", "passable": false,
+      "cost": [{ "item": "core:iron", "qty": 6 }, { "item": "core:wood", "qty": 14 }, { "item": "core:stone", "qty": 4 }], "work": 340, "skill": "core:construction", "interaction": [0, 1],
+      "color": "#5a4a3a", "render": { "shape": "desk", "color2": "#8d949c" } }
+  ],
+  "template": [
+    { "id": "core:gunsmithy", "name": "Gunsmithy", "kind": "workshop", "provides": ["core:gunsmith_bench"],
+      "layout": ["###", "#G#", "#.#", "#D#", " _ "],
+      "legend": { "#": { "slot": "core:wall" }, "D": { "build": "core:door" }, "G": { "build": "core:gunsmith_bench" }, ".": { "floor": true }, "_": { "clear": true } } }
+  ],
+  "recipe": [
+    { "id": "core:make_gun_parts", "name": "Make gun parts", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:iron", "qty": 2 }, { "item": "core:wood", "qty": 1 }], "outputs": [{ "item": "core:gun_parts", "qty": 2 }], "work": 220, "skill": "core:crafting" },
+    { "id": "core:make_pistol", "name": "Assemble pistol", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:gun_parts", "qty": 2 }, { "item": "core:wood", "qty": 1 }], "outputs": [{ "item": "core:pistol", "qty": 1 }], "work": 260, "skill": "core:crafting" },
+    { "id": "core:make_shotgun", "name": "Assemble shotgun", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:gun_parts", "qty": 3 }, { "item": "core:wood", "qty": 2 }], "outputs": [{ "item": "core:shotgun", "qty": 1 }], "work": 300, "skill": "core:crafting" },
+    { "id": "core:make_rifle", "name": "Assemble rifle", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:gun_parts", "qty": 4 }, { "item": "core:wood", "qty": 2 }], "outputs": [{ "item": "core:rifle", "qty": 1 }], "work": 340, "skill": "core:crafting" },
+    { "id": "core:make_sniper_rifle", "name": "Assemble sniper rifle", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:gun_parts", "qty": 6 }, { "item": "core:wood", "qty": 2 }, { "item": "core:iron", "qty": 1 }], "outputs": [{ "item": "core:sniper_rifle", "qty": 1 }], "work": 420, "skill": "core:crafting" },
+    { "id": "core:make_pistol_rounds", "name": "Make pistol rounds", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:iron", "qty": 1 }, { "item": "core:charcoal", "qty": 1 }], "outputs": [{ "item": "core:pistol_rounds", "qty": 12 }], "work": 160, "skill": "core:crafting" },
+    { "id": "core:make_shotgun_shells", "name": "Make shotgun shells", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:iron", "qty": 1 }, { "item": "core:charcoal", "qty": 1 }], "outputs": [{ "item": "core:shotgun_shells", "qty": 10 }], "work": 160, "skill": "core:crafting" },
+    { "id": "core:make_rifle_rounds", "name": "Make rifle rounds", "station": "core:gunsmith_bench", "workType": "core:craft",
+      "inputs": [{ "item": "core:iron", "qty": 1 }, { "item": "core:charcoal", "qty": 2 }], "outputs": [{ "item": "core:rifle_rounds", "qty": 12 }], "work": 180, "skill": "core:crafting" }
+  ],
+  "tech": [
+    { "id": "core:gunsmithing", "name": "Gunsmithing", "field": "core:defense", "era": "core:industry", "prerequisites": ["core:ironworking"],
+      "description": "A gunsmith's bench, gun parts, pistols, shotguns and their rounds.", "research": 2400,
+      "cost": [{ "item": "core:iron", "qty": 4 }],
+      "unlocks": { "buildings": ["core:gunsmith_bench"], "templates": ["core:gunsmithy"], "recipes": ["core:make_gun_parts", "core:make_pistol", "core:make_shotgun", "core:make_pistol_rounds", "core:make_shotgun_shells"] } },
+    { "id": "core:rifling", "name": "Rifling", "field": "core:defense", "era": "core:industry", "prerequisites": ["core:gunsmithing"],
+      "description": "Rifles for longer range, and rifle rounds.", "research": 2600,
+      "cost": [{ "item": "core:iron", "qty": 4 }],
+      "unlocks": { "recipes": ["core:make_rifle", "core:make_rifle_rounds"] } },
+    { "id": "core:marksmanship", "name": "Marksmanship", "field": "core:defense", "era": "core:industry", "prerequisites": ["core:rifling"],
+      "description": "The sniper rifle: very long reach, slow to fire.", "research": 2400,
+      "cost": [{ "item": "core:iron", "qty": 6 }],
+      "unlocks": { "recipes": ["core:make_sniper_rifle"] } }
+  ]
+}

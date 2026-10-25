@@ -1,0 +1,103 @@
+{
+  "$comment": "Quarrying: a slow, labour-heavy source of stone for when a settlement has no boulders left to mine. The recipe is a fallback: it is only used while stone cannot be gathered.",
+  "building": [
+    {
+      "id": "core:quarry_face",
+      "name": "Quarry face",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 14
+        }
+      ],
+      "work": 260,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#8f8c84",
+      "render": {
+        "shape": "quarry",
+        "color2": "#6e6a62"
+      }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:quarry",
+      "name": "Stone quarry",
+      "kind": "station",
+      "provides": [
+        "core:quarry_face"
+      ],
+      "layout": [
+        "Q",
+        "."
+      ],
+      "legend": {
+        "Q": {
+          "build": "core:quarry_face"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    }
+  ],
+  "recipe": [
+    {
+      "id": "core:quarry_stone",
+      "name": "Quarry stone",
+      "station": "core:quarry_face",
+      "workType": "core:craft",
+      "fallback": true,
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:stone",
+          "qty": 4
+        }
+      ],
+      "work": 300,
+      "skill": "core:mining"
+    }
+  ],
+  "tech": [
+    {
+      "id": "core:quarrying",
+      "name": "Quarrying",
+      "field": "core:construction",
+      "era": "core:workshops",
+      "prerequisites": [
+        "core:masonry"
+      ],
+      "description": "Split stone from bedrock with wedges and props. Slow, but it never runs out: the colony quarries only when there are no boulders left to mine.",
+      "research": 1200,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 20
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:quarry_face"
+        ],
+        "templates": [
+          "core:quarry"
+        ],
+        "recipes": [
+          "core:quarry_stone"
+        ]
+      }
+    }
+  ]
+}

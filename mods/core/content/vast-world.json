@@ -1,0 +1,104 @@
+{
+  "$comment": "Phase 2b: the vast-world scenario. A whole planet, almost empty: the player and a few AI settlements start far apart on one large landmass (placement 'far': at least farPlacement.spacing tiles apart, on good sites, over different biomes) and the rest of the world is wilderness. Territory is organic (slice 4): each settlement claims land outward from its centre as it grows, cheaply over open land, slowly into forest and hills, hardly into mountains or across rivers, never over open water. Civilization spreads (slice 6): each crowded village founds at most once per cooldown (a daughter only after standing daughterMinDays), the world at most perDay a day up to maxVillages (a performance cap), at outward sites on land its explorers discovered; markets serve met villages on the same landmass within landReach; villages trade only within tradeRange and keep at most maxActiveTrades deals at once; finished trades are pruned after pruneTradesDays; every village works toward the next era by itself (eraDrive). Contact (slice 5): every settlement sends explorers farther over its land every few days; explorers who pass near another village's land meet its people, villages whose lands touch meet, and villages that have met send traders to each other.",
+  "scenario": [
+    {
+      "id": "core:vast_world", "name": "Vast world: a few settlements far apart on a whole planet",
+      "colonists": 5,
+      "startItems": [{ "item": "core:wood", "qty": 60 }, { "item": "core:stone", "qty": 20 }, { "item": "core:stew", "qty": 20 }, { "item": "core:potato", "qty": 60 }, { "item": "core:bean", "qty": 40 }],
+      "namePool": "core:names", "skillMin": 0, "skillMax": 6,
+      "neighbors": ["core:lumber_camp", "core:hill_fort", "core:trading_post", "core:river_hamlet", "core:highland_steading", "core:scholars_retreat", "core:willowmere", "core:stonebrook"],
+      "villages": 6,
+      "worldgen": "core:planet",
+      "size": "world",
+      "placement": "far",
+      "territory": "organic",
+      "claims": {
+        "baseRadius": 10,
+        "perPerson": 1,
+        "perDay": 0.2,
+        "maxRadius": 90,
+        "defaultCost": 1,
+        "costs": {
+          "core:forest_floor": 1.4, "core:taiga": 1.3, "core:jungle": 1.6, "core:marsh": 2, "core:tundra": 1.2,
+          "core:snow": 1.6, "core:sand": 1.2, "core:gravel": 1.3, "core:hills": 1.8, "core:shallows": 8, "core:mountain": 10
+        },
+        "stops": ["core:water", "core:deep_water"],
+        "steepCost": 4
+      },
+      "siteWaterWalk": 24,
+      "farPlacement": {
+        "minVillages": 4,
+        "maxVillages": 8,
+        "spacingFactor": 0.1,
+        "minSpacing": 120,
+        "grid": 8,
+        "openRadius": 6,
+        "minWood": 12,
+        "minStone": 2,
+        "minFertile": 120,
+        "woodCap": 60,
+        "stoneCap": 12,
+        "fertileCap": 400,
+        "weights": { "wood": 0.3, "stone": 0.3, "fertile": 0.3, "water": 0.3, "biome": 0.6, "distanceCap": 1.6 },
+        "biomes": {
+          "core:grass": "plains", "core:soil": "plains",
+          "core:forest_floor": "forest",
+          "core:taiga": "taiga",
+          "core:tundra": "tundra", "core:snow": "tundra",
+          "core:jungle": "jungle",
+          "core:savanna": "savanna",
+          "core:sand": "desert", "core:gravel": "desert",
+          "core:hills": "hills",
+          "core:marsh": "marsh"
+        }
+      },
+      "travel": { "maxWalk": 120, "checkBeyond": 30, "farFromHome": 30, "walkTicks": 4.6, "workTicks": 150 },
+      "eraDrive": { "urgency": 0.3, "afterDays": 5 },
+      "founding": {
+        "maxVillages": 64,
+        "minAdults": 5,
+        "crowdedDays": 3,
+        "foodDaysLeft": 5,
+        "cooldownDays": 25,
+        "founders": [2, 4],
+        "sendFoodDays": 6,
+        "sendItems": { "core:wood": 20, "core:stone": 10 },
+        "searchRadius": 36,
+        "minSpacing": 30,
+        "siteRetryDays": 5,
+        "growBeds": 1,
+        "growAfterDays": 5,
+        "perDay": 4,
+        "daughterMinDays": 40,
+        "searchesPerDay": 8,
+        "outward": {
+          "searchFactor": 0.06, "maxSearch": 140, "stride": 8, "cell": 8, "box": 2, "discovered": true, "farCap": 60,
+          "weights": { "far": 1, "free": 0.6, "wood": 0.25, "stone": 0.25, "fertile": 0.3, "out": 0.3 },
+          "caps": { "wood": 30, "stone": 8 }
+        }
+      },
+      "contact": {
+        "explore": { "everyDays": 2, "firstDays": 1, "firstRange": 5, "rangeStep": 2, "maxRange": 48, "tilesPerDay": 320, "sight": 1, "reach": 16, "minLand": 0.2, "around": 3, "farWeight": 1 },
+        "traders": { "everyDays": 8, "firstDays": 2, "tilesPerDay": 240, "relation": 1 },
+        "borders": true,
+        "scoutRange": 60,
+        "scoutNeeds": 0.7,
+        "tendRange": 60,
+        "tradeWalkRange": 60,
+        "pruneTradesDays": 10,
+        "tradeRange": 400,
+        "maxActiveTrades": 3
+      },
+      "market": {
+        "reach": 120,
+        "landReach": 400,
+        "k": 200,
+        "minFactor": 0.5,
+        "maxFactor": 2,
+        "step": 0.25,
+        "minContacts": 2,
+        "researchContacts": 3
+      }
+    }
+  ]
+}

@@ -1,0 +1,345 @@
+{
+  "$comment": "Medical care (Phase 4 of the medical plan). Abstract supplies made by ordinary recipes. Doctors are the Doctoring work type; Medicine skill makes them faster.",
+  "skill": [
+    {
+      "id": "core:medicine",
+      "name": "Medicine"
+    }
+  ],
+  "workType": [
+    {
+      "id": "core:doctor",
+      "name": "Doctoring",
+      "skill": "core:medicine",
+      "priority": 1.2,
+      "givers": [
+        {
+          "giver": "core:rescue"
+        },
+        {
+          "giver": "core:treat"
+        }
+      ],
+      "color": "#d06a7a"
+    }
+  ],
+  "item": [
+    {
+      "id": "core:bandage",
+      "name": "Bandages",
+      "color": "#ece6da",
+      "stackLimit": 60,
+      "tags": [
+        "core:medical",
+        "core:bandage"
+      ],
+      "render": {
+        "shape": "crate",
+        "color2": "#d04a4a",
+        "icon": "crate"
+      },
+      "value": 0.8
+    },
+    {
+      "id": "core:medicine",
+      "name": "Herbal medicine",
+      "color": "#6aa86a",
+      "stackLimit": 40,
+      "tags": [
+        "core:medical",
+        "core:medicine"
+      ],
+      "render": {
+        "shape": "pots",
+        "color2": "#3a7a3a",
+        "icon": "pot"
+      },
+      "value": 3
+    }
+  ],
+  "building": [
+    {
+      "id": "core:medicine_cabinet",
+      "name": "Medicine cabinet",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "work": 140,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "supplies": {
+        "tag": "core:medical",
+        "capacity": 16
+      },
+      "color": "#8a6a4a",
+      "render": {
+        "shape": "cabinet",
+        "color2": "#d04a4a"
+      }
+    },
+    {
+      "id": "core:apothecary_table",
+      "name": "Apothecary table",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 12
+        },
+        {
+          "item": "core:stone",
+          "qty": 4
+        }
+      ],
+      "work": 180,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#7a5a3a",
+      "render": {
+        "shape": "desk",
+        "color2": "#6aa86a"
+      }
+    },
+    {
+      "id": "core:medical_bed",
+      "name": "Medical bed",
+      "category": "furniture",
+      "passable": true,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "bed": {
+        "restRate": 2.6
+      },
+      "medical": {
+        "heal": 1.8
+      },
+      "color": "#e8e4dc",
+      "render": {
+        "shape": "bed",
+        "color2": "#c84a4a"
+      }
+    },
+    {
+      "id": "core:hospital_bed",
+      "name": "Hospital bed",
+      "category": "furniture",
+      "passable": true,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 8
+        },
+        {
+          "item": "core:iron",
+          "qty": 2
+        }
+      ],
+      "work": 160,
+      "skill": "core:construction",
+      "bed": {
+        "restRate": 3
+      },
+      "medical": {
+        "heal": 2.6
+      },
+      "color": "#f0f0ec",
+      "render": {
+        "shape": "bed",
+        "color2": "#4a7ac8"
+      }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:clinic",
+      "name": "Clinic",
+      "kind": "workshop",
+      "provides": [
+        "core:medicine_cabinet",
+        "core:apothecary_table",
+        "core:medical_bed"
+      ],
+      "layout": [
+        "#####",
+        "#C.A#",
+        "#...#",
+        "#M.M#",
+        "##D##",
+        "  _  "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "M": {
+          "build": "core:medical_bed"
+        },
+        "C": {
+          "build": "core:medicine_cabinet"
+        },
+        "A": {
+          "build": "core:apothecary_table"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:hospital",
+      "name": "Hospital ward",
+      "kind": "workshop",
+      "provides": [
+        "core:hospital_bed"
+      ],
+      "layout": [
+        "#######",
+        "#C...H#",
+        "#.....#",
+        "#H.H.H#",
+        "###D###",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "H": {
+          "build": "core:hospital_bed"
+        },
+        "C": {
+          "build": "core:medicine_cabinet"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    }
+  ],
+  "recipe": [
+    {
+      "id": "core:make_bandages",
+      "name": "Make bandages",
+      "station": "core:workbench",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:wood",
+          "qty": 2
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:bandage",
+          "qty": 4
+        }
+      ],
+      "work": 90,
+      "skill": "core:crafting"
+    },
+    {
+      "id": "core:make_medicine",
+      "name": "Prepare herbal medicine",
+      "station": "core:apothecary_table",
+      "workType": "core:craft",
+      "inputs": [
+        {
+          "item": "core:berry",
+          "qty": 4
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:medicine",
+          "qty": 2
+        }
+      ],
+      "work": 160,
+      "skill": "core:medicine"
+    }
+  ],
+  "tech": [
+    {
+      "id": "core:herbal_medicine",
+      "name": "Herbal medicine",
+      "field": "core:utilities",
+      "era": "core:settlement",
+      "description": "A clinic with medical beds, a medicine cabinet and an apothecary table for herbal medicine against infections.",
+      "research": 900,
+      "cost": [
+        {
+          "item": "core:berry",
+          "qty": 6
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:medicine_cabinet",
+          "core:apothecary_table",
+          "core:medical_bed"
+        ],
+        "templates": [
+          "core:clinic"
+        ],
+        "recipes": [
+          "core:make_medicine"
+        ]
+      }
+    },
+    {
+      "id": "core:hospitals",
+      "name": "Hospitals",
+      "field": "core:utilities",
+      "era": "core:workshops",
+      "prerequisites": [
+        "core:herbal_medicine"
+      ],
+      "description": "A hospital ward with better beds, built when the clinic cannot take every patient.",
+      "research": 1600,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "unlocks": {
+        "buildings": [
+          "core:hospital_bed"
+        ],
+        "templates": [
+          "core:hospital"
+        ]
+      }
+    }
+  ]
+}

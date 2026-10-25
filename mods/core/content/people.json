@@ -1,0 +1,31 @@
+{
+  "$comment": "Life stages (Phase 5). Childhood is compressed into a few game days so it can be seen in play. Births: see src/sim/people.js (households with two adults and a free bed, enough food, under the population cap).",
+  "lifeStage": [
+    {
+      "id": "core:infant",
+      "name": "Infant",
+      "order": 0,
+      "untilDays": 3,
+      "needsCare": true,
+      "fights": false,
+      "workTypes": []
+    },
+    {
+      "id": "core:child",
+      "name": "Child",
+      "order": 1,
+      "untilDays": 15,
+      "attendsSchool": true,
+      "fights": false,
+      "workTypes": [
+        "core:forage",
+        "core:study"
+      ]
+    },
+    {
+      "id": "core:adult",
+      "name": "Adult",
+      "order": 2
+    }
+  ]
+}

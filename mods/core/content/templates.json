@@ -1,0 +1,199 @@
+{
+  "$comment": "Legend: # wall slot, D door, B bed slot, T table slot, C chair slot, d optional decor slot, . interior floor (kept clear), _ outside clearance (kept clear), space = no requirement.",
+  "template": [
+    {
+      "id": "core:cabin_single",
+      "name": "Single cabin",
+      "kind": "home",
+      "weight": 1,
+      "layout": [
+        "#####",
+        "#B.T#",
+        "#dC.#",
+        "##D##",
+        "  _  "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:cabin_double",
+      "name": "Double cabin",
+      "kind": "home",
+      "weight": 1,
+      "layout": [
+        "######",
+        "#B..B#",
+        "#.TC.#",
+        "#d..d#",
+        "###D##",
+        "   _  "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:longhouse",
+      "name": "Longhouse",
+      "kind": "home",
+      "weight": 1,
+      "layout": [
+        "#######",
+        "#B.B.B#",
+        "#.....#",
+        "#dTC.d#",
+        "###D###",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:workshop",
+      "name": "Small workshop",
+      "kind": "workshop",
+      "provides": [
+        "core:workbench"
+      ],
+      "layout": [
+        "###",
+        "#W#",
+        "#.#",
+        "#D#",
+        " _ "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "W": {
+          "build": "core:workbench"
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:fire_pit",
+      "name": "Cooking spot",
+      "kind": "station",
+      "provides": [
+        "core:campfire"
+      ],
+      "layout": [
+        "F",
+        "."
+      ],
+      "legend": {
+        "F": {
+          "build": "core:campfire"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    },
+    {
+      "id": "core:well_spot",
+      "name": "Well",
+      "kind": "station",
+      "provides": [
+        "core:well"
+      ],
+      "layout": [
+        "W",
+        "."
+      ],
+      "legend": {
+        "W": {
+          "build": "core:well"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    }
+  ]
+}

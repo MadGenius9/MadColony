@@ -1,0 +1,50 @@
+{
+  "$comment": "Phase 2, slice 4: markets. A market stall lets the villages around it (within the scenario's market.reach, that have met the market's village) trade at supply-and-demand prices instead of fixed item values (src/sim/markets.js). Trade routes can only be researched in scenarios that turn markets on (a `market` block in the scenario), so classic scenarios never build one.",
+  "tech": [
+    {
+      "id": "core:trade_routes",
+      "name": "Trade routes",
+      "field": "core:construction",
+      "era": "core:settlement",
+      "scenarioFeature": "market",
+      "description": "Regular routes between villages. Unlocks the market stall: villages in its reach trade at prices set by supply and demand.",
+      "research": 900,
+      "cost": [
+        { "item": "core:wood", "qty": 10 }
+      ],
+      "unlocks": {
+        "buildings": ["core:market"],
+        "templates": ["core:market_stall"]
+      }
+    }
+  ],
+  "building": [
+    {
+      "id": "core:market",
+      "name": "Market stall",
+      "category": "station",
+      "passable": true,
+      "cost": [
+        { "item": "core:wood", "qty": 16 }
+      ],
+      "work": 160,
+      "skill": "core:construction",
+      "interaction": [0, 1],
+      "color": "#b07a3a",
+      "render": { "shape": "table", "color2": "#e0c060" }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:market_stall",
+      "name": "Market stall",
+      "kind": "station",
+      "provides": ["core:market"],
+      "layout": ["M", "."],
+      "legend": {
+        "M": { "build": "core:market" },
+        ".": { "floor": true }
+      }
+    }
+  ]
+}
