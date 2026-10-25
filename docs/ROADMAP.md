@@ -23,6 +23,34 @@ every power shows what it will do before the player confirms, and destructive on
 in steps: Phase 2c (settlers, blessing, inspiration), after Phase 5 (destructive powers), after Phase 8
 (spawning animals), and later terrain, weather, worship and favour.
 
+**Direction update (user, 2026-10-24): WorldBox's breadth and chaos on top of MadColony's depth.** An
+original game in the same genre, never a copy: never use WorldBox's name, art, UI layout, race designs or
+signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases come first, in this order:
+1. **Phase 5** (death, illness, war and collapse, as written below), plus: wars happen more often between
+   rivals, villages and kingdoms can be destroyed or absorbed, and ruins stay on the map.
+2. **Phase 5b** destructive and nature god powers: lightning, fire (spreads through forest and wooden
+   buildings), meteor, plague, earthquake, tornado, rain (puts out fire, grows plants), drought. Each with a
+   preview and a confirm.
+3. **Phase 8 moved up:** animals (herds, predators, hunting), spawning animals with god powers (Phase 8b),
+   then original wild monsters that attack villages.
+4. **World shaping** (new): terrain brushes (raise/lower land, dig water, make mountains, plant forest, place
+   stone and ore deposits) and a "Blank world" scenario: shape the planet first, then spawn the first people.
+5. **Peoples and traits** (new; replaces "Multiple races" in the parking lot): 3–4 original peoples with their
+   own looks, needs, preferences, temperament and building styles; individual inheritable traits (brave,
+   greedy, wise, sickly, ...) that change behaviour; peoples can be spawned with god powers.
+6. **World laws** (new): settings toggled during play, e.g. no wars, no aging, fast growth, endless plague,
+   peaceful animals.
+7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
+   performance work needed.
+Then Phase 3, Phase 4 and the rest, as written below.
+
+**Long runs never hang silently (user, 2026-10-24).** Every command that can take over a minute (tests,
+bench, sim runs, reports, playtests) runs with a time budget and prints a progress line at least every 10 s;
+runs over 2 minutes go in the background; the game server is never started in the foreground and is stopped
+by its own PID afterwards; only one heavy run at a time. On a timeout: read the log tail, rerun once alone,
+then a smaller version to find where it slows, and report what got stuck. Never report a pass that did not
+finish. (At home this is `tools/run-guarded.mjs` and the `long-runs` skill.)
+
 **Rules for every phase:** zero dependencies and procedural art; determinism across save/load; item
 conservation (ledger + census); sim and UI separate; old saves keep loading (format changes through
 `src/sim/migrate.js` with a version bump and an old-save test); content as data; every system works for 30+
