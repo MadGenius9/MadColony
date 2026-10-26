@@ -3,6 +3,7 @@
 import { EDUCATION_DRIVERS } from '../education.js';
 import { needsCare, mayDoWork } from '../people.js';
 import { MEDICAL_DRIVERS } from '../medical.js';
+import { BURIAL_DRIVERS } from '../burial.js';
 import { octile } from '../util.js';
 import { DRIVERS, newJob, dropCarry, skillLevel } from './jobs.js';
 import { NEED_BEHAVIORS } from './needs.js';
@@ -11,7 +12,7 @@ import { tickHealth, isDown, hpOf, maybeAccident, HEALTH } from '../health.js';
 import { COMBAT_DRIVERS, COMBAT_JOBS, combatDecision } from '../combat.js';
 import { tripChecker, farFromHome } from './trips.js';
 
-Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS);
+Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS);
 
 export function tickColonist(g, c) {
   for (const def of g.reg.all('need')) NEED_BEHAVIORS[def.behavior]?.tick(g, c, def);

@@ -7,6 +7,9 @@
       "givers": [
         {
           "giver": "core:tend"
+        },
+        {
+          "giver": "core:bury"
         }
       ],
       "color": "#e06a8a"

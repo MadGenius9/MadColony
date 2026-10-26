@@ -17,6 +17,7 @@ export const GIVER_SPECS = {
     doc: 'Carries goods promised in an agreed trade from this settlement to the other settlement stockpile. Ownership changes hands on delivery.',
     params: obj({}),
   },
+  'core:bury': { doc: 'Carries the body of someone of the same settlement who died to the village graveyard and buries it (body and grave tile are reserved).', params: obj({}) },
   'core:tend': { doc: 'Feeds and tends colonists of the same settlement who have collapsed.', params: obj({}) },
   'core:maintain': { doc: 'Services buildings with a maintenance definition when worn below 60% (urgently when broken).', params: obj({}) },
   'core:refuel': { doc: 'Carries fuel (items with the generator fuel tag) into generators that are not full.', params: obj({}) },

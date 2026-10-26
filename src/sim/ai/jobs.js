@@ -40,6 +40,7 @@ export function workSpeed(g, c, workType, skill) {
   if ((c.needs['core:energy'] ?? 1) <= 0.03) sp *= 0.5;
   sp *= lightFactor(g, c.x, c.y); // working in the dark is slower
   if (workType) sp *= qualSpeed(g, c, workType); // a qualification for this work makes it faster (never required)
+  if (c.grief && c.grief.until > g.s.tick) sp *= c.grief.work; // mourning a close relative (burial.js)
   if (g.s.god) { const b = blessingOf(g, c.settlementId || g.s.playerSettlement); if (b) sp *= b.work; } // a divine blessing (godboons.js); skipped at once without s.god
   return sp;
 }

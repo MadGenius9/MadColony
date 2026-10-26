@@ -65,6 +65,10 @@ export const MIGRATIONS = {
   // 14 -> 15: death (Phase 5, slice 1a). `s.dead` (the dead by id), `health.zeroSince` and `s.stats.deaths` are
   // optional: absent means nobody has died, as in every older save. Nothing to add.
   14() {},
+  // 15 -> 16: burial and mourning (Phase 5, slice 1b). Bodies (`s.bodies`), graves (`structure.grave`), the
+  // graveyard (`settlement.graveyard`) and grief (`colonist.grief`) are optional. A format-15 save with the dead
+  // has no bodies: they count as laid to rest. Nothing to add.
+  15() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

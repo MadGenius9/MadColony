@@ -26,6 +26,7 @@ import { IdLayer, SparseIdLayer, layerView, terrainStoreOf } from './tiles.js';
 import { tickContact, bordersTouched, newContactState, landChunks, travellers, tradeDeadline, sameLandmass, landmassOf } from './contact.js';
 import { applyCommands, newGodState } from './god.js';
 import { processDeaths } from './death.js';
+import { tickBurial } from './burial.js';
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
@@ -1437,6 +1438,7 @@ export class Game {
     tickEducation(this);
     tickHeat(this);
     tickLOD(this); // big worlds: level of detail, abstract villages' hours, caravans
+    if (s.bodies) tickBurial(this); // bodies nobody buried in time, or of distant villages (burial.js)
     if (s.contact) tickContact(this); // contact over distance: explorers and traders (scenarios with a contact block)
     const big = this.big;
     // Big worlds: only colonists of villages simulated in full, gathered from the ownership index and sorted

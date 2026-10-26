@@ -18,10 +18,13 @@ function mortallyWound(g, c) {
   injure(g, c, 'wound', 100, 'Struck down again');
 }
 
-/** Every place in the saved state (but the record of the dead and the log) that still holds the id as a value. */
+/** Every place in the saved state that still holds the id, except where the dead are meant to be named: their
+ *  record (s.dead), the log, their body (s.bodies[*].cid) and grave inscriptions (structure.grave.cid). */
 function mentions(g, id) {
   const st = JSON.parse(serializeGame(g));
   delete st.state.dead; delete st.state.log;
+  for (const b of Object.values(st.state.bodies || {})) if (b.cid === id) delete b.cid;
+  for (const x of Object.values(st.state.structures || {})) if (x.grave?.cid === id) delete x.grave.cid;
   const out = [];
   const walk = (v, path) => {
     if (v === id) out.push(path);

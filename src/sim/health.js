@@ -72,6 +72,7 @@ export function tickHealth(g, c, force = false) {
   if (thirst && (c.needs[thirst.id] ?? 1) <= 0) injure(g, c, 'dehydration', HEALTH.dehydratePerHour * frac, 'Dehydrated', true);
   if (hunger && (c.needs[hunger.id] ?? 1) <= 0) injure(g, c, 'malnutrition', HEALTH.starvePerHour * frac, 'Starving', true);
   if (energy && (c.needs[energy.id] ?? 1) <= 0.01 && !c.sleeping) injure(g, c, 'exhaustion', HEALTH.exhaustPerHour * frac, 'Collapsing from exhaustion', true);
+  if (c.grief && c.grief.until <= g.s.tick) delete c.grief; // mourning is over (burial.js)
   if (!c.health?.injuries?.length) return;
   tickInfection(g, c, frac);
   const inBed = (c.sleeping && c.job?.bedId) || (c.health.down && c.medBedId);

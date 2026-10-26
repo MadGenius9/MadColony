@@ -17,6 +17,7 @@ import { isDown, careNeed } from '../health.js';
 import { findFood, findWater } from './needs.js';
 import { fieldCells } from '../game.js';
 import { reachTest, nodesInReach, SLOW_WORK } from './trips.js';
+import { BURIAL_GIVERS } from '../burial.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or
  *  near the centre (lod.js caravanReach). If those cannot cover what is still owed, one colonist at a time per
@@ -689,3 +690,4 @@ export function equipCandidate(g, c) {
 
 Object.assign(GIVERS, MEDICAL_GIVERS); // rescue and treatment (medical.js)
 Object.assign(GIVERS, EDUCATION_GIVERS); // school, teaching and college (education.js)
+Object.assign(GIVERS, BURIAL_GIVERS); // carrying the dead to the graveyard (burial.js)

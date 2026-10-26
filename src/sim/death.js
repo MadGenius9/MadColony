@@ -17,6 +17,7 @@
 // game.js, after the AI modules, to keep imports free of cycles.)
 import { endJob } from './ai/ai.js';
 import { planNow } from './planner.js';
+import { afterDeath, mourn } from './burial.js';
 
 /** The words for a death by the kind of its worst injury (others: "died of their injuries"). */
 const CAUSE_TEXT = {
@@ -93,6 +94,7 @@ export function killColonist(g, c, kind = null, opts = {}) {
     }
     if (c.ammo) { g.placeItems(c.ammo.item, c.ammo.qty, x, y); c.ammo = null; }
   } finally { g.actor = prev; }
+  mourn(g, c); // close family grieve (burial.js), before the home place is freed
   // Bed, home, medical bed, training and blocks.
   const bed = c.bedId && s.structures[c.bedId];
   if (bed && bed.owner === c.id) delete bed.owner;
@@ -111,6 +113,7 @@ export function killColonist(g, c, kind = null, opts = {}) {
   (s.dead ||= {})[c.id] = rec;
   delete s.colonists[c.id];
   g.ownReset('colonists');
+  afterDeath(g, c, rec); // a body to bury, or a grave at once in a distant village (burial.js)
   s.stats.deaths ||= {};
   s.stats.deaths[cause] = (s.stats.deaths[cause] || 0) + 1;
   const village = st?.name ? ` of ${st.name}` : '';

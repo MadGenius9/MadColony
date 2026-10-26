@@ -99,6 +99,7 @@ export function validateSave(save) {
   if (s.contact !== undefined) validateContact(s, m, bad, inB);
   if (s.god !== undefined) validateGod(s, bad);
   if (s.dead !== undefined) validateDead(s, bad); // format 15
+  if (s.bodies !== undefined) validateBodies(s, bad, inB); // format 16
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
   const ent = (coll, label, extra) => {
@@ -122,6 +123,7 @@ export function validateSave(save) {
     if (e.water !== undefined && (typeof e.water !== 'number' || !(e.water >= 0) || e.water > 1e7)) bad(`building "${k}" has an invalid water store`);
     if (e.fuel !== undefined && (!Array.isArray(e.fuel) || e.fuel.some((b) => !isObj(b) || !isStr(b.item, 100) || !isInt(b.qty) || b.qty < 1))) bad(`building "${k}" has an invalid fuel store`);
     if (e.burn !== undefined && (!isInt(e.burn) || e.burn < 0)) bad(`building "${k}" has an invalid burn timer`);
+    if (e.grave !== undefined && (!isObj(e.grave) || !isStr(e.grave.cid, 64) || !isStr(e.grave.name, 80) || !isInt(e.grave.tick))) bad(`building "${k}" has an invalid grave inscription`); // format 16
     if (e.charge !== undefined && (typeof e.charge !== 'number' || !(e.charge >= 0 && e.charge <= 1e7))) bad(`building "${k}" has an invalid battery charge`); // format 14
     if (e.condition !== undefined && (typeof e.condition !== 'number' || !(e.condition >= 0 && e.condition <= 100))) bad(`building "${k}" has an invalid condition`);
     if (e.buffer !== undefined && (!Array.isArray(e.buffer) || e.buffer.some((b) => !isObj(b) || !isStr(b.item, 100) || !isInt(b.qty) || b.qty < 1))) bad(`building "${k}" has an invalid input buffer`);
@@ -144,6 +146,7 @@ export function validateSave(save) {
     if (e.carriedBy !== undefined && e.carriedBy !== null && !isStr(e.carriedBy, 64)) bad(`colonist "${k}" has an invalid carrier`);
     if (e.ammo !== undefined && e.ammo !== null && (!isObj(e.ammo) || !isStr(e.ammo.item, 100) || !isInt(e.ammo.qty) || e.ammo.qty < 1)) bad(`colonist "${k}" has invalid ammunition`);
     if (e.health !== undefined && (!isObj(e.health) || !Array.isArray(e.health.injuries) || e.health.injuries.some((i) => !isObj(i) || !isStr(i.kind, 40) || !isNum(i.severity) || i.severity < 0 || i.severity > 100))) bad(`colonist "${k}" has invalid health`);
+    if (e.grief !== undefined && (!isObj(e.grief) || !isInt(e.grief.until) || !isStr(e.grief.for, 80) || !isNum(e.grief.work) || !(e.grief.work > 0 && e.grief.work <= 1))) bad(`colonist "${k}" has invalid grief`); // format 16
     if (isObj(e.health) && e.health.zeroSince !== undefined && (!isInt(e.health.zeroSince) || e.health.zeroSince > s.tick)) bad(`colonist "${k}" has an invalid time at 0% health`); // format 15
   });
   ent('projects', 'project', (e, k) => { if (!Array.isArray(e.parts) || !Array.isArray(e.cells)) bad(`project "${k}" is malformed`); });
@@ -175,6 +178,17 @@ function validateClaims(s, m, bad) {
  *  (whole ids below nextId, each used once, the queue in id order with ticks never decreasing, whole ticks),
  *  blessings well formed (a blessing of a settlement that no longer exists is dropped at load, loadGame). Unknown power types are allowed (a mod may be missing): such a
  *  command is refused, with its reason logged, when it comes due. */
+/** Bodies waiting for burial (format 16, optional): of someone in s.dead, owned by an existing settlement, on the map,
+ *  carried only by a living colonist. */
+function validateBodies(s, bad, inB) {
+  if (!isObj(s.bodies)) { bad('the list of bodies is malformed'); return; }
+  for (const [k, b] of Object.entries(s.bodies)) {
+    if (!SAFE_ID.test(k) || !isObj(b) || b.id !== k || !isStr(b.cid, 64) || !Object.hasOwn(s.dead || {}, b.cid) || !isStr(b.settlementId, 64)
+      || !Object.hasOwn(s.settlements || {}, b.settlementId) || !isInt(b.x) || !isInt(b.y) || !inB(b.x, b.y) || !isInt(b.tick) || b.tick > s.tick
+      || (b.carriedBy !== undefined && (!isStr(b.carriedBy, 64) || !Object.hasOwn(s.colonists || {}, b.carriedBy)))) { bad(`body "${String(k).slice(0, 40)}" is malformed`); return; }
+  }
+}
+
 /** The dead (format 15, optional): plain records keyed by safe ids that are not living colonists. */
 function validateDead(s, bad) {
   if (!isObj(s.dead)) { bad('the list of the dead is malformed'); return; }
@@ -187,6 +201,7 @@ function validateDead(s, bad) {
     if (d.injury !== undefined && !isStr(d.injury, 80)) { bad(`the record of the dead "${k}" has an invalid injury`); return; }
     if (d.bornTick !== undefined && !isNum(d.bornTick)) { bad(`the record of the dead "${k}" has an invalid birth tick`); return; }
     if (d.origin !== undefined && d.origin !== 'divine') { bad(`the record of the dead "${k}" has an unknown origin`); return; }
+    if ((d.buried !== undefined && (!isInt(d.buried) || d.buried > s.tick)) || (d.graveId !== undefined && !isStr(d.graveId, 64))) { bad(`the record of the dead "${k}" has an invalid burial`); return; } // format 16
     if (d.parents !== undefined && (!Array.isArray(d.parents) || d.parents.length > 4 || d.parents.some((p) => !isStr(p, 64)))) { bad(`the record of the dead "${k}" has invalid parents`); return; }
   }
 }
@@ -252,6 +267,7 @@ function validateSettlements(s, format, bad, inB) {
   const numMap = (o) => isObj(o) && Object.values(o).every((v) => isNum(v));
   for (const [k, st] of Object.entries(s.settlements)) {
     const L = `settlement "${String(k).slice(0, 40)}"`;
+    if (st?.graveyard !== undefined && (!isObj(st.graveyard) || !isInt(st.graveyard.x) || !isInt(st.graveyard.y) || !inB(st.graveyard.x, st.graveyard.y))) bad(`${L} has an invalid graveyard`); // format 16
     if (!isObj(st)) { bad(`${L} is not an object`); continue; }
     if (st.id !== k || !SAFE_ID.test(k)) bad(`${L} has a mismatched or invalid id`);
     if (st.name !== undefined && !isStr(st.name, 80)) bad(`${L} has an invalid name`);

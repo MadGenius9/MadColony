@@ -30,7 +30,7 @@ const terrainLook = obj({ style: { type: 'enum', values: ['grass', 'soil', 'sand
 const ITEM_ICONS = ['logs', 'stones', 'beans', 'potatoes', 'berries', 'bowl', 'cup', 'axe', 'pickaxe', 'spear', 'bow', 'gun', 'ammo', 'clay', 'pot', 'produce', 'sack', 'crate'];
 const itemLook = obj({ shape: { type: 'enum', values: ['logs', 'stones', 'basket', 'meal', 'tool', 'axe', 'pickaxe', 'spear', 'gun', 'crate', 'sack', 'pots'] }, color2: color, icon: { type: 'enum', values: ITEM_ICONS } });
 const cropLook = look(['bush', 'vine', 'stalk']);
-const buildingLook = look(['log_wall', 'stone_wall', 'plank_wall', 'door', 'bed', 'table', 'chair', 'campfire', 'workbench', 'desk', 'lamp', 'shelf', 'cabinet', 'rug', 'kiln', 'furnace', 'generator', 'pole', 'streetlamp', 'machine', 'battery', 'well', 'pump', 'tower', 'tap', 'pipe', 'hearth', 'heater', 'medbed', 'cabinet', 'quarry']);
+const buildingLook = look(['log_wall', 'stone_wall', 'plank_wall', 'door', 'bed', 'table', 'chair', 'campfire', 'workbench', 'desk', 'lamp', 'shelf', 'cabinet', 'rug', 'kiln', 'furnace', 'generator', 'pole', 'streetlamp', 'machine', 'battery', 'well', 'pump', 'tower', 'tap', 'pipe', 'hearth', 'heater', 'medbed', 'cabinet', 'quarry', 'grave']);
 
 export const CONTENT_TYPES = {
   skill: {
