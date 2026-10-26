@@ -273,7 +273,7 @@ function validateSettlements(s, format, bad, inB) {
   for (const [k, st] of Object.entries(s.settlements)) {
     const L = `settlement "${String(k).slice(0, 40)}"`;
     if (st?.fallen !== undefined && (!isObj(st.fallen) || !isInt(st.fallen.tick) || st.fallen.tick > s.tick || !isStr(st.fallen.cause, 120) || !['ruin', 'absorbed', 'sacked'].includes(st.fallen.fate)
-      || (st.fallen.by !== undefined && !ids.has(st.fallen.by)) || (st.fallen.released !== undefined && (!isInt(st.fallen.released) || st.fallen.released > s.tick)))) bad(`${L} has an invalid fallen record`); // format 21
+      || (st.fallen.by !== undefined && !ids.has(st.fallen.by)) || (st.fallen.released !== undefined && (!isInt(st.fallen.released) || st.fallen.released > s.tick || st.fallen.released < st.fallen.tick)) || st.kingdom !== undefined)) bad(`${L} has an invalid fallen record`); // format 21 (a ruin is in no kingdom)
     if (st?.graveyard !== undefined && (!isObj(st.graveyard) || !isInt(st.graveyard.x) || !isInt(st.graveyard.y) || !inB(st.graveyard.x, st.graveyard.y))) bad(`${L} has an invalid graveyard`); // format 16
     if (!isObj(st)) { bad(`${L} is not an object`); continue; }
     if (st.id !== k || !SAFE_ID.test(k)) bad(`${L} has a mismatched or invalid id`);
@@ -348,7 +348,7 @@ function validateDiplomacy(s, ids, bad) {
     if (!isObj(r)) continue;
     const L = `relation "${cut(k)}"`;
     if (r.aggressor !== undefined && r.aggressor !== r.a && r.aggressor !== r.b) { bad(`${L} names an aggressor that is not one of its two settlements`); break; }
-    if ((r.touch !== undefined && (!isInt(r.touch) || r.touch > s.tick)) || (r.threat !== undefined && (!isInt(r.threat) || r.threat > s.tick)) || (r.warSince !== undefined && (!isInt(r.warSince) || r.warSince > s.tick)) || (r.beaten !== undefined && (!isObj(r.beaten) || (r.beaten.sid !== r.a && r.beaten.sid !== r.b) || !isInt(r.beaten.since) || r.beaten.since > s.tick))) { bad(`${L} has an invalid border, threat or war time`); break; } // formats 19-20
+    if ((r.touch !== undefined && (!isInt(r.touch) || r.touch > s.tick)) || (r.threat !== undefined && (!isInt(r.threat) || r.threat > s.tick)) || (r.warSince !== undefined && (!isInt(r.warSince) || r.warSince > s.tick)) || (r.beaten !== undefined && (!isObj(r.beaten) || (r.beaten.sid !== r.a && r.beaten.sid !== r.b) || !isInt(r.beaten.since) || r.beaten.since > s.tick))) { bad(`${L} has an invalid border, threat or war time`); break; } // formats 19-22
     if (r.joinedFor !== undefined && !ids.has(r.joinedFor)) { bad(`${L} defends an ally that does not exist`); break; }
     // Contact games (format 11, optional): how they first met, and the traders' visits.
     if (r.met !== undefined && (!isObj(r.met) || !isInt(r.met.tick) || r.met.tick < 0 || !isStr(r.met.reason, 500))) { bad(`${L} has an invalid first-contact record`); break; }

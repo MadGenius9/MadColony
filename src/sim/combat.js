@@ -350,6 +350,7 @@ export function evaluateAttack(g, sid, target) {
   const ours = fightersOf(g, sid), theirs = fightersOf(g, target);
   const res = { valid: true, problems: [], lines: [], risks: [], declares: status !== 'hostile', ours: ours.length, theirs: theirs.length };
   if (sid === target || !settlementOf(g, target)) { res.valid = false; res.problems.push('There is no such village.'); return res; }
+  if (settlementOf(g, target).fallen) { res.valid = false; res.problems.push(`${name} has fallen; only ruins are left.`); return res; } // fallen.js
   if (!rel.contact) { res.valid = false; res.problems.push(`You have not met ${name} yet.`); }
   if (allianceOf(g, sid, target)) { res.valid = false; res.problems.push(`${name} is your ally. End the alliance first.`); }
   if (sameKingdom(g, sid, target)) { res.valid = false; res.problems.push(`${name} is in your kingdom (${kingdomOf(g, sid).name}).`); }

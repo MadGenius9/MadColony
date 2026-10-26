@@ -63,7 +63,7 @@ export function marketsList(g) {
   for (const st of list) {
     if (!st.built) continue;
     const sid = st.settlement || g.s.playerSettlement;
-    if (g.s.settlements?.[sid]) out.add(sid);
+    if (g.s.settlements?.[sid] && !g.s.settlements[sid].fallen) out.add(sid); // a ruin's market serves nobody (fallen.js)
   }
   return out.size ? [...out].sort(byStr) : EMPTY;
 }

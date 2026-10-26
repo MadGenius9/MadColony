@@ -9,6 +9,8 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { releaseClaims } from './territory.js';
 import { leaveKingdom, kingdomOf, membersOf, setCapital } from './kingdoms.js';
+import { makePeace } from './combat.js';
+import { relationStatus } from './villages.js';
 
 export const RUIN = { landDays: 20 };
 
@@ -37,6 +39,12 @@ export function fall(g, sid, cause, fate = 'ruin', by = null) {
   for (const k of Object.keys(s.alliances || {})) { const al = s.alliances[k]; if (al.a === sid || al.b === sid) delete s.alliances[k]; }
   for (const p of Object.values(s.proposals || {})) if (p.status === 'pending' && (p.from === sid || p.to === sid)) p.status = 'expired';
   if (s.military?.[sid]) s.military[sid] = { order: 'defend' };
+  // Its wars end: nobody fights ruins (war markers cleared with the peace), and attacks on it are called off.
+  for (const k of Object.keys(s.relations || {}).sort()) {
+    const r = s.relations[k];
+    if ((r.a === sid || r.b === sid) && relationStatus(r) === 'hostile' && s.settlements[r.a] && s.settlements[r.b]) makePeace(g, r.a, r.b, `${st.name} has fallen`);
+  }
+  for (const o of Object.keys(s.military || {}).sort()) if (s.military[o]?.target === sid) s.military[o] = { order: 'defend' };
   if (s.watch === sid) delete s.watch;
   // The kingdom: a member leaves; a capital passes the crown to the largest member left (or the kingdom ends).
   const k = kingdomOf(g, sid);
@@ -67,6 +75,6 @@ export function tickFallen(g) {
     }
     if (sid === s.playerSettlement || g.owned('colonists', sid).length) continue;
     const died = deathCause(g, sid);
-    fall(g, sid, died ? `everyone ${died.replace(/^died/, 'died')}` : 'everyone left');
+    fall(g, sid, died ? `everyone ${died}` : 'everyone left');
   }
 }

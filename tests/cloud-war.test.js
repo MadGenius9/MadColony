@@ -6,7 +6,7 @@ import { newGame, runDays, stateText, reload, serializeGame, loadGame, TICKS_PER
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 import { warRules, tickRivalry, warStrength } from '../src/sim/war.js';
-import { relationOf, relationPeek, changeRelation } from '../src/sim/villages.js';
+import { relationOf, relationPeek, changeRelation, availableToTrade } from '../src/sim/villages.js';
 import { injure } from '../src/sim/health.js';
 
 const WAR = { rivalry: { perDay: 1, floor: -70, near: 500, nearPerDay: 0.6 }, declareBelow: -50, stronger: 1.5, minStrength: 0.5, warnDays: 1 };
@@ -261,6 +261,9 @@ test('a winner of a sacking profile takes tribute instead', () => {
   const { g, a, b } = beatenWar('core:hill_fort');
   tickRivalry(g);
   g.s.tick += 2 * TICKS_PER_DAY;
+  const free = g.reg.all('item').map((d) => d.id).find((it) => availableToTrade(g, b, it) >= 4);
+  assert.ok(free, 'the village has something in store');
+  g.plans[b].surplus = { [free]: 20 }; // something to spare (its plan's surplus, as for ordinary deals)
   tickRivalry(g);
   const t = Object.values(g.s.trades).find((x) => x.tribute && x.seller === b && x.buyer === a);
   assert.ok(t, 'a tribute trade');
@@ -279,4 +282,12 @@ test('the player\'s village is never beaten this way', () => {
   for (let d = 0; d < 4; d++) { tickRivalry(g); g.s.tick += TICKS_PER_DAY; }
   assert.equal(relationPeek(g, a, p).beaten, undefined);
   assert.equal(kOf(g, p), null);
+});
+
+test('a beaten village is conquered once, and "beaten" does not outlive the peace', () => {
+  const { g, a, b } = beatenWar('core:river_hamlet');
+  tickRivalry(g);
+  assert.ok(relationPeek(g, a, b).beaten);
+  changeRelation(g, a, b, 80, 'A test peace');
+  assert.equal(relationPeek(g, a, b).beaten, undefined, 'cleared with the war');
 });

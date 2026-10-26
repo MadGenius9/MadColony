@@ -352,7 +352,7 @@ export function changeRelation(g, a, b, delta, reason) {
   if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16);
   const after = relationStatus(rel);
   // A war's markers (who struck first, who joined to defend an ally: combat.js) end with the war.
-  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; }
+  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; delete rel.beaten; }
   if (after !== before && rel.contact) {
     const na = settlementOf(g, a)?.name, nb = settlementOf(g, b)?.name;
     g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade');
@@ -543,6 +543,7 @@ export function tickVillages(g) {
       if (s.tick > t.deadline || hostile) {
         t.status = hostile ? 'cancelled' : 'expired';
         for (const [k, leg] of t.legs.entries()) {
+          if (t.tribute) break; // tribute not delivered costs no goodwill (war.js sack)
           if (leg.delivered < leg.qty && legRemaining(g, t, k).inTransit === 0) changeRelation(g, leg.from, leg.to, -5, `${nameOf(g, leg.from)} failed to deliver ${iname(g, leg.item)}`);
         }
         g.log(`A trade between ${nameOf(g, t.seller)} and ${nameOf(g, t.buyer)} ${t.status} before it was fully delivered.`, 'warn');
@@ -696,6 +697,7 @@ export function evaluateOffer(g, ai, offer) {
   const rel = relationPeek(g, me, ai);
   const status = relationStatus(rel);
   if (!rel.contact) res.problems.push(`You have not met ${name} yet.`);
+  if (st.fallen) res.problems.push(`${name} has fallen; only ruins are left.`); // fallen.js
   if (status === 'hostile') res.problems.push(`${name} is hostile and will not trade.`);
   if (activeTradeBetween(g, me, ai)) res.problems.push(`A trade with ${name} is still being delivered. Wait for it to finish or call it off.`);
   if (tradeClosed(g, me, ai)) res.problems.push(`${name} has closed trade with you over smuggling until ${dayOf(attentionOf(g, ai, me).closedUntil)}.`);
@@ -882,6 +884,7 @@ export function evaluatePact(g, a, b, doneCounts = null) {
   const nb = nameOf(g, b);
   const res = { valid: true, accept: false, problems: [], lines: [], verdict: '' };
   if (a === b || !settlementOf(g, b)) res.problems.push('That is not a neighbouring village.');
+  if (settlementOf(g, a)?.fallen || settlementOf(g, b)?.fallen) res.problems.push('Only ruins are left there.'); // fallen.js
   if (!rel.contact) res.problems.push(`You have not met ${nb} yet.`);
   if (hasPact(g, a, b)) res.problems.push(`You already have a trade pact with ${nb}.`);
   const done = completedTradesBetween(g, a, b, doneCounts);
@@ -980,7 +983,7 @@ export function evaluateAlliance(g, a, b, ctx = null) {
   const fightersFor = (x) => { if (!ctx) return fightersOf(g, x).length; if (!ctx.fighters.has(x)) ctx.fighters.set(x, fightersOf(g, x).length); return ctx.fighters.get(x); };
   const res = { valid: true, accept: false, problems: [], lines: [], verdict: '' };
   const na = nameOf(g, a), nb = nameOf(g, b);
-  if (a === b || !settlementOf(g, a) || !settlementOf(g, b)) {
+  if (a === b || !settlementOf(g, a) || !settlementOf(g, b) || settlementOf(g, a).fallen || settlementOf(g, b).fallen) { // ruins: fallen.js
     res.valid = false; res.problems.push('That is not a neighbouring village.'); res.verdict = res.problems[0]; return res;
   }
   const rel = relationPeek(g, a, b);
@@ -1279,6 +1282,7 @@ export function evaluateRights(g, grantee, owner, def) {
   const rel = relationPeek(g, grantee, owner);
   const on = nameOf(g, owner), what = nodeName(g, def);
   if (!rel.contact) res.problems.push(`You have not met ${on} yet.`);
+  if (settlementOf(g, owner)?.fallen) res.problems.push(`${on} has fallen; only ruins are left.`); // fallen.js
   if (relationStatus(rel) === 'hostile') res.problems.push(`${on} is hostile.`);
   if (rightsOf(g, owner, grantee)?.nodes.includes(def)) res.problems.push(`You may already gather ${what} there.`);
   const near = borderNodes(g, owner, grantee, def).length;

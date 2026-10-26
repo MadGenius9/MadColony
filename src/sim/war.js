@@ -25,7 +25,9 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { relationOf, relationPeek, relationStatus, allianceOf, changeRelation } from './villages.js';
 import { sameKingdom, kingdomOf, membersOf, formKingdom, joinKingdom, leaveKingdom, setCapital } from './kingdoms.js';
-import { availableToTrade } from './villages.js';
+import { availableToTrade, spareOf } from './villages.js';
+
+const TRIBUTE_MAX = 200; // per item, as for ordinary offers
 import { declareWar, makePeace, weaponOf, COMBAT } from './combat.js';
 import { isDown, hpOf, injure } from './health.js';
 import { spreadContact } from './illness.js';
@@ -98,9 +100,10 @@ export function tickRivalry(g) {
  *  its crown on), 'sack' takes conquest.tribute of its spare goods as a tribute trade (delivered like any trade).
  *  Either way the war ends. The player's village is never beaten this way (Phase 5 open question 2). */
 function conquests(g, R) {
-  const s = g.s, C = R.conquest;
+  const s = g.s, C = R.conquest, done = new Set(); // a loser is conquered once a day, by the first in key order
   for (const rel of wars(g)) {
     const { a, b } = rel;
+    if (done.has(a) || done.has(b)) continue;
     const sa = warStrength(g, a), sb = warStrength(g, b);
     const loser = sa === 0 && sb > 0 ? a : sb === 0 && sa > 0 ? b : null;
     if (!loser || loser === s.playerSettlement) { delete rel.beaten; continue; }
@@ -110,6 +113,7 @@ function conquests(g, R) {
     delete rel.beaten;
     const prof = s.settlements[winner].profile && g.reg.get('villageProfile', s.settlements[winner].profile);
     const how = winner === s.playerSettlement ? 'absorb' : prof?.conquest || 'absorb';
+    done.add(loser);
     if (how === 'sack') sack(g, loser, winner, C);
     else absorb(g, loser, winner);
   }
@@ -130,16 +134,22 @@ function absorb(g, loser, winner) {
   else formKingdom(g, winner, loser, { conquered: true });
   makePeace(g, winner, loser, `${ln} was conquered by ${wn}`);
   changeRelation(g, winner, loser, 50, `${ln} is now under ${wn}'s crown`); // from the truce value to friendly
+  // Peace with the rest of its new kingdom too (members that had joined the war against it).
+  const nk = kingdomOf(g, winner);
+  if (nk) for (const m of membersOf(g, nk.id)) if (m !== winner && m !== loser && relationStatus(relationPeek(g, m, loser)) === 'hostile') makePeace(g, m, loser, `${ln} joined ${wn}'s kingdom`);
   g.log(`${wn} has conquered ${ln}: it is now part of ${kingdomOf(g, winner) ? 'its kingdom' : 'its lands'}.`, 'warn');
 }
 
 function sack(g, loser, winner, C) {
   const s = g.s, ln = nameOf(g, loser), wn = nameOf(g, winner);
   const legs = [];
-  for (const it of g.reg.all('item').map((d) => d.id).sort()) {
-    const q = Math.floor(availableToTrade(g, loser, it) * C.tribute);
-    if (q > 0) legs.push({ from: loser, to: winner, item: it, qty: q, delivered: 0 });
-  }
+  // What it can spare (its plan's surplus, as for ordinary deals) and has free to trade, at most TRIBUTE_MAX an item.
+  g.readOnly(() => {
+    for (const it of g.reg.all('item').map((d) => d.id).sort()) {
+      const q = Math.min(TRIBUTE_MAX, Math.floor(Math.min(spareOf(g, loser, it), availableToTrade(g, loser, it)) * C.tribute));
+      if (q > 0) legs.push({ from: loser, to: winner, item: it, qty: q, delivered: 0 });
+    }
+  });
   makePeace(g, loser, winner, `${ln} was sacked by ${wn}`);
   if (legs.length) {
     const id = g.newId('tr');

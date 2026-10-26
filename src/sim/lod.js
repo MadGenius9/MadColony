@@ -101,7 +101,7 @@ export function wantDetail(g, sid) { return fullReason(g, sid) ? 'full' : 'abstr
 
 /** The village the player is watching (explicit player input, applied at the next LOD check). */
 export function setWatch(g, sid) {
-  if (sid && g.s.settlements?.[sid]) g.s.watch = sid;
+  if (sid && g.s.settlements?.[sid] && !g.s.settlements[sid].fallen) g.s.watch = sid; // not ruins (fallen.js)
   else delete g.s.watch;
 }
 
@@ -289,7 +289,7 @@ function takePlanned(g, plan) {
 /** One game hour of an abstract village: needs and health, labour, caravans (in this order). */
 export function abstractHour(g, sid) {
   const st = settlementOf(g, sid);
-  if (!st) return;
+  if (!st || st.fallen) return; // ruins live no hours (fallen.js)
   if (g.replanLater?.has(sid)) planNow(g, sid); // its hour comes before its planning slot (planner.js)
   const prevActor = g.actor;
   g.actor = sid;

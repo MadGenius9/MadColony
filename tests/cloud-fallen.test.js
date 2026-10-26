@@ -119,3 +119,19 @@ test('saves: a malformed fallen record is refused; a fall saved and loaded conti
   bad.state.settlements[sid].fallen.fate = 'vanished';
   assert.throws(() => loadGame(a.reg, JSON.stringify(bad)), /fallen record/);
 });
+
+test('a falling village\'s wars end and attacks on it are called off; the player cannot deal with a ruin', async () => {
+  const { declareWar, evaluateAttack } = await import('../src/sim/combat.js');
+  const { relationOf, relationPeek, evaluateOffer } = await import('../src/sim/villages.js');
+  const g = vast();
+  const [a, b] = Object.keys(g.s.settlements).filter((x) => g.s.settlements[x].ai).sort();
+  relationOf(g, a, b).contact = true;
+  declareWar(g, a, b, 'Test war');
+  untilFallen(g, b);
+  assert.equal(relationPeek(g, a, b).aggressor, undefined, 'no war with a ruin');
+  assert.notEqual(g.s.military?.[a]?.target, b, 'no attack on a ruin');
+  const p = g.s.playerSettlement;
+  relationOf(g, p, b).contact = true;
+  assert.ok(evaluateOffer(g, b, { give: [], want: [] }).problems.some((x) => /has fallen/.test(x)));
+  assert.equal(evaluateAttack(g, p, b).valid, false);
+});
