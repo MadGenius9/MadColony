@@ -17,3 +17,16 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Portrait bar:** a dead colonist disappears (they leave `g.s.colonists`); a letter explains why.
 - **Sound:** the death cue (was planned for Phase 5 in Phase 1b) on a `death` log entry of the player's village.
 - **Empty villages:** a village with no people left keeps its card; show "Nobody lives here any more".
+
+## Phase 5, slice 1b: burial and mourning
+- **Bodies on the map:** each `g.s.bodies[id]` at `x, y` (a lying figure in the village colour); when
+  `carriedBy` is set, draw it on the carrier. Hover: "The body of <name> (`g.s.dead[cid].name`), died day N".
+- **Graves:** buildings with `def === 'core:grave'` (`render.shape: 'grave'`, a new shape: a small mound with a
+  marker stone). Hover / inspector: "Grave of <name>, buried day N" from `structure.grave`.
+- **Burial job:** the colonist card shows the job label ("Bury Ana") and status action ("Carrying Ana to the
+  graveyard", "Burying Ana"), already in `c.job.label` / `c.status.action`.
+- **Grief:** hover card and inspector line "Grieving for <name> (until day N): work 85%" from `c.grief`
+  (`for`, `until`, `work`). A small dark ribbon on the portrait while `grief.until > tick`.
+- **Log/letters:** "X buried Y." and "Y was buried by the people of V." are routine (`cat: 'info'`).
+- **Work grid:** no new column (burial is part of Care).
+

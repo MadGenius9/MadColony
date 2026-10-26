@@ -508,6 +508,9 @@ questions were not answered, so the note's proposals are the working defaults).
   `s.dead`; jobs, beds, homes, training and plans are cleared; goods are put down where they died; the people
   ledger counts deaths. Save format 15. Classic 40-day and seed 4242 runs unchanged. Results: design note,
   "Slice 1a".
+- **Done:** slice 1b, bodies, burial and mourning (commit `7e48fac`). Bodies carried to a village graveyard by
+  carers and buried in named graves (distant villages at once; after 3 days by the village anyway); close family
+  grieve 2 days (work ×0.85). Save format 16. Classic runs unchanged. Results: design note, "Slice 1b".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

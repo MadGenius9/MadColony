@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slice 1a done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a and 1b done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -229,3 +229,18 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
 - **Open:** set-aside equipment of someone who died is restored where they died (not tested: needs a missing
   mod); `s.dead` is never pruned (slice 6); a death while being carried to a clinic and a combat death are not
   tested directly yet (combat comes in slice 5).
+
+### Slice 1b: bodies, burial and mourning (commit `7e48fac`)
+- **Built:** `src/sim/burial.js`: bodies (`s.bodies`), the `core:bury` giver under Care and the `bury` job (go to
+  the body, carry it, dig for 120 ticks, place the grave), `graveTile` (next to the first grave, else the nearest
+  free tile 5–30 tiles out on land the village may build on, in its walkable area), `tickBurial` (hourly while
+  there are bodies: laid to rest after 3 days, or at once when the village is distant), `mourn` (home, parents,
+  children: `colonist.grief`, work ×0.85 for 2 days). Building `core:grave` (furniture, passable, no cost, built
+  at once, `structure.grave` holds the name). Save format 16.
+- **Deviation:** graves are built at once at the end of the dig, not as construction projects, and cost nothing
+  (a dug grave). The numbers are in `BURIAL` (code), like `HEALTH`.
+- **Measured** (seed 4242, a death on day 3): the body was carried and buried within 2 hours; the grave stood 6
+  tiles from the centre; the two housemates grieved.
+- **Not changed:** classic 40-day and seed 4242 Modern state hashes; 55 tests pass (7 in
+  `tests/cloud-burial.test.js`).
+- **Open:** the UI (graves, bodies, grief: `docs/ui-todo.md`); graves are never removed (ruins: slice 6).
