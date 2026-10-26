@@ -38,6 +38,7 @@ import { emptyPlan } from './planner.js';
 import { kingdomForDaughter } from './kingdoms.js';
 import { claimsFreeFor, claimRadius } from './territory.js';
 import { isDiscovered } from './contact.js';
+import { coldWait } from './life.js';
 
 export const FOUNDING_DEFAULTS = Object.freeze({
   maxVillages: 30, minAdults: 6, crowdedDays: 3, foodDaysLeft: 5, cooldownDays: 20, founders: Object.freeze([3, 5]),
@@ -176,6 +177,7 @@ export function canFound(g, sid, counts = null) {
     P.push(`${name} was founded on day ${dayOf(st.founded || 0)}; a new village sends settlers out only from day ${dayOf((st.founded || 0) + R.daughterMinDays * TICKS_PER_DAY)}.`);
   if (Number.isFinite(st.noSiteAt) && s.tick - st.noSiteAt < R.siteRetryDays * TICKS_PER_DAY)
     P.push(`No free site was found near ${name} on day ${dayOf(st.noSiteAt)}; it looks again on day ${dayOf(st.noSiteAt + R.siteRetryDays * TICKS_PER_DAY)}.`);
+  if (!P.length) { const cw = coldWait(g); if (cw) P.push(`In ${name} ${cw}.`); } // scenarios with cold rules (life.js)
   if (P.length) { res.reason = P[0]; return res; }
   // Only villages that pass the cheap checks pick founders and count food.
   const n = res.n = founderTarget(R, crowd.adults);

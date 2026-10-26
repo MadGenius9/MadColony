@@ -511,6 +511,11 @@ questions were not answered, so the note's proposals are the working defaults).
 - **Done:** slice 1b, bodies, burial and mourning (commit `7e48fac`). Bodies carried to a village graveyard by
   carers and buried in named graves (distant villages at once; after 3 days by the village anyway); close family
   grieve 2 days (work ×0.85). Save format 16. Classic runs unchanged. Results: design note, "Slice 1b".
+- **Done:** slice 2, cold and old age (scenario `life` block, Vast and Living worlds). Hypothermia for the exposed
+  below −2 °C (asleep or collapsed outdoors, the homeless away from a fire; rooms +6 °C; distant villages: a
+  finished home shelters); founding waits for warmer weather; elders from 50 work at 80%, old-age deaths from 60.
+  Vast seed 7, 100 days: 25 → 119 people, 2 deaths of old age, none from cold. Classic runs unchanged. Results:
+  design note, "Slice 2".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a and 1b done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b and 2 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -243,4 +243,34 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
   tiles from the centre; the two housemates grieved.
 - **Not changed:** classic 40-day and seed 4242 Modern state hashes; 55 tests pass (7 in
   `tests/cloud-burial.test.js`).
+- **Review fixes** (after `7e48fac`): carers do not walk out to bodies beyond `contact.tendRange` (big worlds)
+  and the trip budget applies; carrying a body finishes its leg unless a need is critical; the nearest body is
+  offered; a stale carrier on a body is cleared on load (`reconcile.js`); graveyards start 8 tiles out (5 put
+  the first grave in the village core, where homes and fields must then go round it).
+- **Deviations also:** burial is part of the Care work type (no new work type); a body left 3 days gets a grave
+  in the graveyard, not where it lies; grief has no effect in distant villages (their hourly labour does not use
+  work speed).
 - **Open:** the UI (graves, bodies, grief: `docs/ui-todo.md`); graves are never removed (ruins: slice 6).
+
+### Slice 2: cold and old age
+- **Built:** `src/sim/life.js`, the scenario block `life` (schema in `content/types.js`), on in the Vast and Living
+  worlds only:
+  `cold { below: -2, perHour: 0.4, shelter: 6, fires: [campfire, hearth], fireRadius: 5, foundWaitDays: 8 }`,
+  `aging { elderAge: 50, elderWork: 0.8, deathAge: 60, perYear: 0.2, perYearStep: 0.15, startAges: [16, 60] }`.
+  Hypothermia in `tickHealth`, elders in `workSpeed`, old age daily (`tickAging`, deaths through
+  `processDeaths` with the cause), start ages in `ensureAdult`, the founding wait in `canFound`.
+- **Deviation from the note: who feels the cold.** The first rule (anyone where it is below −2 °C) killed 19 of
+  37 people in the first winter (Vast seed 7): distant villages' people stand outdoors round the centre
+  (`lod.js`), and full-detail workers were out at night. Then founders of new villages froze before their first
+  home. Now only the exposed feel it (asleep or collapsed outdoors, the homeless away from a fire), rooms add
+  6 °C, a finished home shelters a distant villager, and founding waits for warmer weather.
+- **Fix: hash draws.** FNV-1a alone gave almost the same value for keys that differ only in the day, so a daily
+  chance hardly changed from day to day; `life.js` adds a 32-bit finaliser. (Other hash-based picks in the code
+  were not changed.)
+- **Measured** (Vast seed 7, 100 days): 25 → 119 people, 7 → 29 villages, 7–9 elders, 2 deaths of old age (days
+  ~75 and ~85), no cold deaths (an earlier tuning, before the hash fix changed the ages: 2 cold deaths in the third
+  winter). 0 conservation errors.
+- **Not changed:** classic 40-day and seed 4242 Modern (no `life` block): same state hashes. 62 tests pass (7 in
+  `tests/cloud-life.test.js`, run on the classic world with the rules added to its data).
+- **Open:** cold and age numbers are first values; balance over 100 and 300 days is slice 7. No winter clothing.
+

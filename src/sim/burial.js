@@ -12,9 +12,11 @@
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
 import { isDown } from './health.js';
 import { newJob, travel } from './ai/jobs.js';
-import { rings } from './util.js';
+import { rings, octile } from './util.js';
+import { contactRules } from './contact.js';
+import { settlementOf } from './research.js';
 
-export const BURIAL = { work: 120, layAfterDays: 3, griefDays: 2, griefWork: 0.85, yardFrom: 5, yardTo: 30, nearGrave: 4 };
+export const BURIAL = { work: 120, layAfterDays: 3, griefDays: 2, griefWork: 0.85, yardFrom: 8, yardTo: 30, nearGrave: 4 };
 export const GRAVE = 'core:grave';
 
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -35,12 +37,12 @@ function graveFree(g, sid, x, y, home) {
 
 /** The tile for the next grave of `sid`, or null (read-only, no random numbers): next to the graveyard's first grave,
  *  else the nearest free tile BURIAL.yardFrom..yardTo tiles from the centre, in ring order. */
-export function graveTile(g, sid, except = null) {
+export function graveTile(g, sid) {
   const st = g.s.settlements?.[sid];
   const c = st?.center || g.s.center;
   if (!c) return null;
   const home = g.regionOf(c.x, c.y);
-  const ok = (x, y) => (!except || except !== `${x},${y}`) && graveFree(g, sid, x, y, home);
+  const ok = (x, y) => graveFree(g, sid, x, y, home);
   if (st?.graveyard) for (const [x, y] of rings(st.graveyard.x, st.graveyard.y, BURIAL.nearGrave)) if (ok(x, y)) return { x, y };
   for (const [x, y] of rings(c.x, c.y, BURIAL.yardTo)) {
     if (Math.max(Math.abs(x - c.x), Math.abs(y - c.y)) < BURIAL.yardFrom) continue;
@@ -112,22 +114,32 @@ function go(g, c, j, x, y, mode, what) {
 }
 
 export const BURIAL_GIVERS = {
-  // Carry a body of the village to the graveyard and bury it.
+  // Carry a body of the village to the graveyard and bury it: the nearest body offered (one at a time). As with
+  // tending (givers.js core:tend), in contact games nobody walks out to a body beyond contact.tendRange of the
+  // village centre (it is laid to rest by the village after the waiting days); the trip budget (trips.js) applies.
   'core:bury': {
     find(g, c, params, wt) {
       const s = g.s;
       if (!s.bodies || isDown(c)) return [];
       const sid = sidOf(g, c), out = [];
+      const tendRange = contactRules(g)?.tendRange, centre = tendRange !== undefined ? settlementOf(g, sid)?.center : null;
+      let best = null, bd = Infinity;
       for (const id of Object.keys(s.bodies).sort(byId)) {
         const b = s.bodies[id];
         if (b.settlementId !== sid || b.carriedBy) continue;
+        if (centre && octile(centre.x, centre.y, b.x, b.y) > tendRange) continue;
         const key = 'body:' + id;
-        if (g.isReserved(key, c.id) || g.isBlocked(key) || !g.canReach(c, b.x, b.y, 'adj')) continue;
+        if (g.isReserved(key, c.id) || g.isBlocked(key)) continue;
+        const d = octile(c.x, c.y, b.x, b.y);
+        if (d < bd && g.canReach(c, b.x, b.y, 'adj')) { best = b; bd = d; }
+      }
+      if (best) {
+        const b = best, id = b.id, key = 'body:' + id;
         const at = graveTile(g, sid);
-        if (!at || !g.canReach(c, at.x, at.y, 'on')) continue;
+        if (!at || !g.canReach(c, at.x, at.y, 'on')) return out;
         const name = s.dead?.[b.cid]?.name || 'the dead';
         out.push({
-          x: b.x, y: b.y, urgency: 0.9, label: `Bury ${name}`,
+          x: b.x, y: b.y, far: { x: b.x, y: b.y, carry: true }, urgency: 0.9, label: `Bury ${name}`,
           make: () => {
             const job = newJob('bury', { bodyId: id, gx: at.x, gy: at.y, stage: 'go' }, { why: `${name} died`, label: `Bury ${name}`, targetKey: key, workType: wt.id });
             if (!g.reserveExcl(job, key, c.id)) return null;
@@ -135,7 +147,6 @@ export const BURIAL_GIVERS = {
             return job;
           },
         });
-        break; // one body at a time is enough to offer
       }
       return out;
     },

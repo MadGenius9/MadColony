@@ -391,7 +391,7 @@ export const CONTENT_TYPES = {
       // from deathAge a daily chance of death (perYear a year, perYearStep more per year past it); startAges [lo, hi]
       // for new adults of unknown age.
       life: obj({
-        cold: obj({ below: req(num(-60, 30)), perHour: req(num(0.01, 50)) }),
+        cold: obj({ below: req(num(-60, 30)), perHour: req(num(0.01, 50)), shelter: num(0, 40), fires: arr(ref('building')), fireRadius: int(0, 50), foundWaitDays: num(0, 30) }),
         aging: obj({
           elderAge: req(num(1, 500)), elderWork: req(num(0.1, 1)), deathAge: req(num(1, 500)),
           perYear: req(num(0, 1)), perYearStep: req(num(0, 1)),

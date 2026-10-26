@@ -73,7 +73,7 @@ const farHungry = (g, c, def, b) => def.behavior === 'core:eat' && !c.job?.need 
 const pressing = (g, c, def, b) => b.urgent(g, c, def) || farHungry(g, c, def, b);
 // Carrying a patient or goods on a delivery leg: the leg is finished first unless a need is critical, so
 // cargo is not left at the roadside (and nobody is dropped halfway to the clinic).
-const carrying = (c, job) => !!c.carry || (job.type === 'rescue' && job.stage === 'carry') || (job.type === 'tend' && !!job.water);
+const carrying = (c, job) => !!c.carry || ((job.type === 'rescue' || job.type === 'bury') && job.stage === 'carry') || (job.type === 'tend' && !!job.water);
 
 function interruptReason(g, c) {
   const job = c.job;

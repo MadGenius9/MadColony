@@ -53,7 +53,7 @@
         }
       },
       "life": {
-        "cold": { "below": -2, "perHour": 0.4 },
+        "cold": { "below": -2, "perHour": 0.4, "shelter": 6, "fires": ["core:campfire", "core:hearth"], "fireRadius": 5, "foundWaitDays": 8 },
         "aging": { "elderAge": 50, "elderWork": 0.8, "deathAge": 60, "perYear": 0.2, "perYearStep": 0.15, "startAges": [16, 60] }
       },
       "travel": { "maxWalk": 120, "checkBeyond": 30, "farFromHome": 30, "walkTicks": 4.6, "workTicks": 150 },

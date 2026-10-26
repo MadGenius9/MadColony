@@ -30,3 +30,15 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Log/letters:** "X buried Y." and "Y was buried by the people of V." are routine (`cat: 'info'`).
 - **Work grid:** no new column (burial is part of Care).
 
+## Phase 5, slice 1b (review): Grave in build menus
+- If any UI lists every building (a build or debug menu), leave out `core:grave`: graves are made only by burial.
+
+## Phase 5, slice 2: cold and old age (Vast and Living worlds)
+- **Hover card / inspector:** "Freezing" injury line (kind `hypothermia`, cause "Freezing"), like other conditions.
+  A frost icon on the portrait while `hypothermia` grows.
+- **Age:** "Elder, 57" when `ageYears(g, c) >= scenario.life.aging.elderAge` (life.js `ageYears`), and "works at
+  80%" in the work line (`elderFactor`).
+- **Founding:** the Colony tab's Settlers block shows the wait reason from `canFound(...).reason` ("settlers wait
+  for warmer weather").
+- **Death letters:** causes "froze to death" and "died of old age" come through the `death` log category as before.
+
