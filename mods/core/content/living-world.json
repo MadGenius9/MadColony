@@ -79,6 +79,10 @@
       "worldgen": "core:continent",
       "size": "huge",
       "placement": "spread",
+      "life": {
+        "cold": { "below": -2, "perHour": 0.4 },
+        "aging": { "elderAge": 50, "elderWork": 0.8, "deathAge": 60, "perYear": 0.2, "perYearStep": 0.15, "startAges": [16, 60] }
+      },
       "siteWaterWalk": 24,
       "neighborDistance": 40,
       "eraDrive": { "urgency": 0.3, "afterDays": 5 },

@@ -1,6 +1,7 @@
 // Job drivers: each job is plain serializable data advanced one tick at a time by its driver.
 // Drivers return 'running', 'done', or { fail: reason, cooldown? }.
 import { qualSpeed } from '../education.js';
+import { elderFactor } from '../life.js';
 import { relationPeek } from '../villages.js';
 import { sleepWarmth, refuelSpot } from '../heat.js';
 import { fuelSpec } from '../power.js';
@@ -41,6 +42,7 @@ export function workSpeed(g, c, workType, skill) {
   sp *= lightFactor(g, c.x, c.y); // working in the dark is slower
   if (workType) sp *= qualSpeed(g, c, workType); // a qualification for this work makes it faster (never required)
   if (c.grief && c.grief.until > g.s.tick) sp *= c.grief.work; // mourning a close relative (burial.js)
+  sp *= elderFactor(g, c); // the old work more slowly (scenarios with aging rules, life.js)
   if (g.s.god) { const b = blessingOf(g, c.settlementId || g.s.playerSettlement); if (b) sp *= b.work; } // a divine blessing (godboons.js); skipped at once without s.god
   return sp;
 }

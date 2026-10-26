@@ -386,6 +386,18 @@ export const CONTENT_TYPES = {
       } }),
       // Era drive (planner.js): every village with no player era goal works toward the next era by itself (its
       // milestones become build targets and wanted research at this urgency). Absent: only player goals do.
+      // Phase 5 slice 2 (life.js): cold and old age. cold: below `below` °C where a colonist is, hypothermia grows by
+      // perHour severity an hour per degree under it. aging: elders (from elderAge years) work at elderWork speed;
+      // from deathAge a daily chance of death (perYear a year, perYearStep more per year past it); startAges [lo, hi]
+      // for new adults of unknown age.
+      life: obj({
+        cold: obj({ below: req(num(-60, 30)), perHour: req(num(0.01, 50)) }),
+        aging: obj({
+          elderAge: req(num(1, 500)), elderWork: req(num(0.1, 1)), deathAge: req(num(1, 500)),
+          perYear: req(num(0, 1)), perYearStep: req(num(0, 1)),
+          startAges: arr(int(0, 500), { minItems: 2, maxItems: 2 }),
+        }),
+      }),
       travel: TRAVEL, // trip budgets for colonists (ai/trips.js); absent: off unless the AI profile sets it
       eraDrive: obj({ urgency: num(0, 2), afterDays: num(0, 3650) }), // afterDays: from this many days after the village's founding (default 0)
       // Villages founded during play by settlers leaving crowded villages (founding.js). Absent: off.

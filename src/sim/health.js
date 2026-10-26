@@ -7,6 +7,7 @@
 // At 0% health for HEALTH.deathAfterHours a colonist dies (death.js, Phase 5). Everything here is saved on the colonist.
 import { tickInfection, healFactor, bedFactor } from './medical.js';
 import { TICKS_PER_HOUR } from './constants.js';
+import { coldUnder, lifeRules } from './life.js';
 
 export const HEALTH = {
   restBelow: 60, // rest in bed below this
@@ -72,6 +73,8 @@ export function tickHealth(g, c, force = false) {
   if (thirst && (c.needs[thirst.id] ?? 1) <= 0) injure(g, c, 'dehydration', HEALTH.dehydratePerHour * frac, 'Dehydrated', true);
   if (hunger && (c.needs[hunger.id] ?? 1) <= 0) injure(g, c, 'malnutrition', HEALTH.starvePerHour * frac, 'Starving', true);
   if (energy && (c.needs[energy.id] ?? 1) <= 0.01 && !c.sleeping) injure(g, c, 'exhaustion', HEALTH.exhaustPerHour * frac, 'Collapsing from exhaustion', true);
+  const cold = coldUnder(g, c); // scenarios with cold rules (life.js): degrees below the freezing line where they are
+  if (cold > 0) injure(g, c, 'hypothermia', lifeRules(g).cold.perHour * cold * frac, 'Freezing', true);
   if (c.grief && c.grief.until <= g.s.tick) delete c.grief; // mourning is over (burial.js)
   if (!c.health?.injuries?.length) return;
   tickInfection(g, c, frac);
@@ -84,6 +87,7 @@ export function tickHealth(g, c, force = false) {
     if (i.kind === 'malnutrition' && !fed) continue; // only food cures hunger
     if (i.kind === 'exhaustion' && !rested) continue;
     if (i.kind === 'dehydration' && !watered) continue; // only water cures thirst
+    if (i.kind === 'hypothermia' && cold > 0) continue; // only warmth cures the cold
     i.severity = Math.max(0, Math.round((i.severity - rate * healFactor(i, g, c) * frac) * 100) / 100);
   }
   const healed = c.health.injuries.filter((i) => i.severity <= 0);
@@ -101,7 +105,7 @@ function checkDeath(g, c) {
   if (!h) return;
   if (hpOf(c) > 0) { if (h.zeroSince !== undefined) delete h.zeroSince; return; }
   if (h.zeroSince === undefined) h.zeroSince = g.s.tick;
-  if (g.s.tick - h.zeroSince >= HEALTH.deathAfterHours * TICKS_PER_HOUR) (g._dying ||= new Set()).add(c.id);
+  if (g.s.tick - h.zeroSince >= HEALTH.deathAfterHours * TICKS_PER_HOUR && !g._dying?.has(c.id)) (g._dying ||= new Map()).set(c.id, null); // cause: their worst injury
 }
 
 /** At 0% health, is anyone caring for a collapsed colonist? Tended now, in a medical bed, or a wound already

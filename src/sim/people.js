@@ -15,6 +15,7 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { makeLook } from './appearance.js';
 import { namePoolOf, surnameOf, uniqueName, usedNames } from './names.js';
+import { startAge } from './life.js';
 import { blessingOf } from './god.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
@@ -51,7 +52,7 @@ export function ageLabel(g, c) {
 export function ensureAdult(g, c) {
   if (c.stage) return;
   c.stage = adultStage(g)?.id || 'core:adult';
-  c.ageYears ??= 20 + (hash(c.id) % 26);
+  c.ageYears ??= startAge(g, c.id) ?? 20 + (hash(c.id) % 26); // scenarios with aging rules spread ages wider (life.js)
   c.ageTick ??= g.s.tick;
   c.quals ||= g.reg.get('qualification', 'core:schooled') ? ['core:schooled'] : []; // they grew up elsewhere and had schooling
 }

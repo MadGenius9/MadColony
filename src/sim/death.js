@@ -28,21 +28,24 @@ const CAUSE_TEXT = {
   infection: 'died of an infected wound',
   illness: 'died of an illness',
   injury: 'died of their injuries',
+  hypothermia: 'froze to death',
+  old_age: 'died of old age',
 };
 export const causeText = (kind) => (Object.hasOwn(CAUSE_TEXT, kind) ? CAUSE_TEXT[kind] : 'died of their injuries');
 
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** Game.tick, at the end of the tick: carry out the deaths found during it, in id order. O(1) when there are none. */
+/** Game.tick, at the end of the tick: carry out the deaths found during it (g._dying: id -> cause, null = their worst
+ *  injury; health.js, life.js), in id order. O(1) when there are none. */
 export function processDeaths(g) {
   const d = g._dying;
   if (!d?.size) return;
   g._dying = null;
-  const ids = [...d].sort(byId).filter((id) => g.s.colonists[id]);
+  const ids = [...d.keys()].sort(byId).filter((id) => g.s.colonists[id]);
   const dying = new Set(ids);
   endJobsAbout(g, dying);
   const sids = new Set();
-  for (const id of ids) sids.add(killColonist(g, g.s.colonists[id], null, { others: false, replan: false }).settlementId);
+  for (const id of ids) sids.add(killColonist(g, g.s.colonists[id], d.get(id) || null, { others: false, replan: false }).settlementId);
   replan(g, sids);
 }
 
