@@ -499,6 +499,15 @@ Death (wounds, starvation, dehydration, cold, illness, old age) with burial, mou
 contagious illness spreading within and between villages along trade routes; surgery; permanent injuries;
 wars can be lost (abandoned ruins or absorption); population growth and decline balanced over 100 days.
 *Already built:* health, injuries, medical care, combat stages 1-3, births.
+Design note: `docs/proposals/phase-5-death-and-collapse.md` (the user said "go" on 2026-10-26; the four open
+questions were not answered, so the note's proposals are the working defaults).
+
+- **Done:** slice 1a, death (commit `fe413b7` and the review fixes after it). At 0% health for 6 hours a collapsed
+  colonist dies, in full and distant villages alike; at 0% they heal only with care (tending, a medical bed, a
+  dressed or cleaned wound; in a distant village anyone else on their feet). The dead leave `s.colonists` for
+  `s.dead`; jobs, beds, homes, training and plans are cleared; goods are put down where they died; the people
+  ledger counts deaths. Save format 15. Classic 40-day and seed 4242 runs unchanged. Results: design note,
+  "Slice 1a".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

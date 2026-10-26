@@ -50,7 +50,7 @@ test('at 0% health a colonist dies after the waiting time, not before', () => {
   assert.ok(g.s.log.some((e) => e.cat === 'death' && e.msg.startsWith(c.name)), 'a death line in the log');
 });
 
-test('health that rises above 0% in time saves the colonist', () => {
+test('care in time (first aid, tending) lets health rise above 0% and saves the colonist', () => {
   const g = newGame({ seed: 4242 });
   runDays(g, 1);
   const c = g.colonists()[1];
@@ -170,4 +170,37 @@ test('a village where everyone dies keeps running as an empty village (ruins com
   const b = reload(g);
   runDays(g, 1); runDays(b, 1);
   assert.equal(stateText(g), stateText(b));
+});
+
+test('distant villages: with others on their feet a 100% wound heals; when all fall at once, all bleed out', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(g, 1);
+  const far = Object.values(g.s.settlements).filter((x) => x.detail === 'abstract');
+  const [a, b] = far;
+  const one = g.owned('colonists', a.id)[0];
+  injure(g, one, 'wound', 100, 'Badly hurt');
+  const all = g.owned('colonists', b.id);
+  for (const c of all) injure(g, c, 'wound', 100, 'Badly hurt');
+  const start = g.colonists().length;
+  g.step(HOURS + 2 * TICKS_PER_HOUR);
+  assert.ok(g.s.colonists[one.id], 'cared for by the others: alive');
+  for (const c of all) assert.equal(g.s.colonists[c.id], undefined, `${c.name} bled out with nobody to help`);
+  assert.equal(Object.keys(g.s.dead).length, all.length);
+  assert.equal(g.colonists().length, start - all.length);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.doesNotThrow(() => encodePlanner(g, { strict: true }));
+});
+
+test('saves: malformed death counts, times at 0% and ids not yet given out are refused', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const c = g.colonists()[0];
+  mortallyWound(g, c);
+  g.step(HOURS + 100);
+  const base = serializeGame(g);
+  const tamper = (f) => { const x = JSON.parse(base); f(x.state); return JSON.stringify(x); };
+  assert.throws(() => loadGame(g.reg, tamper((st) => { st.stats.deaths = 5; })), /deaths/);
+  assert.throws(() => loadGame(g.reg, tamper((st) => { st.colonists[Object.keys(st.colonists)[0]].health = { injuries: [], zeroSince: st.tick + 10 }; })), /0% health/);
+  assert.throws(() => loadGame(g.reg, tamper((st) => { st.dead[`c${st.nextId + 5}`] = st.dead[c.id]; })), /not yet given out/);
+  assert.doesNotThrow(() => loadGame(g.reg, base));
 });

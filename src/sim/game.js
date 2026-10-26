@@ -1222,9 +1222,14 @@ export class Game {
         if (!reg.has('item', d.item)) return false;
         const c = s.colonists[o.cid];
         if (c && !c.equip[o.slot]) { c.equip[o.slot] = d; return true; }
-        // Slot taken (or owner gone): put the item on the ground instead of losing it.
-        const p = c || { x: s.center.x, y: s.center.y };
-        const left = this.placeOnMap(d.item, 1, p.x, p.y, d.dur);
+        // Slot taken (or owner gone): put the item on the ground instead of losing it (where a dead owner died, as
+        // their village's: death.js).
+        const dead = !c && s.dead?.[o.cid];
+        const p = c || dead || { x: s.center.x, y: s.center.y };
+        const prevActor = this.actor;
+        if (dead) this.actor = dead.settlementId;
+        let left;
+        try { left = this.placeOnMap(d.item, 1, p.x, p.y, d.dur); } finally { this.actor = prevActor; }
         return left > 0 ? 'no free ground for it yet' : true;
       }
       case 'delivered': {

@@ -99,6 +99,7 @@ export function validateSave(save) {
   if (s.contact !== undefined) validateContact(s, m, bad, inB);
   if (s.god !== undefined) validateGod(s, bad);
   if (s.dead !== undefined) validateDead(s, bad); // format 15
+  if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
   const ent = (coll, label, extra) => {
     for (const [key, e] of Object.entries(s[coll])) {
@@ -181,6 +182,8 @@ function validateDead(s, bad) {
     if (!SAFE_ID.test(k) || !isObj(d) || !isStr(d.name, 80) || !isStr(d.cause, 40) || !isStr(d.text, 80) || !isInt(d.tick) || d.tick < 0 || d.tick > s.tick
       || !isStr(d.settlementId, 64) || !isInt(d.x) || !isInt(d.y)) { bad(`the record of the dead "${String(k).slice(0, 40)}" is malformed`); return; }
     if (Object.hasOwn(s.colonists || {}, k)) { bad(`"${k}" is both living and dead`); return; }
+    const n = /^c(\d+)$/.exec(k);
+    if (n && Number(n[1]) >= s.nextId) { bad(`the record of the dead "${k}" has an id not yet given out`); return; }
     if (d.injury !== undefined && !isStr(d.injury, 80)) { bad(`the record of the dead "${k}" has an invalid injury`); return; }
     if (d.bornTick !== undefined && !isNum(d.bornTick)) { bad(`the record of the dead "${k}" has an invalid birth tick`); return; }
     if (d.origin !== undefined && d.origin !== 'divine') { bad(`the record of the dead "${k}" has an unknown origin`); return; }

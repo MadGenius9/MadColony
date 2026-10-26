@@ -28,7 +28,7 @@ const CAUSE_TEXT = {
   illness: 'died of an illness',
   injury: 'died of their injuries',
 };
-export const causeText = (kind) => CAUSE_TEXT[kind] || 'died of their injuries';
+export const causeText = (kind) => (Object.hasOwn(CAUSE_TEXT, kind) ? CAUSE_TEXT[kind] : 'died of their injuries');
 
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -37,7 +37,31 @@ export function processDeaths(g) {
   const d = g._dying;
   if (!d?.size) return;
   g._dying = null;
-  for (const id of [...d].sort(byId)) { const c = g.s.colonists[id]; if (c) killColonist(g, c); }
+  const ids = [...d].sort(byId).filter((id) => g.s.colonists[id]);
+  const dying = new Set(ids);
+  endJobsAbout(g, dying);
+  const sids = new Set();
+  for (const id of ids) sids.add(killColonist(g, g.s.colonists[id], null, { others: false, replan: false }).settlementId);
+  replan(g, sids);
+}
+
+/** Jobs of the living about any of `dead` (care, treatment, rescue, a fight) end. One pass over the colonists. */
+function endJobsAbout(g, dead) {
+  for (const o of Object.values(g.s.colonists).sort((a, b) => byId(a.id, b.id))) {
+    if (dead.has(o.id) || !o.job) continue;
+    const who = dead.has(o.job.patientId) ? o.job.patientId : dead.has(o.job.targetId) ? o.job.targetId : null;
+    if (who) endJob(g, o, null, `${g.s.colonists[who].name} died`);
+  }
+}
+
+/** A fresh plan at once for each village (in id order), so no plan holds the dead (saved plans may only name living
+ *  colonists). */
+function replan(g, sids) {
+  for (const sid of [...sids].sort(byId)) {
+    if (!g.s.settlements?.[sid] && sid !== g.s.playerSettlement) continue;
+    planNow(g, sid);
+    if (sid === g.s.playerSettlement) g.plan = g.plans[sid];
+  }
 }
 
 /** The worst injury or condition of a colonist (highest severity, then the oldest), or null. */
@@ -47,18 +71,15 @@ function worstInjury(c) {
   return w;
 }
 
-/** A colonist dies now. `kind` overrides the cause (else their worst injury). Returns the s.dead record. */
-export function killColonist(g, c, kind = null) {
+/** A colonist dies now. `kind` overrides the cause (else their worst injury). Returns the s.dead record.
+ *  opts.others / opts.replan: false when processDeaths does those once for all of a tick's deaths. */
+export function killColonist(g, c, kind = null, opts = {}) {
   const s = g.s, sid = c.settlementId || s.playerSettlement;
   const worst = worstInjury(c);
   const cause = kind || worst?.kind || 'injury';
   const text = causeText(cause);
-  const why = `${c.name} died`;
   // Others' jobs about the dead end first (their reservations on the patient are released with them).
-  for (const o of Object.values(s.colonists).sort((a, b) => byId(a.id, b.id))) {
-    if (o === c || !o.job) continue;
-    if (o.job.patientId === c.id || o.job.targetId === c.id) endJob(g, o, null, why);
-  }
+  if (opts.others !== false) endJobsAbout(g, new Set([c.id]));
   if (c.job) endJob(g, c, null, 'Died');
   // Their goods stay their village's, put down where they died.
   const prev = g.actor;
@@ -80,6 +101,7 @@ export function killColonist(g, c, kind = null) {
   const st = s.settlements?.[sid];
   if (st?.training?.cid === c.id) st.training = null;
   for (const k of [`patient:${c.id}`, `tend:${c.id}`]) delete s.blocked?.[k];
+  for (const k of Object.keys(s.logKeys || {})) if (k.split(':').includes(c.id)) delete s.logKeys[k]; // message throttles about them
   // The record.
   const rec = { name: c.name, settlementId: sid, cause, text, tick: s.tick, x: Math.round(c.x), y: Math.round(c.y) };
   if (worst?.cause) rec.injury = String(worst.cause).slice(0, 80);
@@ -92,9 +114,8 @@ export function killColonist(g, c, kind = null) {
   s.stats.deaths ||= {};
   s.stats.deaths[cause] = (s.stats.deaths[cause] || 0) + 1;
   const village = st?.name ? ` of ${st.name}` : '';
-  g.log(`${c.name}${village} ${text}${worst?.cause && cause === worst.kind ? ` (${worst.cause.toLowerCase()})` : ''}.`, 'death');
-  // A fresh plan at once, so no plan holds the dead (saved plans may only name living colonists).
-  planNow(g, sid);
-  if (sid === s.playerSettlement) g.plan = g.plans[sid];
+  const how = worst?.cause && cause === worst.kind && !/^(starving|dehydrated|collapsing from exhaustion)$/i.test(worst.cause) ? ` (${worst.cause.toLowerCase()})` : '';
+  g.log(`${c.name}${village} ${text}${how}.`, 'death');
+  if (opts.replan !== false) replan(g, new Set([sid]));
   return rec;
 }

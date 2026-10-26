@@ -11,8 +11,9 @@ where, and which sim function or state field provides it. The UI is built at hom
   `settlementId === playerSettlement`): name, day (`tick / 2400`), `text`, `injury`. Counts by cause from
   `g.s.stats.deaths`.
 - **Village summary / World tab:** deaths so far (count `g.s.dead` by `settlementId`).
-- **Inspector and hover card:** a colonist at 0% health shows "Dying: dies in N h unless health rises"
-  from `c.health.zeroSince` (dies at `zeroSince + HEALTH.deathAfterHours × 100` ticks).
+- **Inspector and hover card:** a colonist at 0% health shows "Bleeding out: dies in N h without care"
+  from `c.health.zeroSince` (dies at `zeroSince + HEALTH.deathAfterHours × 100` ticks); once cared for
+  (tended, medical bed, dressed or cleaned wound) "Cared for".
 - **Portrait bar:** a dead colonist disappears (they leave `g.s.colonists`); a letter explains why.
 - **Sound:** the death cue (was planned for Phase 5 in Phase 1b) on a `death` log entry of the player's village.
 - **Empty villages:** a village with no people left keeps its card; show "Nobody lives here any more".

@@ -78,6 +78,7 @@ export function tickHealth(g, c, force = false) {
   let rate = inBed ? HEALTH.healBed : (c.sleeping || c.health.down) ? HEALTH.healGround : HEALTH.healAwake;
   if ((c.health.tendedUntil || 0) > g.s.tick) rate *= HEALTH.tendedFactor;
   rate *= bedFactor(g, c);
+  if (c.health.down && hpOf(c) === 0 && !cared(g, c)) rate = 0; // bleeding out: at 0% only care lets them heal
   for (const i of c.health.injuries) {
     if (i.kind === 'malnutrition' && !fed) continue; // only food cures hunger
     if (i.kind === 'exhaustion' && !rested) continue;
@@ -100,6 +101,18 @@ function checkDeath(g, c) {
   if (hpOf(c) > 0) { if (h.zeroSince !== undefined) delete h.zeroSince; return; }
   if (h.zeroSince === undefined) h.zeroSince = g.s.tick;
   if (g.s.tick - h.zeroSince >= HEALTH.deathAfterHours * TICKS_PER_HOUR) (g._dying ||= new Set()).add(c.id);
+}
+
+/** At 0% health, is anyone caring for a collapsed colonist? Tended now, in a medical bed, or a wound already
+ *  dressed or cleaned (first aid). In a village simulated at a distance (no carers walk there, lod.js) anyone else
+ *  of the village on their feet counts. Only called at 0% health, so its cost does not matter. */
+function cared(g, c) {
+  if ((c.health.tendedUntil || 0) > g.s.tick || c.medBedId) return true;
+  if (c.health.injuries.some((i) => i.treated || i.cleaned)) return true;
+  const sid = c.settlementId || g.s.playerSettlement;
+  if (g.s.settlements?.[sid]?.detail !== 'abstract') return false;
+  for (const o of g.owned('colonists', sid)) if (o !== c && !o.health?.down) return true;
+  return false;
 }
 
 /** After a job finishes successfully: a small chance of a work accident (work type `hazard`). */

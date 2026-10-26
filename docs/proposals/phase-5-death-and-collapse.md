@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **design, waiting for the user's "go"**. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slice 1a done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -206,4 +206,26 @@ card, illness icons and an outbreak letter, war declarations with the cause, bea
 and grey ruins in the world view, the death cue sound.
 
 ## Results
-(None yet.)
+
+The four open questions were not answered with the "go", so the proposals above are the working defaults
+(keep playing as god when the player's village falls; AI villages may take it only after a warning; ages 16–60
+with elders from 50 and deaths from 60; death in all games, illness and wars only in the Vast and Living worlds).
+
+### Slice 1a: death (commit `fe413b7`, review fixes after it)
+Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) comes next.
+- **Built:** `src/sim/death.js` (killColonist, processDeaths); `checkDeath` and `cared` in `health.js`;
+  `usedNames` in `names.js`; `peopleCensus` counts the dead; save format 15 (`s.dead`, `health.zeroSince`,
+  `s.stats.deaths`; no-op migration; `validateDead`, ids below `nextId`, death counts checked).
+- **Deviation: bleeding out.** The review found that a single 100% wound healed to 1% within half an hour, so
+  combat would almost never kill. Now at 0% a collapsed colonist heals only with care (tending, a medical bed,
+  a dressed or cleaned wound; in a distant village anyone else on their feet). Probe (seed 4242, a 100% wound at
+  01:00): first aid in the first hour saves them; without it they die at 6 h.
+- **Deviation:** `deathAfterHours` is in `HEALTH` (code, like the other health numbers), not mod data; the cause
+  words are in `death.js`. Both can move to data with the illness type (slice 3).
+- **Deaths in one tick** are done in one pass: others' jobs end once, each village plans once.
+- **Not changed:** classic 40-day run and seed 4242 Modern: the same state hash as before the slice
+  (`9426646c1190c148`, `429910fed998ddb5`); bench no slower. A village where everyone dies keeps running as an
+  empty village (ruins: slice 6). 48 tests pass (12 in `tests/cloud-death.test.js`).
+- **Open:** set-aside equipment of someone who died is restored where they died (not tested: needs a missing
+  mod); `s.dead` is never pruned (slice 6); a death while being carried to a clinic and a combat death are not
+  tested directly yet (combat comes in slice 5).
