@@ -21,7 +21,7 @@ Then open http://localhost:8080. (Opening `index.html` directly from disk won't 
 npm test
 ```
 
-Runs the headless test suite (521 tests).
+Runs the headless test suite (in this cloud copy: 102 tests in `tests/cloud-*.test.js`).
 
 ```bash
 npm run sim -- 10 --log

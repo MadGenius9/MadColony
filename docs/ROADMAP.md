@@ -494,7 +494,7 @@ and room lighting stay parked. *Already built:* water, wells, lighting, running 
 seasonal crops; lamps and taps are civic intents (pipes and power poles stay direct projects on purpose:
 they are network paths, not single buildings).
 
-### Phase 5: death, illness and the end of combat
+### Phase 5: death, illness and the end of combat (Done in the cloud copy, 2026-10-26)
 Death (wounds, starvation, dehydration, cold, illness, old age) with burial, mourning and inheritance;
 contagious illness spreading within and between villages along trade routes; surgery; permanent injuries;
 wars can be lost (abandoned ruins or absorption); population growth and decline balanced over 100 days.
@@ -538,6 +538,15 @@ questions were not answered, so the note's proposals are the working defaults).
 - **Done:** slice 6b, conquest: a village with no fit fighters for 2 days is beaten; winners annex it into their
   kingdom or (hill fort, lumber camp) sack it for tribute; the war ends. Save format 22. Vast seed 7, 150 days: 16
   wars, 11 conquered, 1 sacked, 3 fallen. Results: design note, "Slice 6b".
+- **Done:** slice 7, balance and acceptance: World tuning (conquest at 15% strength, faster near rivalry), speed
+  fixes (ruin land release, cold checks, elder work speed). World seed 7, 300 days: 326 people, 22 wars, 2
+  conquests, 2 ruins, 869 illness cases, 16 deaths; worst tick 48 ms after day 1; 10–12% slower per tick than
+  before Phase 5 late in the run (more is simulated); classic runs unchanged. Not met: wars by day 100 on World
+  (first at about day 175), deaths of 4 causes on World (3). Results: design note, "Phase 5 acceptance summary".
+
+**Carried over from Phase 5** (not done): the player's village falling or being taken (open questions 1–2);
+scavenging ruins; a full merge on conquest; more rivalry causes; seasonal outbreaks; winter clothing; earlier wars
+on World; all UI (`docs/ui-todo.md`).
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

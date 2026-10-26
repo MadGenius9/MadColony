@@ -37,3 +37,13 @@ and are the same on Phase 5 slice 1a).
 | large | 4 | 0.783 | 164.8 | 815 | ok |
 
 Vast preset (`core:vast_world`, size `vast`, seed 7): creation about 3.0 s, days 1–6 at 0.3–0.8 s each.
+
+## After Phase 5 (2026-10-26, `529b86f`)
+- Tests: 102 in 13 files, all passing, about 45 s.
+- `forty` and `modern`: unchanged (same state hashes as above).
+- Bench (2 days, neighbours, seed 7): small 0.146 / 0.173, medium 0.196 / 0.271, large 0.364 / 0.537 ms/tick (2 / 4
+  villages), ledger ok.
+- World acceptance run (`tools/cloud-world-run.mjs 300 world 7 25 150`): see the table in
+  `docs/proposals/phase-5-death-and-collapse.md`, "Slice 7". Day 300: 1.017 ms/tick (code before Phase 5: 0.900),
+  326 people (345), worst tick 48 ms after day 1, 8.6 minutes in all.
+

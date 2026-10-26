@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a to 6b done (slice 7, balance and acceptance, is next); see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **done** ("go" from the user on 2026-10-26; slices 1a to 7). See "Phase 5 acceptance summary" at the end; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -404,4 +404,63 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
   0.41 ms per tick; items and people conserved.
 - **Not built:** a full merge; the player's village being taken (open question 2); scavenging ruins.
 - **Not changed:** classic runs; 100 tests pass (3 more in `tests/cloud-war.test.js`).
+
+### Review of slices 6a and 6b (fixes in `2c759ff`)
+`relation.beaten` cleared at peace (a stale one made the next war lost at once); a loser conquered once a day,
+with peace to the winner's kingdom members; tribute only from what the loser can spare (at most 200 an item) and
+without a goodwill cost when undelivered (it restarted the war); a falling village's wars end and attacks on it
+are called off; offers, pacts, alliances, rights and attacks refuse ruins; a ruin's market serves nobody; ruins
+live no abstract hours, always plan nothing and cannot be watched; a ruin in a kingdom is refused on load;
+`kingdoms.js` keeps its original mixed line endings.
+
+### Slice 7: balance and acceptance
+- **Tuning for the World preset** (`5f0feb9`): conquest when a side has at most 15% of its enemy's strength for
+  2 days (`conquest.beatenShare`; on the World map villages rarely dropped to zero fighters before suing for
+  peace: 0 conquests in the first run); near rivals fall out by 0.9 a day (was 0.6).
+- **Speed fixes** (`2730fa5`, `529b86f`): the elder work speed built a climate object on every `workSpeed` call;
+  releasing a ruin's land rebuilt every frontier (about 70 ms on World, the two slowest ticks of the run), now only
+  its neighbours' (`rebuildOne`; continuation after a release tested identical); war checks count people once a
+  day; the cold check returns at once while it is not freezing outdoors (a room colder than the outdoors no longer
+  counts: rooms drift toward the outdoors).
+- **Acceptance run** (World 2048×1536, `core:vast_world`, seed 7, 300 days, `tools/cloud-world-run.mjs`, on
+  `529b86f`), against the code before Phase 5 (`ce2d67f`) on the same machine:
+
+| Day | ms/tick (Phase 5) | ms/tick (before) | Worst tick | People (Phase 5 / before) | Villages | Wars declared | Deaths |
+|---|---|---|---|---|---|---|---|
+| 50 | 0.186 | 0.182 | 16.6 | 59 / 62 | 13 | 0 | 0 |
+| 100 | 0.340 | 0.342 | 22.4 | 124 / 147 | 29 | 0 | 1 |
+| 150 | 0.687 | 0.799 | 31.3 | 229 / 275 | 54 | 0 | 2 |
+| 200 | 1.104 | 0.949 | 35.9 | 313 / 335 | 65 (64 standing) | 5 | 9 |
+| 250 | 1.020 | 0.907 | 29.7 | 326 / 342 | 65 (63) | 11 | 12 |
+| 300 | 1.017 | 0.900 | 29.1 | 326 / 345 | 65 (63) | 22 | 16 |
+
+  Worst tick after day 1: 48 ms (target 50; tick 1 is 58 ms, 65 ms before Phase 5). Save at day 150 loaded in
+  2.1 s and continued identically; items and people conserved at every check; save 9.9 MB at day 300; heap
+  100–440 MB. By day 300: 318 born, 16 died (2 old age, 9 illness, 5 cold), 869 illness cases from 112 outbreaks,
+  22 declarations, 2 conquests, 2 villages fallen, 7 kingdoms. **Time per tick:** days 175–300 are 10–12% slower
+  than before with 5% fewer people; the extra work is the new life being simulated (sick people, doctors' visits,
+  burials, battles); no single hotspot in the profile (flat, top entry 4% garbage collection).
+- **Classic runs** (40-day, seed 4242 Modern): the same state hashes as before Phase 5; bench rows 0.146–0.537
+  ms/tick (all at or below the baseline).
+
+## Phase 5 acceptance summary
+- **Met:** death from wounds, starvation, thirst, cold, illness and old age (all seen in Vast runs; on World 3
+  causes by day 300); burial, mourning and inheritance; contagious illness spreading within and between villages
+  along trade routes; surgery and lasting injuries; rivalry, AI wars, battles between distant villages, peace;
+  conquest (annexation, sacking); ruins with their land released; kingdoms passing the crown on; population still
+  growing (24 → 326 on World, slower than 345 before); conservation of items and people and save/load identity in
+  every test and run; classic games unchanged.
+- **Not met:** "at least 3 wars by day 100" — on World the first war comes at about day 175 (on Vast about day
+  98): villages meet late on the big map and relations start friendly. "Deaths from at least 4 causes by day 300"
+  on World: 3 (no one died of wounds there; on Vast wounds, thirst, starvation, illness, cold and old age all
+  kill). Time per tick 10–12% above the code before Phase 5 late in the run (explained above, within the 1.5 ms
+  target).
+- **Changed from the note:** annexation into the winner's kingdom instead of a full merge; slice 1 split into 1a
+  and 1b; slice 5 into 5a and 5b; slice 6 into 6a and 6b; rivalry also from nearness; no cooling for rivals;
+  bleeding out; cold only for the exposed; illness hardiness and care.
+- **Open (carried over):** the player's village falling or being taken (open questions 1 and 2: it stays as an
+  empty village and is never conquered); scavenging ruins; a full merge on conquest; scarcity and old-grudge
+  rivalry and kingdom-shared quarrels; seasonal outbreaks and incubation; winter clothing; walking speed with a
+  lame leg; ruins' land on classic (nearest-centre) territory; earlier wars on the World preset; the UI for all
+  of it (`docs/ui-todo.md`).
 
