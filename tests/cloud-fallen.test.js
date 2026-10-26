@@ -82,7 +82,9 @@ test('a ruin\'s land is released after the waiting days; its buildings stay', ()
   assert.ok(g.s.settlements[sid].fallen.released, 'released');
   assert.equal(landInfo(g, sid).area, 0, 'no land left');
   assert.ok(Object.values(g.s.structures).some((b) => b.settlement === sid), 'ruined buildings remain');
-  assert.equal(stateText(reload(g)), stateText(g));
+  const copy = reload(g); // a game saved right after the release grows its land on exactly like the original
+  runDays(g, 3); runDays(copy, 3);
+  assert.equal(stateText(copy), stateText(g));
 });
 
 test('a fallen capital passes its crown to the largest member left', () => {

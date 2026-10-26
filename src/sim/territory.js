@@ -218,25 +218,36 @@ function rebuildOne(g, k) {
 }
 
 /** Phase 5 (fallen.js): a ruined village's land is released: its tiles become unclaimed (the tiles of its ruined
- *  buildings and stockpile stay out of others' reach: usedByOther), and every frontier is rebuilt so neighbours can
- *  grow into the freed land. O(its bounding box) plus a full rebuild (rare: once per ruin). */
+ *  buildings and stockpile stay out of others' reach: usedByOther), and the frontiers of the villages whose land
+ *  touched it are rebuilt (rebuildOne, the same result a loaded game's full rebuild gives them; no other frontier
+ *  can reach a freed tile), so they can grow into the freed land. O(its bounding box + its neighbours' land). */
 export function releaseClaims(g, sid) {
   const C = g._cl;
   if (!C) return 0;
   ensureFrontier(g);
   const k = C.index.get(sid);
   if (k === undefined) return 0;
-  const f = C.fr[k], grid = C.grid, W = g.W;
+  const f = C.fr[k], grid = C.grid, W = g.W, H = g.H, near = new Set();
   let n = 0;
-  for (let y = f.y0; y <= f.y1; y++) for (let x = f.x0; x <= f.x1; x++) if (grid[y * W + x] === k) { grid[y * W + x] = NONE; n++; }
+  for (let y = f.y0; y <= f.y1; y++) for (let x = f.x0; x <= f.x1; x++) {
+    const i = y * W + x;
+    if (grid[i] !== k) continue;
+    grid[i] = NONE; C.dist[i] = 0xffff; n++;
+    for (let d = 0; d < 8; d++) {
+      const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const o = grid[ny * W + nx];
+      if (o !== NONE && o !== k) near.add(o);
+    }
+  }
   if (n) {
     C.rev++; C.T.sig = 'claims:' + C.rev; C.T.rev = C.rev;
     C.changes.push({ rev: C.rev, x0: f.x0, y0: f.y0, x1: f.x1, y1: f.y1 });
     if (C.changes.length > DIRTY_KEEP) C.changes.shift();
     C.info = null;
   }
-  C.fr = null; // every frontier is rebuilt from the grid (ensureFrontier)
-  ensureFrontier(g);
+  Object.assign(f, newFrontier(g, sid)); // as a full rebuild leaves it: no land, its centre as the only entry
+  for (const o of [...near].sort((a, b) => a - b)) rebuildOne(g, o);
   return n;
 }
 

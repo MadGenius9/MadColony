@@ -37,18 +37,22 @@ const hash = (str) => {
 export function coldUnder(g, c) {
   const R = lifeRules(g)?.cold;
   if (!R) return 0;
+  // Not freezing outdoors: nobody is cold (rooms drift toward the outdoors, so they are warmer or close to it).
+  // The outdoor temperature once per tick (derived).
+  if (g._outT?.tick !== g.s.tick) g._outT = { tick: g.s.tick, t: outdoorTemp(g) };
+  if (g._outT.t >= R.below) return 0;
   const s = g.s, home = c.homeId ? s.homes[c.homeId] : null;
   let t;
   const sid = c.settlementId || s.playerSettlement, abstract = s.settlements?.[sid]?.detail === 'abstract';
   const x = Math.round(c.x), y = Math.round(c.y);
   if (abstract) {
     if (home?.complete) return 0;
-    t = outdoorTemp(g);
+    t = g._outT.t;
     if (t < R.below && byFire(g, sid, R, null)) t += R.shelter ?? 0;
   } else if (roomAt(g, x, y)) t = tempAt(g, x, y) + (R.shelter ?? 0);
   else if (home && !c.sleeping && !c.health?.down) return 0; // up and about: they keep warm
   else {
-    t = outdoorTemp(g);
+    t = g._outT.t;
     if (t < R.below && byFire(g, sid, R, { x, y })) t += R.shelter ?? 0; // anyone exposed by a fire is sheltered
   }
   return t < R.below ? R.below - t : 0;

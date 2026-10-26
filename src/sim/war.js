@@ -70,12 +70,16 @@ export function tickRivalry(g) {
   const R = warRules(g);
   if (!R) return;
   const s = g.s, rv = R.rivalry;
+  // People per village, once (the checks below only ask whether a village has anyone).
+  const pop = new Map();
+  for (const c of Object.values(s.colonists)) { const k = c.settlementId || s.playerSettlement; pop.set(k, (pop.get(k) || 0) + 1); }
+  g._warPop = pop; // derived, for this call only
   if (rv) for (const k of Object.keys(s.relations || {}).sort()) {
     const rel = s.relations[k];
     if (rel.threat !== undefined && (rel.value > R.declareBelow + 10 || s.tick - rel.threat > 2 * (R.warnDays || 1) * TICKS_PER_DAY)) delete rel.threat; // the threat is past or lapsed
     if (!rel.contact || !s.settlements[rel.a] || !s.settlements[rel.b]) continue;
     if (allianceOf(g, rel.a, rel.b) || sameKingdom(g, rel.a, rel.b) || rel.value <= rv.floor) continue;
-    if (!g.owned('colonists', rel.a).length || !g.owned('colonists', rel.b).length) continue;
+    if (!pop.get(rel.a) || !pop.get(rel.b)) continue;
     let per = 0, why = '';
     if (rel.touch !== undefined) { per = rv.perDay; why = 'Their lands press on each other'; }
     else if (rv.near) {
@@ -92,7 +96,9 @@ export function tickRivalry(g) {
   if (R.battle) battles(g, R);
   if (R.conquest) conquests(g, R);
   if (R.truce) truces(g, R);
+  g._warPop = null;
 }
+const hasPeople = (g, sid) => (g._warPop ? !!g._warPop.get(sid) : g.owned('colonists', sid).length > 0);
 
 /** Slice 6b: a village with at most conquest.beatenShare of its enemy's strength (0: no fit fighters) for
  *  conquest.beatenDays while its enemy has some is beaten. The winner's
@@ -169,7 +175,7 @@ function wars(g) {
   for (const k of Object.keys(s.relations || {}).sort()) {
     const rel = s.relations[k];
     if (!rel.aggressor || relationStatus(rel) !== 'hostile' || !s.settlements[rel.a] || !s.settlements[rel.b]) continue;
-    if (!g.owned('colonists', rel.a).length || !g.owned('colonists', rel.b).length) continue;
+    if (!hasPeople(g, rel.a) || !hasPeople(g, rel.b)) continue;
     out.push(rel);
   }
   return out;
@@ -225,9 +231,9 @@ function declarations(g, R) {
   const strength = new Map();
   const str = (sid) => { if (!strength.has(sid)) strength.set(sid, warStrength(g, sid)); return strength.get(sid); };
   for (const a of ids) {
-    if (!s.settlements[a].ai || !g.owned('colonists', a).length) continue;
+    if (!s.settlements[a].ai || !hasPeople(g, a)) continue;
     for (const b of ids) {
-      if (a === b || !g.owned('colonists', b).length) continue;
+      if (a === b || !hasPeople(g, b)) continue;
       const rel = relationPeek(g, a, b);
       if (!rel.contact || rel.value > R.declareBelow || rel.aggressor) continue;
       if (allianceOf(g, a, b) || sameKingdom(g, a, b)) continue;
