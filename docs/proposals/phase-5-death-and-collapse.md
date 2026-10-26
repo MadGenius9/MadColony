@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2, 3, 4, 5a and 5b done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a to 5b and 6a done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -356,4 +356,31 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
 - **Not built:** aggregate battles between a distant and a full-detail village (the full one raids for real, which
   promotes the distant one); AI villages taking a truce with the player (unchanged from before).
 - **Not changed:** classic runs; 89 tests pass (12 in `tests/cloud-war.test.js`).
+
+### Review of slices 4, 5a and 5b (fixes after `59b57c3`)
+- **Raids without the threat:** in war games `tickMilitary` still raided any hostile village at −50 (bypassing
+  the threat to the player), and rivals hostile to the player were kept in full detail for good (`lod.js` used
+  `isEnemy`). Now, in war games, `isEnemy` needs a war that was started (`relation.aggressor`): merely hostile
+  rivals do not raid, fight on sight or stay in full detail. Classic games keep the old meaning (tested).
+- **Endless wars:** joiners' wars and raid-started wars had no `warSince`, and battles set `lastClash` daily even
+  without wounds. Now `strikeFirst` and `joinDefence` set `warSince`, truces stamp a missing one, and only a day
+  with wounds counts as a clash.
+- Peace (`changeRelation` leaving hostile) clears `warSince` and `threat`; a threat lapses after 2 × warnDays;
+  a distant village no longer declares on a full-detail AI village (nobody would fight); rivals' no-cooling rule
+  only for real rivals (touching or near); hits per war; battle wounds and scars of other villages are routine
+  log lines (`injure` takes a log category); `villageCares` only in war games; save checks for the `deep`/`mended`
+  flags and lasting-injury times and duplicates.
+- **Measured after the fixes** (Vast seed 7, 150 days): first declaration day 107; 24 wars in progress at day 150;
+  52 villages, 188 people; deaths: 9 dehydration, 6 illness, 1 starvation, 1 cold.
+
+### Slice 6a: fallen villages and ruins (commit `3b7231a`)
+- **Built:** `src/sim/fallen.js` (`tickFallen` daily, `fall`, `isFallen`, `livingCount`), `releaseClaims` in
+  `territory.js` (tiles cleared, every frontier rebuilt once), `setCapital` and a forced leave in `kingdoms.js`;
+  ruins are skipped by `planTrades`, AI diplomacy and border diplomacy, contact launches and trader targets,
+  markets, the planner (an empty plan), the founding and god-spawn village caps (living villages only), and the
+  god powers (bless, inspire, join refused). Fallen villages do not grow land. Save format 21
+  (`settlement.fallen { tick, cause, fate, by?, released? }`).
+- **Decisions:** the player's village never falls (open question 1: it stays as an empty village); ruins are
+  not scavenged yet (their goods wait); ruined buildings keep their tiles after the land is released.
+- **Not changed:** classic runs; 97 tests pass (6 in `tests/cloud-fallen.test.js`, 2 more in `cloud-war`).
 

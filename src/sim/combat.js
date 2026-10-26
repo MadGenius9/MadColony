@@ -7,6 +7,7 @@
 import { mayFight } from './people.js';
 import { travel, newJob } from './ai/jobs.js';
 import { injure, isDown, hpOf } from './health.js';
+import { warRules } from './war.js';
 import { relationOf, relationPeek, relationStatus, changeRelation, noteRelation, noteMet, allianceOf, alliesOf, endAlliance, ALLIANCE } from './villages.js';
 import { settlementOf } from './research.js';
 import { kingdomOf, membersOf, sameKingdom, theKingdom } from './kingdoms.js';
@@ -31,7 +32,11 @@ const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
  *  (tickMilitary retreats), and the daily kingdom check makes one of them leave, after which they may fight. */
 export function isEnemy(g, a, b) {
   if (!a || !b || a === b) return false;
-  return relationStatus(relationPeek(g, a, b)) === 'hostile' && !sameKingdom(g, a, b);
+  const rel = relationPeek(g, a, b);
+  if (relationStatus(rel) !== 'hostile' || sameKingdom(g, a, b)) return false;
+  // War games (war.js): only a war that was started (declared, or an attack ordered) makes enemies; rivals who are
+  // merely hostile neither fight on sight, raid, nor keep each other in full detail.
+  return !rel.aggressor && warRules(g) ? false : true;
 }
 
 /** The military order of a settlement: { order: 'defend' | 'attack' | 'retreat', target? }. */
@@ -422,7 +427,9 @@ export function startsWar(g, x, y) { return !relationPeek(g, x, y).aggressor; }
  *  later attacks, retaliation by `y`, and raids by a village that joined to defend an ally call in nobody. */
 function strikeFirst(g, x, y) {
   if (!startsWar(g, x, y)) return false;
-  relationOf(g, x, y).aggressor = x;
+  const r = relationOf(g, x, y);
+  r.aggressor = x;
+  r.warSince ??= g.s.tick; // war.js: how old the war is
   joinDefence(g, x, y);
   return true;
 }
@@ -456,7 +463,7 @@ export function joinDefence(g, x, y) {
     if (!rel.contact) { rel.contact = true; noteMet(g, rel, `Met through ${via}`); noteRelation(g, z, x, `Met through ${via}`); }
     if (rel.value <= ALLIANCE.joinRelation) continue; // already at war with x
     changeRelation(g, z, x, ALLIANCE.joinRelation - rel.value, `Attacked ${via}`);
-    if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; }
+    if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; rel.warSince = g.s.tick; }
     g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn');
   }
 }
@@ -482,6 +489,15 @@ export function makePeace(g, a, b, reason) {
   for (const s of [a, b]) { const o = orderOf(g, s); if (o.order !== 'defend' && (o.target === a || o.target === b || o.order === 'retreat')) setOrder(g, s, 'defend'); }
 }
 
+/** War games: are a and b rivals over land (their lands touch, or their centres are within rivalry.near)? */
+function rivals(g, a, b) {
+  const R = warRules(g)?.rivalry;
+  if (!R) return false;
+  if (relationPeek(g, a, b).touch !== undefined) return true;
+  const ca = g.s.settlements[a]?.center, cb = g.s.settlements[b]?.center;
+  return !!(R.near && ca && cb && Math.hypot(ca.x - cb.x, ca.y - cb.y) <= R.near);
+}
+
 /** Daily: wars where nobody has been hurt for a while cool down; AI villages losing a war ask for a truce. */
 export function tickWars(g, ticksPerDay) {
   const ids = Object.keys(g.s.settlements || {});
@@ -491,7 +507,7 @@ export function tickWars(g, ticksPerDay) {
     if (relationStatus(rel) !== 'hostile') continue;
     const quiet = g.s.tick - (rel.lastClash || 0) > WAR.coolAfterDays * ticksPerDay;
     // War games (war.js): only a war cools; rivals who never fought stay hostile.
-    const rivalsOnly = !rel.aggressor && !!g.reg.get('scenario', g.s.scenarioId)?.war;
+    const rivalsOnly = !rel.aggressor && !!warRules(g) && rivals(g, a, b);
     if (quiet && !rivalsOnly) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
     for (const [me, them] of [[a, b], [b, a]]) {
       const st = settlementOf(g, me);

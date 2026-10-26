@@ -352,7 +352,7 @@ export function changeRelation(g, a, b, delta, reason) {
   if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16);
   const after = relationStatus(rel);
   // A war's markers (who struck first, who joined to defend an ally: combat.js) end with the war.
-  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; }
+  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; }
   if (after !== before && rel.contact) {
     const na = settlementOf(g, a)?.name, nb = settlementOf(g, b)?.name;
     g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade');

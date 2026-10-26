@@ -32,7 +32,7 @@ export function workFactor(c) {
 }
 
 /** Add an injury, or worsen an ongoing condition of the same kind (malnutrition, exhaustion). */
-export function injure(g, c, kind, severity, cause, ongoing = false) {
+export function injure(g, c, kind, severity, cause, ongoing = false, logCat = 'warn') {
   c.health ||= { injuries: [] };
   const list = c.health.injuries;
   let inj = ongoing ? list.find((i) => i.kind === kind) : null;
@@ -41,7 +41,7 @@ export function injure(g, c, kind, severity, cause, ongoing = false) {
     inj = { id: g.newId('inj'), kind, severity: Math.min(100, Math.round(severity * 10) / 10), cause, tick: g.s.tick };
     if (MED.woundKinds.includes(kind) && inj.severity >= MED.scarAt) inj.deep = true; // may leave a lasting injury (medical.js)
     list.push(inj);
-    g.log(`${c.name}: ${cause} (${Math.round(inj.severity)}% injury).`, 'warn');
+    g.log(`${c.name}: ${cause} (${Math.round(inj.severity)}% injury).`, logCat);
   }
   checkDown(g, c);
   return inj;

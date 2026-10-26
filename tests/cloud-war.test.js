@@ -6,7 +6,7 @@ import { newGame, runDays, stateText, reload, serializeGame, loadGame, TICKS_PER
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 import { warRules, tickRivalry, warStrength } from '../src/sim/war.js';
-import { relationOf, relationPeek } from '../src/sim/villages.js';
+import { relationOf, relationPeek, changeRelation } from '../src/sim/villages.js';
 import { injure } from '../src/sim/health.js';
 
 const WAR = { rivalry: { perDay: 1, floor: -70, near: 500, nearPerDay: 0.6 }, declareBelow: -50, stronger: 1.5, minStrength: 0.5, warnDays: 1 };
@@ -151,7 +151,8 @@ test('a war between two distant villages is fought in aggregate: both sides take
   assert.ok(warStrength(g, a) > 0 && warStrength(g, b) > 0);
   for (let d = 0; d < 6; d++) { tickRivalry(g); g.s.tick += TICKS_PER_DAY; } // six days of fighting (only the daily rule)
   assert.ok(wounds(g, a) > 0 && wounds(g, b) > 0, `wounds: ${wounds(g, a)} and ${wounds(g, b)}`);
-  assert.ok(relationPeek(g, a, b).lastClash > g.s.tick - 2 * TICKS_PER_DAY, 'they fought recently');
+  assert.ok(relationPeek(g, a, b).lastClash !== undefined, 'a clash was recorded');
+  assert.equal(relationPeek(g, a, b).aggressor, a, 'still at war');
   assert.ok(g.s.log.some((e) => /^Fighting between/.test(e.msg)));
   assert.deepEqual(conservationErrors(g), []);
 });
@@ -194,4 +195,37 @@ test('a war fought with battles saves and loads to an identical continuation', (
     return g;
   };
   assert.equal(stateText(run([])), stateText(run([1, 3])));
+});
+
+// ---------------- review fixes ----------------
+import { isEnemy, tickMilitary } from '../src/sim/combat.js';
+
+test('war games: rivals who are merely hostile are not enemies (no raids, no fighting on sight) until war starts', () => {
+  const g = warGame();
+  const p = g.s.playerSettlement;
+  const a = Object.keys(g.s.settlements).find((x) => g.s.settlements[x].ai);
+  relationOf(g, a, p).contact = true;
+  relationOf(g, a, p).value = -60;
+  assert.equal(isEnemy(g, a, p), false, 'hostile, but no war');
+  for (const c of g.owned('colonists', a)) c.equip.weapon = { item: 'core:spear', dur: 100 };
+  tickMilitary(g);
+  assert.notEqual(g.s.military?.[a]?.order, 'attack', 'no raid without a declaration (and so without the threat)');
+  const c = newGame({ seed: 7, scenario: 'core:neighbours', size: 'medium', villages: 2 }); // no war rules: as before
+  const b = Object.keys(c.s.settlements).find((x) => c.s.settlements[x].ai);
+  relationOf(c, b, c.s.playerSettlement).contact = true;
+  relationOf(c, b, c.s.playerSettlement).value = -60;
+  assert.equal(isEnemy(c, b, c.s.playerSettlement), true);
+});
+
+test('every war gets a start date (joiners too), and peace clears the war markers', () => {
+  const { g, a, b } = vastWar();
+  declareWar(g, a, b, 'Test war');
+  const rel = relationOf(g, a, b);
+  assert.equal(rel.warSince, g.s.tick);
+  for (const k of Object.keys(g.s.relations)) { const r = g.s.relations[k]; if (r.joinedFor) assert.ok(r.warSince !== undefined, 'a joiner\'s war has a start date'); }
+  rel.threat = g.s.tick;
+  changeRelation(g, a, b, 60, 'A test peace');
+  assert.equal(rel.aggressor, undefined);
+  assert.equal(rel.warSince, undefined);
+  assert.equal(rel.threat, undefined);
 });

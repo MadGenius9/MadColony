@@ -530,6 +530,11 @@ questions were not answered, so the note's proposals are the working defaults).
 - **Done:** slice 5b, battles between distant villages (daily, in aggregate, wounds through the health rules) and
   AI peace (the weaker side after 4 days, any war after 20). Save format 20. Vast seed 7, 150 days: 14 wars in
   progress at day 150, population still growing (191). Results: design note, "Slice 5b".
+- **Done:** slice 6a, fallen villages and ruins (commit `3b7231a`, all games): a village with nobody left falls,
+  its ruins stay, it drops out of trade, diplomacy, planning, contact and the village cap, a fallen capital's
+  kingdom passes to its largest member, its land is released after 20 days. Save format 21. Plus review fixes to
+  slices 4–5b (wars start only by declaration in war games, war start dates for every war, markers cleared at
+  peace). Results: design note, "Slice 6a".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

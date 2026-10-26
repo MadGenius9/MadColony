@@ -46,7 +46,8 @@ export function scarFrom(g, c, inj) {
   if (c.lasting.some((x) => x.kind === L.kind)) return null;
   const rec = { kind: L.kind, since: g.s.tick, cause: String(inj.cause || '').slice(0, 80) };
   c.lasting.push(rec);
-  g.log(`${c.name}'s wound healed badly: ${L.name.toLowerCase()} (${String(inj.cause || 'a wound').toLowerCase()}).`, 'warn');
+  const mine = (c.settlementId || g.s.playerSettlement) === g.s.playerSettlement;
+  g.log(`${c.name}'s wound healed badly: ${L.name.toLowerCase()} (${String(inj.cause || 'a wound').toLowerCase()}).`, mine ? 'warn' : 'info');
   return rec;
 }
 
@@ -130,7 +131,7 @@ const restingOrTended = (g, c) => (c.sleeping && !!c.job?.bedId) || !!c.medBedId
  *  is on their feet (Phase 5: battles between distant villages). Full villages: false (real carers). */
 function villageCares(g, c) {
   const sid = c.settlementId || g.s.playerSettlement;
-  if (g.s.settlements?.[sid]?.detail !== 'abstract') return false;
+  if (g.s.settlements?.[sid]?.detail !== 'abstract' || !g.reg.get('scenario', g.s.scenarioId)?.war) return false; // war games only
   for (const o of g.owned('colonists', sid)) if (o !== c && !o.health?.down) return true;
   return false;
 }

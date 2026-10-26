@@ -80,3 +80,12 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Peace:** "X sued Y for peace (why); the war is over." as a world-event card; the war marker goes.
 - **Diplomacy:** war age from `relation.warSince` ("at war for N days").
 
+## Phase 5, slice 6a: ruins
+- **World view and map:** buildings of a village with `settlement.fallen` drawn greyed and broken (ruins); no
+  label colour or flag, a "Ruins of <name>" label instead; territory drawn faded until `fallen.released`, then
+  none.
+- **Letters:** "<name> has fallen: <cause>. Its ruins remain." (warn) as a world-event card (important when it was
+  an ally or a kingdom member of the player); "<name> is now the capital of <kingdom> (…)".
+- **Village card / World tab:** "Fallen on day N: <cause>" from `fallen`; ruins sorted last or filtered out.
+- **God tab:** bless/inspire/join on a ruin show the refusal ("has fallen; only ruins are left").
+

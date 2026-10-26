@@ -69,7 +69,7 @@ export function tickRivalry(g) {
   const s = g.s, rv = R.rivalry;
   if (rv) for (const k of Object.keys(s.relations || {}).sort()) {
     const rel = s.relations[k];
-    if (rel.threat !== undefined && rel.value > R.declareBelow + 10) delete rel.threat; // the threat is past
+    if (rel.threat !== undefined && (rel.value > R.declareBelow + 10 || s.tick - rel.threat > 2 * (R.warnDays || 1) * TICKS_PER_DAY)) delete rel.threat; // the threat is past or lapsed
     if (!rel.contact || !s.settlements[rel.a] || !s.settlements[rel.b]) continue;
     if (allianceOf(g, rel.a, rel.b) || sameKingdom(g, rel.a, rel.b) || rel.value <= rv.floor) continue;
     if (!g.owned('colonists', rel.a).length || !g.owned('colonists', rel.b).length) continue;
@@ -113,15 +113,15 @@ function battles(g, R) {
       const fit = g.owned('colonists', side).filter((c) => isFit(g, c)).sort((x, y) => (x.id < y.id ? -1 : 1));
       fit.sort((x, y) => hash(`${s.seed}:battle:${x.id}:${day}`) - hash(`${s.seed}:battle:${y.id}:${day}`));
       const x = strength * B.woundsPerStrength; // whole wounds, plus one more with the chance of the fraction
-      const n = Math.min(fit.length, Math.floor(x) + (draw(`${s.seed}:hits:${side}:${day}`) < x - Math.floor(x) ? 1 : 0));
+      const n = Math.min(fit.length, Math.floor(x) + (draw(`${s.seed}:hits:${side}:${enemy}:${day}`) < x - Math.floor(x) ? 1 : 0));
       for (let k = 0; k < n; k++) {
         const c = fit[k], sev = B.minSeverity + (B.maxSeverity - B.minSeverity) * draw(`${s.seed}:wound:${c.id}:${day}`);
-        injure(g, c, 'wound', sev, `Wounded fighting ${nameOf(g, enemy)}`);
+        injure(g, c, 'wound', sev, `Wounded fighting ${nameOf(g, enemy)}`, false, side === s.playerSettlement ? 'warn' : 'info');
       }
       return n;
     };
     const na = hit(a, b, sb), nb = hit(b, a, sa);
-    rel.lastClash = s.tick;
+    if (na + nb) rel.lastClash = s.tick;
     if (na + nb) g.log(`Fighting between ${nameOf(g, a)} and ${nameOf(g, b)}: ${na} wounded in ${nameOf(g, a)}, ${nb} in ${nameOf(g, b)}.`, 'warn', `battle:${a}|${b}`, TICKS_PER_DAY);
     spreadContact(g, a, b, 'the fighting');
   }
@@ -132,6 +132,7 @@ function truces(g, R) {
   for (const rel of wars(g)) {
     const { a, b } = rel;
     if (!s.settlements[a].ai || !s.settlements[b].ai) continue; // the player makes peace through diplomacy
+    if (rel.warSince === undefined) rel.warSince = s.tick; // a war from an older save, or started another way: from today
     const sa = warStrength(g, a), sb = warStrength(g, b);
     const old = rel.warSince !== undefined && s.tick - rel.warSince >= T.maxDays * TICKS_PER_DAY;
     let weak = null;
@@ -157,6 +158,9 @@ function declarations(g, R) {
       const rel = relationPeek(g, a, b);
       if (!rel.contact || rel.value > R.declareBelow || rel.aggressor) continue;
       if (allianceOf(g, a, b) || sameKingdom(g, a, b)) continue;
+      // Only where a fight can happen: both distant (battles), or the attacker in full detail (raids), or on the
+      // player's village (a war with the player brings the attacker into full detail, lod.js).
+      if (s.settlements[a].detail === 'abstract' && s.settlements[b].detail !== 'abstract' && b !== s.playerSettlement) continue;
       const mine = str(a), theirs = str(b);
       if (mine < (R.minStrength ?? 1) || mine < theirs * R.stronger) continue;
       const why = rel.touch !== undefined ? 'their lands press on each other' : 'they compete for the same land';
