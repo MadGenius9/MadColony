@@ -4,7 +4,7 @@
 // mod data `hazard`) cause injuries. Injured colonists work more slowly, rest in bed below
 // HEALTH.restBelow, and collapse at HEALTH.downAt until they recover to HEALTH.upAt. Others tend them:
 // bring food if they are hungry and dress their wounds (faster healing for a while).
-// Nobody dies yet: death needs its own design (and combat). Everything here is saved on the colonist.
+// At 0% health for HEALTH.deathAfterHours a colonist dies (death.js, Phase 5). Everything here is saved on the colonist.
 import { tickInfection, healFactor, bedFactor } from './medical.js';
 import { TICKS_PER_HOUR } from './constants.js';
 
@@ -16,6 +16,7 @@ export const HEALTH = {
   healAwake: 0.5, healGround: 1.0, healBed: 2.2, // severity healed per hour
   tendedFactor: 2, tendHours: 12,
   starvePerHour: 2.5, exhaustPerHour: 1.5, dehydratePerHour: 3,
+  deathAfterHours: 6, // at 0% health this long (collapsed, so rescue and care still have a chance): death (death.js)
 };
 const STEP = 25; // ticks between health updates
 
@@ -88,6 +89,17 @@ export function tickHealth(g, c, force = false) {
   for (const i of healed) if (i.kind === 'injury') g.log(`${c.name} has recovered (${i.cause.toLowerCase()}).`, 'info', `healed:${i.id}`, 1);
   c.health.injuries = c.health.injuries.filter((i) => i.severity > 0);
   checkDown(g, c);
+  checkDeath(g, c);
+}
+
+/** End of tickHealth: note when health first reached 0, and mark the colonist to die once it has stayed there long
+ *  enough. Read-only apart from c.health.zeroSince and the derived g._dying set. O(1) per call. */
+function checkDeath(g, c) {
+  const h = c.health;
+  if (!h) return;
+  if (hpOf(c) > 0) { if (h.zeroSince !== undefined) delete h.zeroSince; return; }
+  if (h.zeroSince === undefined) h.zeroSince = g.s.tick;
+  if (g.s.tick - h.zeroSince >= HEALTH.deathAfterHours * TICKS_PER_HOUR) (g._dying ||= new Set()).add(c.id);
 }
 
 /** After a job finishes successfully: a small chance of a work accident (work type `hazard`). */

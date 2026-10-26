@@ -25,6 +25,7 @@ import { updateMarkets } from './markets.js';
 import { IdLayer, SparseIdLayer, layerView, terrainStoreOf } from './tiles.js';
 import { tickContact, bordersTouched, newContactState, landChunks, travellers, tradeDeadline, sameLandmass, landmassOf } from './contact.js';
 import { applyCommands, newGodState } from './god.js';
+import { processDeaths } from './death.js';
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
@@ -1444,6 +1445,7 @@ export class Game {
       tickColonist(this, c);
     }
     this.actor = null;
+    processDeaths(this); // deaths found during this tick (death.js; nothing when there are none)
   }
   step(n) { for (let k = 0; k < n; k++) this.tick(); }
 

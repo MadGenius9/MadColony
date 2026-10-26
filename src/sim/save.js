@@ -98,6 +98,7 @@ export function validateSave(save) {
   if (s.claims !== undefined) validateClaims(s, m, bad);
   if (s.contact !== undefined) validateContact(s, m, bad, inB);
   if (s.god !== undefined) validateGod(s, bad);
+  if (s.dead !== undefined) validateDead(s, bad); // format 15
   if (P.length) return P;
   const ent = (coll, label, extra) => {
     for (const [key, e] of Object.entries(s[coll])) {
@@ -142,6 +143,7 @@ export function validateSave(save) {
     if (e.carriedBy !== undefined && e.carriedBy !== null && !isStr(e.carriedBy, 64)) bad(`colonist "${k}" has an invalid carrier`);
     if (e.ammo !== undefined && e.ammo !== null && (!isObj(e.ammo) || !isStr(e.ammo.item, 100) || !isInt(e.ammo.qty) || e.ammo.qty < 1)) bad(`colonist "${k}" has invalid ammunition`);
     if (e.health !== undefined && (!isObj(e.health) || !Array.isArray(e.health.injuries) || e.health.injuries.some((i) => !isObj(i) || !isStr(i.kind, 40) || !isNum(i.severity) || i.severity < 0 || i.severity > 100))) bad(`colonist "${k}" has invalid health`);
+    if (isObj(e.health) && e.health.zeroSince !== undefined && (!isInt(e.health.zeroSince) || e.health.zeroSince > s.tick)) bad(`colonist "${k}" has an invalid time at 0% health`); // format 15
   });
   ent('projects', 'project', (e, k) => { if (!Array.isArray(e.parts) || !Array.isArray(e.cells)) bad(`project "${k}" is malformed`); });
   ent('fields', 'field', (e, k) => { if (!isInt(e.w) || !isInt(e.h) || e.w < 1 || e.h < 1) bad(`field "${k}" has an invalid size`); });
@@ -172,6 +174,20 @@ function validateClaims(s, m, bad) {
  *  (whole ids below nextId, each used once, the queue in id order with ticks never decreasing, whole ticks),
  *  blessings well formed (a blessing of a settlement that no longer exists is dropped at load, loadGame). Unknown power types are allowed (a mod may be missing): such a
  *  command is refused, with its reason logged, when it comes due. */
+/** The dead (format 15, optional): plain records keyed by safe ids that are not living colonists. */
+function validateDead(s, bad) {
+  if (!isObj(s.dead)) { bad('the list of the dead is malformed'); return; }
+  for (const [k, d] of Object.entries(s.dead)) {
+    if (!SAFE_ID.test(k) || !isObj(d) || !isStr(d.name, 80) || !isStr(d.cause, 40) || !isStr(d.text, 80) || !isInt(d.tick) || d.tick < 0 || d.tick > s.tick
+      || !isStr(d.settlementId, 64) || !isInt(d.x) || !isInt(d.y)) { bad(`the record of the dead "${String(k).slice(0, 40)}" is malformed`); return; }
+    if (Object.hasOwn(s.colonists || {}, k)) { bad(`"${k}" is both living and dead`); return; }
+    if (d.injury !== undefined && !isStr(d.injury, 80)) { bad(`the record of the dead "${k}" has an invalid injury`); return; }
+    if (d.bornTick !== undefined && !isNum(d.bornTick)) { bad(`the record of the dead "${k}" has an invalid birth tick`); return; }
+    if (d.origin !== undefined && d.origin !== 'divine') { bad(`the record of the dead "${k}" has an unknown origin`); return; }
+    if (d.parents !== undefined && (!Array.isArray(d.parents) || d.parents.length > 4 || d.parents.some((p) => !isStr(p, 64)))) { bad(`the record of the dead "${k}" has invalid parents`); return; }
+  }
+}
+
 function validateGod(s, bad) {
   const god = s.god;
   if (!isObj(god)) { bad('state.god must be an object'); return; }

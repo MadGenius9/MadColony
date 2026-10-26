@@ -21,6 +21,8 @@ Rules (from the project; never break them):
 - No UI here (`src/ui` is not in this repo). For anything the player must see, add an entry to docs/ui-todo.md:
   what to show, where, and which sim function or state field provides it.
 - Keep diffs small; never reformat or rewrite code you are not changing. Never weaken or delete a test.
+- src/sim and mods files use CRLF line endings: keep them (Python text-mode writes turn them into LF and rewrite
+  the whole file; check `git diff --stat` before committing).
 - Scenarios that don't opt in must behave exactly as before unless the design note says otherwise.
 
 Before you finish: run `node --test "tests/*.test.js"` (with `timeout 600`) and the slice's own tests, and report

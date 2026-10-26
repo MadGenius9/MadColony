@@ -41,3 +41,10 @@ export function uniqueName(pool, used, first, key, family = null, allowPlain = t
   const base = family ? `${first} ${family}` : sn.length ? `${first} ${sn[start]}` : first;
   for (let k = 2; ; k++) { const n = `${base} ${roman(k)}`; if (!used.has(n)) return n; }
 }
+
+/** Names already used by anyone, living or dead (s.dead, death.js): names stay unique. */
+export function usedNames(s) {
+  const used = new Set(Object.values(s.colonists).map((c) => c.name));
+  for (const d of Object.values(s.dead || {})) used.add(d.name);
+  return used;
+}

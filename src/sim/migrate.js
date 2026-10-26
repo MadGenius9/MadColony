@@ -62,6 +62,9 @@ export const MIGRATIONS = {
   // 13 -> 14: power storage (Phase 3, slice 4). A battery's stored energy (`structure.charge`) is optional: absent
   // means empty, and older saves had no batteries. Nothing to add.
   13() {},
+  // 14 -> 15: death (Phase 5, slice 1a). `s.dead` (the dead by id), `health.zeroSince` and `s.stats.deaths` are
+  // optional: absent means nobody has died, as in every older save. Nothing to add.
+  14() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

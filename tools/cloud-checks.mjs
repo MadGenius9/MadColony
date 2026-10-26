@@ -9,6 +9,14 @@ import { serializeGame } from '../src/sim/save.js';
 import { addGoal } from '../src/sim/goals.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
 
+/** A hash of the saved state and plans, without the save header (format number, mods), so a format bump alone
+ *  does not change it. */
+function stateHash(g) {
+  const save = JSON.parse(serializeGame(g));
+  delete save.state.format; // the format number stamped at creation
+  return createHash('sha1').update(JSON.stringify([save.state, save.planner])).digest('hex').slice(0, 16);
+}
+
 const mode = process.argv[2] || 'forty';
 if (!['forty', 'modern'].includes(mode)) { console.error('usage: node tools/cloud-checks.mjs forty|modern'); process.exit(2); }
 const g = mode === 'modern' ? newGame({ seed: 4242 }) : newGame({});
@@ -38,7 +46,7 @@ const built = Object.values(g.s.structures).filter((b) => b.built).length;
 const result = {
   mode, seed: g.s.seed, day: +(ticks / TICKS_PER_DAY).toFixed(2), msPerTick: +((performance.now() - t0) / ticks).toFixed(3), worstTickMs: +worst.toFixed(1),
   colonists: g.colonists().length, built, era: eraOf(), eraDays, conservationErrors: errors.length ? errors : conservationErrors(g),
-  stateHash: createHash('sha1').update(serializeGame(g)).digest('hex').slice(0, 16),
+  stateHash: stateHash(g),
 };
 console.log(JSON.stringify(result));
 process.exit(result.conservationErrors.length ? 1 : 0);

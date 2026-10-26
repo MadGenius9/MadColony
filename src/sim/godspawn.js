@@ -22,7 +22,7 @@ import { foundingRules, FOUNDING_DEFAULTS, siteProblem, pileCells } from './foun
 import { newResearchState, ensureSettlement, settlementOf } from './research.js';
 import { villageColor } from './villages.js';
 import { makeLook } from './appearance.js';
-import { namePoolOf, uniqueName, firstByKey } from './names.js';
+import { namePoolOf, uniqueName, firstByKey, usedNames } from './names.js';
 import { ensureAdult, isAdult } from './people.js';
 import { homeBeds } from './construction.js';
 import { emptyPlan } from './planner.js';
@@ -187,7 +187,7 @@ function placesAround(g, x0, y0, region, n) {
  *  command): ids from s.nextId, names from the scenario's pool, skills 0..5. Counted in s.god.spawned. */
 function makeSettlers(g, cmd, sid, color, spots, why) {
   const s = g.s, key = keyOf(g, cmd), pool = namePoolOf(g, 'Settler');
-  const used = new Set(Object.values(s.colonists).map((c) => c.name));
+  const used = usedNames(s); // the living and the dead (death.js)
   const skills = g.reg.all('skill'), needs = g.reg.all('need');
   const ids = [];
   spots.forEach(([x, y], i) => {
@@ -271,25 +271,25 @@ registerPower('spawn', {
 });
 
 /**
- * The people ledger (for tests and reports; read-only, one pass over the colonists): living people by origin.
- * Colonists never leave the world yet (there is no death or emigration out of it), so
- *   start + born + spawned = living,
- * where born = colonists with a birth tick, spawned = s.god.spawned (people made by powers; each also carries
- * origin 'divine'), and start = the rest. Pass `start` (the head-count at tick 0) to check the sum;
- * `problems` lists what does not add up.
+ * The people ledger (for tests and reports; read-only, one pass over the living and the dead): people by origin.
+ * Nobody leaves the world but by death (s.dead, death.js), so
+ *   start + born + spawned - died = living,
+ * where born = people (living or dead) with a birth tick, spawned = s.god.spawned (people made by powers; each
+ * also carries origin 'divine'), died = s.dead, and start = the rest. Pass `start` (the head-count at tick 0) to
+ * check the sum; `problems` lists what does not add up.
  */
 export function peopleCensus(g, start = null) {
-  let living = 0, born = 0, divine = 0, adults = 0;
-  for (const c of Object.values(g.s.colonists)) {
-    living++;
+  let living = 0, born = 0, divine = 0, adults = 0, died = 0;
+  const count = (c) => {
     if (c.bornTick !== undefined && c.bornTick !== null) born++;
     else if (c.origin === 'divine') divine++;
-    if (isAdult(g, c)) adults++;
-  }
+  };
+  for (const c of Object.values(g.s.colonists)) { living++; count(c); if (isAdult(g, c)) adults++; }
+  for (const d of Object.values(g.s.dead || {})) { died++; count(d); }
   const spawned = g.s.god?.spawned || 0, left = 0;
   const problems = [];
-  if (divine !== spawned) problems.push(`${divine} colonists came by divine power but the ledger counts ${spawned}`);
-  const others = living - born - divine;
-  if (start !== null && start + born + spawned - left !== living) problems.push(`start ${start} + born ${born} + spawned ${spawned} - left ${left} = ${start + born + spawned - left}, but ${living} are living`);
-  return { living, start: start ?? others, born, spawned, left, adults, ok: !problems.length, problems };
+  if (divine !== spawned) problems.push(`${divine} people came by divine power but the ledger counts ${spawned}`);
+  const others = living + died - born - divine;
+  if (start !== null && start + born + spawned - died - left !== living) problems.push(`start ${start} + born ${born} + spawned ${spawned} - died ${died} - left ${left} = ${start + born + spawned - died - left}, but ${living} are living`);
+  return { living, start: start ?? others, born, spawned, died, left, adults, ok: !problems.length, problems };
 }

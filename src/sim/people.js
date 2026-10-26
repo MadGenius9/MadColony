@@ -14,7 +14,7 @@
 // become adults; nothing else in an old save changes.
 import { TICKS_PER_DAY } from './constants.js';
 import { makeLook } from './appearance.js';
-import { namePoolOf, surnameOf, uniqueName } from './names.js';
+import { namePoolOf, surnameOf, uniqueName, usedNames } from './names.js';
 import { blessingOf } from './god.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
@@ -116,7 +116,7 @@ function birth(g, sid, home, bed, parents) {
   const s = g.s;
   const id = 'c' + s.nextId++;
   const pool = namePoolOf(g, 'Wren');
-  const used = new Set(Object.values(s.colonists).map((c) => c.name));
+  const used = usedNames(s); // the living and the dead (death.js)
   const free = pool.names.filter((n) => !used.has(n));
   // One rng draw either way (as before); a surname (a parent's first) when the first name is taken.
   const first = free.length ? free[g.rng.int(free.length)] : pool.names[g.rng.int(pool.names.length)];

@@ -17,8 +17,12 @@ Reference numbers for the cloud rescue copy, taken on 2026-10-25 on branch `clou
 ## Runs (`tools/cloud-checks.mjs`)
 | Run | Day | ms/tick | Worst tick | People | Built | Era days | Conservation | stateHash |
 |---|---|---|---|---|---|---|---|---|
-| `forty` (seed 20261021, 40 days) | 40 | 0.039 | 65.5 ms | 5 | 65 | Workshops 6.04 | 0 errors | `66565ccb7cc6e19a` |
-| `modern` (seed 4242, Advance to Modern) | 35.72 | 0.047 | 45.9 ms | 5 | 89 | Workshops 6.1, Industry 11.5, Electric 17.25, Modern 35.72 | 0 errors | `b2acaf9064cf4914` |
+| `forty` (seed 20261021, 40 days) | 40 | 0.039 | 65.5 ms | 5 | 65 | Workshops 6.04 | 0 errors | `9426646c1190c148` |
+| `modern` (seed 4242, Advance to Modern) | 35.72 | 0.047 | 45.9 ms | 5 | 89 | Workshops 6.1, Industry 11.5, Electric 17.25, Modern 35.72 | 0 errors | `429910fed998ddb5` |
+
+stateHash covers the saved state and plans without the save header and `state.format` (changed
+2026-10-26 so that a save format bump alone does not change it; the hashes above were recomputed on `ce2d67f`
+and are the same on Phase 5 slice 1a).
 
 `node tools/simulate.js 10 --log`: 24 000 ticks in about 1.5 s, 0 conservation errors.
 
