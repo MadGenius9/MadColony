@@ -15,6 +15,7 @@ console.error(`created ${g.W}x${g.H} in ${Math.round(performance.now() - t0)} ms
 const start = Object.keys(g.s.colonists).length;
 const ev = { declared: 0, conquered: 0, sacked: 0, fallen: 0, peace: 0, outbreaks: 0 };
 let li = 0, last = Date.now(), failed = false, worst = 0, windowMs = 0, windowTicks = 0;
+const slowest = []; // the five slowest ticks of the run: { tick, ms }
 const state = (x) => { const s = JSON.parse(serializeGame(x)); delete s.state.loadedFrom; return JSON.stringify(s); };
 
 for (let d = 1; d <= days; d++) {
@@ -24,6 +25,7 @@ for (let d = 1; d <= days; d++) {
     const dt = performance.now() - a;
     windowMs += dt; windowTicks++;
     if (dt > worst) worst = dt;
+    if (slowest.length < 5 || dt > slowest[4].ms) { slowest.push({ tick: g.s.tick, ms: +dt.toFixed(1) }); slowest.sort((x, y) => y.ms - x.ms); slowest.length = Math.min(5, slowest.length); }
     if (Date.now() - last > 10000) { last = Date.now(); console.error(`[run] day ${(g.s.tick / TICKS_PER_DAY).toFixed(1)} of ${days}, ${Object.keys(g.s.colonists).length} people, ${(windowMs / windowTicks).toFixed(3)} ms/tick`); }
   }
   for (const e of g.s.log) if (e.t > li) {
@@ -71,5 +73,6 @@ for (let d = 1; d <= days; d++) {
   }
 }
 const text = serializeGame(g);
+console.log(JSON.stringify({ slowest }));
 console.log(JSON.stringify({ done: true, saveMB: +(text.length / 1e6).toFixed(2), totalMin: +((performance.now() - t0) / 60000).toFixed(1), failed }));
 process.exit(failed ? 1 : 0);

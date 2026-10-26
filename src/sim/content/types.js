@@ -401,7 +401,7 @@ export const CONTENT_TYPES = {
         declareBelow: req(num(-100, 0)), stronger: req(num(1, 10)), minStrength: num(0, 100), warnDays: num(0, 30),
         battle: obj({ woundsPerStrength: req(num(0, 10)), minSeverity: req(num(1, 100)), maxSeverity: req(num(1, 100)) }), // slice 5b
         truce: obj({ weakerShare: req(num(0, 1)), maxDays: req(num(1, 1000)), minDays: num(0, 1000) }),
-        conquest: obj({ beatenDays: req(num(0, 100)), tribute: req(num(0, 1)) }), // slice 6b
+        conquest: obj({ beatenDays: req(num(0, 100)), tribute: req(num(0, 1)), beatenShare: num(0, 1) }), // slice 6b
       }),
       illness: obj({
         outbreakPerDay: req(num(0, 1)), crowding: num(0, 100), graceDays: num(0, 1000), villageShare: num(0, 1),

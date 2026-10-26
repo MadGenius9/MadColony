@@ -94,7 +94,8 @@ export function tickRivalry(g) {
   if (R.truce) truces(g, R);
 }
 
-/** Slice 6b: a village with no fit fighters for conquest.beatenDays while its enemy has some is beaten. The winner's
+/** Slice 6b: a village with at most conquest.beatenShare of its enemy's strength (0: no fit fighters) for
+ *  conquest.beatenDays while its enemy has some is beaten. The winner's
  *  profile decides (villageProfile.conquest, default 'absorb'; the player's village absorbs): 'absorb' annexes it
  *  into the winner's kingdom (formed if the winner has none; the beaten village leaves its own, a capital passing
  *  its crown on), 'sack' takes conquest.tribute of its spare goods as a tribute trade (delivered like any trade).
@@ -105,7 +106,8 @@ function conquests(g, R) {
     const { a, b } = rel;
     if (done.has(a) || done.has(b)) continue;
     const sa = warStrength(g, a), sb = warStrength(g, b);
-    const loser = sa === 0 && sb > 0 ? a : sb === 0 && sa > 0 ? b : null;
+    const share = C.beatenShare ?? 0; // beaten: at most this share of the enemy's strength (0: no fit fighters at all)
+    const loser = sb > 0 && sa <= sb * share ? a : sa > 0 && sb <= sa * share ? b : null;
     if (!loser || loser === s.playerSettlement) { delete rel.beaten; continue; }
     if (rel.beaten?.sid !== loser) { rel.beaten = { sid: loser, since: s.tick }; continue; }
     if (s.tick - rel.beaten.since < C.beatenDays * TICKS_PER_DAY) continue;
