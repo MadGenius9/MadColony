@@ -385,6 +385,7 @@ export function declareWar(g, sid, target, reason) {
   if (rel.value > WAR.declareTo) changeRelation(g, sid, target, WAR.declareTo - rel.value, reason);
   else { rel.history.push({ tick: g.s.tick, delta: 0, reason }); if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16); }
   delete rel.threat;
+  rel.warSince = g.s.tick; // war.js: AI wars end in a truce when old (save format 20)
   const k = [sid, target].sort().join('|');
   if (g.s.treaties?.[k]) { delete g.s.treaties[k]; rel.history.push({ tick: g.s.tick, delta: 0, reason: 'Trade pact ended: war' }); }
   g.log(`${reason}.`, 'warn');
@@ -475,7 +476,7 @@ export function offerTruce(g, sid, target) {
   makePeace(g, sid, target, `${settlementOf(g, sid)?.name} and ${settlementOf(g, target)?.name} agreed a truce`);
   return { ok: true, message: 'Truce agreed.' };
 }
-function makePeace(g, a, b, reason) {
+export function makePeace(g, a, b, reason) {
   const rel = relationOf(g, a, b);
   changeRelation(g, a, b, WAR.truceTo - rel.value, reason);
   for (const s of [a, b]) { const o = orderOf(g, s); if (o.order !== 'defend' && (o.target === a || o.target === b || o.order === 'retreat')) setOrder(g, s, 'defend'); }

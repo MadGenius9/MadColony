@@ -74,3 +74,9 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **World view:** wars between villages (pairs with `relation.aggressor` and hostile) as crossed swords between
   their labels, kingdom wars in the kingdom colours.
 
+## Phase 5, slice 5b: battles and peace (Vast world)
+- **World view:** "Fighting between A and B: n wounded in A, m in B." (warn, one a day per pair) as a small
+  battle marker between the two villages for that day.
+- **Peace:** "X sued Y for peace (why); the war is over." as a world-event card; the war marker goes.
+- **Diplomacy:** war age from `relation.warSince` ("at war for N days").
+

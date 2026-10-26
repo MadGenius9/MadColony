@@ -527,6 +527,9 @@ questions were not answered, so the note's proposals are the working defaults).
   near rivals lower relations daily by temperament; rivals who never fought do not cool; a stronger AI village
   declares war at −50 (on the player only after a threat and a day). Save format 19. Vast seed 7: first wars
   around day 98. Classic runs unchanged. Results: design note, "Slice 5a".
+- **Done:** slice 5b, battles between distant villages (daily, in aggregate, wounds through the health rules) and
+  AI peace (the weaker side after 4 days, any war after 20). Save format 20. Vast seed 7, 150 days: 14 wars in
+  progress at day 150, population still growing (191). Results: design note, "Slice 5b".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

@@ -79,6 +79,9 @@ export const MIGRATIONS = {
   // (an AI village threatened the player) are optional. Older vast-world saves have no touch marks: borders that
   // touched before stay quiet. Nothing to add.
   18() {},
+  // 19 -> 20: AI wars (Phase 5, slice 5b). `relation.warSince` is optional: a war from an older save has no start
+  // time, so it ends only when one side is losing. Nothing to add.
+  19() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

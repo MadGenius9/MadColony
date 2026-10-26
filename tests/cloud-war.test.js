@@ -126,5 +126,72 @@ test('saves: malformed border or threat times are refused', () => {
   const bad = JSON.parse(text);
   const k = Object.keys(bad.state.relations).find((x) => bad.state.relations[x].touch !== undefined);
   bad.state.relations[k].touch = bad.state.tick + 100;
-  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /border or threat/);
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /border, threat or war time/);
+});
+
+// ---------------- slice 5b: battles between distant villages, and peace ----------------
+import { declareWar } from '../src/sim/combat.js';
+import { conservationErrors } from './cloud-helpers.js';
+
+let VAST = null;
+function vastWar() {
+  if (!VAST) { VAST = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' }); runDays(VAST, 2); }
+  const g = reload(VAST); // a fresh copy for each test
+  const far = Object.values(g.s.settlements).filter((x) => x.ai && x.detail === 'abstract').map((x) => x.id).sort();
+  const [a, b] = far;
+  relationOf(g, a, b).contact = true;
+  relationOf(g, a, b).value = -60;
+  return { g, a, b };
+}
+const wounds = (g, sid) => g.owned('colonists', sid).reduce((n, c) => n + (c.health?.injuries || []).filter((i) => i.kind === 'wound').length, 0);
+
+test('a war between two distant villages is fought in aggregate: both sides take wounds, the war does not cool', () => {
+  const { g, a, b } = vastWar();
+  declareWar(g, a, b, 'Test war');
+  assert.ok(warStrength(g, a) > 0 && warStrength(g, b) > 0);
+  for (let d = 0; d < 6; d++) { tickRivalry(g); g.s.tick += TICKS_PER_DAY; } // six days of fighting (only the daily rule)
+  assert.ok(wounds(g, a) > 0 && wounds(g, b) > 0, `wounds: ${wounds(g, a)} and ${wounds(g, b)}`);
+  assert.ok(relationPeek(g, a, b).lastClash > g.s.tick - 2 * TICKS_PER_DAY, 'they fought recently');
+  assert.ok(g.s.log.some((e) => /^Fighting between/.test(e.msg)));
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('the weaker side sues for peace only after the war\'s first days; an old war ends anyway', () => {
+  const { g, a, b } = vastWar();
+  declareWar(g, a, b, 'Test war');
+  weaken(g, b);
+  const min = g.reg.get('scenario', g.s.scenarioId).war.truce;
+  tickRivalry(g);
+  assert.ok(relationPeek(g, a, b).aggressor, 'still at war on the first day');
+  relationOf(g, a, b).warSince = g.s.tick - min.minDays * TICKS_PER_DAY;
+  tickRivalry(g);
+  assert.equal(relationPeek(g, a, b).aggressor, undefined, 'peace');
+  assert.ok(g.s.log.some((e) => /sued .* for peace \(.* is losing\)/.test(e.msg)));
+  // An even war that drags on also ends.
+  const v = vastWar();
+  declareWar(v.g, v.a, v.b, 'Test war');
+  relationOf(v.g, v.a, v.b).warSince = v.g.s.tick - min.maxDays * TICKS_PER_DAY;
+  tickRivalry(v.g);
+  assert.equal(relationPeek(v.g, v.a, v.b).aggressor, undefined);
+  assert.ok(v.g.s.log.some((e) => /the war has gone on too long/.test(e.msg)));
+});
+
+test('a distant village looks after its wounded: wounds do not fester while others are on their feet', () => {
+  const { g, a } = vastWar();
+  const [c] = g.owned('colonists', a);
+  const w = injure(g, c, 'wound', 30, 'A test wound');
+  w.infected = true; // as if it had festered
+  const inf = injure(g, c, 'infection', 10, 'Infected wound');
+  g.step(12 * 100);
+  assert.ok(!c.health.injuries.includes(inf) || inf.severity < 10, `the infection does not grow: ${inf.severity}`);
+});
+
+test('a war fought with battles saves and loads to an identical continuation', () => {
+  const run = (cut) => {
+    let { g, a, b } = vastWar();
+    declareWar(g, a, b, 'Test war');
+    for (let d = 1; d <= 4; d++) { g.step(TICKS_PER_DAY); if (cut.includes(d)) g = reload(g); }
+    return g;
+  };
+  assert.equal(stateText(run([])), stateText(run([1, 3])));
 });

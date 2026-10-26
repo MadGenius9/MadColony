@@ -13,12 +13,21 @@
 //   kingdom members of the attacked village join (combat.js joinDefence). On the player's village an AI village
 //   first threatens (a letter) and declares only if it still may `warnDays` later. At most one declaration a day
 //   per village, in id order. The cause is logged.
-// No random numbers are drawn.
+// - Battles between distant villages (slice 5b): daily, a war where both sides are simulated at a distance is fought
+//   in aggregate: each side wounds its strength x battle.woundsPerStrength of the other's fit fighters (the fraction
+//   as a chance)
+//   (picked by hash; wounds of battle.minSeverity..maxSeverity through health.js injure, so deaths follow the
+//   death rules), the war does not cool (lastClash), and illness may pass (illness.js). A war with a village in
+//   full detail is fought for real (combat.js raids; a village attacked by a full-detail one is promoted, lod.js).
+// - Peace between AI villages: daily, the weaker side sues for peace when its strength is below truce.weakerShare
+//   of the other's after truce.minDays of war, or when the war is truce.maxDays old (`relation.warSince`); relations go to the truce value.
+// No random numbers are drawn (draws are hashes of seed, ids and day).
 import { TICKS_PER_DAY } from './constants.js';
 import { relationOf, relationPeek, relationStatus, allianceOf, changeRelation } from './villages.js';
 import { sameKingdom } from './kingdoms.js';
-import { declareWar, weaponOf, COMBAT } from './combat.js';
-import { isDown, hpOf } from './health.js';
+import { declareWar, makePeace, weaponOf, COMBAT } from './combat.js';
+import { isDown, hpOf, injure } from './health.js';
+import { spreadContact } from './illness.js';
 import { mayFight } from './people.js';
 import { settlementOf } from './research.js';
 
@@ -32,13 +41,21 @@ export function warRules(g) {
 }
 
 const nameOf = (g, sid) => settlementOf(g, sid)?.name || sid;
+const hash = (str) => {
+  let h = 2166136261;
+  for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+  return h >>> 0;
+};
+const draw = (key) => hash(key) / 4294967296;
+const isFit = (g, c) => !isDown(c) && hpOf(c) >= COMBAT.fitHp && mayFight(g, c);
 const temperOf = (g, sid) => { const p = g.s.settlements?.[sid]?.profile; return (p && g.reg.get('villageProfile', p)?.temperament) ?? 1; };
 
 /** Fighting strength of a village: fit adults, armed ones counted by weapon damage (fists: COMBAT.unarmed). */
 export function warStrength(g, sid) {
   let n = 0;
   for (const c of g.owned('colonists', sid)) {
-    if (isDown(c) || hpOf(c) < COMBAT.fitHp || !mayFight(g, c)) continue;
+    if (!isFit(g, c)) continue;
     const w = weaponOf(g, c);
     n += (w.damage || COMBAT.unarmed.damage) / 5;
   }
@@ -69,6 +86,64 @@ export function tickRivalry(g) {
     else rel.value = value;
   }
   declarations(g, R);
+  if (R.battle) battles(g, R);
+  if (R.truce) truces(g, R);
+}
+
+/** Wars in progress: hostile relations with an aggressor, both villages still standing with people. */
+function wars(g) {
+  const s = g.s, out = [];
+  for (const k of Object.keys(s.relations || {}).sort()) {
+    const rel = s.relations[k];
+    if (!rel.aggressor || relationStatus(rel) !== 'hostile' || !s.settlements[rel.a] || !s.settlements[rel.b]) continue;
+    if (!g.owned('colonists', rel.a).length || !g.owned('colonists', rel.b).length) continue;
+    out.push(rel);
+  }
+  return out;
+}
+
+function battles(g, R) {
+  const s = g.s, B = R.battle, day = Math.floor(s.tick / TICKS_PER_DAY);
+  for (const rel of wars(g)) {
+    const { a, b } = rel;
+    if (s.settlements[a].detail !== 'abstract' || s.settlements[b].detail !== 'abstract') continue; // fought for real
+    const sa = warStrength(g, a), sb = warStrength(g, b);
+    if (!sa && !sb) continue;
+    const hit = (side, enemy, strength) => {
+      const fit = g.owned('colonists', side).filter((c) => isFit(g, c)).sort((x, y) => (x.id < y.id ? -1 : 1));
+      fit.sort((x, y) => hash(`${s.seed}:battle:${x.id}:${day}`) - hash(`${s.seed}:battle:${y.id}:${day}`));
+      const x = strength * B.woundsPerStrength; // whole wounds, plus one more with the chance of the fraction
+      const n = Math.min(fit.length, Math.floor(x) + (draw(`${s.seed}:hits:${side}:${day}`) < x - Math.floor(x) ? 1 : 0));
+      for (let k = 0; k < n; k++) {
+        const c = fit[k], sev = B.minSeverity + (B.maxSeverity - B.minSeverity) * draw(`${s.seed}:wound:${c.id}:${day}`);
+        injure(g, c, 'wound', sev, `Wounded fighting ${nameOf(g, enemy)}`);
+      }
+      return n;
+    };
+    const na = hit(a, b, sb), nb = hit(b, a, sa);
+    rel.lastClash = s.tick;
+    if (na + nb) g.log(`Fighting between ${nameOf(g, a)} and ${nameOf(g, b)}: ${na} wounded in ${nameOf(g, a)}, ${nb} in ${nameOf(g, b)}.`, 'warn', `battle:${a}|${b}`, TICKS_PER_DAY);
+    spreadContact(g, a, b, 'the fighting');
+  }
+}
+
+function truces(g, R) {
+  const s = g.s, T = R.truce;
+  for (const rel of wars(g)) {
+    const { a, b } = rel;
+    if (!s.settlements[a].ai || !s.settlements[b].ai) continue; // the player makes peace through diplomacy
+    const sa = warStrength(g, a), sb = warStrength(g, b);
+    const old = rel.warSince !== undefined && s.tick - rel.warSince >= T.maxDays * TICKS_PER_DAY;
+    let weak = null;
+    if (sa < sb * T.weakerShare) weak = a; else if (sb < sa * T.weakerShare) weak = b;
+    const fought = rel.warSince === undefined || s.tick - rel.warSince >= (T.minDays ?? 0) * TICKS_PER_DAY;
+    if ((!weak || !fought) && !old) continue;
+    const who = weak || (sa <= sb ? a : b), other = who === a ? b : a;
+    const why = weak ? `${nameOf(g, who)} is losing` : 'the war has gone on too long';
+    makePeace(g, who, other, `${nameOf(g, who)} sued for peace`);
+    delete rel.warSince;
+    g.log(`${nameOf(g, who)} sued ${nameOf(g, other)} for peace (${why}); the war is over.`, 'warn');
+  }
 }
 
 function declarations(g, R) {

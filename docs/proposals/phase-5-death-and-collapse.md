@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2, 3, 4 and 5a done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2, 3, 4, 5a and 5b done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -336,4 +336,24 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
   Stonegard, its kingdom joining); 12 wars by day 100; most cooled by day 120 (no battles between distant villages
   yet). Deaths by day 120: 5 dehydration, 2 infection, 2 illness, 1 starvation (to be looked at in slice 7).
 - **Not changed:** classic runs; 85 tests pass (8 in `tests/cloud-war.test.js`).
+
+### Slice 5b: battles between distant villages, and peace
+- **Built** (`war.js`): daily `battles` for wars where both villages are distant (each side wounds strength ×
+  `battle.woundsPerStrength` of the other's fit fighters, the fraction as a chance, wounds 15–50 through `injure`,
+  `lastClash` set, illness may pass); daily `truces` between AI villages (the weaker below `truce.weakerShare` of
+  the other after `truce.minDays`, or any war after `truce.maxDays`; `makePeace` exported from `combat.js`;
+  `relation.warSince` set by `declareWar`). In `medical.js` a distant village looks after its wounded
+  (infections behave as if tended while anyone else of the village is on their feet). Data:
+  `battle { woundsPerStrength: 0.2, minSeverity: 15, maxSeverity: 50 }`, `truce { weakerShare: 0.4, maxDays: 20,
+  minDays: 4 }`. Save format 20.
+- **Measured and tuned** (Vast seed 7): with 0.35 wounds per strength and no care for distant wounds, 44 people
+  died of infected wounds between days 120 and 150 (population 153 → 133); with the village caring and 0.2: no
+  such deaths, population 191 at day 150, 14 wars in progress. A first version made the weaker side sue for peace
+  the day after the declaration (the attacker is always 1.5× stronger); now only after 4 days.
+- **Seen in the runs:** a full-detail village that raided and lost (Whitecairn, day 98) had all its fighters
+  wounded and down, and with nobody on their feet four of them died of thirst the next day. That is the war's real
+  cost, not a bug; the defeat rules (slice 6) will give such villages an end.
+- **Not built:** aggregate battles between a distant and a full-detail village (the full one raids for real, which
+  promotes the distant one); AI villages taking a truce with the player (unchanged from before).
+- **Not changed:** classic runs; 89 tests pass (12 in `tests/cloud-war.test.js`).
 

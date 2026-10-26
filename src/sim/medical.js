@@ -125,7 +125,15 @@ export function tickInfection(g, c, frac) {
   }
 }
 /** Resting in a bed (or collapsed in a medical bed), or tended by someone: the body can fight an infection. */
-const restingOrTended = (g, c) => (c.sleeping && !!c.job?.bedId) || !!c.medBedId || (c.health?.tendedUntil || 0) > g.s.tick;
+const restingOrTended = (g, c) => (c.sleeping && !!c.job?.bedId) || !!c.medBedId || (c.health?.tendedUntil || 0) > g.s.tick || villageCares(g, c);
+/** A village simulated at a distance (no carers walk there, lod.js) looks after its wounded while anyone else of it
+ *  is on their feet (Phase 5: battles between distant villages). Full villages: false (real carers). */
+function villageCares(g, c) {
+  const sid = c.settlementId || g.s.playerSettlement;
+  if (g.s.settlements?.[sid]?.detail !== 'abstract') return false;
+  for (const o of g.owned('colonists', sid)) if (o !== c && !o.health?.down) return true;
+  return false;
+}
 /** Healing multiplier for one injury: treated ones heal faster; an untreated infection heals only slowly, and
  *  only while the patient rests or is tended (medicine is much better, but not the only way to survive). */
 export function healFactor(i, g, c) {
