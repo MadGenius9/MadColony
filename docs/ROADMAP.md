@@ -535,6 +535,9 @@ questions were not answered, so the note's proposals are the working defaults).
   kingdom passes to its largest member, its land is released after 20 days. Save format 21. Plus review fixes to
   slices 4–5b (wars start only by declaration in war games, war start dates for every war, markers cleared at
   peace). Results: design note, "Slice 6a".
+- **Done:** slice 6b, conquest: a village with no fit fighters for 2 days is beaten; winners annex it into their
+  kingdom or (hill fort, lumber camp) sack it for tribute; the war ends. Save format 22. Vast seed 7, 150 days: 16
+  wars, 11 conquered, 1 sacked, 3 fallen. Results: design note, "Slice 6b".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

@@ -52,7 +52,7 @@
           "core:marsh": "marsh"
         }
       },
-      "war": { "rivalry": { "perDay": 1, "floor": -70, "near": 110, "nearPerDay": 0.6 }, "declareBelow": -50, "stronger": 1.5, "minStrength": 1.5, "warnDays": 1, "battle": { "woundsPerStrength": 0.2, "minSeverity": 15, "maxSeverity": 50 }, "truce": { "weakerShare": 0.4, "maxDays": 20, "minDays": 4 } },
+      "war": { "rivalry": { "perDay": 1, "floor": -70, "near": 110, "nearPerDay": 0.6 }, "declareBelow": -50, "stronger": 1.5, "minStrength": 1.5, "warnDays": 1, "battle": { "woundsPerStrength": 0.2, "minSeverity": 15, "maxSeverity": 50 }, "truce": { "weakerShare": 0.25, "maxDays": 20, "minDays": 6 }, "conquest": { "beatenDays": 2, "tribute": 0.5 } },
       "illness": { "outbreakPerDay": 0.01, "crowding": 3, "graceDays": 10, "villageShare": 0.3, "kinds": [{ "illness": "core:cough", "weight": 6 }, { "illness": "core:fever", "weight": 3 }, { "illness": "core:grey_fever", "weight": 1 }] },
       "life": {
         "cold": { "below": -2, "perHour": 0.4, "shelter": 6, "fires": ["core:campfire", "core:hearth"], "fireRadius": 5, "foundWaitDays": 8 },

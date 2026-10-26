@@ -229,3 +229,54 @@ test('every war gets a start date (joiners too), and peace clears the war marker
   assert.equal(rel.warSince, undefined);
   assert.equal(rel.threat, undefined);
 });
+
+// ---------------- slice 6b: conquest ----------------
+import { kingdomOf as kOf } from '../src/sim/kingdoms.js';
+
+/** A war between two distant villages where b has no fighters left (all collapsed). */
+function beatenWar(profile) {
+  const v = vastWar();
+  if (profile) v.g.s.settlements[v.a].profile = profile;
+  declareWar(v.g, v.a, v.b, 'Test war');
+  for (const c of v.g.owned('colonists', v.b)) injure(v.g, c, 'injury', 70, 'Beaten in a test');
+  return v;
+}
+
+test('a village without fighters for the beaten days is conquered: annexed into the winner\'s kingdom, the war ends', () => {
+  const { g, a, b } = beatenWar('core:river_hamlet'); // a profile without "conquest": absorb
+  tickRivalry(g);
+  assert.ok(relationPeek(g, a, b).beaten?.sid === b, 'beaten noted');
+  assert.ok(relationPeek(g, a, b).aggressor, 'not yet conquered');
+  g.s.tick += 2 * TICKS_PER_DAY;
+  tickRivalry(g);
+  const k = kOf(g, a);
+  assert.ok(k, 'the winner has a kingdom');
+  assert.equal(kOf(g, b)?.id, k.id, 'the beaten village is in it');
+  assert.equal(relationPeek(g, a, b).aggressor, undefined, 'the war is over');
+  assert.ok(relationPeek(g, a, b).value >= 25, 'friendly under the crown');
+  assert.ok(g.s.log.some((e) => /has conquered/.test(e.msg)));
+});
+
+test('a winner of a sacking profile takes tribute instead', () => {
+  const { g, a, b } = beatenWar('core:hill_fort');
+  tickRivalry(g);
+  g.s.tick += 2 * TICKS_PER_DAY;
+  tickRivalry(g);
+  const t = Object.values(g.s.trades).find((x) => x.tribute && x.seller === b && x.buyer === a);
+  assert.ok(t, 'a tribute trade');
+  assert.ok(t.legs.length > 0);
+  assert.equal(kOf(g, b), null, 'not annexed');
+  assert.equal(relationPeek(g, a, b).aggressor, undefined, 'the war is over');
+  assert.ok(g.s.log.some((e) => /has sacked/.test(e.msg)));
+});
+
+test('the player\'s village is never beaten this way', () => {
+  const { g, a } = vastWar();
+  const p = g.s.playerSettlement;
+  relationOf(g, a, p).contact = true;
+  declareWar(g, a, p, 'Test war');
+  for (const c of g.owned('colonists', p)) injure(g, c, 'injury', 70, 'Beaten in a test');
+  for (let d = 0; d < 4; d++) { tickRivalry(g); g.s.tick += TICKS_PER_DAY; }
+  assert.equal(relationPeek(g, a, p).beaten, undefined);
+  assert.equal(kOf(g, p), null);
+});

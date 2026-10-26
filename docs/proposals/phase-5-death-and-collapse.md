@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a to 5b and 6a done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a to 6b done (slice 7, balance and acceptance, is next); see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -383,4 +383,25 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
 - **Decisions:** the player's village never falls (open question 1: it stays as an empty village); ruins are
   not scavenged yet (their goods wait); ruined buildings keep their tiles after the land is released.
 - **Not changed:** classic runs; 97 tests pass (6 in `tests/cloud-fallen.test.js`, 2 more in `cloud-war`).
+
+### Slice 6b: conquest
+- **Built** (`war.js` `conquests`, `absorb`, `sack`): a side with no fit fighters (strength 0) for
+  `conquest.beatenDays` (2) while the other has some is beaten (`relation.beaten`). The winner's profile
+  `conquest` decides: `absorb` (default; the player's village always absorbs) annexes the beaten village into the
+  winner's kingdom (formed with the winner as capital if it has none; the beaten village leaves its own kingdom,
+  a capital passing its crown on), with peace and the relation raised to friendly; `sack` (hill fort, lumber camp)
+  sends `conquest.tribute` (0.5) of everything it can spare as a tribute trade, then peace. Save format 22
+  (`relation.beaten`, `trade.tribute`).
+- **Deviation: annexation, not a merge.** The note planned "people, buildings, goods, land and research move
+  over". That means re-owning every entity, stockpile zones far from the winner, claims and research, across many
+  systems; annexation into the winner's kingdom gives the same story (the village now serves the winner, the
+  kingdom grows) with far less risk. A full merge stays open.
+- **Tuning:** with the truce at 0.4 after 4 days the losers always sued for peace before being beaten (0
+  conquests in 150 days); at 0.25 after 6 days: 11 conquests.
+- **Measured** (Vast seed 7, 150 days): 50 villages (47 standing), 7 kingdoms, 173 people; 16 declarations,
+  11 conquests, 1 sacking, 3 villages fallen (thirst, grey fever); 68 peace deals (each enemy, joiners included);
+  356 illness cases from 29 outbreaks; deaths: 11 thirst, 8 illness, 3 starvation, 2 cold, 2 infected wounds;
+  0.41 ms per tick; items and people conserved.
+- **Not built:** a full merge; the player's village being taken (open question 2); scavenging ruins.
+- **Not changed:** classic runs; 100 tests pass (3 more in `tests/cloud-war.test.js`).
 

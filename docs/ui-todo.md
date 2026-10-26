@@ -89,3 +89,10 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Village card / World tab:** "Fallen on day N: <cause>" from `fallen`; ruins sorted last or filtered out.
 - **God tab:** bless/inspire/join on a ruin show the refusal ("has fallen; only ruins are left").
 
+## Phase 5, slice 6b: conquest
+- **Letters / world events:** "<winner> has conquered <village>: it is now part of its kingdom." and
+  "<winner> has sacked <village>: …" (warn); important when the player's village, ally or kingdom is involved.
+- **Diplomacy:** while `relation.beaten` is set, "<village> has no fighters left (since day N): beaten in M days".
+- **Trades:** a tribute trade (`trade.tribute`) shown as "Tribute to <winner>".
+- **Kingdom card:** conquered members ("conquered by X" in their relation history with the capital).
+

@@ -24,7 +24,8 @@
 // No random numbers are drawn (draws are hashes of seed, ids and day).
 import { TICKS_PER_DAY } from './constants.js';
 import { relationOf, relationPeek, relationStatus, allianceOf, changeRelation } from './villages.js';
-import { sameKingdom } from './kingdoms.js';
+import { sameKingdom, kingdomOf, membersOf, formKingdom, joinKingdom, leaveKingdom, setCapital } from './kingdoms.js';
+import { availableToTrade } from './villages.js';
 import { declareWar, makePeace, weaponOf, COMBAT } from './combat.js';
 import { isDown, hpOf, injure } from './health.js';
 import { spreadContact } from './illness.js';
@@ -87,7 +88,67 @@ export function tickRivalry(g) {
   }
   declarations(g, R);
   if (R.battle) battles(g, R);
+  if (R.conquest) conquests(g, R);
   if (R.truce) truces(g, R);
+}
+
+/** Slice 6b: a village with no fit fighters for conquest.beatenDays while its enemy has some is beaten. The winner's
+ *  profile decides (villageProfile.conquest, default 'absorb'; the player's village absorbs): 'absorb' annexes it
+ *  into the winner's kingdom (formed if the winner has none; the beaten village leaves its own, a capital passing
+ *  its crown on), 'sack' takes conquest.tribute of its spare goods as a tribute trade (delivered like any trade).
+ *  Either way the war ends. The player's village is never beaten this way (Phase 5 open question 2). */
+function conquests(g, R) {
+  const s = g.s, C = R.conquest;
+  for (const rel of wars(g)) {
+    const { a, b } = rel;
+    const sa = warStrength(g, a), sb = warStrength(g, b);
+    const loser = sa === 0 && sb > 0 ? a : sb === 0 && sa > 0 ? b : null;
+    if (!loser || loser === s.playerSettlement) { delete rel.beaten; continue; }
+    if (rel.beaten?.sid !== loser) { rel.beaten = { sid: loser, since: s.tick }; continue; }
+    if (s.tick - rel.beaten.since < C.beatenDays * TICKS_PER_DAY) continue;
+    const winner = loser === a ? b : a;
+    delete rel.beaten;
+    const prof = s.settlements[winner].profile && g.reg.get('villageProfile', s.settlements[winner].profile);
+    const how = winner === s.playerSettlement ? 'absorb' : prof?.conquest || 'absorb';
+    if (how === 'sack') sack(g, loser, winner, C);
+    else absorb(g, loser, winner);
+  }
+}
+
+function absorb(g, loser, winner) {
+  const s = g.s, ln = nameOf(g, loser), wn = nameOf(g, winner);
+  const old = kingdomOf(g, loser);
+  if (old) {
+    if (old.capital === loser) {
+      const heirs = membersOf(g, old.id).filter((x) => x !== loser && !s.settlements[x].fallen).sort((x, y) => g.owned('colonists', y).length - g.owned('colonists', x).length || (x < y ? -1 : 1));
+      if (heirs.length) setCapital(g, old.id, heirs[0], `${ln} was conquered`);
+    }
+    leaveKingdom(g, loser, `conquered by ${wn}`, { force: true });
+  }
+  const k = kingdomOf(g, winner);
+  if (k) joinKingdom(g, loser, k.id, `conquered by ${wn}`);
+  else formKingdom(g, winner, loser, { conquered: true });
+  makePeace(g, winner, loser, `${ln} was conquered by ${wn}`);
+  changeRelation(g, winner, loser, 50, `${ln} is now under ${wn}'s crown`); // from the truce value to friendly
+  g.log(`${wn} has conquered ${ln}: it is now part of ${kingdomOf(g, winner) ? 'its kingdom' : 'its lands'}.`, 'warn');
+}
+
+function sack(g, loser, winner, C) {
+  const s = g.s, ln = nameOf(g, loser), wn = nameOf(g, winner);
+  const legs = [];
+  for (const it of g.reg.all('item').map((d) => d.id).sort()) {
+    const q = Math.floor(availableToTrade(g, loser, it) * C.tribute);
+    if (q > 0) legs.push({ from: loser, to: winner, item: it, qty: q, delivered: 0 });
+  }
+  makePeace(g, loser, winner, `${ln} was sacked by ${wn}`);
+  if (legs.length) {
+    const id = g.newId('tr');
+    s.trades ||= {};
+    g.tradeAdded();
+    s.trades[id] = { id, seller: loser, buyer: winner, legs, gift: true, tribute: true, relOnDone: 0, status: 'active', created: s.tick,
+      deadline: g.tradeDeadline ? g.tradeDeadline(loser, winner, s.tick + 6 * TICKS_PER_DAY) : s.tick + 6 * TICKS_PER_DAY, reason: `Tribute to ${wn}` };
+  }
+  g.log(`${wn} has sacked ${ln}${legs.length ? `: ${legs.length} kinds of goods go to ${wn} as tribute` : ''}.`, 'warn');
 }
 
 /** Wars in progress: hostile relations with an aggressor, both villages still standing with people. */

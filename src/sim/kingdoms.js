@@ -101,8 +101,8 @@ export function formKingdom(g, capitalSid, firstDaughterSid, opts = {}) {
   s.kingdoms ||= {};
   s.kingdoms[kid] = { id: kid, name, capital: capitalSid, color: cap.color || '#a0c0e0', founded: opts.at ?? s.tick };
   cap.kingdom = kid;
-  g.log(`${cap.name} founded ${nameOf(g, firstDaughterSid)} and becomes the capital of ${theKingdom(name)}.`, 'good');
-  if (firstDaughterSid && s.settlements[firstDaughterSid]) joinKingdom(g, firstDaughterSid, kid, `founded by ${cap.name}`, opts);
+  g.log(opts.conquered ? `${cap.name} becomes the capital of ${theKingdom(name)}, with ${nameOf(g, firstDaughterSid)} under its crown.` : `${cap.name} founded ${nameOf(g, firstDaughterSid)} and becomes the capital of ${theKingdom(name)}.`, 'good');
+  if (firstDaughterSid && s.settlements[firstDaughterSid]) joinKingdom(g, firstDaughterSid, kid, opts.conquered ? `conquered by ${cap.name}` : `founded by ${cap.name}`, opts);
   return kid;
 }
 

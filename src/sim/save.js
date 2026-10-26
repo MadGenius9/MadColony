@@ -348,7 +348,7 @@ function validateDiplomacy(s, ids, bad) {
     if (!isObj(r)) continue;
     const L = `relation "${cut(k)}"`;
     if (r.aggressor !== undefined && r.aggressor !== r.a && r.aggressor !== r.b) { bad(`${L} names an aggressor that is not one of its two settlements`); break; }
-    if ((r.touch !== undefined && (!isInt(r.touch) || r.touch > s.tick)) || (r.threat !== undefined && (!isInt(r.threat) || r.threat > s.tick)) || (r.warSince !== undefined && (!isInt(r.warSince) || r.warSince > s.tick))) { bad(`${L} has an invalid border, threat or war time`); break; } // formats 19-20
+    if ((r.touch !== undefined && (!isInt(r.touch) || r.touch > s.tick)) || (r.threat !== undefined && (!isInt(r.threat) || r.threat > s.tick)) || (r.warSince !== undefined && (!isInt(r.warSince) || r.warSince > s.tick)) || (r.beaten !== undefined && (!isObj(r.beaten) || (r.beaten.sid !== r.a && r.beaten.sid !== r.b) || !isInt(r.beaten.since) || r.beaten.since > s.tick))) { bad(`${L} has an invalid border, threat or war time`); break; } // formats 19-20
     if (r.joinedFor !== undefined && !ids.has(r.joinedFor)) { bad(`${L} defends an ally that does not exist`); break; }
     // Contact games (format 11, optional): how they first met, and the traders' visits.
     if (r.met !== undefined && (!isObj(r.met) || !isInt(r.met.tick) || r.met.tick < 0 || !isStr(r.met.reason, 500))) { bad(`${L} has an invalid first-contact record`); break; }

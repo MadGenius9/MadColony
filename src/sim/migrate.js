@@ -85,6 +85,9 @@ export const MIGRATIONS = {
   // 20 -> 21: fallen villages (Phase 5, slice 6a). `settlement.fallen` is optional: absent means the village
   // stands. An empty village from an older save falls at the next day start. Nothing to add.
   20() {},
+  // 21 -> 22: conquest (Phase 5, slice 6b). `relation.beaten` (who has had no fighters, since when) and the trade
+  // flag `tribute` are optional. Nothing to add.
+  21() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

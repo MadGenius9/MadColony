@@ -2,7 +2,7 @@
   "$comment": "Phase 1: more kinds of AI village and the 'Living world' scenario (many villages spread over a continent). The profiles differ in priorities, stock and trade habits only: every village uses the same rules and economy as the player.",
   "villageProfile": [
     {
-      "id": "core:lumber_camp", "temperament": 1.2, "name": "Lumber camp",
+      "id": "core:lumber_camp", "temperament": 1.2, "conquest": "sack", "name": "Lumber camp",
       "settlementNames": ["Pinecroft", "Oakmere", "Timberley", "Fernwick", "Larchholt", "Sprucedale"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} Woodland Realm", "Timber Crown of {capital}"],
       "color": "#8fb860", "colonists": 3,
@@ -13,7 +13,7 @@
       "laws": { "core:arms": "restricted", "default": "banned" }, "enforcement": 0.5
     },
     {
-      "id": "core:hill_fort", "temperament": 1.6, "name": "Hill fort",
+      "id": "core:hill_fort", "temperament": 1.6, "conquest": "sack", "name": "Hill fort",
       "settlementNames": ["Highwatch", "Stonegard", "Ravenhold", "Brackenmoor", "Kestrel Tor", "Dunmere"],
       "kingdomNames": ["Kingdom of {capital}", "March of {capital}", "Iron Crown of {capital}"],
       "color": "#d08a6a", "colonists": 4,
