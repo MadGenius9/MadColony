@@ -72,6 +72,9 @@ export const MIGRATIONS = {
   // 16 -> 17: contagious illness (Phase 5, slice 3). The sickness fields on injuries, `colonist.immune` and
   // `s.stats.illness` are optional: absent means nobody fell ill. Nothing to add.
   16() {},
+  // 17 -> 18: lasting injuries and surgery (Phase 5, slice 4). `colonist.lasting` and the injury flags `deep` and
+  // `mended` are optional; wounds from older saves are not deep (they leave no lasting injury). Nothing to add.
+  17() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

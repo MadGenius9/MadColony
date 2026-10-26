@@ -20,10 +20,53 @@ export const MED = {
   infectionGrowth: 1.2, // severity per hour while untreated
   treatedHeal: 1.6, // dressed wounds and treated infections heal this much faster
   treatTicks: 60, // work per treatment
+  // Phase 5 slice 4: lasting injuries. A wound of at least scarAt severity is deep; if it heals without surgery it
+  // leaves a lasting injury (LASTING, picked by hash). Surgery: dressing a deep wound while the patient lies in a
+  // medical bed; it mends the wound with chance surgeryBase + surgeryPerSkill x the doctor's Medicine skill.
+  scarAt: 30, surgeryBase: 0.45, surgeryPerSkill: 0.07,
 };
+
+/** Lasting injuries and the work they slow (multipliers by work type; others unchanged). */
+export const LASTING = [
+  { kind: 'lame_leg', name: 'Lame leg', work: { 'core:construct': 0.85, 'core:haul': 0.8, 'core:farm': 0.9, 'core:chop': 0.9, 'core:mine': 0.9, 'core:forage': 0.85 } },
+  { kind: 'bad_hand', name: 'Crippled hand', work: { 'core:craft': 0.8, 'core:construct': 0.85, 'core:cook': 0.9, 'core:doctor': 0.85, 'core:chop': 0.9 } },
+];
+const hashKey = (str) => {
+  let h = 2166136261;
+  for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+  return h >>> 0;
+};
+
+/** health.js tickHealth: a deep wound healed without surgery leaves a lasting injury (c.lasting, save format 18). */
+export function scarFrom(g, c, inj) {
+  if (!inj.deep || inj.mended) return null;
+  const L = LASTING[hashKey(`${g.s.seed}:lasting:${inj.id}`) % LASTING.length];
+  c.lasting ||= [];
+  if (c.lasting.some((x) => x.kind === L.kind)) return null;
+  const rec = { kind: L.kind, since: g.s.tick, cause: String(inj.cause || '').slice(0, 80) };
+  c.lasting.push(rec);
+  g.log(`${c.name}'s wound healed badly: ${L.name.toLowerCase()} (${String(inj.cause || 'a wound').toLowerCase()}).`, 'warn');
+  return rec;
+}
+
+/** Work speed with lasting injuries (jobs.js workSpeed). O(lasting injuries); 1 without any. */
+export function lastingFactor(c, workType) {
+  if (!c.lasting?.length || !workType) return 1;
+  let f = 1;
+  for (const x of c.lasting) { const L = LASTING.find((l) => l.kind === x.kind); if (L?.work[workType]) f *= L.work[workType]; }
+  return f;
+}
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 const medTag = (g, item) => g.reg.get('item', item)?.tags || [];
+
+/** A doctor operates on a deep wound of a patient in a medical bed: mended (no lasting injury) by chance from skill. */
+export function surgery(g, c, p, inj) {
+  const chance = Math.min(0.95, MED.surgeryBase + MED.surgeryPerSkill * (c.skills?.['core:medicine'] || 0));
+  inj.mended = hashKey(`${g.s.seed}:surgery:${inj.id}`) / 4294967296 < chance;
+  g.log(inj.mended ? `${c.name} operated on ${p.name}: the wound will heal clean.` : `${c.name} operated on ${p.name}, but could not save the ${String(inj.cause || 'wound').toLowerCase()} from leaving a mark.`, inj.mended ? 'good' : 'warn');
+}
 
 /** What a colonist needs from a doctor right now: [{ inj, need: 'bandage'|'medicine' }]. */
 export function treatmentNeeds(g, c) {
@@ -227,6 +270,7 @@ export const MEDICAL_DRIVERS = {
         g.consume(c.carry.item, 1, 'treatment');
         c.carry = c.carry.qty > 1 ? { ...c.carry, qty: c.carry.qty - 1 } : null;
         inj.treated = true;
+        if (inj.deep && !inj.mended && p.medBedId) surgery(g, c, p, inj); // in a medical bed: surgery (slice 4)
         p.health.tendedUntil = Math.max(p.health.tendedUntil || 0, g.s.tick + HEALTH.tendHours * TICKS_PER_HOUR);
         g.log(inj.kind === 'sickness' ? `${c.name} treated ${p.name} for ${String(inj.cause).toLowerCase()}.` : `${c.name} ${j.treatNeed === 'medicine' ? 'treated the infection of' : 'dressed the wound of'} ${p.name}.`, 'good');
       } else {

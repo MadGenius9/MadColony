@@ -520,6 +520,9 @@ questions were not answered, so the note's proposals are the working defaults).
   outbreaks, spread at home and in the village, along deliveries, caravans and traders, medicine slows it,
   immunity; deaths through the slice 1a rules. Save format 17. Vast seed 7, 100 days: 9 outbreaks, 48 cases, 8
   between villages. Classic runs unchanged. Results: design note, "Slice 3".
+- **Done:** slice 4, lasting injuries and surgery: deep wounds (≥ 30%) healed without surgery leave a lame leg or
+  a crippled hand (slower work of some kinds); surgery in a medical bed mends them by skill. Save format 18.
+  Classic runs unchanged. Results: design note, "Slice 4".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

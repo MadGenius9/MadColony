@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2 and 3 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2, 3 and 4 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -291,4 +291,17 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
   illness; 0 conservation errors.
 - **Not changed:** classic runs (same state hashes); 72 tests pass (10 in `tests/cloud-illness.test.js`).
 - **Open:** grey fever's real effect waits for the long runs (slice 7); whether care makes it too survivable.
+
+### Slice 4: lasting injuries and surgery
+- **Built** (`medical.js`): `MED.scarAt` 30 (wounds and work injuries at or above it are `deep`, set in
+  `injure`), `LASTING` (lame leg, crippled hand: work multipliers by work type), `scarFrom` (a healed deep wound
+  without `mended` adds `colonist.lasting`, picked by hash, once per kind), `lastingFactor` in `workSpeed`,
+  `surgery` (the treat job dressing a deep wound while the patient is in a medical bed: mended with chance
+  0.45 + 0.07 × Medicine skill, max 0.95, hash draw). Save format 18.
+- **Deviations:** surgery needs only the bandage the dressing already uses (no medicine); the planner does not
+  build a hospital ward for it on purpose (the existing clinic planning applies); distant villages never operate.
+  The numbers are in `MED` (code), like the other medical numbers.
+- **Not changed:** classic runs (work accidents stay below 30%; no fights in the pinned runs). 77 tests pass (5 in
+  `tests/cloud-lasting.test.js`).
+- **Open:** walking speed is not slowed by a lame leg (only work); lasting injuries never heal.
 

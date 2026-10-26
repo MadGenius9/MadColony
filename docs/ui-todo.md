@@ -53,3 +53,10 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **World view (optional):** a faint sickly tint on villages with contagious people, so spread along trade routes
   can be watched.
 
+## Phase 5, slice 4: lasting injuries and surgery
+- **Inspector / hover card:** "Lame leg (since day N, from <cause>)" lines from `c.lasting` (names in medical.js
+  `LASTING`), and the work they slow (`LASTING[].work`).
+- **Injury lines:** mark deep wounds ("deep: may leave a lasting injury unless operated on") from `inj.deep`;
+  "operated on" when `inj.mended`.
+- **Log:** "X operated on Y…" and "Y's wound healed badly: …" (good / warn).
+

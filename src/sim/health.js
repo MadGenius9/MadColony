@@ -5,7 +5,7 @@
 // HEALTH.restBelow, and collapse at HEALTH.downAt until they recover to HEALTH.upAt. Others tend them:
 // bring food if they are hungry and dress their wounds (faster healing for a while).
 // At 0% health for HEALTH.deathAfterHours a colonist dies (death.js, Phase 5). Everything here is saved on the colonist.
-import { tickInfection, healFactor, bedFactor } from './medical.js';
+import { tickInfection, healFactor, bedFactor, scarFrom, MED } from './medical.js';
 import { TICKS_PER_HOUR } from './constants.js';
 import { coldUnder, lifeRules } from './life.js';
 import { tickSickness } from './illness.js';
@@ -39,6 +39,7 @@ export function injure(g, c, kind, severity, cause, ongoing = false) {
   if (inj) inj.severity = Math.min(100, inj.severity + severity);
   else {
     inj = { id: g.newId('inj'), kind, severity: Math.min(100, Math.round(severity * 10) / 10), cause, tick: g.s.tick };
+    if (MED.woundKinds.includes(kind) && inj.severity >= MED.scarAt) inj.deep = true; // may leave a lasting injury (medical.js)
     list.push(inj);
     g.log(`${c.name}: ${cause} (${Math.round(inj.severity)}% injury).`, 'warn');
   }
@@ -95,6 +96,7 @@ export function tickHealth(g, c, force = false) {
   }
   const healed = c.health.injuries.filter((i) => i.severity <= 0);
   for (const i of healed) if (i.kind === 'infection') g.log(`${c.name}'s infection has cleared up.`, 'info', `healed:${i.id}`, 1);
+  for (const i of healed) if (i.deep) scarFrom(g, c, i); // a deep wound healed without surgery (medical.js)
   for (const i of healed) if (i.kind === 'injury') g.log(`${c.name} has recovered (${i.cause.toLowerCase()}).`, 'info', `healed:${i.id}`, 1);
   c.health.injuries = c.health.injuries.filter((i) => i.severity > 0);
   checkDown(g, c);
