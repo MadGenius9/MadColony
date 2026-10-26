@@ -8,6 +8,7 @@
 import { tickInfection, healFactor, bedFactor } from './medical.js';
 import { TICKS_PER_HOUR } from './constants.js';
 import { coldUnder, lifeRules } from './life.js';
+import { tickSickness } from './illness.js';
 
 export const HEALTH = {
   restBelow: 60, // rest in bed below this
@@ -78,6 +79,7 @@ export function tickHealth(g, c, force = false) {
   if (c.grief && c.grief.until <= g.s.tick) delete c.grief; // mourning is over (burial.js)
   if (!c.health?.injuries?.length) return;
   tickInfection(g, c, frac);
+  tickSickness(g, c, frac); // contagious illness runs its course (illness.js)
   const inBed = (c.sleeping && c.job?.bedId) || (c.health.down && c.medBedId);
   let rate = inBed ? HEALTH.healBed : (c.sleeping || c.health.down) ? HEALTH.healGround : HEALTH.healAwake;
   if ((c.health.tendedUntil || 0) > g.s.tick) rate *= HEALTH.tendedFactor;
@@ -88,6 +90,7 @@ export function tickHealth(g, c, force = false) {
     if (i.kind === 'exhaustion' && !rested) continue;
     if (i.kind === 'dehydration' && !watered) continue; // only water cures thirst
     if (i.kind === 'hypothermia' && cold > 0) continue; // only warmth cures the cold
+    if (i.kind === 'sickness' && !i.over) continue; // an illness grows until its course is over (illness.js)
     i.severity = Math.max(0, Math.round((i.severity - rate * healFactor(i, g, c) * frac) * 100) / 100);
   }
   const healed = c.health.injuries.filter((i) => i.severity <= 0);

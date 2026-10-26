@@ -45,6 +45,7 @@
 // round it (a summed-area table per launch, O(chunks)); with pruneTradesDays, finished trades and stale log keys
 // are pruned daily (pruneTrades, pruneLogKeys; O(trades + caravans + colonists) and O(keys) once a day).
 import { CHUNK, TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
+import { spreadContact } from './illness.js';
 import { makeContact, changeRelation, relationOf, relationPeek, relationStatus, legRemaining } from './villages.js';
 import { octile } from './util.js';
 import { detailOf, sendFarCaravans, caravanTicks, caravanReach } from './lod.js';
@@ -370,6 +371,7 @@ function traderStep(g, t, R) {
       if (R.relation && relationStatus({ contact: true, value }) !== before) changeRelation(g, t.from, t.to, R.relation, `Traders from ${a} visited`);
       else rel.value = value;
       rel.visits = { n: (rel.visits?.n || 0) + 1, last: s.tick, from: t.from };
+      spreadContact(g, t.from, t.to, `traders from ${a}`); // illness may travel with them (illness.js)
       const P = s.playerSettlement;
       if (t.from === P || t.to === P) g.log(`Traders from ${a} visited ${nameOf(g, t.to)}.`, 'trade', `traders:${t.from}:${t.to}`, TICKS_PER_DAY);
     }

@@ -2,6 +2,7 @@
 // Drivers return 'running', 'done', or { fail: reason, cooldown? }.
 import { qualSpeed } from '../education.js';
 import { elderFactor } from '../life.js';
+import { spreadContact } from '../illness.js';
 import { relationPeek } from '../villages.js';
 import { sleepWarmth, refuelSpot } from '../heat.js';
 import { fuelSpec } from '../power.js';
@@ -593,6 +594,7 @@ export const DRIVERS = {
       c.carry = null;
       c.status.action = 'Delivered ' + qty + ' ' + itemName;
       deliverLeg(g, t, j.leg, item, qty, c.x, c.y, dur); // ownership passes to the receiving settlement here
+      spreadContact(g, c.settlementId || g.s.playerSettlement, j.to, '', c); // the carrier met the buyers (illness.js)
       return 'done';
     },
   },

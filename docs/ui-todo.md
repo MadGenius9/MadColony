@@ -42,3 +42,14 @@ where, and which sim function or state field provides it. The UI is built at hom
   for warmer weather").
 - **Death letters:** causes "froze to death" and "died of old age" come through the `death` log category as before.
 
+## Phase 5, slice 3: contagious illness (Vast and Living worlds)
+- **Hover card / inspector:** the illness as an injury line: name (`inj.cause`, e.g. "Grey fever"), severity,
+  "ill until day N" from `inj.until`, "treated" when `inj.treated`; "Immune to X until day N" from `c.immune`.
+- **Portrait bar:** a sickness dot while `sicknessOf(c)` (illness.js).
+- **Letters:** "X broke out in V" (warn) is important when V is the player's village; "A fell ill with x (how)."
+  routine, grouped. Click: the village / colonist.
+- **Village card / World tab:** "Ill now: N (illness)" from the village's colonists; `g.s.stats.illness`
+  (cases, outbreaks) in the World tab.
+- **World view (optional):** a faint sickly tint on villages with contagious people, so spread along trade routes
+  can be watched.
+

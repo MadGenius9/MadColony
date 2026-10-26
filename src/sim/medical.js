@@ -30,7 +30,7 @@ export function treatmentNeeds(g, c) {
   const out = [];
   for (const i of c.health?.injuries || []) {
     if (i.treated) continue;
-    if (i.kind === 'infection') out.push({ inj: i, need: 'medicine' });
+    if (i.kind === 'infection' || (i.kind === 'sickness' && !i.over)) out.push({ inj: i, need: 'medicine' }); // illness: illness.js
     else if (MED.woundKinds.includes(i.kind) && i.severity >= MED.minSeverity) out.push({ inj: i, need: 'bandage' });
   }
   return out;
@@ -228,7 +228,7 @@ export const MEDICAL_DRIVERS = {
         c.carry = c.carry.qty > 1 ? { ...c.carry, qty: c.carry.qty - 1 } : null;
         inj.treated = true;
         p.health.tendedUntil = Math.max(p.health.tendedUntil || 0, g.s.tick + HEALTH.tendHours * TICKS_PER_HOUR);
-        g.log(`${c.name} ${j.treatNeed === 'medicine' ? 'treated the infection of' : 'dressed the wound of'} ${p.name}.`, 'good');
+        g.log(inj.kind === 'sickness' ? `${c.name} treated ${p.name} for ${String(inj.cause).toLowerCase()}.` : `${c.name} ${j.treatNeed === 'medicine' ? 'treated the infection of' : 'dressed the wound of'} ${p.name}.`, 'good');
       } else {
         inj.cleaned = true;
         g.log(`${c.name} cleaned ${p.name}'s wound (no bandages: first aid only).`, 'warn', `firstaid:${p.id}`, 600);

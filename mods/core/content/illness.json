@@ -1,0 +1,35 @@
+{
+  "$comment": "Phase 5, slice 3: contagious illnesses (src/sim/illness.js). Severity grows by growPerHour for `days` (treatedGrowth of that once treated with medicine); immunity afterwards. Scenarios turn outbreaks on with their `illness` block.",
+  "illness": [
+    {
+      "id": "core:cough",
+      "name": "Barking cough",
+      "contagion": 0.3,
+      "travel": 0.3,
+      "growPerHour": 0.3,
+      "days": 3,
+      "immunityDays": 20,
+      "treatedGrowth": 0.3
+    },
+    {
+      "id": "core:fever",
+      "name": "Marsh fever",
+      "contagion": 0.22,
+      "travel": 0.25,
+      "growPerHour": 0.55,
+      "days": 4,
+      "immunityDays": 40,
+      "treatedGrowth": 0.3
+    },
+    {
+      "id": "core:grey_fever",
+      "name": "Grey fever",
+      "contagion": 0.25,
+      "travel": 0.4,
+      "growPerHour": 1.1,
+      "days": 4,
+      "immunityDays": 90,
+      "treatedGrowth": 0.35
+    }
+  ]
+}

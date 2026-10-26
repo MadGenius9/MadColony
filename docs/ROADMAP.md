@@ -516,6 +516,10 @@ questions were not answered, so the note's proposals are the working defaults).
   finished home shelters); founding waits for warmer weather; elders from 50 work at 80%, old-age deaths from 60.
   Vast seed 7, 100 days: 25 → 119 people, 2 deaths of old age, none from cold. Classic runs unchanged. Results:
   design note, "Slice 2".
+- **Done:** slice 3, contagious illness (content type `illness`, scenario `illness` block, Vast and Living worlds):
+  outbreaks, spread at home and in the village, along deliveries, caravans and traders, medicine slows it,
+  immunity; deaths through the slice 1a rules. Save format 17. Vast seed 7, 100 days: 9 outbreaks, 48 cases, 8
+  between villages. Classic runs unchanged. Results: design note, "Slice 3".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

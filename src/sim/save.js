@@ -100,6 +100,7 @@ export function validateSave(save) {
   if (s.god !== undefined) validateGod(s, bad);
   if (s.dead !== undefined) validateDead(s, bad); // format 15
   if (s.bodies !== undefined) validateBodies(s, bad, inB); // format 16
+  if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
   const ent = (coll, label, extra) => {
@@ -146,6 +147,8 @@ export function validateSave(save) {
     if (e.carriedBy !== undefined && e.carriedBy !== null && !isStr(e.carriedBy, 64)) bad(`colonist "${k}" has an invalid carrier`);
     if (e.ammo !== undefined && e.ammo !== null && (!isObj(e.ammo) || !isStr(e.ammo.item, 100) || !isInt(e.ammo.qty) || e.ammo.qty < 1)) bad(`colonist "${k}" has invalid ammunition`);
     if (e.health !== undefined && (!isObj(e.health) || !Array.isArray(e.health.injuries) || e.health.injuries.some((i) => !isObj(i) || !isStr(i.kind, 40) || !isNum(i.severity) || i.severity < 0 || i.severity > 100))) bad(`colonist "${k}" has invalid health`);
+    if (isObj(e.health) && Array.isArray(e.health.injuries) && e.health.injuries.some((i) => isObj(i) && i.kind === 'sickness' && (!isStr(i.illness, 64) || !isInt(i.until) || (i.over !== undefined && typeof i.over !== 'boolean')))) bad(`colonist "${k}" has an invalid illness`); // format 17
+    if (e.immune !== undefined && (!isObj(e.immune) || Object.entries(e.immune).some(([id, t]) => !SAFE_ID.test(id) || !isInt(t)))) bad(`colonist "${k}" has invalid immunity`); // format 17
     if (e.grief !== undefined && (!isObj(e.grief) || !isInt(e.grief.until) || !isStr(e.grief.for, 80) || !isNum(e.grief.work) || !(e.grief.work > 0 && e.grief.work <= 1))) bad(`colonist "${k}" has invalid grief`); // format 16
     if (isObj(e.health) && e.health.zeroSince !== undefined && (!isInt(e.health.zeroSince) || e.health.zeroSince > s.tick)) bad(`colonist "${k}" has an invalid time at 0% health`); // format 15
   });

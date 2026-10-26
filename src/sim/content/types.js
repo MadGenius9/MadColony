@@ -390,6 +390,13 @@ export const CONTENT_TYPES = {
       // perHour severity an hour per degree under it. aging: elders (from elderAge years) work at elderWork speed;
       // from deathAge a daily chance of death (perYear a year, perYearStep more per year past it); startAges [lo, hi]
       // for new adults of unknown age.
+      // Phase 5 slice 3 (illness.js): outbreaks (a daily chance per village with nobody ill, raised by `crowding` x the
+      // share of people without a bed; none before graceDays), the illnesses by weight, and the share of the contagion
+      // that reaches people of the village who do not share the sick person's home.
+      illness: obj({
+        outbreakPerDay: req(num(0, 1)), crowding: num(0, 100), graceDays: num(0, 1000), villageShare: num(0, 1),
+        kinds: req(arr(obj({ illness: req(ref('illness')), weight: req(num(0, 1000)) }), { minItems: 1 })),
+      }),
       life: obj({
         cold: obj({ below: req(num(-60, 30)), perHour: req(num(0.01, 50)), shelter: num(0, 40), fires: arr(ref('building')), fireRadius: int(0, 50), foundWaitDays: num(0, 30) }),
         aging: obj({
@@ -578,6 +585,14 @@ export const CONTENT_TYPES = {
   namePool: {
     doc: 'Colonist names.',
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
+  },
+  illness: {
+    doc: 'A contagious illness (illness.js, Phase 5). While ill (days), its severity grows by growPerHour (treatedGrowth of that once a doctor treats it with medicine); then it heals and the person is immune for immunityDays. contagion: daily chance to pass it to each person sharing a home (scenario villageShare of it for the rest of the village); travel: chance to pass along a contact between villages (a delivery, caravan or traders).',
+    schema: obj({
+      id, name,
+      contagion: req(num(0, 1)), travel: req(num(0, 1)),
+      growPerHour: req(num(0, 50)), days: req(num(0.1, 100)), immunityDays: req(num(0, 10000)), treatedGrowth: req(num(0, 1)),
+    }),
   },
   godRules: {
     doc: 'The numbers behind the god powers (god.js, Phase 2c): favour (start, max, regeneration perDay), the cost of each power (costs.settler is per settler; omen is the harmless test power, default 0), blessing length and multipliers, the inspire fraction, and the spawn limits and supplies. A scenario picks one with its optional `god` id; otherwise core:god applies. In a Sandbox game every power is free.',

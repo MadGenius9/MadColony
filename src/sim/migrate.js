@@ -69,6 +69,9 @@ export const MIGRATIONS = {
   // graveyard (`settlement.graveyard`) and grief (`colonist.grief`) are optional. A format-15 save with the dead
   // has no bodies: they count as laid to rest. Nothing to add.
   15() {},
+  // 16 -> 17: contagious illness (Phase 5, slice 3). The sickness fields on injuries, `colonist.immune` and
+  // `s.stats.illness` are optional: absent means nobody fell ill. Nothing to add.
+  16() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

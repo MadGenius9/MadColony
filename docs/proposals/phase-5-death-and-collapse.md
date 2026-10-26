@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b and 2 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2 and 3 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -273,4 +273,22 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
 - **Not changed:** classic 40-day and seed 4242 Modern (no `life` block): same state hashes. 62 tests pass (7 in
   `tests/cloud-life.test.js`, run on the classic world with the rules added to its data).
 - **Open:** cold and age numbers are first values; balance over 100 and 300 days is slice 7. No winter clothing.
+
+### Slice 3: contagious illness
+- **Built:** `src/sim/illness.js`; content type `illness` (contagion, travel, growPerHour, days, immunityDays,
+  treatedGrowth) with three illnesses in `mods/core/content/illness.json` (cough, marsh fever, grey fever); the
+  scenario block `illness { outbreakPerDay: 0.01, crowding: 3, graceDays: 10, villageShare: 0.3, kinds by weight
+  6/3/1 }` in the Vast and Living worlds. An illness is an injury of kind `sickness` with `{ illness, until,
+  over }`; `tickSickness` in `tickHealth`; daily `tickIllness` (outbreaks, spread within villages);
+  `spreadContact` at hand deliveries (`jobs.js`), caravan arrivals (`lod.js`) and trader visits (`contact.js`);
+  doctors treat it with medicine (`treatmentNeeds`); death text "died of grey fever". Save format 17.
+- **Deviations:** no incubation (contagious at once); war clashes do not spread illness yet (slice 5); distant
+  villages get no treatment (no doctors walk there); outbreaks are not seasonal; bad water and hunger do not raise
+  the outbreak chance (only crowding). Illness severity is rounded to 4 decimals (2 gave an upward drift).
+- **Measured** (Vast seed 7, 100 days, after raising contagion and travel from the first values, which gave 22
+  cases and almost no spread): 9 outbreaks, 48 cases: 31 at home or in the village, 2 by traders, 2 by caravan, 4
+  caught on a visit back; cough 33, marsh fever 15; grey fever did not break out (weight 1 of 10); no deaths from
+  illness; 0 conservation errors.
+- **Not changed:** classic runs (same state hashes); 72 tests pass (10 in `tests/cloud-illness.test.js`).
+- **Open:** grey fever's real effect waits for the long runs (slice 7); whether care makes it too survivable.
 

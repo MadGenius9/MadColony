@@ -81,7 +81,7 @@ export function killColonist(g, c, kind = null, opts = {}) {
   const s = g.s, sid = c.settlementId || s.playerSettlement;
   const worst = worstInjury(c);
   const cause = kind || worst?.kind || 'injury';
-  const text = causeText(cause);
+  const text = cause === 'sickness' && worst?.cause ? `died of ${String(worst.cause).toLowerCase()}`.slice(0, 80) : causeText(cause);
   // Others' jobs about the dead end first (their reservations on the patient are released with them).
   if (opts.others !== false) endJobsAbout(g, new Set([c.id]));
   if (c.job) endJob(g, c, null, 'Died');

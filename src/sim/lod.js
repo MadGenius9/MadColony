@@ -23,6 +23,7 @@ import { GROUND_REST_RATE } from './ai/needs.js';
 import { tickHealth, isDown } from './health.js';
 import { isAdult, mayDoWork, needsCare } from './people.js';
 import { isEnemy, orderOf } from './combat.js';
+import { spreadContact } from './illness.js';
 import { completeStructure, completeRenovation, materialsComplete, partEligible, workOrderOf } from './construction.js';
 import { completeTech, settlementOf } from './research.js';
 import { legRemaining, deliverLeg } from './villages.js';
@@ -770,6 +771,7 @@ function tickCaravans(g) {
     const t = s.trades?.[cv.trade];
     if (t && t.status === 'active' && t.legs[cv.leg]) {
       deliverLeg(g, t, cv.leg, cv.item, cv.qty, cv.tx, cv.ty, cv.dur, true);
+      spreadContact(g, cv.from, cv.to, `a caravan from ${nameOf(g, cv.from)}`); // illness may travel with it (illness.js)
       g.log(`A caravan from ${nameOf(g, cv.from)} delivered ${cv.qty} ${g.reg.get('item', cv.item)?.name || cv.item} to ${nameOf(g, cv.to)}.`, 'trade', `caravanin:${cv.trade}:${cv.leg}`, 600);
     } else {
       // The deal is off: the goods go back home (still the seller's).
