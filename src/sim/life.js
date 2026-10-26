@@ -74,9 +74,11 @@ export function coldWait(g) {
 }
 
 /** Age in game years of an adult with a known age, else null. */
+const yearDaysOf = (g) => (g._yearDays ??= climateOf(g).yearDays || 30); // derived, per game (the world's climate)
+
 export function ageYears(g, c) {
   if (c.ageYears === undefined || c.ageYears === null) return null;
-  const yearDays = climateOf(g).yearDays || 30;
+  const yearDays = yearDaysOf(g);
   return c.ageYears + Math.max(0, g.s.tick - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY);
 }
 
@@ -100,7 +102,7 @@ export function startAge(g, id) {
 export function tickAging(g) {
   const A = lifeRules(g)?.aging;
   if (!A) return;
-  const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY), yearDays = climateOf(g).yearDays || 30;
+  const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY), yearDays = yearDaysOf(g);
   for (const id of Object.keys(s.colonists).sort()) {
     const y = ageYears(g, s.colonists[id]);
     if (y === null || y < A.deathAge) continue;
