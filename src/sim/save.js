@@ -271,6 +271,8 @@ function validateSettlements(s, format, bad, inB) {
   const numMap = (o) => isObj(o) && Object.values(o).every((v) => isNum(v));
   for (const [k, st] of Object.entries(s.settlements)) {
     const L = `settlement "${String(k).slice(0, 40)}"`;
+    if (st?.fallen !== undefined && (!isObj(st.fallen) || !isInt(st.fallen.tick) || st.fallen.tick > s.tick || !isStr(st.fallen.cause, 120) || !['ruin', 'absorbed', 'sacked'].includes(st.fallen.fate)
+      || (st.fallen.by !== undefined && !ids.has(st.fallen.by)) || (st.fallen.released !== undefined && (!isInt(st.fallen.released) || st.fallen.released > s.tick)))) bad(`${L} has an invalid fallen record`); // format 21
     if (st?.graveyard !== undefined && (!isObj(st.graveyard) || !isInt(st.graveyard.x) || !isInt(st.graveyard.y) || !inB(st.graveyard.x, st.graveyard.y))) bad(`${L} has an invalid graveyard`); // format 16
     if (!isObj(st)) { bad(`${L} is not an object`); continue; }
     if (st.id !== k || !SAFE_ID.test(k)) bad(`${L} has a mismatched or invalid id`);

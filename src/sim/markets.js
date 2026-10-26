@@ -91,7 +91,7 @@ function landMemo(g) {
 export function marketReach(g, marketSid) {
   const { reach, landReach } = marketRules(g);
   if (!centerOf(g, marketSid)) return [];
-  return Object.keys(g.s.settlements || {}).sort(byStr).filter((sid) => inReach(g, marketSid, sid, reach, landReach));
+  return Object.keys(g.s.settlements || {}).sort(byStr).filter((sid) => !g.s.settlements[sid].fallen && inReach(g, marketSid, sid, reach, landReach)); // not ruins (fallen.js)
 }
 
 /** The market serving both `a` and `b`: of the markets whose reach holds both, the nearest to `a` (centre
@@ -217,7 +217,7 @@ export function updateMarkets(g) {
   s.markets ||= {};
   // Every market's reach (marketReach), with the settlement ids sorted once and each village's landmass
   // looked up once: the same lists.
-  const ids = Object.keys(s.settlements || {}).sort(byStr), landOf = landMemo(g), { reach, landReach } = rules;
+  const ids = Object.keys(s.settlements || {}).sort(byStr).filter((sid) => !s.settlements[sid].fallen), landOf = landMemo(g), { reach, landReach } = rules; // not ruins (fallen.js)
   const reachOfM = (m) => (centerOf(g, m) ? ids.filter((sid) => inReach(g, m, sid, reach, landReach, landOf)) : []);
   for (const m of list) {
     const { supply, demand } = supplyDemand(g, reachOfM(m));

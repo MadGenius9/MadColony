@@ -109,6 +109,7 @@ export function runPlanner(g, dueOnly = false) {
     else if (all) due = true;
     else if (sid === player) due = s.tick % PLAN_INTERVAL === 0 || dirty;
     else due = s.tick % PLAN_INTERVAL === planOffset(sid, PLAN_INTERVAL);
+    if (s.settlements?.[sid]?.fallen) { plans[sid] = prev[sid] || emptyPlan(); later?.delete(sid); continue; } // a ruin plans nothing (fallen.js)
     if (due) { plans[sid] = planSettlement(g, sid); later?.delete(sid); }
     else if (!dueOnly && prev[sid]) plans[sid] = prev[sid];
   }

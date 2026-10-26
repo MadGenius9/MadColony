@@ -217,6 +217,29 @@ function rebuildOne(g, k) {
   relax(g, k, c0);
 }
 
+/** Phase 5 (fallen.js): a ruined village's land is released: its tiles become unclaimed (the tiles of its ruined
+ *  buildings and stockpile stay out of others' reach: usedByOther), and every frontier is rebuilt so neighbours can
+ *  grow into the freed land. O(its bounding box) plus a full rebuild (rare: once per ruin). */
+export function releaseClaims(g, sid) {
+  const C = g._cl;
+  if (!C) return 0;
+  ensureFrontier(g);
+  const k = C.index.get(sid);
+  if (k === undefined) return 0;
+  const f = C.fr[k], grid = C.grid, W = g.W;
+  let n = 0;
+  for (let y = f.y0; y <= f.y1; y++) for (let x = f.x0; x <= f.x1; x++) if (grid[y * W + x] === k) { grid[y * W + x] = NONE; n++; }
+  if (n) {
+    C.rev++; C.T.sig = 'claims:' + C.rev; C.T.rev = C.rev;
+    C.changes.push({ rev: C.rev, x0: f.x0, y0: f.y0, x1: f.x1, y1: f.y1 });
+    if (C.changes.length > DIRTY_KEEP) C.changes.shift();
+    C.info = null;
+  }
+  C.fr = null; // every frontier is rebuilt from the grid (ensureFrontier)
+  ensureFrontier(g);
+  return n;
+}
+
 function ensureFrontier(g) {
   const C = g._cl;
   if (!C.fr || C.mapRev !== (g.s.map.rev || 0)) rebuild(g);
@@ -264,7 +287,7 @@ export function growClaims(g, only = null, take = -1) {
   ensureFrontier(g);
   const ids = g.s.claims.ids, grid = C.grid, dist = C.dist, cost = costTable(g), ts = g._ts.idx;
   const pops = people(g);
-  const budget = ids.map((sid) => (only === null || sid === only) && g.s.settlements[sid] ? Math.floor(10 * claimRadius(g, sid, pops.get(sid) || 0)) : -1);
+  const budget = ids.map((sid) => (only === null || sid === only) && g.s.settlements[sid] && !g.s.settlements[sid].fallen ? Math.floor(10 * claimRadius(g, sid, pops.get(sid) || 0)) : -1); // fallen villages do not grow (fallen.js)
   const grew = ids.map(() => 0);
   // Tiles that waited (another village used them) are looked at again, at their current distance.
   for (let k = 0; k < ids.length; k++) {

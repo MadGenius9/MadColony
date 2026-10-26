@@ -82,6 +82,9 @@ export const MIGRATIONS = {
   // 19 -> 20: AI wars (Phase 5, slice 5b). `relation.warSince` is optional: a war from an older save has no start
   // time, so it ends only when one side is losing. Nothing to add.
   19() {},
+  // 20 -> 21: fallen villages (Phase 5, slice 6a). `settlement.fallen` is optional: absent means the village
+  // stands. An empty village from an older save falls at the next day start. Nothing to add.
+  20() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

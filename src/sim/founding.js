@@ -39,6 +39,7 @@ import { kingdomForDaughter } from './kingdoms.js';
 import { claimsFreeFor, claimRadius } from './territory.js';
 import { isDiscovered } from './contact.js';
 import { coldWait } from './life.js';
+import { livingCount } from './fallen.js';
 
 export const FOUNDING_DEFAULTS = Object.freeze({
   maxVillages: 30, minAdults: 6, crowdedDays: 3, foodDaysLeft: 5, cooldownDays: 20, founders: Object.freeze([3, 5]),
@@ -164,7 +165,7 @@ export function canFound(g, sid, counts = null) {
   if (!st) { res.problems.push('There is no such village.'); res.reason = res.problems[0]; return res; }
   counts ||= headCounts(g);
   const s = g.s, name = nameOf(g, sid), P = res.problems;
-  const nVillages = Object.keys(s.settlements).length;
+  const nVillages = livingCount(g); // ruins do not count (fallen.js)
   if (nVillages >= R.maxVillages) P.push(`The world already has ${nVillages} villages (the most is ${R.maxVillages}).`);
   if (g.policyFor(sid).allowEmigration === false) P.push(sid === s.playerSettlement ? 'Your policy keeps settlers at home.' : `${name}'s policy keeps settlers at home.`);
   const crowd = res.crowd = crowdedness(g, sid, counts);
@@ -659,7 +660,7 @@ function budgetedFounding(g, R, counts, ids) {
     .sort((a, b) => s.settlements[a].crowdedSince - s.settlements[b].crowdedSince || (a < b ? -1 : a > b ? 1 : 0));
   let made = 0, looked = 0;
   for (const sid of order) {
-    if (made >= perDay || looked >= searches || Object.keys(s.settlements).length >= R.maxVillages) return;
+    if (made >= perDay || looked >= searches || livingCount(g) >= R.maxVillages) return;
     let ev = canFound(g, sid, counts);
     if (!ev.ok && !g.plans?.[sid] && g.replanLater?.has(sid) && ev.problems.length === 1 && ev.n !== undefined) { g.ensurePlan(sid); ev = canFound(g, sid, counts); }
     if (!ev.ok) continue;

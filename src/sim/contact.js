@@ -341,7 +341,7 @@ function launchTraders(g, sid, v, R) {
   v.nextTrade = s.tick + every;
   const met = [];
   for (const o of Object.keys(s.settlements).sort()) {
-    if (o === sid) continue;
+    if (o === sid || s.settlements[o].fallen) continue; // nobody visits ruins (fallen.js)
     const rel = relationPeek(g, sid, o);
     if (rel.contact && relationStatus(rel) !== 'hostile') met.push(o);
   }
@@ -391,6 +391,7 @@ export function tickContact(g) {
   if (!R) return;
   if (s.tick % TICKS_PER_HOUR === 0) {
     for (const sid of Object.keys(s.settlements).sort()) {
+      if (s.settlements[sid].fallen) continue; // ruins send nobody out (fallen.js)
       let v = C.v[sid];
       const founded = s.settlements[sid].founded || 0, off = hash('contact:' + sid) % TICKS_PER_DAY;
       if (!v) {

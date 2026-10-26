@@ -31,6 +31,7 @@ function villageProblem(g, a, what) {
   if (k) return `${what} takes only settlementId (not "${String(k).slice(0, 40)}")`;
   const sid = a.settlementId;
   if (typeof sid !== 'string' || BAD_KEYS.includes(sid) || !Object.hasOwn(g.s.settlements || {}, sid)) return 'there is no such village';
+  if (g.s.settlements[sid].fallen) return `${g.s.settlements[sid].name} has fallen; only ruins are left`; // fallen.js
   return null;
 }
 

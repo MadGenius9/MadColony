@@ -29,6 +29,7 @@ import { emptyPlan } from './planner.js';
 import { LOD, wantDetail, setDetail, isAbstract } from './lod.js';
 import { rings, octile } from './util.js';
 import { claimRadius } from './territory.js';
+import { livingCount } from './fallen.js';
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -115,7 +116,7 @@ function validate(g, a, r) {
     if (Object.values(g.s.settlements).some((st) => String(st.name).toLowerCase() === low)) return `a village called ${n} already exists`;
   }
   const R = foundingRules(g) || FOUNDING_DEFAULTS;
-  const nV = Object.keys(g.s.settlements).length;
+  const nV = livingCount(g); // ruins do not count (fallen.js)
   if (nV >= R.maxVillages) return `the world already has ${nV} villages (the most is ${R.maxVillages})`;
   return siteProblem(g, a.x, a.y, R, null);
 }
@@ -124,6 +125,7 @@ function validate(g, a, r) {
 function joinProblem(g, a, r) {
   const sid = ownerAt(g, a.x, a.y);
   if (!sid || !g.s.settlements[sid]) return { sid: null, reason: 'that spot is in no village\'s territory' };
+  if (g.s.settlements[sid].fallen) return { sid, reason: `${g.s.settlements[sid].name} has fallen; only ruins are left` }; // fallen.js
   const st = g.s.settlements[sid], c = st.center || g.s.center;
   if (!g.isPassable(a.x, a.y)) return { sid, reason: 'the settlers cannot stand there' };
   const home = g.regionOf(c.x, c.y);

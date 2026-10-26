@@ -127,12 +127,23 @@ export function leaveKingdom(g, sid, reason = '', opts = {}) {
   const s = g.s;
   const st = s.settlements?.[sid], k = kingdomOf(g, sid);
   if (!st || !k) return { ok: false, msg: 'That village is in no kingdom.' };
+  if (k.capital === sid && opts.force) { dissolveKingdom(g, k.id, reason || 'its capital is gone'); return { ok: true, msg: `${theKingdom(k.name)} is no more.` }; } // a fallen capital with no heir (fallen.js)
   if (k.capital === sid) return { ok: false, msg: `${st.name} is the capital of ${theKingdom(k.name)} and never leaves it.` };
   delete st.kingdom;
   if (s.settlements[k.capital]) note(g, sid, k.capital, `Left ${theKingdom(k.name)}${reason ? `: ${reason}` : ''}`);
   g.log(`${st.name} leaves ${theKingdom(k.name)}${reason ? `: ${reason}` : ''}.`, 'warn');
   if (!opts.noDissolve && membersOf(g, k.id).length <= 1) dissolveKingdom(g, k.id, 'only its capital is left');
   return { ok: true, msg: `${st.name} left ${theKingdom(k.name)}.` };
+}
+
+/** Succession (Phase 5, fallen.js): `sid`, a member, becomes the capital of kingdom `kid`. The kingdom keeps its
+ *  name and colour. */
+export function setCapital(g, kid, sid, reason = '') {
+  const k = g.s.kingdoms?.[kid];
+  if (!k || g.s.settlements?.[sid]?.kingdom !== kid) return false;
+  k.capital = sid;
+  g.log(`${nameOf(g, sid)} is now the capital of ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}.`, 'warn');
+  return true;
 }
 
 /** Remove a kingdom: the record goes, and so does the field on every village still in it. */

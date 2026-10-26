@@ -404,7 +404,7 @@ function activeTradeBetween(g, a, b) {
 /** Settlement-level trade planning: match one side's needs with the other side's surplus. */
 export function planTrades(g) {
   const s = g.s;
-  const ids = Object.keys(s.settlements || {});
+  const ids = Object.keys(s.settlements || {}).filter((x) => !s.settlements[x].fallen); // ruins trade with nobody (fallen.js)
   // Pairs with an active trade: one pass over the trades (finished ones stay in s.trades), kept up to date as
   // trades are agreed below. The same answers as asking activeTradeBetween for every pair.
   const busy = new Set();
@@ -1103,7 +1103,7 @@ export function pendingProposals(g, to) {
 function aiDiplomacy(g) {
   const s = g.s;
   const me = s.playerSettlement;
-  const ids = Object.keys(s.settlements || {}).sort();
+  const ids = Object.keys(s.settlements || {}).sort().filter((x) => !s.settlements[x].fallen); // no deals with ruins (fallen.js)
   // Daily alliance pass state (never saved): who already proposed or signed today; enemies and fighter
   // counts per village, built on first use (signing does not change them); and the AI villages' alliance
   // proposals to the player, indexed once.
@@ -1376,6 +1376,7 @@ function borderDiplomacy(g) {
   const s = g.s;
   const me = s.playerSettlement;
   for (const sid of Object.keys(s.settlements || {}).sort()) {
+    if (s.settlements[sid].fallen) continue; // ruins ask nothing (fallen.js)
     if (!settlementOf(g, sid)?.ai) { if (sid === me) playerAsksRights(g, sid); continue; }
     // Nodes of a kind round our centre, looked up once per kind (borderNodes for each neighbour filters the
     // same list by owner; nodes and land do not change in this pass, so the counts are the same).
