@@ -500,6 +500,7 @@ export function bordersTouched(g, pairs) {
   for (const [a, b] of pairs) {
     if (!g.s.settlements[a] || !g.s.settlements[b]) continue;
     const [x, y] = a < b ? [a, b] : [b, a];
+    if (g.reg.get('scenario', g.s.scenarioId)?.war) { const r = relationOf(g, x, y); if (r.touch === undefined) r.touch = g.s.tick; } // rivalry (war.js)
     if (makeContact(g, x, y, 'Their lands touch', `The lands of ${nameOf(g, x)} and ${nameOf(g, y)} now touch.`)) C.met.borders++;
   }
 }

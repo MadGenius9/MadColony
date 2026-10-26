@@ -523,6 +523,10 @@ questions were not answered, so the note's proposals are the working defaults).
 - **Done:** slice 4, lasting injuries and surgery: deep wounds (≥ 30%) healed without surgery leave a lame leg or
   a crippled hand (slower work of some kinds); surgery in a medical bed mends them by skill. Save format 18.
   Classic runs unchanged. Results: design note, "Slice 4".
+- **Done:** slice 5a, rivalry and AI war declarations (scenario `war` block, Vast world): pressing borders and
+  near rivals lower relations daily by temperament; rivals who never fought do not cool; a stronger AI village
+  declares war at −50 (on the player only after a threat and a day). Save format 19. Vast seed 7: first wars
+  around day 98. Classic runs unchanged. Results: design note, "Slice 5a".
 
 ### Phase 5b: god powers, part 2 (destructive)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything

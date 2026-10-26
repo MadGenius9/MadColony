@@ -393,6 +393,13 @@ export const CONTENT_TYPES = {
       // Phase 5 slice 3 (illness.js): outbreaks (a daily chance per village with nobody ill, raised by `crowding` x the
       // share of people without a bed; none before graceDays), the illnesses by weight, and the share of the contagion
       // that reaches people of the village who do not share the sick person's home.
+      // Phase 5 slice 5 (war.js): rivalry from pressing borders (perDay a day x the profiles' mean temperament, never
+      // below floor by this cause) and AI war declarations (relation <= declareBelow, stronger x the target's strength,
+      // at least minStrength; on the player's village only warnDays after a threat).
+      war: obj({
+        rivalry: obj({ perDay: req(num(0, 20)), floor: req(num(-100, 0)), near: num(0, 5000), nearPerDay: num(0, 20) }),
+        declareBelow: req(num(-100, 0)), stronger: req(num(1, 10)), minStrength: num(0, 100), warnDays: num(0, 30),
+      }),
       illness: obj({
         outbreakPerDay: req(num(0, 1)), crowding: num(0, 100), graceDays: num(0, 1000), villageShare: num(0, 1),
         kinds: req(arr(obj({ illness: req(ref('illness')), weight: req(num(0, 1000)) }), { minItems: 1 })),
@@ -403,7 +410,10 @@ export const CONTENT_TYPES = {
           elderAge: req(num(1, 500)), elderWork: req(num(0.1, 1)), deathAge: req(num(1, 500)),
           perYear: req(num(0, 1)), perYearStep: req(num(0, 1)),
           startAges: arr(int(0, 500), { minItems: 2, maxItems: 2 }),
-        }),
+        }, { check: (v, err) => {
+          if (v.elderAge > v.deathAge) err('elderAge must not be above deathAge');
+          if (v.startAges && v.startAges[0] > v.startAges[1]) err('startAges must be [lowest, highest]');
+        } }),
       }),
       travel: TRAVEL, // trip budgets for colonists (ai/trips.js); absent: off unless the AI profile sets it
       eraDrive: obj({ urgency: num(0, 2), afterDays: num(0, 3650) }), // afterDays: from this many days after the village's founding (default 0)
@@ -550,6 +560,7 @@ export const CONTENT_TYPES = {
       // Laws on controlled goods (items tagged core:controlled), keyed by item id, by tag, or `default`.
       laws: map(str(80), { type: 'enum', values: ['legal', 'restricted', 'banned'] }),
       enforcement: num(0, 1), // how strict the village watch is (seizure odds)
+      temperament: num(0, 5), // Phase 5 (war.js): how quickly it quarrels over land (default 1)
     }),
   },
   techField: {

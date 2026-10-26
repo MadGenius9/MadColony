@@ -116,7 +116,7 @@ function checkDeath(g, c) {
 /** At 0% health, is anyone caring for a collapsed colonist? Tended now, in a medical bed, or a wound already
  *  dressed or cleaned (first aid). In a village simulated at a distance (no carers walk there, lod.js) anyone else
  *  of the village on their feet counts. Only called at 0% health, so its cost does not matter. */
-function cared(g, c) {
+export function cared(g, c) {
   if ((c.health.tendedUntil || 0) > g.s.tick || c.medBedId) return true;
   if (c.health.injuries.some((i) => i.treated || i.cleaned)) return true;
   const sid = c.settlementId || g.s.playerSettlement;

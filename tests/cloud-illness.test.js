@@ -39,7 +39,8 @@ test('an illness runs its course: grows, is contagious, then heals with immunity
   assert.equal(infect(g, c, plague(), 'again'), null, 'cannot catch it twice at once');
   assert.ok(contagious(g, c));
   for (let k = 0; k < 16; k++) tickSickness(g, c, 0.25); // four hours
-  assert.ok(Math.abs(sicknessOf(c).severity - (1 + 4 * PLAGUE.growPerHour)) < 0.01);
+  const grown = sicknessOf(c).severity - 1;
+  assert.ok(grown >= 4 * PLAGUE.growPerHour * 0.75 * 0.8 - 0.01 && grown <= 4 * PLAGUE.growPerHour * 1.25 + 0.01, `grew ${grown.toFixed(3)} in four hours (hardiness 0.75-1.25, care 0.8)`);
   g.step(PLAGUE.days * TICKS_PER_DAY + 100);
   assert.equal(sicknessOf(c), null, 'the course is over');
   assert.ok(!susceptible(g, c, plague()), 'immune afterwards');
@@ -51,9 +52,12 @@ test('a doctor\'s medicine slows it: treated illnesses grow at treatedGrowth', (
   const c = g.colonists()[0];
   const inj = infect(g, c, plague(), 'a test');
   assert.deepEqual(treatmentNeeds(g, c).map((n) => n.need), ['medicine'], 'doctors are asked for medicine');
-  inj.treated = true;
   tickSickness(g, c, 1);
-  assert.ok(Math.abs(inj.severity - (1 + PLAGUE.growPerHour * PLAGUE.treatedGrowth)) < 0.01);
+  const untreated = inj.severity - 1; // one hour (this case's hardiness and care included)
+  inj.treated = true;
+  const before = inj.severity;
+  tickSickness(g, c, 1);
+  assert.ok(Math.abs((inj.severity - before) - untreated * PLAGUE.treatedGrowth * 0.8) < 0.001, `treated: ${(inj.severity - before).toFixed(4)} = ${untreated.toFixed(4)} x ${PLAGUE.treatedGrowth} x 0.8 (a treatment is care too)`);
 });
 
 test('it spreads within a village, first to those who share the home', () => {

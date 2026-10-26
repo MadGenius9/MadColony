@@ -75,6 +75,10 @@ export const MIGRATIONS = {
   // 17 -> 18: lasting injuries and surgery (Phase 5, slice 4). `colonist.lasting` and the injury flags `deep` and
   // `mended` are optional; wounds from older saves are not deep (they leave no lasting injury). Nothing to add.
   17() {},
+  // 18 -> 19: rivalry and wars (Phase 5, slice 5). `relation.touch` (lands touch, war games) and `relation.threat`
+  // (an AI village threatened the player) are optional. Older vast-world saves have no touch marks: borders that
+  // touched before stay quiet. Nothing to add.
+  18() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

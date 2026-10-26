@@ -3,7 +3,7 @@
 // - Cold: below `cold.below` °C where a colonist is they get the ongoing condition "hypothermia", `cold.perHour`
 //   severity an hour per degree under it; it heals only once they are warm. In a room it is the room's temperature
 //   plus `cold.shelter` (walls, bedding); outdoors only the exposed feel it: people asleep or collapsed, and the
-//   homeless. People up and about outdoors keep warm. In a village simulated at a distance (its people stand round
+//   homeless. People up and about outdoors keep warm. Anyone exposed near a fire gets the shelter too. In a village simulated at a distance (its people stand round
 //   the centre, lod.js) a finished home counts as shelter and only the homeless feel the outdoor cold. The homeless
 //   near a fire (`cold.fires`, built, within `cold.fireRadius`; in a distant village: any of its fires) get the
 //   shelter too. Founding waits while the coming `cold.foundWaitDays` days fall below the cold line (founding.js).
@@ -43,10 +43,14 @@ export function coldUnder(g, c) {
   const x = Math.round(c.x), y = Math.round(c.y);
   if (abstract) {
     if (home?.complete) return 0;
-    t = outdoorTemp(g) + (byFire(g, sid, R, null) ? R.shelter ?? 0 : 0);
+    t = outdoorTemp(g);
+    if (t < R.below && byFire(g, sid, R, null)) t += R.shelter ?? 0;
   } else if (roomAt(g, x, y)) t = tempAt(g, x, y) + (R.shelter ?? 0);
   else if (home && !c.sleeping && !c.health?.down) return 0; // up and about: they keep warm
-  else t = outdoorTemp(g) + (!home && byFire(g, sid, R, { x, y }) ? R.shelter ?? 0 : 0);
+  else {
+    t = outdoorTemp(g);
+    if (t < R.below && byFire(g, sid, R, { x, y })) t += R.shelter ?? 0; // anyone exposed by a fire is sheltered
+  }
   return t < R.below ? R.below - t : 0;
 }
 
@@ -89,7 +93,7 @@ export function startAge(g, id) {
   const A = lifeRules(g)?.aging;
   if (!A?.startAges) return null;
   const [lo, hi] = A.startAges;
-  return lo + (hash('age:' + id) % (hi - lo + 1));
+  return lo + (hash(`${g.s.seed}:age:${id}`) % (hi - lo + 1));
 }
 
 /** Daily (day start): the old may die of old age. Marks them for processDeaths (death.js) with the cause. */

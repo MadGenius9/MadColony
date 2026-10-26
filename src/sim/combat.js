@@ -378,6 +378,20 @@ export function evaluateAttack(g, sid, target) {
   return res;
 }
 
+/** An AI village declares war (war.js, Phase 5): relations go to WAR.declareTo at most, a trade pact ends, it
+ *  orders an attack, and the attacked village's allies and kingdom are called in (strikeFirst). */
+export function declareWar(g, sid, target, reason) {
+  const rel = relationOf(g, sid, target);
+  if (rel.value > WAR.declareTo) changeRelation(g, sid, target, WAR.declareTo - rel.value, reason);
+  else { rel.history.push({ tick: g.s.tick, delta: 0, reason }); if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16); }
+  delete rel.threat;
+  const k = [sid, target].sort().join('|');
+  if (g.s.treaties?.[k]) { delete g.s.treaties[k]; rel.history.push({ tick: g.s.tick, delta: 0, reason: 'Trade pact ended: war' }); }
+  g.log(`${reason}.`, 'warn');
+  setOrder(g, sid, 'attack', target);
+  strikeFirst(g, sid, target);
+}
+
 /** The player (or a script) orders an attack. Declares war first if needed. */
 export function orderAttack(g, sid, target) {
   const ev = evaluateAttack(g, sid, target);
@@ -475,7 +489,9 @@ export function tickWars(g, ticksPerDay) {
     const rel = relationPeek(g, a, b);
     if (relationStatus(rel) !== 'hostile') continue;
     const quiet = g.s.tick - (rel.lastClash || 0) > WAR.coolAfterDays * ticksPerDay;
-    if (quiet) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
+    // War games (war.js): only a war cools; rivals who never fought stay hostile.
+    const rivalsOnly = !rel.aggressor && !!g.reg.get('scenario', g.s.scenarioId)?.war;
+    if (quiet && !rivalsOnly) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
     for (const [me, them] of [[a, b], [b, a]]) {
       const st = settlementOf(g, me);
       if (!st?.ai || settlementOf(g, them)?.ai) continue; // AI villages sue the player; AI-vs-AI wars just cool

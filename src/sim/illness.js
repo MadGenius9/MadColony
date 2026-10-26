@@ -3,7 +3,8 @@
 // - A sick colonist has an injury of kind "sickness" ({ illness, until }) whose severity grows by the illness's
 //   growPerHour until `until` (its course, `days`), then it heals like any injury and the colonist is immune for
 //   immunityDays. A doctor's medicine (the existing treat job: medical.js treatmentNeeds) slows the growth to
-//   treatedGrowth. Deadly only through severity: at 0% health death.js applies (bleeding out, care saves).
+//   treatedGrowth; care (tending, a bed) slows it to CARE_GROWTH; each case is 0.75-1.25 as strong (hardiness).
+//   Deadly only through severity: at 0% health death.js applies. Grey fever kills some of the untended.
 // - Daily (day start), per village in id order: an outbreak may start when nobody there is ill
 //   (outbreakPerDay, more when people outnumber beds: crowding), not before graceDays; the illness is picked by
 //   weight. Then each contagious colonist may pass it on to each susceptible one of the same village (contagion;
@@ -15,6 +16,9 @@
 // colonist records, so distant villages fall ill and spread illness like full ones (no doctors walk there, so no
 // treatment). Everything is saved on the colonists (save format 17).
 import { TICKS_PER_DAY } from './constants.js';
+import { cared } from './health.js';
+
+const CARE_GROWTH = 0.8; // an illness grows this much slower while the sick are cared for
 
 /** The scenario's illness rules, or null. */
 export function illnessRules(g) {
@@ -54,7 +58,8 @@ export function infect(g, c, ill, how) {
   s.stats.illness ||= { cases: 0, outbreaks: 0 };
   s.stats.illness.cases++;
   const village = s.settlements?.[c.settlementId]?.name;
-  g.log(`${c.name}${village ? ` of ${village}` : ''} fell ill with ${ill.name.toLowerCase()} (${how}).`, 'warn');
+  const mine = (c.settlementId || s.playerSettlement) === s.playerSettlement;
+  g.log(`${c.name}${village ? ` of ${village}` : ''} fell ill with ${ill.name.toLowerCase()} (${how}).`, mine ? 'warn' : 'info'); // others' cases are routine
   return inj;
 }
 
@@ -68,7 +73,11 @@ export function tickSickness(g, c, frac) {
       if (ill) (c.immune ||= {})[ill.id] = g.s.tick + Math.round(ill.immunityDays * TICKS_PER_DAY);
       continue;
     }
-    const grow = ill.growPerHour * frac * (i.treated ? ill.treatedGrowth : 1);
+    // Each case has its own strength (0.75-1.25 by hash: some are hardier), and care (tending, a bed, a medical bed;
+    // in a distant village others on their feet) slows it to CARE_GROWTH.
+    const hardy = 0.75 + 0.5 * draw(`${g.s.seed}:hardy:${i.id}`);
+    const care = cared(g, c) || (c.sleeping && !!c.job?.bedId) ? CARE_GROWTH : 1;
+    const grow = ill.growPerHour * frac * hardy * care * (i.treated ? ill.treatedGrowth : 1);
     i.severity = Math.min(100, Math.round((i.severity + grow) * 10000) / 10000);
   }
 }
@@ -146,7 +155,7 @@ function someone(g, sid, ill, u) {
  *  people. O(the two villages' people). Nothing without illness rules. */
 export function spreadContact(g, a, b, how, carrier = null) {
   if (!illnessRules(g) || !a || !b || a === b) return;
-  const s = g.s, key = `${s.seed}:travel:${a}:${b}:${s.tick}`;
+  const s = g.s, key = `${s.seed}:travel:${a}:${b}:${s.tick}:${carrier ? carrier.id : how}`;
   // a -> b
   if (carrier) {
     const i = contagious(g, carrier) && sicknessOf(carrier), ill = i && g.reg.get('illness', i.illness);

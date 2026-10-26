@@ -60,3 +60,17 @@ where, and which sim function or state field provides it. The UI is built at hom
   "operated on" when `inj.mended`.
 - **Log:** "X operated on Y…" and "Y's wound healed badly: …" (good / warn).
 
+## Phase 5, review of slices 2–3
+- The treat job's reason ("infection") also covers illnesses: show the illness name (`inj.cause`) for kind
+  `sickness`.
+
+## Phase 5, slice 5a: rivalry and wars (Vast world)
+- **Threat letter (important):** log line "X threatens war on <your village> (…). Improve relations or make peace
+  within N day(s)." (warn). Click: Diplomacy on X; show `relation.threat` and the line −40 to lift it.
+- **Declarations:** "X declared war on Y: <cause>, and X is stronger (a against b)." (warn) as a world-event card
+  zoomed out; important when Y or X is the player's village or ally.
+- **Diplomacy / village card:** "Rival: their lands press on each other" or "they compete for the same land"
+  for pairs with `relation.touch` or within `scenario.war.rivalry.near`; temperament from the profile.
+- **World view:** wars between villages (pairs with `relation.aggressor` and hostile) as crossed swords between
+  their labels, kingdom wars in the kingdom colours.
+

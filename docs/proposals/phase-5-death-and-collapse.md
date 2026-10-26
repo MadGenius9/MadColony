@@ -1,6 +1,6 @@
 # Phase 5: death, illness, war and collapse
 
-Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2, 3 and 4 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-26). Slices 1a, 1b, 2, 3, 4 and 5a done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -304,4 +304,36 @@ Slice 1 was split: 1a is death itself; 1b (bodies, burial, graves, mourning) com
 - **Not changed:** classic runs (work accidents stay below 30%; no fights in the pinned runs). 77 tests pass (5 in
   `tests/cloud-lasting.test.js`).
 - **Open:** walking speed is not slowed by a lame leg (only work); lasting injuries never heal.
+
+### Review of slices 2 and 3 (fixes made with slice 5a)
+- **Grey fever killed every untreated case** (1.1 a hour for 4 days reaches 0% six hours before the course ends;
+  6 illness deaths by day 90 in a Vast run). Now each case is 0.75–1.25 as strong (hash: hardiness) and care
+  (tending, a bed, a medical bed, a treatment; distant villages: others on their feet) slows it to 0.8, so the
+  untended and the frail can die and care or medicine saves most.
+- Fire scans in the cold rule only once it is cold; anyone exposed by a fire is sheltered (not only the
+  homeless); start ages include the seed; draws along contacts include the carrier or the caravan; the aging
+  schema checks `elderAge <= deathAge` and `startAges` order; other villages' illness cases are routine log
+  lines (`info`), the player's stay warnings.
+- **Merge note:** `src/sim/burial.js` and `src/sim/life.js` were turned from LF to CRLF after their first commit
+  (to match the other sim files), so their first merge patch touches every line.
+
+### Slice 5a: rivalry and AI war declarations
+- **Built:** `src/sim/war.js` (`tickRivalry` daily: pressing borders, near rivals, declarations; `warStrength`);
+  `declareWar` in `combat.js`; `rel.touch` set in `contact.js bordersTouched` in war games; profile
+  `temperament` (hill fort 1.6, scholars' retreat 0.5, trading post 0.7, lumber camp 1.2); the scenario block
+  `war { rivalry: { perDay: 1, floor: -70, near: 110, nearPerDay: 0.6 }, declareBelow: -50, stronger: 1.5,
+  minStrength: 1.5, warnDays: 1 }` in the Vast world. Save format 19 (`relation.touch`, `relation.threat`).
+- **Deviation: near rivals.** Pressing borders alone gave 3 touching pairs by day 100 (villages start far apart and
+  spread slowly), so no war. Villages within 110 tiles that have met now also fall out ("they compete for the same
+  land").
+- **Deviation: no cooling for rivals.** The old daily "tempers cool" (+2 when nobody fought for 2 days) pulled
+  every hostile pair back above −25, so relations flapped at the line and filled the log. In war games only an
+  actual war (with an aggressor) cools now; classic games keep the old rule.
+- **Not built here:** scarcity and old-wound grudges, and kingdom-shared quarrels; AI-to-AI truces and fighting
+  between distant villages (slice 5b). The player is threatened, but there is no UI to answer it except the usual
+  diplomacy (raise relations above −40 to lift the threat).
+- **Measured** (Vast seed 7, 120 days): first hostile relations day 66; first declaration day 98 (Whitecairn on
+  Stonegard, its kingdom joining); 12 wars by day 100; most cooled by day 120 (no battles between distant villages
+  yet). Deaths by day 120: 5 dehydration, 2 infection, 2 illness, 1 starvation (to be looked at in slice 7).
+- **Not changed:** classic runs; 85 tests pass (8 in `tests/cloud-war.test.js`).
 

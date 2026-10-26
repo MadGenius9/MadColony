@@ -2,7 +2,7 @@
   "$comment": "Phase 1: more kinds of AI village and the 'Living world' scenario (many villages spread over a continent). The profiles differ in priorities, stock and trade habits only: every village uses the same rules and economy as the player.",
   "villageProfile": [
     {
-      "id": "core:lumber_camp", "name": "Lumber camp",
+      "id": "core:lumber_camp", "temperament": 1.2, "name": "Lumber camp",
       "settlementNames": ["Pinecroft", "Oakmere", "Timberley", "Fernwick", "Larchholt", "Sprucedale"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} Woodland Realm", "Timber Crown of {capital}"],
       "color": "#8fb860", "colonists": 3,
@@ -13,7 +13,7 @@
       "laws": { "core:arms": "restricted", "default": "banned" }, "enforcement": 0.5
     },
     {
-      "id": "core:hill_fort", "name": "Hill fort",
+      "id": "core:hill_fort", "temperament": 1.6, "name": "Hill fort",
       "settlementNames": ["Highwatch", "Stonegard", "Ravenhold", "Brackenmoor", "Kestrel Tor", "Dunmere"],
       "kingdomNames": ["Kingdom of {capital}", "March of {capital}", "Iron Crown of {capital}"],
       "color": "#d08a6a", "colonists": 4,
@@ -24,7 +24,7 @@
       "laws": { "core:arms": "legal", "default": "banned" }, "enforcement": 0.9
     },
     {
-      "id": "core:trading_post", "name": "Trading post",
+      "id": "core:trading_post", "temperament": 0.7, "name": "Trading post",
       "settlementNames": ["Crossways", "Marketon", "Fairhaven", "Tollbridge", "Wayfarer's Rest", "Copperford"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} League", "Merchant Crown of {capital}"],
       "color": "#e0c060", "colonists": 3,
@@ -57,7 +57,7 @@
       "laws": { "core:arms": "legal", "default": "banned" }, "enforcement": 0.6
     },
     {
-      "id": "core:scholars_retreat", "name": "Scholars' retreat",
+      "id": "core:scholars_retreat", "temperament": 0.5, "name": "Scholars' retreat",
       "settlementNames": ["Lanternhill", "Quillmere", "Inkwell", "Bookham", "Sagecross", "Lorewick"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} Realm", "Lantern Crown of {capital}"],
       "color": "#c890d0", "colonists": 3,
