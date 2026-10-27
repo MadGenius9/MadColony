@@ -33,6 +33,7 @@ const CAUSE_TEXT = {
   lightning: 'was struck by lightning', // Phase 5b (godwrath.js)
   smite: 'was smitten by the gods',
   burn: 'burned to death',
+  meteor: 'was crushed by a falling star',
 };
 export const causeText = (kind) => (Object.hasOwn(CAUSE_TEXT, kind) ? CAUSE_TEXT[kind] : 'died of their injuries');
 

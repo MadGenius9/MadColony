@@ -114,3 +114,16 @@ where, and which sim function or state field provides it. The UI is built at hom
   "Damaged: being rebuilt" homes.
 - **Sound:** crackling while fires burn on screen.
 
+
+## Phase 5b, slice 4: meteor and earthquake
+- **Meteor power:** target a tile; the preview draws the crater (radius 2) and the ring (3 more tiles) and lists
+  the warnings (killed, wounded, building parts destroyed by village, crops/trees/goods, "the ground becomes a
+  crater"). On impact: a streak of light from the sky, a flash, dust, then fires round the rim.
+- **Crater terrain** (`core:crater`, render style `gravel`, colour #5a5048): drawn darker with a raised rim; its
+  tooltip says "Crater: nothing can be built here".
+- **Meteoric iron:** the stack left in the crater (core:iron) can be shown with a faint glow for a day.
+- **Earthquake power:** target a tile; the preview shows the radius (12) and "about N building parts will fall";
+  on impact the screen shakes for a moment and collapsed parts show as rubble then building sites ("Damaged:
+  being rebuilt").
+- **Homes lost to a meteor:** their people show "Homeless" until a new home is built; the letter "A falling star
+  struck …" names the dead ("was crushed by a falling star").

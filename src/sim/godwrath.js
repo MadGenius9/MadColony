@@ -4,13 +4,30 @@
 //   are burned (wrath.lightning.wound severity); if anything there can burn, a fire starts (fire.js).
 // - fire { x, y }: the tile and the burnable tiles round it catch fire (fire.js spreads it).
 // - smite { colonistId }: that person dies at once ("was smitten by the gods").
+// - meteor { x, y }: a crater of wrath.meteor.radius: everything in it is destroyed (whole buildings, not rebuilt
+//   there: crater ground cannot be built on), people in it die ("was crushed by a falling star"); in the ring round
+//   it (wrath.meteor.ring) people are wounded and burnable tiles may catch fire; buildable land in the crater becomes
+//   core:crater (all tiles in one go); a stack of meteoric iron is left (created, reason 'divine').
+// - quake { x, y }: each built part within wrath.quake.radius may collapse (more likely near the centre, and for
+//   wooden parts than stone: wrath.quake.sturdy); a collapsed part's goods fall to the ground and the village
+//   rebuilds it; people on or beside a collapsing part are wounded.
 import { registerPower } from './god.js';
 import { injure } from './health.js';
 import { ignite, tileFlammable, buildingFlammable, fireRules } from './fire.js';
+import { destroyStructures, destroyProject, destroyNode, destroyStack, destroyCrop, replan } from './ruin.js';
 export { buildingFlammable };
 
-const DEFAULTS = { lightning: { wound: [20, 45] } };
-const rulesOf = (r) => ({ ...DEFAULTS, ...(r.wrath || {}) });
+const DEFAULTS = {
+  lightning: { wound: [20, 45] },
+  meteor: { radius: 2, ring: 3, wound: [15, 50], fire: 0.35, iron: [4, 10], item: 'core:iron' },
+  quake: { radius: 12, collapse: 0.6, sturdy: 0.35, wound: [10, 35] },
+};
+const rulesOf = (r) => {
+  const w = r.wrath || {}, out = {};
+  for (const k of Object.keys(DEFAULTS)) out[k] = { ...DEFAULTS[k], ...(w[k] || {}) };
+  return out;
+};
+const between = ([lo, hi], u) => lo + (hi - lo) * u;
 const hash = (str) => {
   let h = 2166136261;
   for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
@@ -109,6 +126,140 @@ registerPower('fire', {
     let n = 0;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (g.inB(x + dx, y + dy) && ignite(g, g.i(x + dx, y + dy))) n++;
     return { msg: `A fire broke out at (${x}, ${y}).`, x, y, tiles: n };
+  },
+});
+
+// ---------------- meteor ----------------
+const CRATER = 'core:crater';
+const tileArgs = (name) => (g, a) => {
+  const k = extraKey(a, ['x', 'y', 'confirm']);
+  if (k) return `${name} takes only x, y and confirm (not "${String(k).slice(0, 40)}")`;
+  if (!Number.isInteger(a.x) || !Number.isInteger(a.y)) return 'pick a tile (whole x and y)';
+  if (!g.inB(a.x, a.y)) return 'that spot is outside the map';
+  return null;
+};
+
+/** Counts by village as warnings: "<n> <what>s of your village" (the player's first). */
+function byVillage(g, counts, what) {
+  return [...counts.keys()].sort((a, b) => (mine(g, b) - mine(g, a)) || (a < b ? -1 : 1))
+    .map((k) => `${counts.get(k)} ${what}${counts.get(k) === 1 ? '' : 's'} of ${mine(g, k) ? 'your village' : villageName(g, k)}`);
+}
+
+/** What a meteor at (x, y) hits: crater tiles, the ring, and what stands in the crater. O(area + colonists). */
+function meteorArea(g, x, y, M) {
+  const R = M.radius, out = R + M.ring, s = g.s;
+  const crater = [], ring = [], structs = new Set(), projects = new Set();
+  for (let yy = y - out; yy <= y + out; yy++) for (let xx = x - out; xx <= x + out; xx++) {
+    if (!g.inB(xx, yy)) continue;
+    const d2 = (xx - x) ** 2 + (yy - y) ** 2;
+    const i = g.i(xx, yy);
+    if (d2 <= R * R + R) {
+      crater.push(i);
+      const sid = g.structIdAt(i), f = g.footIdAt(i);
+      if (sid) { structs.add(sid); if (s.structures[sid].projectId && s.projects[s.structures[sid].projectId]) projects.add(s.structures[sid].projectId); }
+      if (f && s.projects[f] && s.projects[f].status !== 'cancelled') projects.add(f);
+    } else if (d2 <= out * out + out) ring.push(i);
+  }
+  const inCrater = new Set(crater), inRing = new Set(ring), killed = [], wounded = [];
+  for (const c of Object.values(s.colonists).sort((p, q) => (p.id < q.id ? -1 : 1))) {
+    const [cx, cy] = at(c);
+    if (!g.inB(cx, cy)) continue;
+    const i = g.i(cx, cy);
+    if (inCrater.has(i)) killed.push(c); else if (inRing.has(i)) wounded.push(c);
+  }
+  // Parts lost: every part of a building hit, and loose structures (no building) in the crater.
+  const lost = new Set();
+  for (const pid of projects) for (const id of s.projects[pid].parts) if (s.structures[id]) lost.add(id);
+  for (const id of structs) lost.add(id);
+  return { crater, ring, structs, projects: [...projects].sort(), lost, killed, wounded };
+}
+
+registerPower('meteor', {
+  destructive: true,
+  validate: tileArgs('meteor'),
+  cost: (g, a, r) => r.costs.meteor ?? 60,
+  preview(g, a, r) {
+    const M = rulesOf(r).meteor, A = meteorArea(g, a.x, a.y, M), warnings = [];
+    warnings.push(...peopleWarnings(g, A.killed, 'Killed'), ...peopleWarnings(g, A.wounded, 'Wounded'));
+    const by = new Map();
+    for (const id of A.lost) { const k = g.s.structures[id].settlement || g.s.playerSettlement; by.set(k, (by.get(k) || 0) + 1); }
+    for (const w of byVillage(g, by, 'building part')) warnings.push(`${w} destroyed (whole buildings, not rebuilt in the crater).`);
+    let crops = 0, nodes = 0, goods = 0;
+    for (const i of A.crater) { if (g.cropIdAt(i)) crops++; if (g.nodeIdAt(i)) nodes++; const st = g.stackIdAt(i); if (st) goods += g.s.stacks[st].qty; }
+    if (crops || nodes || goods) warnings.push(`Also destroyed: ${[crops && `${crops} crop${crops === 1 ? '' : 's'}`, nodes && `${nodes} tree${nodes === 1 ? '' : 's'} or rock${nodes === 1 ? '' : 's'}`, goods && `${goods} goods on the ground`].filter(Boolean).join(', ')}.`);
+    warnings.push(`The ground becomes a crater (${A.crater.length} tiles) where nothing can be built; fires may start round it.`);
+    return { x: a.x, y: a.y, killed: A.killed.length, wounded: A.wounded.length, parts: A.lost.size, tiles: A.crater.length, warnings, effect: `A falling star strikes (${a.x}, ${a.y}).` };
+  },
+  apply(g, cmd, r) {
+    const a = cmd.args, M = rulesOf(r).meteor, key = keyOf(g, cmd), s = g.s, A = meteorArea(g, a.x, a.y, M);
+    for (const c of A.killed) if (!g._dying?.has(c.id)) (g._dying ||= new Map()).set(c.id, 'meteor');
+    for (const c of A.wounded) injure(g, c, 'wound', between(M.wound, draw(`${key}:w:${c.id}`)), 'Hit by the falling star', false, mine(g, c.settlementId) ? 'warn' : 'info');
+    const owners = new Set();
+    for (const id of A.lost) owners.add(s.structures[id].settlement || s.playerSettlement);
+    const opts = { reason: 'divine', why: 'A falling star destroyed it' };
+    for (const pid of A.projects) destroyProject(g, pid, opts, A.structs);
+    destroyStructures(g, [...A.structs].filter((id) => s.structures[id]), { ...opts, repair: false, replan: false });
+    let goods = 0;
+    for (const i of A.crater) {
+      const n = g.nodeIdAt(i); if (n) destroyNode(g, n);
+      const cr = g.cropIdAt(i); if (cr) destroyCrop(g, cr);
+      const st = g.stackIdAt(i); if (st) goods += destroyStack(g, st, 'divine');
+    }
+    let tiles = 0;
+    for (const i of A.crater) { const t = g.terrainDefOf(g.terrainIdx(i)); if (t.passable && t.buildable && g.reg.has('terrain', CRATER)) { g.setTerrain(i, CRATER); tiles++; } }
+    let fires = 0;
+    for (const i of A.ring) if (draw(`${key}:f:${i}`) < M.fire && tileFlammable(g, i).f > 0 && ignite(g, i)) fires++;
+    const iron = Math.round(between(M.iron, draw(`${key}:iron`)));
+    if (iron > 0 && g.reg.has('item', M.item)) g.createItems(M.item, iron, a.x, a.y, 'divine');
+    replan(g, [...owners]);
+    return { msg: `A falling star struck (${a.x}, ${a.y})${A.killed.length ? `: ${A.killed.map((c) => c.name).join(', ')} killed` : ''}${A.wounded.length ? `${A.killed.length ? ',' : ':'} ${A.wounded.length} wounded` : ''}${A.lost.size ? `; ${A.lost.size} building part${A.lost.size === 1 ? '' : 's'} destroyed` : ''}.`,
+      x: a.x, y: a.y, killed: A.killed.length, wounded: A.wounded.length, parts: A.lost.size, tiles, fires, goods, iron };
+  },
+});
+
+// ---------------- earthquake ----------------
+/** Built parts within the quake's radius, each with its chance to collapse, in id order. O(structures). */
+function quakeParts(g, x, y, Q) {
+  const out = [];
+  for (const id of Object.keys(g.s.structures).sort()) {
+    const st = g.s.structures[id];
+    if (!st.built) continue;
+    const d = Math.hypot(st.x - x, st.y - y);
+    if (d > Q.radius) continue;
+    const wood = buildingFlammable(g, g.bDef(st));
+    out.push({ st, chance: Q.collapse * (1 - d / (Q.radius + 1)) * (Q.sturdy + (1 - Q.sturdy) * Math.min(1, wood)) });
+  }
+  return out;
+}
+
+registerPower('quake', {
+  destructive: true,
+  validate: tileArgs('quake'),
+  cost: (g, a, r) => r.costs.quake ?? 70,
+  preview(g, a, r) {
+    const Q = rulesOf(r).quake, parts = quakeParts(g, a.x, a.y, Q), warnings = [], by = new Map();
+    let likely = 0;
+    for (const p of parts) { const k = p.st.settlement || g.s.playerSettlement; by.set(k, (by.get(k) || 0) + 1); likely += p.chance; }
+    const people = Object.values(g.s.colonists).sort((p, q) => (p.id < q.id ? -1 : 1)).filter((c) => Math.hypot(c.x - a.x, c.y - a.y) <= Q.radius);
+    warnings.push(...peopleWarnings(g, people, 'May be hurt'));
+    for (const w of byVillage(g, by, 'building part')) warnings.push(`${w} in the area may collapse.`);
+    if (parts.length) warnings.push(`About ${Math.round(likely)} of them will fall (wooden ones more often than stone); their villages rebuild them.`);
+    return { x: a.x, y: a.y, parts: parts.length, likely: Math.round(likely), people: people.length, warnings, effect: `The earth shakes round (${a.x}, ${a.y}).` };
+  },
+  apply(g, cmd, r) {
+    const a = cmd.args, Q = rulesOf(r).quake, key = keyOf(g, cmd), s = g.s;
+    const fallen = quakeParts(g, a.x, a.y, Q).filter((p) => draw(`${key}:q:${p.st.id}`) < p.chance).map((p) => p.st);
+    const tiles = new Set(fallen.map((st) => g.i(st.x, st.y)));
+    const hurt = [];
+    for (const c of Object.values(s.colonists).sort((p, q) => (p.id < q.id ? -1 : 1))) {
+      const [cx, cy] = at(c);
+      let near = false;
+      for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) if (g.inB(cx + dx, cy + dy) && tiles.has(g.i(cx + dx, cy + dy))) { near = true; break; }
+      if (near) hurt.push(c);
+    }
+    for (const c of hurt) injure(g, c, 'wound', between(Q.wound, draw(`${key}:w:${c.id}`)), 'Hurt in the earthquake', false, mine(g, c.settlementId) ? 'warn' : 'info');
+    destroyStructures(g, fallen.map((st) => st.id), { reason: null, why: 'It collapsed in the earthquake' });
+    return { msg: `The earth shook round (${a.x}, ${a.y}): ${fallen.length} building part${fallen.length === 1 ? '' : 's'} collapsed${hurt.length ? `, ${hurt.length} hurt` : ''}.`, x: a.x, y: a.y, collapsed: fallen.length, hurt: hurt.length };
   },
 });
 

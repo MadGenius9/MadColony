@@ -7,6 +7,7 @@
 //   tile), so the village's builders rebuild it with the usual construction (the home is not complete, so gives no
 //   shelter, until then); decor slots are left to the planner as before; its village plans afresh at once (saved
 //   plans may hold only existing buildings).
+// - destroyProject: a whole building, not rebuilt (meteor).
 // - destroyNode, destroyStack, destroyCrop: the same for trees and rocks, goods on the ground, and crops.
 // Items destroyed are consumed with the given ledger reason ('divine' for what a power destroys, 'fire' for what
 // burns); nothing is created here. No random numbers are drawn.
@@ -102,6 +103,26 @@ export function destroyStructures(g, ids, opts = {}) {
     destroyStructure(g, id, { ...opts, people, replan: false });
   }
   if (opts.replan !== false) replan(g, owners);
+}
+
+/** Destroy a whole building (meteor: its ground is a crater, so it is not rebuilt there): every part goes (goods of
+ *  the parts in `crushed` (a Set of ids) by opts.reason, the others dropped on the ground), the project is
+ *  cancelled and its footprint freed; a home is removed and its people are homeless (they move into a new home once
+ *  their village builds one). No replan (the caller replans once). */
+export function destroyProject(g, pid, opts = {}, crushed = null) {
+  const s = g.s, p = s.projects[pid];
+  if (!p) return;
+  const ids = p.parts.filter((id) => s.structures[id]);
+  destroyStructures(g, ids.filter((id) => !crushed || crushed.has(id)), { ...opts, repair: false, replan: false });
+  destroyStructures(g, ids.filter((id) => crushed && !crushed.has(id)), { ...opts, reason: null, repair: false, replan: false });
+  p.parts = []; p.status = 'cancelled';
+  for (const [x, y] of p.cells) if (g.footIdAt(g.i(x, y)) === p.id) g.setFootId(g.i(x, y), null);
+  const h = p.homeId && s.homes[p.homeId];
+  if (h) {
+    for (const c of Object.values(s.colonists).sort(byId)) if (c.homeId === h.id) c.homeId = null;
+    g.ownDel('homes', h); delete s.homes[h.id];
+  }
+  g.markDirtyCells(p.cells);
 }
 
 /** A fresh plan at once for each village (id order), so no saved plan holds what was destroyed. */

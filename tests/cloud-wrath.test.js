@@ -240,3 +240,102 @@ test('nobody is smitten twice in one tick; non-destructive powers accept confirm
   assert.equal(g.s.god.log.filter((e) => e.type === 'smite' && e.result.ok).length, 1);
   assert.equal(issueCommand(g, 'omen', { text: 'hi', confirm: true }).ok, true);
 });
+
+// ---------------- slice 4: meteor and earthquake ----------------
+import { buildingFlammable } from '../src/sim/godwrath.js';
+
+/** A tile on the player's first home: the target of the tests below. */
+function homeTile(g) {
+  const h = Object.values(g.s.homes).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const st = g.s.projects[h.projectId].parts.map((id) => g.s.structures[id]).find(Boolean);
+  return { h, x: st.x, y: st.y };
+}
+
+test('meteor: a crater where a home stood; people in it die, the home is gone and its people are homeless', () => {
+  const g = sandbox();
+  runDays(g, 3);
+  const start = g.colonists().length;
+  const { h, x, y } = homeTile(g);
+  const pid = h.projectId, owners = [...h.owners];
+  const victim = g.colonists()[0];
+  victim.x = x; victim.y = y; // standing in the crater
+  const p = previewCommand(g, 'meteor', { x, y });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => w.startsWith('Killed:') && w.includes(victim.name)), JSON.stringify(p.preview.warnings));
+  assert.ok(p.preview.warnings.some((w) => /building parts? of your village destroyed/.test(w)));
+  assert.ok(p.preview.warnings.some((w) => w.startsWith('The ground becomes a crater')));
+  const ironBefore = g.s.ledger.byReason['created:divine']?.['core:iron'] || 0;
+  assert.equal(issueCommand(g, 'meteor', { x, y, confirm: true }).ok, true);
+  g.tick();
+  const r = g.s.god.log.at(-1).result;
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(g.s.dead[victim.id].text, 'was crushed by a falling star');
+  assert.equal(g.terrainAt(g.i(x, y)), 'core:crater');
+  assert.equal(g.s.homes[h.id], undefined, 'the home is gone');
+  assert.equal(g.s.projects[pid].status, 'cancelled');
+  assert.deepEqual(g.s.projects[pid].parts, []);
+  // Its people are homeless, or already moved into a free bed of another home (here: the victim's).
+  for (const id of owners) if (g.s.colonists[id]) {
+    const c = g.s.colonists[id];
+    assert.notEqual(c.homeId, h.id);
+    if (c.homeId) assert.ok(g.s.homes[c.homeId] && g.s.structures[c.bedId]?.owner === c.id);
+    else assert.equal(c.bedId, null);
+  }
+  for (let yy = y - 2; yy <= y + 2; yy++) for (let xx = x - 2; xx <= x + 2; xx++) {
+    if (!g.inB(xx, yy) || g.terrainAt(g.i(xx, yy)) !== 'core:crater') continue;
+    const i = g.i(xx, yy);
+    assert.ok(!g.structIdAt(i) && !g.nodeIdAt(i) && !g.cropIdAt(i) && g.footIdAt(i) !== pid, `tile ${xx},${yy} is clear`);
+  }
+  assert.ok(r.iron > 0 && (g.s.ledger.byReason['created:divine']['core:iron'] - ironBefore) === r.iron, 'meteoric iron is created through the ledger');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.equal(peopleCensus(g, start).ok, true);
+  // Nothing is rebuilt in the crater, the village carries on, and the game saves and loads identically.
+  runDays(g, 4);
+  assert.equal(g.structAt(x, y), null);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+test('earthquake: parts collapse (wooden more often than stone), goods fall, villages rebuild, all counts exact', () => {
+  const g = sandbox();
+  runDays(g, 3);
+  const { x, y } = homeTile(g);
+  const p = previewCommand(g, 'quake', { x, y });
+  assert.ok(p.preview.warnings.some((w) => /in the area may collapse/.test(w)), JSON.stringify(p.preview.warnings));
+  const before = Object.values(g.s.structures).filter((st) => st.built && Math.hypot(st.x - x, st.y - y) <= 12).map((st) => st.id);
+  assert.equal(issueCommand(g, 'quake', { x, y, confirm: true }).ok, true);
+  g.tick();
+  const r = g.s.god.log.at(-1).result;
+  assert.equal(r.ok, true);
+  assert.ok(r.collapsed > 0, JSON.stringify(r));
+  assert.equal(before.filter((id) => !g.s.structures[id]).length, r.collapsed);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  const unbuilt = () => Object.values(g.s.structures).filter((st) => !st.built && g.s.projects[st.projectId]?.homeId).length;
+  assert.ok(unbuilt() > 0, 'home parts come back unbuilt');
+  runDays(g, 6);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+  // Stone stands better than wood (the chances, which the draws follow).
+  assert.ok(buildingFlammable(g, g.reg.get('building', 'core:stone_wall')) < buildingFlammable(g, g.reg.get('building', 'core:wood_wall')));
+});
+
+test('meteor and earthquake replay identically across a save and load', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 3);
+    const { x, y } = homeTile(g);
+    issueCommand(g, 'quake', { x: x + 4, y, confirm: true });
+    if (cut) g = reload(g);
+    g.step(50);
+    issueCommand(g, 'meteor', { x, y, confirm: true });
+    if (cut) g = reload(g);
+    g.step(30);
+    if (cut) g = reload(g);
+    runDays(g, 1);
+    return g;
+  };
+  assert.equal(stateText(run(false)), stateText(run(true)));
+});

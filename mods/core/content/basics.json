@@ -125,6 +125,17 @@
         "style": "water"
       },
       "drinkable": true
+    },
+    {
+      "id": "core:crater", "flammable": 0,
+      "name": "Crater",
+      "color": "#5a5048",
+      "passable": true,
+      "buildable": false,
+      "fertility": 0,
+      "render": {
+        "style": "gravel"
+      }
     }
   ]
 }

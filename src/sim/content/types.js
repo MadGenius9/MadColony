@@ -627,6 +627,8 @@ export const CONTENT_TYPES = {
       // Phase 5b (godwrath.js): numbers of the destructive powers; defaults in godwrath.js.
       wrath: obj({
         lightning: obj({ wound: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })) }),
+        meteor: obj({ radius: int(1, 6), ring: int(0, 8), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }), fire: num(0, 1), iron: arr(int(0, 100), { minItems: 2, maxItems: 2 }), item: ref('item') }),
+        quake: obj({ radius: int(1, 30), collapse: num(0, 1), sturdy: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }) }),
         fire: obj({ step: int(1, 2400), spread: num(0, 1), burnTicks: int(1, 100000), maxTiles: int(1, 100000), burnPerStep: num(0, 100), scorchDays: num(0, 1000), cropFlammable: num(0, 1) }),
       }),
       inspire: req(obj({ fraction: req(num(0.01, 1)) })), // research share added per inspiration (above 0: an inspiration always advances)
