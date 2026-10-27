@@ -6,8 +6,10 @@
 // - smite { colonistId }: that person dies at once ("was smitten by the gods").
 // - meteor { x, y }: a crater of wrath.meteor.radius: everything in it is destroyed (whole buildings, not rebuilt
 //   there: crater ground cannot be built on), people in it die ("was crushed by a falling star"); in the ring round
-//   it (wrath.meteor.ring) people are wounded and burnable tiles may catch fire; buildable land in the crater becomes
-//   core:crater (all tiles in one go); a stack of meteoric iron is left (created, reason 'divine').
+//   it (wrath.meteor.ring) people are wounded and burnable tiles may catch fire; buildable land in the crater that
+//   walks and is claimed like a crater (move cost and claim cost 1: grass, soil, savanna, ...) becomes core:crater
+//   without a whole-map rebuild (Game.setTerrainKeepRev); other ground (forest floor, sand, hills) is cleared but
+//   keeps its terrain; a stack of meteoric iron is left (created, reason 'divine').
 // - quake { x, y }: each built part within wrath.quake.radius may collapse (more likely near the centre, and for
 //   wooden parts than stone: wrath.quake.sturdy); a collapsed part's goods fall to the ground and the village
 //   rebuilds it; people on or beside a collapsing part are wounded.
@@ -15,6 +17,7 @@ import { registerPower } from './god.js';
 import { injure } from './health.js';
 import { ignite, tileFlammable, buildingFlammable, fireRules } from './fire.js';
 import { destroyStructures, destroyProject, destroyNode, destroyStack, destroyCrop, replan } from './ruin.js';
+import { claimRules } from './territory.js';
 export { buildingFlammable };
 
 const DEFAULTS = {
@@ -206,7 +209,10 @@ registerPower('meteor', {
       const st = g.stackIdAt(i); if (st) goods += destroyStack(g, st, 'divine');
     }
     let tiles = 0;
-    for (const i of A.crater) { const t = g.terrainDefOf(g.terrainIdx(i)); if (t.passable && t.buildable && g.reg.has('terrain', CRATER)) { g.setTerrain(i, CRATER); tiles++; } }
+    const ct = g.reg.get('terrain', CRATER), CR = claimRules(g), claimCost = (id) => CR?.costs?.[id] ?? CR?.defaultCost ?? 1;
+    const same = (t) => t.passable === ct.passable && !!t.drinkable === !!ct.drinkable && (t.moveCost || 1) === (ct.moveCost || 1)
+      && claimCost(t.id) === claimCost(CRATER) && !CR?.stops?.includes(t.id) && !CR?.stops?.includes(CRATER);
+    if (ct) for (const i of A.crater) { const t = g.terrainDefOf(g.terrainIdx(i)); if (t.buildable && t.id !== CRATER && same(t)) { g.setTerrainKeepRev(i, CRATER); tiles++; } }
     let fires = 0;
     for (const i of A.ring) if (draw(`${key}:f:${i}`) < M.fire && tileFlammable(g, i).f > 0 && ignite(g, i)) fires++;
     const iron = Math.round(between(M.iron, draw(`${key}:iron`)));

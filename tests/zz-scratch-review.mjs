@@ -1,0 +1,16 @@
+import { newGame, conservationErrors } from './cloud-helpers.js';
+import { issueCommand } from '../src/sim/god.js';
+let t0 = Date.now();
+const g = newGame({ seed: 7, scenario: 'core:vast_world', sandbox: true });
+console.log('created', Date.now() - t0, 'ms', g.W, g.H, Object.keys(g.s.settlements).length);
+g.step(200);
+const S = g.s.settlements[g.s.playerSettlement];
+const worst = () => { let w = 0; for (let k = 0; k < 40; k++) { const t = performance.now(); g.tick(); w = Math.max(w, performance.now() - t); } return w; };
+console.log('baseline worst', worst().toFixed(1));
+issueCommand(g, 'meteor', { x: S.center.x + 3, y: S.center.y, confirm: true });
+let t = performance.now(); g.tick(); console.log('meteor tick', (performance.now() - t).toFixed(1), JSON.stringify(g.s.god.log.at(-1).result.msg));
+console.log('after worst', worst().toFixed(1));
+const s2 = Object.values(g.s.settlements).find((x) => x.id !== g.s.playerSettlement);
+issueCommand(g, 'quake', { x: s2.center.x, y: s2.center.y, confirm: true });
+t = performance.now(); g.tick(); console.log('quake tick', (performance.now() - t).toFixed(1), g.s.god.log.at(-1).result.msg, s2.detail);
+console.log('after worst', worst().toFixed(1), conservationErrors(g));

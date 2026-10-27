@@ -265,9 +265,16 @@ test('meteor: a crater where a home stood; people in it die, the home is gone an
   assert.ok(p.preview.warnings.some((w) => /building parts? of your village destroyed/.test(w)));
   assert.ok(p.preview.warnings.some((w) => w.startsWith('The ground becomes a crater')));
   const ironBefore = g.s.ledger.byReason['created:divine']?.['core:iron'] || 0;
+  const ww = g.waterWalk(), rev = g.s.map.rev;
   assert.equal(issueCommand(g, 'meteor', { x, y, confirm: true }).ok, true);
   g.tick();
   const r = g.s.god.log.at(-1).result;
+  // The crater keeps the map revision: the water walk kept is the one a fresh build gives.
+  assert.equal(g.s.map.rev, rev);
+  delete g._waterWalk; g._drink = null;
+  const fresh = g.waterWalk();
+  assert.deepEqual([...fresh.dist], [...ww.dist]);
+  assert.deepEqual([...fresh.from], [...ww.from]);
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(g.s.dead[victim.id].text, 'was crushed by a falling star');
   assert.equal(g.terrainAt(g.i(x, y)), 'core:crater');
