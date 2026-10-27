@@ -628,6 +628,7 @@ export const CONTENT_TYPES = {
       wrath: obj({
         lightning: obj({ wound: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })) }),
         meteor: obj({ radius: int(1, 6), ring: int(0, 8), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }), fire: num(0, 1), iron: arr(int(0, 100), { minItems: 2, maxItems: 2 }), item: ref('item') }),
+        weather: obj({ rain: obj({ radius: int(1, 100), days: num(0.05, 60), grow: num(0, 10) }), drought: obj({ radius: int(1, 100), days: num(0.05, 60), wither: num(0, 10), spread: num(0, 10) }), maxAreas: int(1, 20) }),
         tornado: obj({ step: int(1, 2400), hours: num(0.1, 48), radius: int(0, 4), wander: num(0, 1), destroy: num(0, 1), light: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }), throw: arr(int(0, 20), { minItems: 2, maxItems: 2 }), maxStorms: int(1, 20) }),
         quake: obj({ radius: int(1, 30), collapse: num(0, 1), sturdy: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }) }),
         fire: obj({ step: int(1, 2400), spread: num(0, 1), burnTicks: int(1, 100000), maxTiles: int(1, 100000), burnPerStep: num(0, 100), scorchDays: num(0, 1000), cropFlammable: num(0, 1) }),

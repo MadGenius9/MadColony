@@ -262,3 +262,13 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
 - **Deviation:** buildings are torn down or left standing (no partial damage: buildings have no health yet).
 - **Not changed:** classic runs; 121 tests pass (2 more in `tests/cloud-wrath.test.js`).
 
+### Slice 5a: rain and drought (the plan's slice 6a)
+- **Built:** `src/sim/weather.js`: weather areas in `s.disasters.weather` (save format 25, validated; old saves
+  load), at most 4 at once, the newest counting where they overlap. **Rain** (cost 20, not destructive; radius 10,
+  2 days): burning tiles in it go out at the next fire step (left scorched; what stands there survives), nothing
+  catches there (`ignite`) and fire does not spread into it; crops and wild plants grow 1.5 times as fast.
+  **Drought** (cost 35, destructive; radius 12, 4 days): crops do not grow and unripe ones lose a quarter of a
+  full crop a day (withered to nothing: lost), wild plants do not regrow, fires spread twice as fast.
+  Data: `godRules.wrath.weather`. Water sources stay (drying shores would rebuild the whole-map water data).
+- **Not changed:** classic runs; 124 tests pass (3 more in `tests/cloud-wrath.test.js`).
+

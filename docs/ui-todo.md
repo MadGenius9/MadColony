@@ -140,3 +140,14 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Letters:** "A tornado touched down at …", "The tornado has died away (N hurt)."; torn-down parts show as
   "Damaged: being rebuilt" homes.
 - **Sound:** wind roar while a storm is on screen.
+
+## Phase 5b, slice 6a: rain and drought
+- **Rain power** (not destructive): target a tile; the preview draws the area (radius 10) and says how many
+  burning tiles it puts out. **Drought power** (destructive, confirm): radius 12, warnings list the growing crops
+  by village.
+- **Map:** weather areas (`g.s.disasters.weather`: kind, x, y, r, until) drawn as falling rain / a heat haze over
+  the area, with a soft edge; the world view draws them as a cloud or a dry patch.
+- **Fields:** crops in a drought look dry and shrink as they wither; tooltip "Withering in the drought".
+- **Letters:** "Rain began to fall …", "The rain has stopped.", "A drought began …", "N crops withered in the
+  drought.", "The drought is over."
+- **Sound:** rain on the roofs while a rain area is on screen.

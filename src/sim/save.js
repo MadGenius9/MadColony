@@ -193,6 +193,14 @@ function validateDisasters(s, bad) {
       if (!/^\d{1,8}$/.test(k) || Number(k) >= N || !isInt(t) || t < 0 || t > s.tick) { bad(`state.disasters.${part} has a bad tile or time`); return; }
     }
   }
+  if (D.weather !== undefined) { // format 25: rain and drought (weather.js)
+    if (!isObj(D.weather)) { bad('state.disasters.weather is malformed'); return; }
+    for (const [k, a] of Object.entries(D.weather)) {
+      const ok = isObj(a) && a.id === k && /^w\d{1,9}$/.test(k) && (a.kind === 'rain' || a.kind === 'drought') && isInt(a.x) && isInt(a.y)
+        && isInt(a.r) && a.r >= 1 && a.r <= 200 && isInt(a.until) && a.until <= s.tick + 2400 * 1000;
+      if (!ok) { bad(`weather area "${String(k).slice(0, 40)}" is malformed`); return; }
+    }
+  }
   if (D.storms === undefined) return; // format 24: tornadoes (storm.js)
   if (!isObj(D.storms)) { bad('state.disasters.storms is malformed'); return; }
   for (const [k, t] of Object.entries(D.storms)) {

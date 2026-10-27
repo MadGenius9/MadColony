@@ -3,6 +3,8 @@ import { TICKS_PER_DAY } from './constants.js';
 import { clamp, octile } from './util.js';
 import { fieldCells } from './game.js';
 import { seasonalTemp, outdoorTemp, climateOf } from './heat.js';
+import { growFactor, weatherRules } from './weather.js';
+import { destroyCrop } from './ruin.js';
 
 export const CROP = { minTemp: 5, frost: -3, fullAt: 3 }; // full growth this many °C above minTemp
 
@@ -28,13 +30,24 @@ export const wildGrowth = (g) => clamp((seasonalTemp(g) + 2) / 10, 0.2, 1);
 
 export function tickFarming(g, dt) {
   const season = seasonalTemp(g); // the same for every crop this tick
+  const wx = !!g.s.disasters?.weather, withered = []; // rain and drought (weather.js); nothing without them
   for (const cr of Object.values(g.s.crops)) {
     if (cr.growth >= 1) continue;
     const def = g.reg.get('crop', cr.def);
     if (!def) continue;
     const fert = clamp(g.terrainAt(cr.x, cr.y).fertility, 0.4, 1.6);
-    cr.growth = Math.min(1, cr.growth + (dt / (def.growDays * TICKS_PER_DAY)) * fert * seasonGrowth(def, season));
+    const w = wx ? growFactor(g, cr.x, cr.y) : 1;
+    if (w === 0) { // drought: no growth, it withers
+      cr.growth -= (dt / TICKS_PER_DAY) * weatherRules(g).drought.wither;
+      if (cr.growth <= 0) withered.push(cr.id);
+      continue;
+    }
+    cr.growth = Math.min(1, cr.growth + (dt / (def.growDays * TICKS_PER_DAY)) * fert * seasonGrowth(def, season) * w);
     if (cr.growth >= 1) g.log(`${def.name} are ready to harvest.`, 'food', `ripe:${def.id}`, 600);
+  }
+  if (withered.length) {
+    for (const id of withered.sort()) destroyCrop(g, id);
+    g.log(`${withered.length} crop${withered.length === 1 ? '' : 's'} withered in the drought.`, 'warn', 'withered', 2400);
   }
   if (g.s.tick % 50 === 0) {
     // Hard frost kills plants that are not ripe yet (the seed is lost; the field is sown again in spring).
@@ -53,7 +66,7 @@ export function tickFarming(g, dt) {
     for (const n of [...empty.values()]) {
       if (!n.empty || g.s.nodes[n.id] !== n) { empty.delete(n.id); continue; }
       const def = g.nodeDef(n);
-      n.regrow = (n.regrow || 0) + (50 * wild) / ((def?.regrowDays || 1) * TICKS_PER_DAY);
+      n.regrow = (n.regrow || 0) + (50 * wild * (wx ? growFactor(g, n.x, n.y) : 1)) / ((def?.regrowDays || 1) * TICKS_PER_DAY);
       if (n.regrow >= 1) { n.empty = false; n.regrow = 0; n.chunks = def.chunks; empty.delete(n.id); }
     }
   }

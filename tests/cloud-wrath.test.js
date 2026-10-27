@@ -444,3 +444,81 @@ test('tornado: saved mid-storm the game continues identically; a malformed storm
   assert.equal(storms(mid).length, stormRules(mid).maxStorms);
   assert.match(previewCommand(mid, 'tornado', { x: 5, y: 9, confirm: true }).reason, /too many storms/);
 });
+
+// ---------------- slice 6a: rain and drought ----------------
+import { weatherAt, weatherRules } from '../src/sim/weather.js';
+import { ignite } from '../src/sim/fire.js';
+
+/** The crops' total growth now (unripe crops). */
+const growing = (g) => Object.values(g.s.crops).filter((c) => c.growth < 1);
+
+test('drought: crops in it stop growing and wither; it ends on time; saves and loads identically', () => {
+  const g = sandbox();
+  runDays(g, 10);
+  const crops = growing(g);
+  assert.ok(crops.length > 10, 'a field is growing');
+  const c0 = crops[0];
+  const p = previewCommand(g, 'drought', { x: c0.x, y: c0.y });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => /growing crops? of your village stop growing/.test(w)), JSON.stringify(p.preview.warnings));
+  assert.equal(issueCommand(g, 'drought', { x: c0.x, y: c0.y, confirm: true }).ok, true);
+  g.tick();
+  assert.equal(weatherAt(g, c0.x, c0.y), 'drought');
+  const before = new Map(growing(g).filter((c) => weatherAt(g, c.x, c.y) === 'drought').map((c) => [c.id, c.growth]));
+  assert.ok(before.size > 0);
+  g.step(600);
+  for (const [id, gr] of before) if (g.s.crops[id]) assert.ok(g.s.crops[id].growth < gr, 'it withers, not grows');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, Math.ceil(weatherRules(g).drought.days));
+  assert.equal(g.s.disasters.weather, undefined, 'the drought is over');
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /The drought is over/);
+});
+
+test('rain: puts a fire out and nothing catches in it; crops grow faster; not destructive', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+  g.step(300);
+  const burning = Object.keys(g.s.disasters.fires).length;
+  assert.ok(burning > 0);
+  const p = previewCommand(g, 'rain', { x: t.x, y: t.y });
+  assert.equal(p.ok, true, p.reason);
+  assert.ok(!p.preview.destructive);
+  assert.equal(issueCommand(g, 'rain', { x: t.x, y: t.y }).ok, true);
+  g.step(30);
+  assert.equal(Object.keys(g.s.disasters.fires).length, 0, 'the rain put it out');
+  const dry = Object.values(g.s.nodes).find((n) => n.def === 'core:pine' && weatherAt(g, n.x, n.y) === 'rain' && tileFlammable(g, g.i(n.x, n.y)).f > 0);
+  assert.ok(dry, 'an unburned tree in the rain');
+  assert.equal(ignite(g, g.i(dry.x, dry.y)), false, 'nothing catches in the rain');
+  assert.deepEqual(conservationErrors(g), []);
+  // Growth: the same field with and without rain.
+  const grow = (rain) => {
+    const h = sandbox();
+    runDays(h, 9);
+    const c = growing(h)[0];
+    if (rain) { issueCommand(h, 'rain', { x: c.x, y: c.y }); }
+    h.step(400);
+    return h.s.crops[c.id]?.growth ?? 1;
+  };
+  assert.ok(grow(true) > grow(false));
+});
+
+test('weather: a malformed area is refused on load; old saves load; at most maxAreas', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  issueCommand(g, 'rain', { x: 10, y: 10 });
+  g.tick();
+  const text = serializeGame(g);
+  const bad = JSON.parse(text);
+  Object.values(bad.state.disasters.weather)[0].kind = 'snow';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /weather/);
+  const old = JSON.parse(text);
+  old.saveFormat = 24; delete old.state.disasters.weather;
+  assert.doesNotThrow(() => loadGame(g.reg, JSON.stringify(old)));
+  for (let k = 1; k < weatherRules(g).maxAreas; k++) issueCommand(g, 'rain', { x: 10 + k, y: 10 });
+  g.tick();
+  assert.match(previewCommand(g, 'rain', { x: 30, y: 30 }).reason, /too many weather areas/);
+});

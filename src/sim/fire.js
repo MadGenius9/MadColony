@@ -16,6 +16,7 @@ import { destroyStructure, destroyNode, destroyStack, destroyCrop, replan } from
 import { injure } from './health.js';
 import { newJob } from './ai/jobs.js';
 import { godRulesOf } from './god.js';
+import { weatherAtTile, weatherRules } from './weather.js';
 
 export const FIRE_DEFAULTS = Object.freeze({ step: 25, spread: 0.3, burnTicks: 300, maxTiles: 600, burnPerStep: 3, scorchDays: 30, cropFlammable: 0.6 });
 export const fireRules = (g) => ({ ...FIRE_DEFAULTS, ...(godRulesOf(g)?.wrath?.fire || {}) });
@@ -65,6 +66,7 @@ export function tileFlammable(g, i, F = fireRules(g)) {
 export function ignite(g, i, force = false) {
   const D = disasters(g);
   if (Object.hasOwn(D.fires, i)) return false;
+  if (D.weather && weatherAtTile(g, i) === 'rain') return false; // nothing catches fire in the rain (weather.js)
   if (!force && tileFlammable(g, i).f <= 0) return false;
   if (Object.keys(D.fires).length >= fireRules(g).maxTiles) return false;
   D.fires[i] = g.s.tick;
@@ -111,17 +113,22 @@ export function tickFire(g) {
   const keys = Object.keys(D.fires).map(Number).sort((a, b) => a - b);
   if (!keys.length) return;
   const people = byTile(g);
-  const catching = new Set(), out = [], burned = new Set();
+  const catching = new Set(), out = [], burned = new Set(), wx = !!D.weather, dry = wx ? weatherRules(g).drought.spread : 1;
+  const rained = [];
   let count = keys.length;
   for (const i of keys) {
     const x = i % W, y = (i - x) / W, since = D.fires[i];
+    if (wx && weatherAtTile(g, i) === 'rain') { rained.push(i); continue; } // put out by the rain (below)
     for (let d = 0; d < 8; d++) {
       const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
       if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
       const j = ny * W + nx;
       if (Object.hasOwn(D.fires, j) || catching.has(j) || count >= F.maxTiles) continue;
       const t = tileFlammable(g, j, F);
-      if (t.f > 0 && draw(`${s.seed}:fire:${j}:${i}:${s.tick}`) < F.spread * t.f) { catching.add(j); count++; }
+      if (t.f <= 0) continue;
+      const k = wx ? weatherAtTile(g, j) : null;
+      if (k === 'rain') continue;
+      if (draw(`${s.seed}:fire:${j}:${i}:${s.tick}`) < F.spread * t.f * (k === 'drought' ? dry : 1)) { catching.add(j); count++; }
     }
     // Burns for people on it or beside it (once a step each).
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
@@ -135,6 +142,7 @@ export function tickFire(g) {
     if (s.tick - since >= (fuel ? F.burnTicks : F.burnTicks / 3)) out.push(i);
   }
   for (const j of [...catching].sort((a, b) => a - b)) D.fires[j] = s.tick;
+  for (const i of rained) { delete D.fires[i]; D.scorched[i] = s.tick; } // out: what stands there is left
   const owners = [];
   for (const i of out) owners.push(...burnOut(g, i));
   replan(g, owners);

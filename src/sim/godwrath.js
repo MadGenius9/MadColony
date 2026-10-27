@@ -15,12 +15,14 @@
 //   rebuilds it; people on or beside a collapsing part are wounded.
 // - tornado { x, y, dir? }: a storm that moves from the tile for a few hours (storm.js); dir 0..7 (east, then
 //   clockwise) or by a draw. The preview shows its exact path.
+// - rain { x, y } (not destructive) and drought { x, y }: a weather area for some days (weather.js).
 import { registerPower } from './god.js';
 import { injure } from './health.js';
 import { ignite, tileFlammable, buildingFlammable, fireRules } from './fire.js';
 import { destroyStructures, destroyProject, destroyNode, destroyStack, destroyCrop, replan } from './ruin.js';
 import { claimRules } from './territory.js';
 import { stormRules, stormPath, startStorm, stormCount, stormDraw } from './storm.js';
+import { weatherRules, startWeather, weatherCount } from './weather.js';
 export { buildingFlammable };
 
 const DEFAULTS = {
@@ -320,6 +322,56 @@ registerPower('tornado', {
   apply(g, cmd) {
     const a = cmd.args, key = keyOf(g, cmd), st = startStorm(g, a.x, a.y, stormDir(a, key), key, cmd.id);
     return { msg: `A tornado touched down at (${a.x}, ${a.y}).`, x: a.x, y: a.y, dir: st.d, storm: st.id };
+  },
+});
+
+// ---------------- rain and drought ----------------
+/** What lies in a round area: fires burning, crops (unripe) by village. O(r²). */
+function inArea(g, x, y, r) {
+  const fires = g.s.disasters?.fires || {}, crops = new Map();
+  let burning = 0;
+  for (let yy = y - r; yy <= y + r; yy++) for (let xx = x - r; xx <= x + r; xx++) {
+    if (!g.inB(xx, yy) || (xx - x) ** 2 + (yy - y) ** 2 > r * r) continue;
+    const i = g.i(xx, yy);
+    if (Object.hasOwn(fires, i)) burning++;
+    const cr = g.cropAt(xx, yy);
+    if (cr && cr.growth < 1) { const k = g.territoryAt(xx, yy) || g.s.playerSettlement; crops.set(k, (crops.get(k) || 0) + 1); }
+  }
+  return { burning, crops };
+}
+const weatherValidate = (name) => (g, a) => {
+  const why = tileArgs(name)(g, a);
+  if (why) return why;
+  if (weatherCount(g) >= weatherRules(g).maxAreas) return 'the skies are busy enough (too many weather areas)';
+  return null;
+};
+
+registerPower('rain', {
+  validate: weatherValidate('rain'),
+  cost: (g, a, r) => r.costs.rain ?? 20,
+  preview(g, a) {
+    const R = weatherRules(g).rain, A = inArea(g, a.x, a.y, R.radius);
+    return { x: a.x, y: a.y, r: R.radius, days: R.days, fires: A.burning, effect: `Rain falls round (${a.x}, ${a.y}) for ${R.days} days${A.burning ? `, putting out ${A.burning} burning tile${A.burning === 1 ? '' : 's'}` : ''}; crops and plants grow faster there.` };
+  },
+  apply(g, cmd) {
+    const a = cmd.args, w = startWeather(g, 'rain', a.x, a.y, cmd.id);
+    return { msg: `Rain began to fall round (${a.x}, ${a.y}).`, x: a.x, y: a.y, area: w.id };
+  },
+});
+
+registerPower('drought', {
+  destructive: true,
+  validate: weatherValidate('drought'),
+  cost: (g, a, r) => r.costs.drought ?? 35,
+  preview(g, a) {
+    const R = weatherRules(g).drought, A = inArea(g, a.x, a.y, R.radius), warnings = [];
+    for (const w of byVillage(g, A.crops, 'growing crop')) warnings.push(`${w} stop growing and wither (a crop withered to nothing is lost).`);
+    warnings.push(`For ${R.days} days within ${R.radius} tiles: wild plants do not regrow and fires spread ${R.spread} times as fast.`);
+    return { x: a.x, y: a.y, r: R.radius, days: R.days, warnings, effect: `A drought grips the land round (${a.x}, ${a.y}).` };
+  },
+  apply(g, cmd) {
+    const a = cmd.args, w = startWeather(g, 'drought', a.x, a.y, cmd.id);
+    return { msg: `A drought began round (${a.x}, ${a.y}).`, x: a.x, y: a.y, area: w.id };
   },
 });
 

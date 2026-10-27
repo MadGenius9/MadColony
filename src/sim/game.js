@@ -33,6 +33,7 @@ import { tickRivalry } from './war.js';
 import { tickFallen } from './fallen.js';
 import { tickFire } from './fire.js';
 import { tickStorms } from './storm.js';
+import { tickWeather } from './weather.js';
 import './godwrath.js'; // registers the destructive powers (Phase 5b)
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
@@ -1438,7 +1439,7 @@ export class Game {
     const s = this.s;
     s.tick++;
     if (s.god) applyCommands(this);
-    if (s.disasters) { tickFire(this); if (s.disasters?.storms) tickStorms(this); } // tornadoes move (storm.js); fires spread and burn out (fire.js, Phase 5b; nothing until a fire starts) // god powers due on this tick, in id order (god.js; nothing until a power is used)
+    if (s.disasters) { tickFire(this); if (s.disasters?.storms) tickStorms(this); if (s.disasters?.weather) tickWeather(this); } // tornadoes move (storm.js); fires spread and burn out (fire.js, Phase 5b; nothing until a fire starts) // god powers due on this tick, in id order (god.js; nothing until a power is used)
     if (this.big) runPlanner(this, true); // big worlds: each village on its own staggered schedule
     else if (s.tick % PLAN_INTERVAL === 0 || this.planDirty) { this.planDirty = false; runPlanner(this); }
     if (s.tick % 10 === 0) tickFarming(this, 10);
