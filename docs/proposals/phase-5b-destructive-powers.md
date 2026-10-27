@@ -147,7 +147,29 @@ same projects (distant construction works on projects). Plague spreads on the re
   once, with no tick over 50 ms.
 - A village hit by a meteor or an earthquake rebuilds its homes within days.
 
+### Slice 6, extended (2026-10-27, the owner's go: "fight fires, regrow plants/trees")
+Built as four parts, each tested and pushed:
+- **6a rain and drought** as above. Weather areas `s.disasters.weather` (id -> { kind, x, y, r, until }), at most
+  4 at once; rain (radius 10, 2 days) puts out fires in it and no fire starts or spreads there, crops and wild
+  plants grow ×1.5; drought (radius 12, 4 days) stops crop growth and withers unripe crops (a crop withered to
+  nothing is lost), wild plants do not regrow, fires spread ×2. Rain is not destructive; drought is (confirm).
+- **6b plague** as above (data `core:plague` illness; a village or a person).
+- **6c firefighting** (open question 1, answered yes): a fire within a village's reach that threatens its
+  buildings or fields (a burnable built part, field or stockpile within 3 tiles) is fought: able adults who are
+  not resting go next to the burning tile and beat it out (work, then the tile is put out and scorched); a
+  well, pump or water stretch within 15 tiles makes it twice as fast (they carry water). They take the usual
+  burns beside a fire. Others still flee. Distant villages put out a fire tile next to their buildings with a
+  chance per fire step (no walking).
+- **6d regrowth** (open question 4, answered yes):
+  - *Scars heal in every game:* a tree or plant destroyed by a power or a fire leaves a seed in
+    `s.disasters.seeds` (tile -> { def, at }); after the scorch time (fire) or `seedDays` it sprouts as a young
+    node (`empty`, grows with the usual regrowth, `regrowDays` from data: pine 20) if the tile is still free.
+  - *Forests spread in the long-game worlds:* scenario rule `nature.spread` (Vast, Living and World): each day
+    a share of trees and bushes may drop a seed on a free tile within 2 with fewer than `maxNear` of their kind
+    round it, outside every village's buildings and fields. Classic games have no spread (state hashes stay).
+
 ## Open questions for the user
+_Answered 2026-10-27: 1 (fight fires: yes), 4 (regrowth: yes). 2 and 3 stand as proposed._
 1. **Fighting fires:** should colonists carry water to put fires out (a new job, more work), or only flee while
    rain and burning out end fires? Proposal: flee only in 5b; firefighting later.
 2. **Costs:** proposal (favour, max 100): lightning 15, smite 20, fire 25, rain 20, drought 35, tornado 50, plague
