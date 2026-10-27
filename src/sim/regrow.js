@@ -46,14 +46,17 @@ export function leaveSeed(g, n, days = null) {
   seeds[g.i(n.x, n.y)] = { def: n.def, at: s.tick + Math.round((days ?? REGROW_DEFAULTS.seedDays) * TICKS_PER_DAY) };
 }
 
-/** Why tile i cannot hold a new plant now: 'never' (built, zoned, bare or water), 'busy' (for now), or null. */
-function blocked(g, i) {
+/** Why tile i cannot hold a new plant of `def` now: 'never' (built, zoned, bare or water), 'busy' (for now), or
+ *  null. A solid one (a tree) also waits while someone stands there or while it would shut anyone in or cut a
+ *  village's way (Game.wouldTrap, as goods put back do). */
+function blocked(g, i, def = null) {
   const x = i % g.W, y = (i - x) / g.W, t = g.terrainAt(x, y);
   if (!t.passable || t.drinkable || t.id === 'core:crater') return 'never';
   if (g.structIdAt(i) || g.footIdAt(i) || g.zoneAt(i)) return 'never';
   if (g.nodeIdAt(i) || g.cropIdAt(i) || g.stackIdAt(i)) return 'busy';
   const D = g.s.disasters;
   if (D && (Object.hasOwn(D.fires, i) || Object.hasOwn(D.scorched, i))) return 'busy';
+  if (def && g.reg.get('node', def)?.passable === false && (g.colonistAt(x, y) || g.wouldTrap(x, y, g.big ? g.s.playerSettlement : null))) return 'busy';
   return null;
 }
 
@@ -86,7 +89,7 @@ export function tickRegrowth(g) {
     for (const k of Object.keys(seeds).sort((a, b) => a - b)) {
       const e = seeds[k], i = Number(k);
       if (s.tick < e.at) continue;
-      const why = g.reg.has('node', e.def) ? blocked(g, i) : 'never';
+      const why = g.reg.has('node', e.def) ? blocked(g, i, e.def) : 'never';
       if (!why) { sprout(g, e.def, i); n++; delete seeds[k]; } else if (why === 'never' || s.tick >= e.at + REGROW_DEFAULTS.sproutTries * TICKS_PER_DAY) delete seeds[k];
     }
     if (!Object.keys(seeds).length) delete s.disasters.seeds;
@@ -107,7 +110,7 @@ export function tickRegrowth(g) {
       const x = p.x + dx, y = p.y + dy;
       if ((!dx && !dy) || !g.inB(x, y)) continue;
       const i = g.i(x, y);
-      if (g.terrainAt(i) !== g.terrainAt(g.i(p.x, p.y)) || blocked(g, i) || villageNear(g, x, y)) continue;
+      if (g.terrainAt(i) !== g.terrainAt(g.i(p.x, p.y)) || villageNear(g, x, y) || blocked(g, i)) continue;
       let near = 0;
       for (let yy = y - NEAR; yy <= y + NEAR; yy++) for (let xx = x - NEAR; xx <= x + NEAR; xx++) if (g.inB(xx, yy) && g.nodeAt(xx, yy)?.def === rule.node) near++;
       if (near >= rule.maxNear || near < (rule.minNear ?? 3)) continue;

@@ -369,7 +369,7 @@ function planSettlement(g, sid) {
       if (reach && !reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK)) continue; // one chunk's trip
       if (g.reachableFrom(center.x, center.y, nd.x, nd.y, g.nodeDef(nd).passable ? 'on' : 'adj')) { ok = true; break; }
     }
-    if (!ok) ok = (g.big ? pool : Object.values(s.nodes)).some((nd) => set.has(nd.def) && nd.empty && g.gatherOk(sid, nd) && (!reach || reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK))) ? 'regrowing' : false;
+    if (!ok) ok = (g.big ? pool : Object.values(s.nodes)).some((nd) => set.has(nd.def) && nd.empty && !nd.young && g.gatherOk(sid, nd) && (!reach || reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK))) ? 'regrowing' : false;
     reachCache.set(k, ok);
     return ok;
   };

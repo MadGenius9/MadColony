@@ -213,13 +213,14 @@ function waterNear(g, x, y, r) {
 const COMBAT = new Set(['fight', 'flee', 'arm']); // combat.js COMBAT_JOBS (not imported: an import cycle)
 
 /** Can c fight a fire now? An awake adult of a full-detail village, on its feet, health above half, not fighting,
- *  not seeing to a need or carrying someone or something, and with no need below its seek line (else the needs
- *  interrupt would end the firefight at once and the fire would end the meal: they would take turns). */
+ *  not seeing to a need or carrying someone or something, and with no urgent need (below its urgent line: the needs
+ *  interrupt would end the firefight at once and the fire would end the meal; they would take turns). Shelter does
+ *  not count (nobody seeks it: it stays low for the homeless, who fight fires like anyone). */
 function canFight(g, c) {
   if (c.sleeping || c.health?.down || hpOf(c) <= 50 || c.carriedBy || c.carry) return false;
   const j = c.job;
   if (j && (COMBAT.has(j.type) || j.need || j.stage === 'carry' || j.water)) return false;
-  for (const def of g.reg.all('need')) if ((c.needs[def.id] ?? 1) < def.seekBelow) return false;
+  for (const def of g.reg.all('need')) if (def.behavior !== 'core:shelter' && (c.needs[def.id] ?? 1) < def.urgentBelow) return false;
   const st = stageOf(g, c);
   if (st && st.untilDays !== undefined) return false; // children do not
   return g.s.settlements?.[c.settlementId || g.s.playerSettlement]?.detail !== 'abstract';
@@ -232,13 +233,13 @@ function fightFire(g, c, F) {
   if (!list?.length || !canFight(g, c)) return null;
   let best = -1, bd = Infinity;
   for (const i of list) {
-    if (!Object.hasOwn(g.s.disasters.fires, i) || g.isBlocked(`fire:${i}`)) continue; // no way there lately
+    if (!Object.hasOwn(g.s.disasters.fires, i) || g.isBlocked(`fire:${c.settlementId || g.s.playerSettlement}:${i}`)) continue; // no way there lately
     const x = i % g.W, y = (i - x) / g.W, d = Math.max(Math.abs(x - c.x), Math.abs(y - c.y));
     if (d <= F.fightReach && d < bd) { bd = d; best = i; }
   }
   if (best < 0) return null;
   const x = best % g.W, y = (best - x) / g.W;
-  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: 'A fire threatens the village', label: 'Fight the fire', targetKey: `fire:${best}` });
+  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: 'A fire threatens the village', label: 'Fight the fire', targetKey: `fire:${c.settlementId || g.s.playerSettlement}:${best}` });
 }
 
 /** ai.js tickColonist (only while something burns): fight a fire that threatens the village (firefighting), else

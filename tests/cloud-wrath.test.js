@@ -717,3 +717,27 @@ test('regrowth: forests spread where the scenario says, only beside their kind, 
   }
   assert.equal(stateText(run(true)), stateText(g));
 });
+
+test('review fixes: the homeless fight fires; a tree does not sprout under someone', () => {
+  const g = sandbox();
+  runDays(g, 4);
+  for (const c of g.colonists()) c.needs['core:shelter'] = 0; // as if every home had burned
+  homeFire(g);
+  let fought = false;
+  for (let t = 0; t < 600 && !fought; t++) { g.tick(); fought = g.colonists().some((c) => c.job?.type === 'firefight'); }
+  assert.ok(fought, 'low shelter does not keep people from the fire');
+  // A seed due on a tile where someone stands waits.
+  const h = sandbox();
+  runDays(h, 1);
+  const c = h.colonists()[0], ctr = h.s.settlements[h.s.playerSettlement].center;
+  const free = (i) => !h.nodeIdAt(i) && !h.structIdAt(i) && !h.zoneAt(i) && !h.footIdAt(i) && !h.stackIdAt(i) && !h.cropIdAt(i) && h.isPassable(i % h.W, (i / h.W) | 0);
+  let i = -1;
+  for (let r = 6; r < 20 && i < 0; r++) for (let dx = -r; dx <= r && i < 0; dx++) { const j = h.i(ctr.x + dx, ctr.y + r); if (free(j)) i = j; }
+  assert.ok(i >= 0, 'a free tile near the village');
+  const x = i % h.W, y = (i / h.W) | 0;
+  h.s.disasters ||= { fires: {}, scorched: {} };
+  h.s.disasters.seeds = { [i]: { def: 'core:pine', at: h.s.tick } };
+  for (let t = 0; t < 120; t++) { c.x = x; c.y = y; c.mv = null; h.tick(); }
+  assert.equal(h.nodeIdAt(i), null, 'no tree grew under them');
+  assert.ok(h.s.disasters.seeds?.[i], 'the seed waits');
+});

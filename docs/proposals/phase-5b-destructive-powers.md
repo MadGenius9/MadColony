@@ -332,5 +332,10 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   0.32–0.37 ms a tick without, 0.36–0.38 with (within the noise of this machine; its worst tick is the first one).
 - **Deviation:** "outside village land" meant nothing on maps where every tile belongs to the nearest village
   (classic and Living worlds), so spread keeps 3 tiles clear of buildings, sites and zones instead.
-- **Not changed:** classic runs (no spread rule; seeds only after a power); 134 tests pass (4 more).
-
+- **Review fixes:** firefighting only waits for urgent needs (below the urgent line), and never for shelter (it
+  stays low for the homeless: after homes burned nobody fought fires). A solid plant (a tree) waits to sprout while
+  someone stands on its tile or while it would cut a way or shut anyone in (`Game.wouldTrap`, as goods put back do).
+  A young pine no longer counts as "regrowing" for the planner's wood plans (one sapling held a village's wood
+  trade and land claims for 20 days or more). A fire nobody of a village can reach is blocked for that village only.
+  Not changed: site scoring still counts young pines as wood (as it counts picked bushes).
+- **Not changed:** classic runs (no spread rule; seeds only after a power); 135 tests pass (5 more).
