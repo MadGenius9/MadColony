@@ -70,7 +70,7 @@
   ],
   "terrain": [
     {
-      "id": "core:grass",
+      "id": "core:grass", "flammable": 0.06,
       "name": "Grass",
       "color": "#5f8f45",
       "passable": true,
@@ -81,7 +81,7 @@
       }
     },
     {
-      "id": "core:soil",
+      "id": "core:soil", "flammable": 0.02,
       "name": "Rich soil",
       "color": "#6e5a34",
       "passable": true,

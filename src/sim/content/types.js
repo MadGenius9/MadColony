@@ -79,7 +79,7 @@ export const CONTENT_TYPES = {
   },
   terrain: {
     doc: 'Ground type.',
-    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), drinkable: bool(), render: terrainLook }),
+    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), drinkable: bool(), flammable: num(0, 1), render: terrainLook }),
   },
   item: {
     doc: 'Anything that can lie on the ground, be stored, carried, eaten, crafted or equipped.',
@@ -625,7 +625,10 @@ export const CONTENT_TYPES = {
         if (v.days > v.maxDays) err('days must not be above maxDays');
       } })),
       // Phase 5b (godwrath.js): numbers of the destructive powers; defaults in godwrath.js.
-      wrath: obj({ lightning: obj({ wound: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })), flammableAt: req(num(0, 1)) }) }),
+      wrath: obj({
+        lightning: obj({ wound: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })) }),
+        fire: obj({ step: int(1, 2400), spread: num(0, 1), burnTicks: int(1, 100000), maxTiles: int(1, 100000), burnPerStep: num(0, 100), scorchDays: num(0, 1000), cropFlammable: num(0, 1) }),
+      }),
       inspire: req(obj({ fraction: req(num(0.01, 1)) })), // research share added per inspiration (above 0: an inspiration always advances)
       spawn: req(obj({
         maxCount: req(int(1, 10)),            // the most settlers one command may bring

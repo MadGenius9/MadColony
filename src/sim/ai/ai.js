@@ -11,6 +11,7 @@ import { GIVERS, equipCandidate } from './givers.js';
 import { tickHealth, isDown, hpOf, maybeAccident, HEALTH } from '../health.js';
 import { COMBAT_DRIVERS, COMBAT_JOBS, combatDecision } from '../combat.js';
 import { tripChecker, farFromHome } from './trips.js';
+import { fireDanger } from '../fire.js';
 
 Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS);
 
@@ -35,7 +36,7 @@ export function tickColonist(g, c) {
     return;
   }
   // Threats first: fight, flee or march according to the settlement's orders.
-  const cj = combatDecision(g, c);
+  const cj = combatDecision(g, c) || (g.s.disasters ? fireDanger(g, c) : null); // fire: fire.js (Phase 5b)
   if (cj) { if (c.job) endJob(g, c, null, `Danger: ${cj.why}`); startJob(g, c, cj); }
 
   if (c.job) {

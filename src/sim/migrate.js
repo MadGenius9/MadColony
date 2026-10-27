@@ -88,6 +88,8 @@ export const MIGRATIONS = {
   // 21 -> 22: conquest (Phase 5, slice 6b). `relation.beaten` (who has had no fighters, since when) and the trade
   // flag `tribute` are optional. Nothing to add.
   21() {},
+  // 22 -> 23: fire (Phase 5b). `s.disasters` (burning and scorched tiles) is optional: absent means nothing burns.
+  22() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

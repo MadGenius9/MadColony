@@ -100,6 +100,7 @@ export function validateSave(save) {
   if (s.god !== undefined) validateGod(s, bad);
   if (s.dead !== undefined) validateDead(s, bad); // format 15
   if (s.bodies !== undefined) validateBodies(s, bad, inB); // format 16
+  if (s.disasters !== undefined) validateDisasters(s, bad); // format 23
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -183,6 +184,17 @@ function validateClaims(s, m, bad) {
  *  (whole ids below nextId, each used once, the queue in id order with ticks never decreasing, whole ticks),
  *  blessings well formed (a blessing of a settlement that no longer exists is dropped at load, loadGame). Unknown power types are allowed (a mod may be missing): such a
  *  command is refused, with its reason logged, when it comes due. */
+/** Disasters (format 23, optional): burning and scorched tiles, keyed by tile index inside the map, with ticks. */
+function validateDisasters(s, bad) {
+  const D = s.disasters, N = (s.map?.w || 0) * (s.map?.h || 0);
+  if (!isObj(D) || !isObj(D.fires) || !isObj(D.scorched)) { bad('state.disasters is malformed'); return; }
+  for (const part of ['fires', 'scorched']) {
+    for (const [k, t] of Object.entries(D[part])) {
+      if (!/^\d{1,8}$/.test(k) || Number(k) >= N || !isInt(t) || t < 0 || t > s.tick) { bad(`state.disasters.${part} has a bad tile or time`); return; }
+    }
+  }
+}
+
 /** Bodies waiting for burial (format 16, optional): of someone in s.dead, owned by an existing settlement, on the map,
  *  carried only by a living colonist. */
 function validateBodies(s, bad, inB) {

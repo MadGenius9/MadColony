@@ -105,3 +105,12 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Damaged homes:** a home with `complete === false` after it was finished shows "Damaged: being rebuilt" and the
   missing part as a building site.
 
+## Phase 5b, slice 2: fire
+- **Map:** burning tiles (`g.s.disasters.fires`: tile index → tick) drawn as flames with smoke (the world view: an
+  orange glow); scorched tiles (`g.s.disasters.scorched`) drawn as ash on the ground until they fade (30 days).
+- **Fire power:** target a tile; the preview shows the warnings (people in danger, flammable buildings by village).
+- **Colonists:** "Running from the fire" (flee job); burns in the injury list (kind `burn`).
+- **Letters:** "A fire broke out at …" (god log), "The fire has burned out."; buildings that burned show up as
+  "Damaged: being rebuilt" homes.
+- **Sound:** crackling while fires burn on screen.
+

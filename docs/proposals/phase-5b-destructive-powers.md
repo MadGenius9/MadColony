@@ -1,6 +1,6 @@
 # Phase 5b: god powers, part 2 (destructive and nature powers)
 
-Status: **in progress** ("go" from the user on 2026-10-27; the open questions' proposals are the working defaults). Slice 1 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-27; the open questions' proposals are the working defaults). Slices 1 and 2 (fire) done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -183,3 +183,22 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
 - **Not changed:** classic runs (same state hashes); 109 tests pass (7 in `tests/cloud-wrath.test.js`: confirm and
   warnings, lightning, smite, a destroyed wall rebuilt by its village, every building of a village destroyed with
   exact counts and save/load identity, replay).
+
+### Slice 2: fire (the plan's slice 3)
+- **Built:** `src/sim/fire.js`: `s.disasters { fires, scorched }` (save format 23, validated), `tickFire` every 25
+  ticks (spread to the 8 neighbours with chance 0.3 × their flammability, burns for people on or beside a burning
+  tile once a step, burn-out after 300 ticks, 100 for bare ground, at most 600 tiles burning world-wide, scorched
+  tiles safe for 30 days), `ignite`, `tileFlammable` (the most flammable thing on the tile: building, plant, crop,
+  goods, ground), `fireDanger` (people within 2 tiles of a fire run 8 tiles away; ai.js, beside the combat
+  decision). The **fire** power (tile; refused where nothing can burn; warnings: people within 6 tiles, flammable
+  buildings close by by village, "may spread"); **lightning** now starts a fire where it strikes instead of
+  burning things at once. Terrains carry `flammable` (grass 0.06, savanna 0.12, forest floor and taiga 0.1, ...).
+  Fire burns only flammable goods (`ruin.js`): stone and iron in a burned building are left on the ground.
+- **Deviation: no ash terrain.** A terrain change on big worlds rebuilds the whole-map water and territory data
+  (about 70 ms on World each time), so burned tiles are marked scorched in `s.disasters` instead (they do not
+  burn again for 30 days; the UI draws them as ash). Craters (meteor) will change terrain, once per strike.
+- **Tuning:** with grass at 0.25 a fire started near the player's village on the Vast world never stopped
+  (13,755 tiles scorched in 3 days, still spreading). With the values above the same fire burned 206 tiles and
+  went out after about 15 hours; dense woods still burn through. Worst tick during the fire 17 ms.
+- **Not changed:** classic runs; 113 tests pass (4 more in `tests/cloud-wrath.test.js`).
+

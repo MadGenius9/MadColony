@@ -126,3 +126,91 @@ test('powers replay identically and survive a save and load', () => {
   };
   assert.equal(stateText(run(false)), stateText(run(true)));
 });
+
+// ---------------- slice 2: fire ----------------
+import { tileFlammable, isBurning, fireRules } from '../src/sim/fire.js';
+import { serializeGame, loadGame } from './cloud-helpers.js';
+
+/** The tile with the most trees round it (radius 3) near the player's village: a small wood. */
+function wood(g) {
+  const c = g.s.settlements[g.s.playerSettlement].center;
+  let best = null, bn = -1;
+  for (const n of Object.values(g.s.nodes)) {
+    if (n.def !== 'core:pine' || Math.hypot(n.x - c.x, n.y - c.y) > 30) continue;
+    let k = 0;
+    for (const m of Object.values(g.s.nodes)) if (m.def === 'core:pine' && Math.abs(m.x - n.x) <= 3 && Math.abs(m.y - n.y) <= 3) k++;
+    if (k > bn) { bn = k; best = n; }
+  }
+  return best;
+}
+
+test('fire: refused where nothing can burn; it spreads through a wood, never past the cap, and burns out', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const water = (() => { for (let i = 0; i < g.W * g.H; i++) if (tileFlammable(g, i).f <= 0 && !g.isPassable(i % g.W, Math.floor(i / g.W))) return { x: i % g.W, y: Math.floor(i / g.W) }; return null; })();
+  if (water) assert.match(previewCommand(g, 'fire', { ...water, confirm: true }).reason, /nothing there can burn/);
+  const t = wood(g);
+  const before = Object.values(g.s.nodes).filter((n) => n.def === 'core:pine').length;
+  assert.equal(issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true }).ok, true);
+  g.tick();
+  assert.ok(isBurning(g, g.i(t.x, t.y)));
+  let most = 0;
+  for (let d = 0; d < 6 && Object.keys(g.s.disasters.fires).length; d++) for (let k = 0; k < 24; k++) { g.step(100); most = Math.max(most, Object.keys(g.s.disasters.fires).length); }
+  assert.equal(Object.keys(g.s.disasters.fires).length, 0, 'burned out within 6 days');
+  assert.ok(most <= fireRules(g).maxTiles);
+  assert.ok(Object.values(g.s.nodes).filter((n) => n.def === 'core:pine').length < before, 'trees burned');
+  assert.ok(Object.keys(g.s.disasters.scorched).length > 0, 'scorched ground');
+  assert.equal(tileFlammable(g, g.i(t.x, t.y)).f, 0, 'scorched ground does not burn again soon');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+});
+
+test('fire: a burning wooden home part is lost and rebuilt; stone in it is left on the ground; people flee and get burns', () => {
+  const g = sandbox();
+  runDays(g, 6);
+  const home = Object.values(g.s.homes).find((h) => h.complete);
+  const p = g.s.projects[home.projectId];
+  const wall = p.parts.map((id) => g.s.structures[id]).find((st) => st.built && g.bDef(st).category === 'wall' && tileFlammable(g, g.i(st.x, st.y)).f > 0);
+  assert.ok(wall, 'a wooden wall');
+  const c = g.colonists()[0];
+  c.x = wall.x; c.y = wall.y + 1; // someone right next to it
+  assert.equal(issueCommand(g, 'fire', { x: wall.x, y: wall.y, confirm: true }).ok, true);
+  g.step(30);
+  assert.ok(c.job?.type === 'flee' || c.health?.injuries?.some((i) => i.kind === 'burn'), 'they run, or are already burned');
+  g.step(fireRules(g).burnTicks + 50);
+  assert.equal(g.s.structures[wall.id], undefined, 'the wall burned');
+  assert.equal(home.complete, false);
+  assert.deepEqual(conservationErrors(g), []);
+  runDays(g, 4);
+  assert.equal(home.complete, true, 'rebuilt');
+});
+
+test('lightning on a tree starts a fire', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  assert.ok(previewCommand(g, 'lightning', { x: t.x, y: t.y, confirm: true }).preview.fire);
+  issueCommand(g, 'lightning', { x: t.x, y: t.y, confirm: true });
+  g.tick();
+  assert.ok(isBurning(g, g.i(t.x, t.y)));
+});
+
+test('fire: saved mid-fire, the game continues identically; a malformed fire is refused; no fire, no state', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 1);
+    const t = wood(g);
+    issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+    for (let h = 1; h <= 12; h++) { g.step(100); if (cut.includes(h)) g = reload(g); }
+    return g;
+  };
+  const a = run([]), b = run([2, 5]);
+  assert.equal(firstDifference(stateText(a), stateText(b)), null);
+  assert.equal(stateText(a), stateText(b));
+  const bad = JSON.parse(serializeGame(a));
+  bad.state.disasters.fires['99999999'] = 0;
+  assert.throws(() => loadGame(a.reg, JSON.stringify(bad)), /disasters/);
+  const c = newGame({ seed: 4242 });
+  runDays(c, 1);
+  assert.equal(c.s.disasters, undefined);
+});

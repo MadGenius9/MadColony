@@ -42,7 +42,9 @@ function lose(g, owner, items, x, y, reason) {
   g.actor = owner;
   try {
     for (const e of items) {
-      if (reason) g.consume(e.item, e.qty, reason);
+      // Fire burns only what can burn (items' `flammable`); stone and iron are left on the ground.
+      const gone = reason && (reason !== 'fire' || (g.reg.get('item', e.item)?.flammable || 0) > 0);
+      if (gone) g.consume(e.item, e.qty, reason);
       else g.placeItems(e.item, e.qty, x, y, e.dur);
     }
   } finally { g.actor = prev; }
