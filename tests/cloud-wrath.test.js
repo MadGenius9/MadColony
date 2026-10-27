@@ -242,7 +242,7 @@ test('nobody is smitten twice in one tick; non-destructive powers accept confirm
 });
 
 // ---------------- slice 4: meteor and earthquake ----------------
-import { buildingFlammable } from '../src/sim/godwrath.js';
+import { quakeParts } from '../src/sim/godwrath.js';
 
 /** A tile on the player's first home: the target of the tests below. */
 function homeTile(g) {
@@ -326,7 +326,13 @@ test('earthquake: parts collapse (wooden more often than stone), goods fall, vil
   assert.deepEqual(conservationErrors(g), []);
   assert.equal(stateText(reload(g)), stateText(g));
   // Stone stands better than wood (the chances, which the draws follow).
-  assert.ok(buildingFlammable(g, g.reg.get('building', 'core:stone_wall')) < buildingFlammable(g, g.reg.get('building', 'core:wood_wall')));
+  // Stone stands better than wood: at the same distance a stone wall's chance is lower. Graves never fall.
+  const Q = { radius: 12, collapse: 0.6, sturdy: 0.35, wound: [10, 35] };
+  const wall = (def) => { const st = g.addStructure(def, 2, 2, { built: true }); const c = quakeParts(g, 2, 2, Q).find((q) => q.st.id === st.id)?.chance; g.removeStructure(st.id); return c; };
+  assert.ok(wall('core:stone_wall') < wall('core:wood_wall'), `${wall('core:stone_wall')} < ${wall('core:wood_wall')}`);
+  const grave = g.addStructure('core:grave', 2, 2, { built: true, grave: { cid: 'x', name: 'X', tick: 0 } });
+  assert.equal(quakeParts(g, 2, 2, Q).some((q) => q.st.id === grave.id), false);
+  g.removeStructure(grave.id);
 });
 
 test('meteor and earthquake replay identically across a save and load', () => {
@@ -345,4 +351,22 @@ test('meteor and earthquake replay identically across a save and load', () => {
     return g;
   };
   assert.equal(stateText(run(false)), stateText(run(true)));
+});
+
+test('a grave destroyed by a meteor: the record of the dead keeps the burial, not the grave', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const c = g.colonists()[0];
+  issueCommand(g, 'smite', { colonistId: c.id, confirm: true });
+  runDays(g, 2);
+  const gid = g.s.dead[c.id].graveId;
+  assert.ok(gid && g.s.structures[gid], 'buried in a grave');
+  const st = g.s.structures[gid];
+  assert.equal(issueCommand(g, 'meteor', { x: st.x, y: st.y, confirm: true }).ok, true);
+  g.tick();
+  assert.equal(g.s.structures[gid], undefined);
+  assert.equal(g.s.dead[c.id].graveId, undefined);
+  assert.ok(g.s.dead[c.id].buried >= 0);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
 });

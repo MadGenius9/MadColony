@@ -201,3 +201,25 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   went out after about 15 hours; dense woods still burn through. Worst tick during the fire 17 ms.
 - **Not changed:** classic runs; 113 tests pass (4 more in `tests/cloud-wrath.test.js`).
 
+### Slice 3: meteor and earthquake (the plan's slice 4)
+- **Built:** the **meteor** power (tile, cost 60; `godRules.wrath.meteor`: radius 2, ring 3, wounds 15–50, fire
+  chance 0.35 in the ring, 4–10 meteoric iron): in the crater people die ("was crushed by a falling star"), goods,
+  trees, rocks and crops are destroyed (`consumed:divine`), and every building with a part in it is lost as a whole
+  (`ruin.js destroyProject`: the project is cancelled, its footprint freed, a home removed and its people homeless
+  until a new home has a free bed; goods in the parts outside the crater fall to the ground); in the ring people are
+  wounded and burnable tiles may catch fire. The iron (`created:divine`) belongs to whoever holds the land. The
+  **earthquake** power (tile, cost 70; `wrath.quake`: radius 12): each built part may collapse with chance
+  0.6 × (1 − distance / 13) × (0.35 + 0.65 × how wooden it is); its goods fall to the ground and its village
+  rebuilds it (slice 1's repair); people on or beside a collapsing part are wounded (10–35). Graves do not fall;
+  a grave a meteor destroys is gone (the record of the dead keeps the burial, not the grave id).
+- **New terrain `core:crater`** (passable, not buildable, fertility 0). A terrain change normally bumps the map
+  revision, which rebuilt the whole-map water walk, land chunks and territory: a meteor took 485 ms on the Vast
+  world. Crater tiles now replace only ground that walks and is claimed exactly like a crater (move cost 1, claim
+  cost 1, not water: grass, soil, gravel, savanna, ...) without that rebuild (`Game.setTerrainKeepRev`; the caches
+  would come out the same, and a test checks the water walk): 37 ms (worst tick of the strike) on Vast.
+- **Deviations:** forest floor, sand, hills, snow, tundra and jungle in a crater are cleared but keep their
+  terrain (they walk or are claimed differently), so they can be built on again. Rocks do not split in an
+  earthquake (not built: nodes keep their chunks). A field under a crater keeps its zone; its crater tiles are
+  never sown (fertility 0).
+- **Not changed:** classic runs (same state hashes); 119 tests pass (5 more in `tests/cloud-wrath.test.js`).
+

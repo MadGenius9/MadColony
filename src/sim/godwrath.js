@@ -199,15 +199,16 @@ registerPower('meteor', {
     for (const c of A.wounded) injure(g, c, 'wound', between(M.wound, draw(`${key}:w:${c.id}`)), 'Hit by the falling star', false, mine(g, c.settlementId) ? 'warn' : 'info');
     const owners = new Set();
     for (const id of A.lost) owners.add(s.structures[id].settlement || s.playerSettlement);
-    const opts = { reason: 'divine', why: 'A falling star destroyed it' };
-    for (const pid of A.projects) destroyProject(g, pid, opts, A.structs);
-    destroyStructures(g, [...A.structs].filter((id) => s.structures[id]), { ...opts, repair: false, replan: false });
+    // Goods on the ground first, so the goods that fall out of the buildings' parts outside the crater stay.
     let goods = 0;
     for (const i of A.crater) {
       const n = g.nodeIdAt(i); if (n) destroyNode(g, n);
       const cr = g.cropIdAt(i); if (cr) destroyCrop(g, cr);
       const st = g.stackIdAt(i); if (st) goods += destroyStack(g, st, 'divine');
     }
+    const opts = { reason: 'divine', why: 'A falling star destroyed it' };
+    for (const pid of A.projects) destroyProject(g, pid, opts, A.structs);
+    destroyStructures(g, [...A.structs].filter((id) => s.structures[id]), { ...opts, repair: false, replan: false });
     let tiles = 0;
     const ct = g.reg.get('terrain', CRATER), CR = claimRules(g), claimCost = (id) => CR?.costs?.[id] ?? CR?.defaultCost ?? 1;
     const same = (t) => t.passable === ct.passable && !!t.drinkable === !!ct.drinkable && (t.moveCost || 1) === (ct.moveCost || 1)
@@ -216,7 +217,11 @@ registerPower('meteor', {
     let fires = 0;
     for (const i of A.ring) if (draw(`${key}:f:${i}`) < M.fire && tileFlammable(g, i).f > 0 && ignite(g, i)) fires++;
     const iron = Math.round(between(M.iron, draw(`${key}:iron`)));
-    if (iron > 0 && g.reg.has('item', M.item)) g.createItems(M.item, iron, a.x, a.y, 'divine');
+    if (iron > 0 && g.reg.has('item', M.item)) { // it belongs to whoever holds the land there (else the player)
+      const prev = g.actor;
+      g.actor = g.territoryAt(a.x, a.y) || s.playerSettlement;
+      try { g.createItems(M.item, iron, a.x, a.y, 'divine'); } finally { g.actor = prev; }
+    }
     replan(g, [...owners]);
     return { msg: `A falling star struck (${a.x}, ${a.y})${A.killed.length ? `: ${A.killed.map((c) => c.name).join(', ')} killed` : ''}${A.wounded.length ? `${A.killed.length ? ',' : ':'} ${A.wounded.length} wounded` : ''}${A.lost.size ? `; ${A.lost.size} building part${A.lost.size === 1 ? '' : 's'} destroyed` : ''}.`,
       x: a.x, y: a.y, killed: A.killed.length, wounded: A.wounded.length, parts: A.lost.size, tiles, fires, goods, iron };
@@ -224,12 +229,18 @@ registerPower('meteor', {
 });
 
 // ---------------- earthquake ----------------
-/** Built parts within the quake's radius, each with its chance to collapse, in id order. O(structures). */
-function quakeParts(g, x, y, Q) {
-  const out = [];
-  for (const id of Object.keys(g.s.structures).sort()) {
+/** Built parts within the quake's radius (graves do not fall), each with its chance to collapse, in id order.
+ *  O(radius²) tile lookups. */
+export function quakeParts(g, x, y, Q) {
+  const out = [], ids = [];
+  for (let yy = y - Q.radius; yy <= y + Q.radius; yy++) for (let xx = x - Q.radius; xx <= x + Q.radius; xx++) {
+    if (!g.inB(xx, yy)) continue;
+    const id = g.structIdAt(g.i(xx, yy));
+    if (id) ids.push(id);
+  }
+  for (const id of [...new Set(ids)].sort()) {
     const st = g.s.structures[id];
-    if (!st.built) continue;
+    if (!st.built || st.grave) continue;
     const d = Math.hypot(st.x - x, st.y - y);
     if (d > Q.radius) continue;
     const wood = buildingFlammable(g, g.bDef(st));

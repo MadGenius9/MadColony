@@ -121,6 +121,8 @@ where, and which sim function or state field provides it. The UI is built at hom
   crater"). On impact: a streak of light from the sky, a flash, dust, then fires round the rim.
 - **Crater terrain** (`core:crater`, render style `gravel`, colour #5a5048): drawn darker with a raised rim; its
   tooltip says "Crater: nothing can be built here".
+- **Redraw:** craters change terrain without bumping `s.map.rev` (so whole-map sim caches are kept); the
+  terrain layer must also redraw when `g.terrainDrawRev` (derived, never saved) changes.
 - **Meteoric iron:** the stack left in the crater (core:iron) can be shown with a faint glow for a day.
 - **Earthquake power:** target a tile; the preview shows the radius (12) and "about N building parts will fall";
   on impact the screen shakes for a moment and collapsed parts show as rubble then building sites ("Damaged:

@@ -414,9 +414,11 @@ export class Game {
   }
   /** Change a tile's terrain to one that walks, drinks and is claimed exactly like the old one (the caller checks:
    *  godwrath.js craters): the map revision stays, so whole-map caches built from those (water walk, land chunks,
-   *  territory) are not rebuilt; they would come out the same. The tile's chunk is marked changed. */
+   *  territory) are not rebuilt; they would come out the same. The tile's chunk is marked changed, and
+   *  terrainDrawRev (derived, never saved) tells the map drawing the terrain changed. */
   setTerrainKeepRev(i, id) {
     this._ts.set(i, id);
+    this.terrainDrawRev = (this.terrainDrawRev || 0) + 1;
     this.markDirty(i % this.W, (i / this.W) | 0);
   }
   nodeIdAt(i) { const L = this.lNode, h = L.a[i]; return h ? L.ids[h] : null; }

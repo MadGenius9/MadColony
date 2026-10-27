@@ -73,6 +73,11 @@ export function destroyStructure(g, id, opts = {}) {
     if (c.bedId === id) c.bedId = null;
     if (c.medBedId === id) c.medBedId = null;
   }
+  // A grave (burial.js) is not rebuilt: the record of the dead keeps that they were buried, without the grave.
+  if (st.grave && s.dead?.[st.grave.cid]?.graveId === id) {
+    delete s.dead[st.grave.cid].graveId;
+    g.log(`The grave of ${st.grave.name} was destroyed.`, 'info');
+  }
   const def = g.bDef(st), p = st.projectId && s.projects[st.projectId];
   const slot = p?.slots?.find((x) => x.filled === id);
   g.removeStructure(id);
