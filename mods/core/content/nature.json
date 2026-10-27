@@ -1,7 +1,7 @@
 {
   "node": [
     {
-      "id": "core:pine",
+      "id": "core:pine", "flammable": 1,
       "name": "Pine tree",
       "workType": "core:chop",
       "work": 110,
@@ -45,7 +45,7 @@
       }
     },
     {
-      "id": "core:berry_bush",
+      "id": "core:berry_bush", "flammable": 0.7,
       "name": "Berry bush",
       "workType": "core:forage",
       "work": 50,
@@ -68,7 +68,7 @@
       }
     },
     {
-      "id": "core:brush",
+      "id": "core:brush", "flammable": 1,
       "name": "Thick brush",
       "workType": "core:farm",
       "work": 25,

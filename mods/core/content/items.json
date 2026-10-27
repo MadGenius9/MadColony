@@ -1,7 +1,7 @@
 {
   "item": [
     {
-      "id": "core:wood",
+      "id": "core:wood", "flammable": 1,
       "name": "Wood",
       "color": "#a0703c",
       "stackLimit": 75,

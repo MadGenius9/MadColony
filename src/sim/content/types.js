@@ -98,6 +98,7 @@ export const CONTENT_TYPES = {
         range: num(1, 40), cooldown: int(1, 10000), accuracy: num(0, 1), ammo: ref('item'), // weapons
       }),
       render: itemLook,
+      flammable: num(0, 1), // Phase 5b: how readily it burns (fire, lightning); default 0
     }),
   },
   node: {
@@ -113,6 +114,7 @@ export const CONTENT_TYPES = {
       passable: req(bool()),
       tags,
       render,
+      flammable: num(0, 1), // Phase 5b: how readily it burns; default 0
     }),
   },
   crop: {
@@ -177,6 +179,7 @@ export const CONTENT_TYPES = {
       color: req(color),
       tags,
       render: buildingLook,
+      flammable: num(0, 1), // Phase 5b: how readily it burns (default: the share of flammable materials in its cost)
     }),
   },
   template: {
@@ -616,10 +619,13 @@ export const CONTENT_TYPES = {
       favour: req(obj({ start: req(num(0, 1e6)), max: req(num(0, 1e6)), perDay: req(num(0, 1e6)) }, { check: (v, err) => {
         if (v.start > v.max) err('start must not be above max');
       } })),
-      costs: req(obj({ settler: req(num(0, 1e6)), bless: req(num(0, 1e6)), inspire: req(num(0, 1e6)), omen: num(0, 1e6) })),
+      costs: req(obj({ settler: req(num(0, 1e6)), bless: req(num(0, 1e6)), inspire: req(num(0, 1e6)), omen: num(0, 1e6),
+        lightning: num(0, 1e6), smite: num(0, 1e6), fire: num(0, 1e6), meteor: num(0, 1e6), quake: num(0, 1e6), tornado: num(0, 1e6), plague: num(0, 1e6), rain: num(0, 1e6), drought: num(0, 1e6) })), // Phase 5b
       bless: req(obj({ days: req(num(0.1, 1000)), maxDays: req(num(0.1, 1000)), work: req(num(1, 10)), growth: req(num(1, 10)) }, { check: (v, err) => {
         if (v.days > v.maxDays) err('days must not be above maxDays');
       } })),
+      // Phase 5b (godwrath.js): numbers of the destructive powers; defaults in godwrath.js.
+      wrath: obj({ lightning: obj({ wound: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })), flammableAt: req(num(0, 1)) }) }),
       inspire: req(obj({ fraction: req(num(0.01, 1)) })), // research share added per inspiration (above 0: an inspiration always advances)
       spawn: req(obj({
         maxCount: req(int(1, 10)),            // the most settlers one command may bring

@@ -96,3 +96,12 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Trades:** a tribute trade (`trade.tribute`) shown as "Tribute to <winner>".
 - **Kingdom card:** conquered members ("conquered by X" in their relation history with the capital).
 
+## Phase 5b, slice 1: confirm, lightning, smite
+- **Preview card for destructive powers:** when `previewCommand` returns `needsConfirm`, show `preview.warnings`
+  first (people killed or burned with their village, "your village" first; buildings and goods that burn; "This
+  cannot be undone.") and a Confirm button that issues the same command with `confirm: true`.
+- **Lightning:** target a tile; a white flash and a scorch mark. **Smite:** target a person (hover card button in
+  god mode).
+- **Damaged homes:** a home with `complete === false` after it was finished shows "Damaged: being rebuilt" and the
+  missing part as a building site.
+

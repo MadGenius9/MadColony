@@ -1,6 +1,6 @@
 # Phase 5b: god powers, part 2 (destructive and nature powers)
 
-Status: **design, waiting for the user's "go"**. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
+Status: **in progress** ("go" from the user on 2026-10-27; the open questions' proposals are the working defaults). Slice 1 done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
 this note is built yet.
 
 ## Goal (from the roadmap and the user)
@@ -164,4 +164,22 @@ smoke, ash and craters on the map and in the world view; storms and weather area
 and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
 
 ## Results
-(None yet.)
+
+### Slice 1: foundations, lightning and smite (slices 1 and 2 of the plan, together)
+- **Built:** `src/sim/ruin.js` (`destroyStructure`: jobs using it end first, its goods burned/crushed through the
+  ledger or dropped, beds and medical beds freed, a project part re-added unbuilt so the village rebuilds it, the
+  home not complete until then, decor slots left to the planner, the owner replanned at once; `destroyNode`,
+  `destroyStack`, `destroyCrop`, `replan`); the confirm-and-warn contract in `god.js` (`destructive` on a power:
+  refused before and at apply time without `confirm: true`, `preview.warnings` ending with "This cannot be
+  undone.", `needsConfirm` on the refusal); `src/sim/godwrath.js` with **lightning** (the person on the tile dies,
+  those beside it get burns 20–45, a flammable building, tree, crop or goods on the tile burn) and **smite**;
+  `flammable` on items (wood, planks, charcoal 1), nodes (pine, brush 1, berry bush 0.7) and buildings (default:
+  the share of flammable materials in the cost); burns are dressed like wounds; death causes "was struck by
+  lightning", "was smitten by the gods", "burned to death"; costs in `core:god` (lightning 15, smite 20, the
+  rest set for later slices).
+- **Deviation:** the plan's slices 1 and 2 were built as one, so the foundations were tested by real powers; no new
+  saved state was needed (commands only), so no save format bump yet; new terrains (ash, crater) wait for the fire
+  and meteor slices.
+- **Not changed:** classic runs (same state hashes); 109 tests pass (7 in `tests/cloud-wrath.test.js`: confirm and
+  warnings, lightning, smite, a destroyed wall rebuilt by its village, every building of a village destroyed with
+  exact counts and save/load identity, replay).
