@@ -92,7 +92,8 @@ export const MIGRATIONS = {
   22() {},
   // 23 -> 24: tornadoes (Phase 5b). `s.disasters.storms` is optional: absent means no storm blows. Nothing to add.
   23() {},
-  // 24 -> 25: rain and drought (Phase 5b). `s.disasters.weather` is optional: absent means fair weather.
+  // 24 -> 25: rain, drought and plague (Phase 5b). `s.disasters.weather` and `s.disasters.plague` are optional:
+  // absent means fair weather and no plague.
   24() {},
 };
 

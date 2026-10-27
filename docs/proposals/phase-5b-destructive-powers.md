@@ -270,5 +270,21 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   **Drought** (cost 35, destructive; radius 12, 4 days): crops do not grow and unripe ones lose a quarter of a
   full crop a day (withered to nothing: lost), wild plants do not regrow, fires spread twice as fast.
   Data: `godRules.wrath.weather`. Water sources stay (drying shores would rebuild the whole-map water data).
+- **Review fixes:** a drought made villages sow again and again into it (each crop withered in ten ticks; 5
+  times the seed use in 3 days): sowing now waits on drought tiles (`weatherat.js droughtAt`, in the sowing job,
+  the job giver and distant villages). The fire power is refused in rain (it did nothing but cost favour). The
+  lookups live in `src/sim/weatherat.js`, a module with no imports (the AI imports it; importing weather.js there
+  made an import cycle).
 - **Not changed:** classic runs; 124 tests pass (3 more in `tests/cloud-wrath.test.js`).
+
+### Slice 5b: plague (the plague power)
+- **Built:** illness `core:plague` (data, `plague: true`: contagion 0.35, travel 0.5, grows 1 an hour for 5
+  days, immunity 200 days). The **plague** power (a village, cost 50, destructive; `godRules.wrath.plague.share`
+  0.3): that share of its people (at least one; picked by draw among those who can catch it) fall ill. It then
+  spreads by the illness rules (illness.js), and also in scenarios without them (classic worlds): while
+  `s.disasters.plague.until` (the end of the last case's course; save format 25) lies ahead, spread runs with
+  village share 0.3 and no outbreaks; contacts between villages carry it too.
+- **Tuning:** at 1.3 an hour every case was deadly (a whole village dead in 9 days, cared for or not); at 0.85
+  nobody died in a classic village. At 1.0 most villages of 5 lost 1–2 people, some all of them.
+- **Not changed:** classic runs; 127 tests pass (2 plague tests and 1 drought-sowing test more).
 

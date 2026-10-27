@@ -17,7 +17,8 @@ import { isDown, careNeed } from '../health.js';
 import { findFood, findWater } from './needs.js';
 import { fieldCells } from '../game.js';
 import { reachTest, nodesInReach, SLOW_WORK } from './trips.js';
-import { BURIAL_GIVERS } from '../burial.js';
+import { BURIAL_GIVERS } from '../burial.js';
+import { droughtAt } from '../weatherat.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or
  *  near the centre (lod.js caravanReach). If those cannot cover what is still owed, one colonist at a time per
@@ -270,6 +271,7 @@ export const GIVERS = {
         for (const [x, y] of fieldCells(f)) {
           if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y)) continue;
           if (g.isReserved(`sow:${x},${y}`, c.id)) continue;
+          if (droughtAt(g, x, y)) continue; // waiting out the drought (weather.js)
           if (g.terrainAt(x, y).fertility < (crop.minFertility ?? 0.5)) continue;
           free.push([x, y]);
         }

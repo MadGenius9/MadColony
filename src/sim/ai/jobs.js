@@ -19,7 +19,8 @@ import { isDown, hpOf, workFactor, HEALTH, injure } from '../health.js';
 import { TICKS_PER_HOUR } from '../constants.js';
 import { NEED_BEHAVIORS, GROUND_REST_RATE, bedTooFar } from './needs.js';
 import { energyLastsWalkHome } from './trips.js';
-import { blessingOf } from '../god.js';
+import { blessingOf } from '../god.js';
+import { droughtAt } from '../weatherat.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -621,7 +622,7 @@ export const DRIVERS = {
       }
       if (!c.carry || c.carry.qty <= 0 || j.ti >= j.tiles.length) { c.carry = c.carry?.qty > 0 ? c.carry : null; return 'done'; }
       const [x, y] = j.tiles[j.ti];
-      if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y) || g.fieldAt(x, y)?.id !== field.id) {
+      if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y) || g.fieldAt(x, y)?.id !== field.id || droughtAt(g, x, y)) {
         g.release(j, (r) => r.k === 'x' && r.key === `sow:${x},${y}`);
         j.ti++; j.prog = 0; return 'running';
       }

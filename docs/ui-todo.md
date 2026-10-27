@@ -151,3 +151,12 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Letters:** "Rain began to fall …", "The rain has stopped.", "A drought began …", "N crops withered in the
   drought.", "The drought is over."
 - **Sound:** rain on the roofs while a rain area is on screen.
+- **Drought fields:** sowing waits while a field lies in a drought; the field's tooltip and the farmers' status
+  say "Waiting out the drought". The fire power is refused in rain ("it is raining there").
+
+## Phase 5b, slice 6b: plague
+- **Plague power** (destructive, confirm): target a village (village card button in god mode, or click a person to
+  pick their village); the preview names who falls ill first and says it spreads and kills many of the untended.
+- **Colonists:** "Plague" in the injury list (an illness like the others); the sick can be shown pale.
+- **Village card:** "Plague: N ill" while `g.s.disasters.plague` lasts.
+- **Letters:** "Plague struck <village>: N fell ill.", then the usual "fell ill with plague (caught it from …)".

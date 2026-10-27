@@ -29,7 +29,8 @@ import { completeTech, settlementOf } from './research.js';
 import { legRemaining, deliverLeg } from './villages.js';
 import { tapHasWater, isWaterNode } from './water.js';
 import { fieldCells } from './game.js';
-import { planNow } from './planner.js';
+import { planNow } from './planner.js';
+import { droughtAt } from './weatherat.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -651,7 +652,7 @@ function taskFarm(g, ctx, c, time) {
     if (!crop || !g.s.fields[f.id] || ctx.P.sowOk?.[crop.id] === false) continue;
     for (const [x, y] of fieldCells(f)) {
       if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y) || g.fieldAt(x, y)?.id !== f.id) continue;
-      if (g.terrainAt(x, y).fertility < (crop.minFertility ?? 0.5)) continue;
+      if (g.terrainAt(x, y).fertility < (crop.minFertility ?? 0.5) || droughtAt(g, x, y)) continue;
       const seed = ctx.store.free(crop.seed) >= 1 && ctx.store.stacks().find((s) => s.item === crop.seed && s.dur === undefined && ctx.store.avail(s) >= 1);
       if (!seed) break;
       const need = (crop.sowWork || 25) / speed;

@@ -522,3 +522,63 @@ test('weather: a malformed area is refused on load; old saves load; at most maxA
   g.tick();
   assert.match(previewCommand(g, 'rain', { x: 30, y: 30 }).reason, /too many weather areas/);
 });
+
+// ---------------- slice 6b: plague ----------------
+const plagueCases = (g, sid) => g.owned('colonists', sid).filter((c) => c.health?.injuries?.some((i) => i.kind === 'sickness' && i.illness === 'core:plague' && !i.over));
+
+test('plague: a share of the village falls ill, it spreads even without illness rules, runs its course, all counted', () => {
+  const g = sandbox(); // a classic world: no scenario illness rules
+  runDays(g, 2);
+  const sid = g.s.playerSettlement, start = g.colonists().length;
+  const p = previewCommand(g, 'plague', { settlementId: sid });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings[0].startsWith('Fall ill with plague:'), JSON.stringify(p.preview.warnings));
+  assert.equal(previewCommand(g, 'plague', { settlementId: 'nowhere' }).ok, false);
+  assert.equal(issueCommand(g, 'plague', { settlementId: sid, confirm: true }).ok, true);
+  g.tick();
+  const first = plagueCases(g, sid).length;
+  assert.equal(first, p.preview.ill);
+  assert.ok(g.s.disasters.plague.until > g.s.tick);
+  let most = first;
+  for (let d = 0; d < 3; d++) { runDays(g, 1); most = Math.max(most, plagueCases(g, sid).length + Object.keys(g.s.dead || {}).length); }
+  assert.ok(most > first, 'it spread to others in the village');
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, 12);
+  assert.equal(plagueCases(g, sid).length, 0, 'it has run its course');
+  assert.equal(g.s.disasters.plague, undefined);
+  assert.equal(peopleCensus(g, start).ok, true);
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('plague: a malformed plague state is refused on load; nobody left to catch it is refused', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const sid = g.s.playerSettlement;
+  issueCommand(g, 'plague', { settlementId: sid, confirm: true });
+  g.tick();
+  const bad = JSON.parse(serializeGame(g));
+  bad.state.disasters.plague.until = 'soon';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /plague/);
+  for (const c of g.owned('colonists', sid)) (c.immune ||= {})['core:plague'] = g.s.tick + 1e6;
+  for (const c of g.owned('colonists', sid)) for (const i of c.health?.injuries || []) if (i.kind === 'sickness') i.over = true;
+  assert.match(previewCommand(g, 'plague', { settlementId: sid, confirm: true }).reason, /nobody there can catch it/);
+});
+
+test('drought: nobody sows into it (no seed wasted on crops that would only wither); fire is refused in rain', () => {
+  const sown = (drought) => {
+    const g = sandbox();
+    runDays(g, 10);
+    const c = growing(g)[0];
+    const before = Object.values(g.s.ledger.byReason['consumed:sow'] || {}).reduce((a, b) => a + b, 0);
+    if (drought) { issueCommand(g, 'drought', { x: c.x, y: c.y, confirm: true }); }
+    runDays(g, 3);
+    return Object.values(g.s.ledger.byReason['consumed:sow'] || {}).reduce((a, b) => a + b, 0) - before;
+  };
+  assert.ok(sown(true) <= sown(false), 'a drought does not burn the seed stock');
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  issueCommand(g, 'rain', { x: t.x, y: t.y });
+  g.tick();
+  assert.match(previewCommand(g, 'fire', { x: t.x, y: t.y, confirm: true }).reason, /raining/);
+});

@@ -30,6 +30,17 @@
       "days": 4,
       "immunityDays": 90,
       "treatedGrowth": 0.35
+    },
+    {
+      "id": "core:plague",
+      "name": "Plague",
+      "plague": true,
+      "contagion": 0.35,
+      "travel": 0.5,
+      "growPerHour": 1.0,
+      "days": 5,
+      "immunityDays": 200,
+      "treatedGrowth": 0.3
     }
   ]
 }

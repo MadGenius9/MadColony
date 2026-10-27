@@ -15,10 +15,19 @@
 // Draws are hashes of (seed, ids, day or tick): no random numbers from the game's stream. Rules run on real
 // colonist records, so distant villages fall ill and spread illness like full ones (no doctors walk there, so no
 // treatment). Everything is saved on the colonists (save format 17).
+// - Plague (Phase 5b, the plague power): an illness marked `plague` in data also spreads where the scenario has no
+//   illness rules, while anyone has it: s.disasters.plague.until (the end of the last case's course) says so in
+//   O(1); the spread then uses PLAGUE_SPREAD (no outbreaks).
 import { TICKS_PER_DAY } from './constants.js';
 import { cared } from './health.js';
 
 const CARE_GROWTH = 0.8; // an illness grows this much slower while the sick are cared for
+const PLAGUE_SPREAD = Object.freeze({ outbreakPerDay: 0, villageShare: 0.3, kinds: [] });
+
+/** Is a plague running its course somewhere (the plague power)? O(1). */
+export const plagueActive = (g) => (g.s.disasters?.plague?.until ?? -1) > g.s.tick;
+/** The rules spread works by: the scenario's, else the plague's while one runs, else null. */
+const spreadRules = (g) => illnessRules(g) || (plagueActive(g) ? PLAGUE_SPREAD : null);
 
 /** The scenario's illness rules, or null. */
 export function illnessRules(g) {
@@ -55,6 +64,7 @@ export function infect(g, c, ill, how) {
   c.health ||= { injuries: [] };
   const inj = { id: g.newId('inj'), kind: 'sickness', illness: ill.id, severity: 1, cause: ill.name, tick: s.tick, until: s.tick + Math.round(ill.days * TICKS_PER_DAY) };
   c.health.injuries.push(inj);
+  if (ill.plague) { s.disasters ||= { fires: {}, scorched: {} }; const P = (s.disasters.plague ||= { until: 0 }); P.until = Math.max(P.until, inj.until); }
   s.stats.illness ||= { cases: 0, outbreaks: 0 };
   s.stats.illness.cases++;
   const village = s.settlements?.[c.settlementId]?.name;
@@ -100,7 +110,8 @@ function pick(g, R, u) {
 
 /** Daily (day start): outbreaks and spread within each village. O(villages + sick × village size). */
 export function tickIllness(g) {
-  const R = illnessRules(g);
+  if (g.s.disasters?.plague && !plagueActive(g)) delete g.s.disasters.plague; // the plague has run its course
+  const R = spreadRules(g);
   if (!R) return;
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
   for (const sid of Object.keys(s.settlements || {}).sort()) {
@@ -154,7 +165,7 @@ function someone(g, sid, ill, u) {
  *  both ways. `carrier`: the colonist of a who walked into b (hand deliveries); they are the one who meets b's
  *  people. O(the two villages' people). Nothing without illness rules. */
 export function spreadContact(g, a, b, how, carrier = null) {
-  if (!illnessRules(g) || !a || !b || a === b) return;
+  if (!spreadRules(g) || !a || !b || a === b) return;
   const s = g.s, key = `${s.seed}:travel:${a}:${b}:${s.tick}:${carrier ? carrier.id : how}`;
   // a -> b
   if (carrier) {

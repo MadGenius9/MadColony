@@ -16,17 +16,21 @@
 // - tornado { x, y, dir? }: a storm that moves from the tile for a few hours (storm.js); dir 0..7 (east, then
 //   clockwise) or by a draw. The preview shows its exact path.
 // - rain { x, y } (not destructive) and drought { x, y }: a weather area for some days (weather.js).
+// - plague { settlementId }: wrath.plague.share of the village's people (at least one) fall ill with the plague
+//   illness (illness.js: it spreads like any illness, also where the scenario has none).
 import { registerPower } from './god.js';
 import { injure } from './health.js';
 import { ignite, tileFlammable, buildingFlammable, fireRules } from './fire.js';
 import { destroyStructures, destroyProject, destroyNode, destroyStack, destroyCrop, replan } from './ruin.js';
 import { claimRules } from './territory.js';
 import { stormRules, stormPath, startStorm, stormCount, stormDraw } from './storm.js';
-import { weatherRules, startWeather, weatherCount } from './weather.js';
+import { weatherRules, startWeather, weatherCount, weatherAt } from './weather.js';
+import { infect, susceptible } from './illness.js';
 export { buildingFlammable };
 
 const DEFAULTS = {
   lightning: { wound: [20, 45] },
+  plague: { share: 0.3, illness: 'core:plague' },
   meteor: { radius: 2, ring: 3, wound: [15, 50], fire: 0.35, iron: [4, 10], item: 'core:iron' },
   quake: { radius: 12, collapse: 0.6, sturdy: 0.35, wound: [10, 35] },
 };
@@ -125,6 +129,7 @@ registerPower('fire', {
     if (!Number.isInteger(a.x) || !Number.isInteger(a.y)) return 'pick a tile (whole x and y)';
     if (!g.inB(a.x, a.y)) return 'that spot is outside the map';
     if (tileFlammable(g, g.i(a.x, a.y)).f <= 0) return 'nothing there can burn';
+    if (weatherAt(g, a.x, a.y) === 'rain') return 'it is raining there; nothing will catch';
     return null;
   },
   cost: (g, a, r) => r.costs.fire ?? 25,
@@ -335,7 +340,7 @@ function inArea(g, x, y, r) {
     const i = g.i(xx, yy);
     if (Object.hasOwn(fires, i)) burning++;
     const cr = g.cropAt(xx, yy);
-    if (cr && cr.growth < 1) { const k = g.territoryAt(xx, yy) || g.s.playerSettlement; crops.set(k, (crops.get(k) || 0) + 1); }
+    if (cr && cr.growth < 1) { const k = g.fieldAt(xx, yy)?.settlement || g.territoryAt(xx, yy) || g.s.playerSettlement; crops.set(k, (crops.get(k) || 0) + 1); }
   }
   return { burning, crops };
 }
@@ -372,6 +377,43 @@ registerPower('drought', {
   apply(g, cmd) {
     const a = cmd.args, w = startWeather(g, 'drought', a.x, a.y, cmd.id);
     return { msg: `A drought began round (${a.x}, ${a.y}).`, x: a.x, y: a.y, area: w.id };
+  },
+});
+
+// ---------------- plague ----------------
+/** Who falls ill: wrath.plague.share of the village's susceptible people (at least one), picked by draw. */
+function plagueVictims(g, sid, ill, P, key) {
+  const list = g.owned('colonists', sid).filter((c) => susceptible(g, c, ill)).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const n = Math.min(list.length, Math.max(1, Math.round(P.share * g.owned('colonists', sid).length)));
+  return list.map((c) => ({ c, u: draw(`${key}:plague:${c.id}`) })).sort((a, b) => a.u - b.u || (a.c.id < b.c.id ? -1 : 1)).slice(0, n).map((e) => e.c);
+}
+
+registerPower('plague', {
+  destructive: true,
+  validate(g, a, r) {
+    const k = extraKey(a, ['settlementId', 'confirm']);
+    if (k) return `plague takes only settlementId and confirm (not "${String(k).slice(0, 40)}")`;
+    if (typeof a.settlementId !== 'string' || !Object.hasOwn(g.s.settlements || {}, a.settlementId)) return 'there is no such village';
+    const ill = g.reg.get('illness', rulesOf(r).plague.illness);
+    if (!ill) return 'no plague illness is loaded';
+    if (!g.owned('colonists', a.settlementId).some((c) => susceptible(g, c, ill))) return 'nobody there can catch it now';
+    return null;
+  },
+  cost: (g, a, r) => r.costs.plague ?? 50,
+  preview(g, a, r) {
+    const P = rulesOf(r).plague, ill = g.reg.get('illness', P.illness), v = plagueVictims(g, a.settlementId, ill, P, keyOf(g, null));
+    const all = g.owned('colonists', a.settlementId).length, where = mine(g, a.settlementId) ? 'your village' : villageName(g, a.settlementId);
+    return { settlementId: a.settlementId, ill: v.length, people: all, warnings: [
+      ...peopleWarnings(g, v, `Fall ill with ${ill.name.toLowerCase()}`),
+      `It spreads through ${where} (${all} people) and to the villages they meet; it lasts ${ill.days} days a case, and many of the untended die.`,
+    ], effect: `${ill.name} strikes ${where}.` };
+  },
+  apply(g, cmd, r) {
+    const P = rulesOf(r).plague, ill = g.reg.get('illness', P.illness), sid = cmd.args.settlementId;
+    const v = plagueVictims(g, sid, ill, P, keyOf(g, cmd));
+    let n = 0;
+    for (const c of v) if (infect(g, c, ill, 'struck by the gods')) n++;
+    return { msg: `${ill.name} struck ${villageName(g, sid)}: ${n} fell ill.`, settlementId: sid, ill: n };
   },
 });
 
