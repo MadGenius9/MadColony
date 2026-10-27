@@ -1,7 +1,7 @@
 {
   "node": [
     {
-      "id": "core:pine", "flammable": 1,
+      "id": "core:pine", "flammable": 1, "sproutDays": 20,
       "name": "Pine tree",
       "workType": "core:chop",
       "work": 110,
@@ -56,7 +56,7 @@
         }
       ],
       "chunks": 1,
-      "regrowDays": 2,
+      "regrowDays": 2, "sproutDays": 4,
       "passable": true,
       "tags": [
         "core:wild_food"
@@ -68,7 +68,7 @@
       }
     },
     {
-      "id": "core:brush", "flammable": 1,
+      "id": "core:brush", "flammable": 1, "sproutDays": 3,
       "name": "Thick brush",
       "workType": "core:farm",
       "work": 25,

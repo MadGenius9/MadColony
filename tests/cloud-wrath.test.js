@@ -626,7 +626,11 @@ test('firefighting: saved mid-fight, the game continues identically', () => {
     let g = sandbox();
     runDays(g, 4);
     homeFire(g);
-    for (let k = 1; k <= 6; k++) { g.step(40); if (cut.includes(k)) g = reload(g); }
+    for (let k = 1; k <= 6; k++) {
+      g.step(40);
+      if (k === 1) assert.ok(g.colonists().some((c) => c.job?.type === 'firefight'), 'someone is mid-fight at the first save');
+      if (cut.includes(k)) g = reload(g);
+    }
     return g;
   };
   const a = run([]), b = run([1, 2, 4]);
@@ -642,4 +646,75 @@ test('firefighting saves buildings: the same fire with and without it', () => {
     return Object.values(g.s.structures).filter((s) => s.built).length;
   };
   assert.ok(left(null) > left(noFirefighting()) + 10, 'far more stands when the village fights the fire');
+});
+
+test('firefighting waits for needs: someone hungry and thirsty eats and drinks, not fights', () => {
+  const g = sandbox();
+  runDays(g, 4);
+  homeFire(g);
+  const c = g.colonists()[0];
+  for (const def of g.reg.all('need')) if (def.id === 'core:hunger' || def.id === 'core:thirst') c.needs[def.id] = 0.05;
+  let fought = 0;
+  for (let t = 0; t < 300; t++) { g.tick(); if (c.job?.type === 'firefight') fought++; }
+  assert.equal(fought, 0, 'not pulled off to the fire');
+  assert.ok((c.needs['core:hunger'] ?? 1) > 0.05 || (c.needs['core:thirst'] ?? 1) > 0.05, 'they saw to a need');
+});
+
+// ---------------- slice 6d: regrowth ----------------
+import { natureRules } from '../src/sim/regrow.js';
+
+test('regrowth: a burned wood grows back from its seeds, young trees grow up; classic games have no spread', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  assert.equal(natureRules(g), null, 'no spread rule in a classic world');
+  const t = wood(g);
+  issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+  runDays(g, 2);
+  const seeds = Object.keys(g.s.disasters.seeds || {}).length;
+  assert.ok(seeds > 0, 'burned trees left seeds');
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, Math.ceil(fireRules(g).scorchDays) + 1);
+  const young = Object.values(g.s.nodes).filter((n) => n.young);
+  assert.ok(young.length > 0, 'young trees sprouted once the scorch marks faded');
+  assert.ok(young.every((n) => n.empty && n.chunks === 0), 'young trees cannot be cut yet');
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, 25);
+  for (const n of young) if (g.s.nodes[n.id]) { assert.equal(g.s.nodes[n.id].young, undefined, 'grown up'); assert.ok(g.s.nodes[n.id].chunks > 0); }
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('regrowth: a malformed seed is refused on load; old saves load', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+  runDays(g, 1);
+  const text = serializeGame(g);
+  const bad = JSON.parse(text);
+  Object.values(bad.state.disasters.seeds)[0].at = 'later';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /seed/);
+  const old = JSON.parse(text);
+  old.saveFormat = 25; delete old.state.disasters.seeds;
+  assert.doesNotThrow(() => loadGame(g.reg, JSON.stringify(old)));
+});
+
+test('regrowth: forests spread where the scenario says, only beside their kind, off village land, deterministically', () => {
+  const mods = readAllMods(), core = mods.find((m) => m.manifest.id === 'core');
+  for (const sc of core.files['content/setup.json'].scenario) if (sc.id === 'core:standard') sc.nature = { spread: [{ node: 'core:pine', perDay: 0.5, radius: 2, maxNear: 9, minNear: 3 }] };
+  const registry = buildRegistry(mods, ['core']).registry;
+  const run = (cut) => {
+    let g = newGame({ seed: 4242, registry, scenario: 'core:standard' });
+    for (let d = 1; d <= 4; d++) { runDays(g, 1); if (cut && d === 2) g = reload(g); }
+    return g;
+  };
+  const g = run(false);
+  const young = Object.values(g.s.nodes).filter((n) => n.young && n.def === 'core:pine');
+  assert.ok(young.length > 0, 'young pines appeared');
+  for (const n of young) {
+    assert.equal(g.territoryAt(n.x, n.y), null, 'not on village land');
+    let near = 0;
+    for (let y = n.y - 2; y <= n.y + 2; y++) for (let x = n.x - 2; x <= n.x + 2; x++) if (g.inB(x, y) && g.nodeAt(x, y)?.def === 'core:pine' && !(x === n.x && y === n.y)) near++;
+    assert.ok(near >= 1, 'beside other pines (3 when it seeded; some may be cut since)');
+  }
+  assert.equal(stateText(run(true)), stateText(g));
 });

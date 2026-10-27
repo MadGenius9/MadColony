@@ -5,6 +5,7 @@ import { fieldCells } from './game.js';
 import { seasonalTemp, outdoorTemp, climateOf } from './heat.js';
 import { growFactor, weatherRules } from './weather.js';
 import { destroyCrop } from './ruin.js';
+import { REGROW_DEFAULTS } from './regrow.js';
 
 export const CROP = { minTemp: 5, frost: -3, fullAt: 3 }; // full growth this many °C above minTemp
 
@@ -66,8 +67,9 @@ export function tickFarming(g, dt) {
     for (const n of [...empty.values()]) {
       if (!n.empty || g.s.nodes[n.id] !== n) { empty.delete(n.id); continue; }
       const def = g.nodeDef(n);
-      n.regrow = (n.regrow || 0) + (50 * wild * (wx ? growFactor(g, n.x, n.y) : 1)) / ((def?.regrowDays || 1) * TICKS_PER_DAY);
-      if (n.regrow >= 1) { n.empty = false; n.regrow = 0; n.chunks = def.chunks; empty.delete(n.id); }
+      const days = n.young ? (def?.sproutDays ?? REGROW_DEFAULTS.sproutDays) : (def?.regrowDays || 1); // young: a new plant grows up (regrow.js)
+      n.regrow = (n.regrow || 0) + (50 * wild * (wx ? growFactor(g, n.x, n.y) : 1)) / (days * TICKS_PER_DAY);
+      if (n.regrow >= 1) { n.empty = false; n.regrow = 0; n.chunks = def.chunks; delete n.young; empty.delete(n.id); }
     }
   }
 }

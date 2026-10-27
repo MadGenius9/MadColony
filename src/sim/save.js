@@ -112,7 +112,7 @@ export function validateSave(save) {
       extra?.(e, key);
     }
   };
-  ent('nodes', 'resource node', (e, k) => { if (!isStr(e.def, 100)) bad(`resource node "${k}" has no definition id`); if (!isInt(e.chunks) || e.chunks < 0) bad(`resource node "${k}" has an invalid amount`); });
+  ent('nodes', 'resource node', (e, k) => { if (!isStr(e.def, 100)) bad(`resource node "${k}" has no definition id`); if (!isInt(e.chunks) || e.chunks < 0) bad(`resource node "${k}" has an invalid amount`); if (e.young !== undefined && e.young !== true) bad(`resource node "${k}" has an invalid young flag`); });
   ent('stacks', 'item stack', (e, k) => {
     if (!isStr(e.item, 100)) bad(`item stack "${k}" has no item id`);
     if (!isInt(e.qty) || e.qty < 1 || e.qty > 100000) bad(`item stack "${k}" has an invalid quantity`);
@@ -200,6 +200,12 @@ function validateDisasters(s, bad) {
       const ok = isObj(a) && a.id === k && /^w\d{1,9}$/.test(k) && (a.kind === 'rain' || a.kind === 'drought') && isInt(a.x) && isInt(a.y)
         && isInt(a.r) && a.r >= 1 && a.r <= 200 && isInt(a.until) && a.until <= s.tick + 2400 * 1000;
       if (!ok) { bad(`weather area "${String(k).slice(0, 40)}" is malformed`); return; }
+    }
+  }
+  if (D.seeds !== undefined) { // format 26: regrowth (regrow.js)
+    if (!isObj(D.seeds)) { bad('state.disasters.seeds is malformed'); return; }
+    for (const [k, e] of Object.entries(D.seeds)) {
+      if (!/^\d{1,8}$/.test(k) || Number(k) >= N || !isObj(e) || !isStr(e.def, 100) || !isInt(e.at) || e.at > s.tick + 2400 * 1000) { bad('state.disasters.seeds has a bad seed'); return; }
     }
   }
   if (D.storms === undefined) return; // format 24: tornadoes (storm.js)

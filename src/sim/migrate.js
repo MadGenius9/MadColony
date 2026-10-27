@@ -95,6 +95,8 @@ export const MIGRATIONS = {
   // 24 -> 25: rain, drought and plague (Phase 5b). `s.disasters.weather` and `s.disasters.plague` are optional:
   // absent means fair weather and no plague.
   24() {},
+  // 25 -> 26: regrowth (Phase 5b). `s.disasters.seeds` and `node.young` are optional: nothing waits to sprout.
+  25() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

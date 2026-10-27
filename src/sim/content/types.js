@@ -111,6 +111,7 @@ export const CONTENT_TYPES = {
       cover: num(0, 0.9), // share of ranged hits it stops for someone sheltering beside it (default: 0.3 if solid)
       chunks: req(int(1, 100)),
       regrowDays: num(0.1, 100),
+      sproutDays: num(0.1, 1000), // Phase 5b (regrow.js): a young one grows up in this many days
       passable: req(bool()),
       tags,
       render,
@@ -421,6 +422,7 @@ export const CONTENT_TYPES = {
           if (v.startAges && v.startAges[0] > v.startAges[1]) err('startAges must be [lowest, highest]');
         } }),
       }),
+      nature: obj({ spread: arr(obj({ node: req(ref('node')), perDay: req(num(0, 1)), radius: req(int(1, 10)), minNear: int(0, 24), maxNear: req(int(1, 24)) })) }), // Phase 5b (regrow.js): forests spread
       travel: TRAVEL, // trip budgets for colonists (ai/trips.js); absent: off unless the AI profile sets it
       eraDrive: obj({ urgency: num(0, 2), afterDays: num(0, 3650) }), // afterDays: from this many days after the village's founding (default 0)
       // Villages founded during play by settlers leaving crowded villages (founding.js). Absent: off.
@@ -633,7 +635,7 @@ export const CONTENT_TYPES = {
         weather: obj({ rain: obj({ radius: int(1, 100), days: num(0.05, 60), grow: num(0, 10) }), drought: obj({ radius: int(1, 100), days: num(0.05, 60), wither: num(0, 10), spread: num(0, 10) }), maxAreas: int(1, 20) }),
         tornado: obj({ step: int(1, 2400), hours: num(0.1, 48), radius: int(0, 4), wander: num(0, 1), destroy: num(0, 1), light: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }), throw: arr(int(0, 20), { minItems: 2, maxItems: 2 }), maxStorms: int(1, 20) }),
         quake: obj({ radius: int(1, 30), collapse: num(0, 1), sturdy: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }) }),
-        fire: obj({ step: int(1, 2400), spread: num(0, 1), burnTicks: int(1, 100000), maxTiles: int(1, 100000), burnPerStep: num(0, 100), scorchDays: num(0, 1000), cropFlammable: num(0, 1), threat: int(0, 10), fightReach: int(0, 200), fightWork: num(1, 10000), fightWater: int(0, 50), distantPut: num(0, 1) }),
+        fire: obj({ step: int(1, 2400), spread: num(0, 1), burnTicks: int(1, 100000), maxTiles: int(1, 100000), burnPerStep: num(0, 100), scorchDays: num(0, 1000), cropFlammable: num(0, 1), threat: int(0, 10), fightReach: int(0, 200) /* 0: no firefighting */, fightWork: num(1, 10000), fightWater: int(0, 50), distantPut: num(0, 1) }),
       }),
       inspire: req(obj({ fraction: req(num(0.01, 1)) })), // research share added per inspiration (above 0: an inspiration always advances)
       spawn: req(obj({

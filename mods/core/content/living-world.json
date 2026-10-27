@@ -80,6 +80,7 @@
       "size": "huge",
       "placement": "spread",
       "illness": { "outbreakPerDay": 0.01, "crowding": 3, "graceDays": 10, "villageShare": 0.3, "kinds": [{ "illness": "core:cough", "weight": 6 }, { "illness": "core:fever", "weight": 3 }, { "illness": "core:grey_fever", "weight": 1 }] },
+      "nature": { "spread": [{ "node": "core:pine", "perDay": 0.004, "radius": 2, "maxNear": 6 }, { "node": "core:berry_bush", "perDay": 0.01, "radius": 3, "maxNear": 2, "minNear": 1 }, { "node": "core:brush", "perDay": 0.01, "radius": 2, "maxNear": 4 }] },
       "life": {
         "cold": { "below": -2, "perHour": 0.4, "shelter": 6, "fires": ["core:campfire", "core:hearth"], "fireRadius": 5, "foundWaitDays": 8 },
         "aging": { "elderAge": 50, "elderWork": 0.8, "deathAge": 60, "perYear": 0.2, "perYearStep": 0.15, "startAges": [16, 60] }

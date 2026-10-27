@@ -15,6 +15,7 @@
 import { endJob } from './ai/ai.js';
 import { planNow } from './planner.js';
 import { isFallen } from './fallen.js';
+import { leaveSeed } from './regrow.js';
 
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
@@ -140,9 +141,11 @@ export function replan(g, sids) {
   }
 }
 
-/** Destroy a resource node (a tree, rock or bush). Jobs gathering it fail softly ("the target is gone"). */
-export function destroyNode(g, id, people = null) {
+/** Destroy a resource node (a tree, rock or bush). Jobs gathering it fail softly ("the target is gone"). A plant
+ *  leaves a seed that sprouts `seedDays` later (regrow.js; null: the default). */
+export function destroyNode(g, id, people = null, seedDays = null) {
   if (!g.s.nodes[id]) return false;
+  leaveSeed(g, g.s.nodes[id], seedDays);
   for (const c of people || Object.values(g.s.colonists).sort(byId)) if (g.s.colonists[c.id] && c.job?.nodeId === id) endJob(g, c, null, 'It was destroyed');
   g.removeNode(id);
   return true;

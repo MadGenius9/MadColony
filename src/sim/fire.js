@@ -98,7 +98,7 @@ function burnOut(g, i) {
   const st = g.structAt(x, y);
   if (st && buildingFlammable(g, g.bDef(st)) > 0) { owners.push(st.settlement || g.s.playerSettlement); destroyStructure(g, st.id, { reason: 'fire', why: 'Burned down', replan: false }); }
   const n = g.nodeAt(x, y);
-  if (n && (g.nodeDef(n)?.flammable || 0) > 0) destroyNode(g, n.id);
+  if (n && (g.nodeDef(n)?.flammable || 0) > 0) destroyNode(g, n.id, null, fireRules(g).scorchDays); // regrows once the scorch fades
   const cr = g.cropAt(x, y);
   if (cr) destroyCrop(g, cr.id);
   const sk = g.stackAt(x, y);
@@ -210,9 +210,16 @@ function waterNear(g, x, y, r) {
   return false;
 }
 
-/** Can c fight a fire now? An awake adult of a full-detail village, on its feet, health above half. */
+const COMBAT = new Set(['fight', 'flee', 'arm']); // combat.js COMBAT_JOBS (not imported: an import cycle)
+
+/** Can c fight a fire now? An awake adult of a full-detail village, on its feet, health above half, not fighting,
+ *  not seeing to a need or carrying someone or something, and with no need below its seek line (else the needs
+ *  interrupt would end the firefight at once and the fire would end the meal: they would take turns). */
 function canFight(g, c) {
-  if (c.sleeping || c.health?.down || hpOf(c) <= 50 || c.carriedBy) return false;
+  if (c.sleeping || c.health?.down || hpOf(c) <= 50 || c.carriedBy || c.carry) return false;
+  const j = c.job;
+  if (j && (COMBAT.has(j.type) || j.need || j.stage === 'carry' || j.water)) return false;
+  for (const def of g.reg.all('need')) if ((c.needs[def.id] ?? 1) < def.seekBelow) return false;
   const st = stageOf(g, c);
   if (st && st.untilDays !== undefined) return false; // children do not
   return g.s.settlements?.[c.settlementId || g.s.playerSettlement]?.detail !== 'abstract';
@@ -220,24 +227,25 @@ function canFight(g, c) {
 
 /** A firefighting job for c: the nearest tile threatening its village within fightReach, or null. */
 function fightFire(g, c, F) {
+  if (!F.fightReach) return null; // fightReach 0: firefighting is off
   const list = threats(g, F).get(c.settlementId || g.s.playerSettlement);
   if (!list?.length || !canFight(g, c)) return null;
   let best = -1, bd = Infinity;
   for (const i of list) {
-    if (!Object.hasOwn(g.s.disasters.fires, i)) continue;
+    if (!Object.hasOwn(g.s.disasters.fires, i) || g.isBlocked(`fire:${i}`)) continue; // no way there lately
     const x = i % g.W, y = (i - x) / g.W, d = Math.max(Math.abs(x - c.x), Math.abs(y - c.y));
     if (d <= F.fightReach && d < bd) { bd = d; best = i; }
   }
   if (best < 0) return null;
   const x = best % g.W, y = (best - x) / g.W;
-  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: 'A fire threatens the village', label: 'Fight the fire' });
+  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: 'A fire threatens the village', label: 'Fight the fire', targetKey: `fire:${best}` });
 }
 
 /** ai.js tickColonist (only while something burns): fight a fire that threatens the village (firefighting), else
  *  a flee job away from a fire within 2 tiles, else null. */
 export function fireDanger(g, c) {
   const D = g.s.disasters;
-  if (!D || !c || c.job?.type === 'flee' || c.job?.type === 'firefight' || c.health?.down) return null;
+  if (!D || !c || c.job?.type === 'flee' || c.job?.type === 'firefight' || c.job?.type === 'fight' || c.job?.type === 'arm' || c.health?.down) return null;
   if ((g.s.tick + c.id.length * 7) % 5) return null;
   if (!Object.keys(D.fires).length) return null;
   const fight = fightFire(g, c, fireRules(g));
