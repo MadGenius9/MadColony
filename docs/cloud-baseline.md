@@ -48,7 +48,7 @@ Vast preset (`core:vast_world`, size `vast`, seed 7): creation about 3.0 s, days
   326 people (345), worst tick 48 ms after day 1, 8.6 minutes in all.
 
 ## After Phase 5b (2026-10-27)
-- Tests: 135 in 14 files, all passing.
+- Tests: 135 in 13 files, all passing.
 - `forty` and `modern`: unchanged (same state hashes as above).
 - Bench (`node tools/bench.js`, today, this machine; slower than on 2026-10-26 for the same code): small 0.213 /
   0.257, medium 0.316 / 0.441, large 0.669 / 0.900 ms/tick (3 / 5 settlements in the table), ledger ok. The

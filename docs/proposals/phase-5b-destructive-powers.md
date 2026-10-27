@@ -365,5 +365,5 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
 - **Not met / carried over:** the meteor in this run made no crater tiles (the village stood on ground that walks
   or is claimed differently, so it was cleared but kept its terrain; craters show on grass, soil, gravel and
   savanna); see the roadmap's "Carried over".
-- **Tests:** 135 in 14 files, all passing.
+- **Tests:** 135 in 13 files, all passing.
 
