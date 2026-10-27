@@ -129,3 +129,14 @@ where, and which sim function or state field provides it. The UI is built at hom
   being rebuilt").
 - **Homes lost to a meteor:** their people show "Homeless" until a new home is built; the letter "A falling star
   struck …" names the dead ("was crushed by a falling star").
+
+## Phase 5b, slice 5: tornado
+- **Tornado power:** target a tile and pick a direction (8 arrows, or "let the wind decide"); the preview draws
+  the exact path it will take (`preview.path`, a list of [x, y], one per step; 3 tiles wide) and lists the
+  warnings (people in its path now, wooden building parts that may be torn down by village, trees torn up).
+- **Map:** each storm in `g.s.disasters.storms` (x, y, heading d: 0 = east, clockwise) drawn as a turning funnel
+  with debris; trees vanish and wood lands downwind; thrown goods fly a few tiles.
+- **Colonists:** "Hurt by the tornado" in the injury list.
+- **Letters:** "A tornado touched down at …", "The tornado has died away (N hurt)."; torn-down parts show as
+  "Damaged: being rebuilt" homes.
+- **Sound:** wind roar while a storm is on screen.

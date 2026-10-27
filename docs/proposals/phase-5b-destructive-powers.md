@@ -223,3 +223,18 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   never sown (fertility 0).
 - **Not changed:** classic runs (same state hashes); 119 tests pass (5 more in `tests/cloud-wrath.test.js`).
 
+### Slice 4: tornado (the plan's slice 5)
+- **Built:** `src/sim/storm.js`: storms in `s.disasters.storms` (save format 24, validated; old saves load). The
+  **tornado** power (tile and optional direction 0–7, cost 50; `godRules.wrath.tornado`: one tile every 10 ticks
+  for 4 hours, 3 tiles wide, turns left or right with chance 0.4 a step, at most 3 at once). On its tiles each step:
+  trees and plants are torn up and what a felled one gives is created (`created:divine`, owned by whoever holds
+  the land) and thrown 2–5 tiles downwind; crops are destroyed; goods on the ground are thrown downwind (moved:
+  `ruin.js moveStack`, jobs on them end first); built parts at least half wooden fall with chance 0.5 (goods to
+  the ground, rebuilt by their village; stone and graves stand); people are hurt once per storm (wound 10–40).
+- **The path has no randomness the preview cannot see:** directions are 8 steps of 45 degrees and turns are hash
+  draws of (seed, command id, step), with no trigonometry (floating sines could differ between machines), so
+  the preview gives the exact path the storm takes (a test checks it step by step).
+- **Cost:** worst tick 13.5 ms on the Vast world with two tornadoes through villages at once.
+- **Deviation:** buildings are torn down or left standing (no partial damage: buildings have no health yet).
+- **Not changed:** classic runs; 121 tests pass (2 more in `tests/cloud-wrath.test.js`).
+

@@ -13,11 +13,14 @@
 // - quake { x, y }: each built part within wrath.quake.radius may collapse (more likely near the centre, and for
 //   wooden parts than stone: wrath.quake.sturdy); a collapsed part's goods fall to the ground and the village
 //   rebuilds it; people on or beside a collapsing part are wounded.
+// - tornado { x, y, dir? }: a storm that moves from the tile for a few hours (storm.js); dir 0..7 (east, then
+//   clockwise) or by a draw. The preview shows its exact path.
 import { registerPower } from './god.js';
 import { injure } from './health.js';
 import { ignite, tileFlammable, buildingFlammable, fireRules } from './fire.js';
 import { destroyStructures, destroyProject, destroyNode, destroyStack, destroyCrop, replan } from './ruin.js';
 import { claimRules } from './territory.js';
+import { stormRules, stormPath, startStorm, stormCount, stormDraw } from './storm.js';
 export { buildingFlammable };
 
 const DEFAULTS = {
@@ -277,6 +280,46 @@ registerPower('quake', {
     for (const c of hurt) injure(g, c, 'wound', between(Q.wound, draw(`${key}:w:${c.id}`)), 'Hurt in the earthquake', false, mine(g, c.settlementId) ? 'warn' : 'info');
     destroyStructures(g, fallen.map((st) => st.id), { reason: null, why: 'It collapsed in the earthquake' });
     return { msg: `The earth shook round (${a.x}, ${a.y}): ${fallen.length} building part${fallen.length === 1 ? '' : 's'} collapsed${hurt.length ? `, ${hurt.length} hurt` : ''}.`, x: a.x, y: a.y, collapsed: fallen.length, hurt: hurt.length };
+  },
+});
+
+// ---------------- tornado ----------------
+const stormDir = (a, key) => (a.dir !== undefined ? a.dir : Math.floor(stormDraw(`${key}:dir`) * 8) % 8);
+
+registerPower('tornado', {
+  destructive: true,
+  validate(g, a, r) {
+    const k = extraKey(a, ['x', 'y', 'dir', 'confirm']);
+    if (k) return `tornado takes only x, y, dir and confirm (not "${String(k).slice(0, 40)}")`;
+    if (!Number.isInteger(a.x) || !Number.isInteger(a.y)) return 'pick a tile (whole x and y)';
+    if (!g.inB(a.x, a.y)) return 'that spot is outside the map';
+    if (a.dir !== undefined && (!Number.isInteger(a.dir) || a.dir < 0 || a.dir > 7)) return 'dir is a direction from 0 (east) to 7, clockwise';
+    if (stormCount(g) >= stormRules(g).maxStorms) return 'too many storms are blowing already';
+    return null;
+  },
+  cost: (g, a, r) => r.costs.tornado ?? 50,
+  preview(g, a) {
+    const T = stormRules(g), key = keyOf(g, null), path = stormPath(g, a.x, a.y, stormDir(a, key), key, T), R = T.radius;
+    const tiles = new Set();
+    for (const [x, y] of path) for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) if (g.inB(x + dx, y + dy)) tiles.add(g.i(x + dx, y + dy));
+    const people = Object.values(g.s.colonists).sort((p, q) => (p.id < q.id ? -1 : 1)).filter((c) => g.inB(...at(c)) && tiles.has(g.i(...at(c))));
+    const by = new Map();
+    let trees = 0;
+    for (const i of tiles) {
+      const st = g.structAt(i % g.W, (i / g.W) | 0);
+      if (st?.built && !st.grave && buildingFlammable(g, g.bDef(st)) >= T.light) { const k2 = st.settlement || g.s.playerSettlement; by.set(k2, (by.get(k2) || 0) + 1); }
+      const n = g.nodeAt(i % g.W, (i / g.W) | 0);
+      if (n && (g.nodeDef(n)?.flammable || 0) > 0) trees++;
+    }
+    const warnings = [...peopleWarnings(g, people, 'In its path now')];
+    for (const w of byVillage(g, by, 'wooden building part')) warnings.push(`${w} in its path may be torn down (stone stands).`);
+    if (trees) warnings.push(`${trees} tree${trees === 1 ? '' : 's'} and plant${trees === 1 ? '' : 's'} in its path will be torn up.`);
+    warnings.push(`It blows for about ${T.hours} hours along the path shown (${path.length} tiles); anyone it reaches is hurt, goods are thrown about and crops destroyed.`);
+    return { x: a.x, y: a.y, dir: stormDir(a, key), path, people: people.length, warnings, effect: `A tornado touches down at (${a.x}, ${a.y}).` };
+  },
+  apply(g, cmd) {
+    const a = cmd.args, key = keyOf(g, cmd), st = startStorm(g, a.x, a.y, stormDir(a, key), key, cmd.id);
+    return { msg: `A tornado touched down at (${a.x}, ${a.y}).`, x: a.x, y: a.y, dir: st.d, storm: st.id };
   },
 });
 

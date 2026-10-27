@@ -193,6 +193,14 @@ function validateDisasters(s, bad) {
       if (!/^\d{1,8}$/.test(k) || Number(k) >= N || !isInt(t) || t < 0 || t > s.tick) { bad(`state.disasters.${part} has a bad tile or time`); return; }
     }
   }
+  if (D.storms === undefined) return; // format 24: tornadoes (storm.js)
+  if (!isObj(D.storms)) { bad('state.disasters.storms is malformed'); return; }
+  for (const [k, t] of Object.entries(D.storms)) {
+    const ok = isObj(t) && t.id === k && /^t\d{1,9}$/.test(k) && isInt(t.x) && isInt(t.y) && isInt(t.d) && t.d >= 0 && t.d < 8
+      && isInt(t.n) && t.n >= 0 && isInt(t.next) && isInt(t.until) && t.until <= s.tick + 1e6 && isStr(t.key, 120)
+      && Array.isArray(t.hit) && t.hit.length <= 100000 && t.hit.every((h) => isStr(h, 64));
+    if (!ok) { bad(`tornado "${String(k).slice(0, 40)}" is malformed`); return; }
+  }
 }
 
 /** Bodies waiting for burial (format 16, optional): of someone in s.dead, owned by an existing settlement, on the map,

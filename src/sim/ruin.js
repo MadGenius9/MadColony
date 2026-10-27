@@ -8,6 +8,7 @@
 //   shelter, until then); decor slots are left to the planner as before; its village plans afresh at once (saved
 //   plans may hold only existing buildings).
 // - destroyProject: a whole building, not rebuilt (meteor).
+// - moveStack: goods thrown elsewhere (tornado), conserved.
 // - destroyNode, destroyStack, destroyCrop: the same for trees and rocks, goods on the ground, and crops.
 // Items destroyed are consumed with the given ledger reason ('divine' for what a power destroys, 'fire' for what
 // burns); nothing is created here. No random numbers are drawn.
@@ -156,6 +157,21 @@ export function destroyStack(g, id, reason) {
   if (taken) g.consume(taken.item, taken.qty, reason);
   for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job && (c.job.res?.some((r) => r.key === id) || (c.job.stackId === id && !c.carry))) endJob(g, c, null, 'The goods were destroyed');
   return taken?.qty || 0;
+}
+
+/** Move a whole stack of goods to near (x, y) (a tornado throws it): no ledger change, the stack's owner keeps it.
+ *  The jobs that held a reservation on it or were going to it end first. Returns the quantity moved. */
+export function moveStack(g, id, x, y) {
+  const st = g.s.stacks[id];
+  if (!st) return 0;
+  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job && (c.job.res?.some((r) => r.key === id) || (c.job.stackId === id && !c.carry))) endJob(g, c, null, 'The goods were blown away');
+  if (!g.s.stacks[id]) return 0;
+  const owner = g.s.stacks[id].settlement, taken = g.takeFromStack(id, g.s.stacks[id].qty);
+  if (!taken) return 0;
+  const prev = g.actor;
+  g.actor = owner || null;
+  try { g.placeItems(taken.item, taken.qty, x, y, taken.dur); } finally { g.actor = prev; }
+  return taken.qty;
 }
 
 /** Destroy a crop (its seed was consumed when sown; nothing to count). */

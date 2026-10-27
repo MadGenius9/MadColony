@@ -90,6 +90,8 @@ export const MIGRATIONS = {
   21() {},
   // 22 -> 23: fire (Phase 5b). `s.disasters` (burning and scorched tiles) is optional: absent means nothing burns.
   22() {},
+  // 23 -> 24: tornadoes (Phase 5b). `s.disasters.storms` is optional: absent means no storm blows. Nothing to add.
+  23() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

@@ -370,3 +370,74 @@ test('a grave destroyed by a meteor: the record of the dead keeps the burial, no
   assert.deepEqual(conservationErrors(g), []);
   assert.equal(stateText(reload(g)), stateText(g));
 });
+
+// ---------------- slice 5: tornado ----------------
+import { stormRules } from '../src/sim/storm.js';
+
+/** A tornado heading east, starting 12 tiles west of the player's village centre, through the village. */
+function tornadoArgs(g) {
+  const c = g.s.settlements[g.s.playerSettlement].center;
+  return { x: c.x - 12, y: c.y, dir: 0 };
+}
+const storms = (g) => Object.values(g.s.disasters?.storms || {});
+
+test('tornado: the preview shows its exact path; it tears up trees, throws goods, tears down wooden parts, hurts people once', () => {
+  const g = sandbox();
+  runDays(g, 3);
+  const a = tornadoArgs(g);
+  const p = previewCommand(g, 'tornado', a);
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => /wooden building parts? of your village in its path/.test(w)), JSON.stringify(p.preview.warnings));
+  assert.equal(previewCommand(g, 'tornado', { ...a, dir: 8 }).ok, false);
+  const goodsBefore = Object.values(g.s.stacks).reduce((n, st) => n + st.qty, 0);
+  const partsBefore = new Set(Object.keys(g.s.structures));
+  const woodBefore = g.s.ledger.byReason['created:divine']?.['core:wood'] || 0;
+  assert.equal(issueCommand(g, 'tornado', { ...a, confirm: true }).ok, true);
+  const where = [], hits = new Map();
+  for (let t = 0; t < 600; t++) {
+    g.tick();
+    const st = storms(g)[0];
+    if (st && where.at(-1)?.n !== st.n) where.push({ n: st.n, x: st.x, y: st.y });
+    if (st) { assert.equal(new Set(st.hit).size, st.hit.length, 'nobody is hurt twice'); hits.set('max', Math.max(hits.get('max') || 0, st.hit.length)); }
+  }
+  // It stood where the preview said, step by step, and died away (no state left).
+  const path = p.preview.path;
+  for (const w of where) if (w.n < path.length) assert.deepEqual([w.x, w.y], path[w.n]);
+  assert.equal(g.s.disasters.storms, undefined);
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /The tornado has died away/);
+  // Trees: their wood was created through the ledger; wooden parts were torn down and are rebuilt as sites.
+  assert.ok((g.s.ledger.byReason['created:divine']?.['core:wood'] || 0) > woodBefore, 'felled trees gave wood');
+  const torn = [...partsBefore].filter((id) => !g.s.structures[id]);
+  assert.ok(torn.length > 0, 'some wooden parts were torn down');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.ok(goodsBefore > 0);
+  assert.ok(hits.get('max') > 0, 'someone in the village was hurt');
+  runDays(g, 3);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+test('tornado: saved mid-storm the game continues identically; a malformed storm is refused; at most maxStorms', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 2);
+    issueCommand(g, 'tornado', { ...tornadoArgs(g), confirm: true });
+    for (let k = 1; k <= 8; k++) { g.step(60); if (cut.includes(k)) g = reload(g); }
+    return g;
+  };
+  const a = run([]), b = run([1, 3, 4]);
+  assert.equal(firstDifference(stateText(a), stateText(b)), null);
+  const mid = (() => { const g = sandbox(); runDays(g, 2); issueCommand(g, 'tornado', { ...tornadoArgs(g), confirm: true }); g.step(30); return g; })();
+  const text = serializeGame(mid);
+  const bad = JSON.parse(text);
+  Object.values(bad.state.disasters.storms)[0].d = 9;
+  assert.throws(() => loadGame(mid.reg, JSON.stringify(bad)), /tornado/);
+  const old = JSON.parse(text);
+  old.saveFormat = 23; delete old.state.disasters.storms;
+  assert.doesNotThrow(() => loadGame(mid.reg, JSON.stringify(old)));
+  for (let k = 1; k < stormRules(mid).maxStorms; k++) assert.equal(issueCommand(mid, 'tornado', { x: 5 + k, y: 5, confirm: true }).ok, true);
+  mid.tick();
+  assert.equal(storms(mid).length, stormRules(mid).maxStorms);
+  assert.match(previewCommand(mid, 'tornado', { x: 5, y: 9, confirm: true }).reason, /too many storms/);
+});
