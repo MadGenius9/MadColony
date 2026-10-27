@@ -197,7 +197,7 @@ function validateDisasters(s, bad) {
   if (!isObj(D.storms)) { bad('state.disasters.storms is malformed'); return; }
   for (const [k, t] of Object.entries(D.storms)) {
     const ok = isObj(t) && t.id === k && /^t\d{1,9}$/.test(k) && isInt(t.x) && isInt(t.y) && isInt(t.d) && t.d >= 0 && t.d < 8
-      && isInt(t.n) && t.n >= 0 && isInt(t.next) && isInt(t.until) && t.until <= s.tick + 1e6 && isStr(t.key, 120)
+      && isInt(t.n) && t.n >= 0 && isInt(t.next) && isInt(t.until) && t.next <= t.until && t.until <= s.tick + 1e6 && isStr(t.key, 120)
       && Array.isArray(t.hit) && t.hit.length <= 100000 && t.hit.every((h) => isStr(h, 64));
     if (!ok) { bad(`tornado "${String(k).slice(0, 40)}" is malformed`); return; }
   }

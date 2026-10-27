@@ -141,9 +141,9 @@ export function replan(g, sids) {
 }
 
 /** Destroy a resource node (a tree, rock or bush). Jobs gathering it fail softly ("the target is gone"). */
-export function destroyNode(g, id) {
+export function destroyNode(g, id, people = null) {
   if (!g.s.nodes[id]) return false;
-  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job?.nodeId === id) endJob(g, c, null, 'It was destroyed');
+  for (const c of people || Object.values(g.s.colonists).sort(byId)) if (g.s.colonists[c.id] && c.job?.nodeId === id) endJob(g, c, null, 'It was destroyed');
   g.removeNode(id);
   return true;
 }
@@ -160,11 +160,12 @@ export function destroyStack(g, id, reason) {
 }
 
 /** Move a whole stack of goods to near (x, y) (a tornado throws it): no ledger change, the stack's owner keeps it.
- *  The jobs that held a reservation on it or were going to it end first. Returns the quantity moved. */
-export function moveStack(g, id, x, y) {
+ *  The jobs that held a reservation on it or were going to it end first. `people`: the colonists sorted by id
+ *  (a caller moving many passes it once). Returns the quantity moved. */
+export function moveStack(g, id, x, y, people = null) {
   const st = g.s.stacks[id];
   if (!st) return 0;
-  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job && (c.job.res?.some((r) => r.key === id) || (c.job.stackId === id && !c.carry))) endJob(g, c, null, 'The goods were blown away');
+  for (const c of people || Object.values(g.s.colonists).sort(byId)) if (g.s.colonists[c.id] && c.job && (c.job.res?.some((r) => r.key === id) || (c.job.stackId === id && !c.carry))) endJob(g, c, null, 'The goods were blown away');
   if (!g.s.stacks[id]) return 0;
   const owner = g.s.stacks[id].settlement, taken = g.takeFromStack(id, g.s.stacks[id].qty);
   if (!taken) return 0;

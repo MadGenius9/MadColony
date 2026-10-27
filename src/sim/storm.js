@@ -11,7 +11,8 @@
 //   fall to the ground and their village rebuilds them: ruin.js); stone stands;
 // - people are hurt once per storm (wound severity `wound`).
 // A storm dies away after `hours`, or when it leaves the map. At most `maxStorms` at once.
-// Cost: O(radius² + colonists) per storm step; nothing while no storm blows.
+// Wood from trees on land nobody holds goes to the player's village (as goods created without an owner do).
+// Cost: one sort of the colonists and O(radius² x colonists) job checks per storm step; nothing while none blows.
 import { destroyStructures, destroyNode, destroyCrop, moveStack } from './ruin.js';
 import { injure } from './health.js';
 import { godRulesOf } from './god.js';
@@ -71,8 +72,8 @@ export function tickStorms(g) {
   const T = stormRules(g);
   for (const id of Object.keys(D.storms).sort()) {
     const st = D.storms[id];
-    if (g.s.tick < st.next) continue;
     if (g.s.tick >= st.until || !g.inB(st.x, st.y)) { endStorm(g, id); continue; }
+    if (g.s.tick < st.next) continue;
     blow(g, st, T);
     st.d = turn(st.d, st.key, st.n, T);
     st.x += DIRS8[st.d][0]; st.y += DIRS8[st.d][1];
@@ -93,27 +94,33 @@ function blow(g, st, T) {
   const s = g.s, r = T.radius, [dx, dy] = DIRS8[st.d], key = `${st.key}:${st.n}`;
   const far = (k) => Math.round(T.throw[0] + (T.throw[1] - T.throw[0]) * stormDraw(`${key}:throw:${k}`));
   const downwind = (x, y, k) => { const f = far(k); return [Math.min(g.W - 1, Math.max(0, x + dx * f)), Math.min(g.H - 1, Math.max(0, y + dy * f))]; };
-  const torn = [];
+  const torn = [], thrown = [], people = Object.values(s.colonists).sort(byId); // sorted once per step
+  // The goods to throw, first: wood felled in this step is not thrown again in it.
+  for (let y = st.y - r; y <= st.y + r; y++) for (let x = st.x - r; x <= st.x + r; x++) {
+    if (!g.inB(x, y)) continue;
+    const i = g.i(x, y), sk = g.stackIdAt(i);
+    if (sk) thrown.push([sk, x, y, i]);
+  }
   for (let y = st.y - r; y <= st.y + r; y++) for (let x = st.x - r; x <= st.x + r; x++) {
     if (!g.inB(x, y)) continue;
     const i = g.i(x, y);
     const nid = g.nodeIdAt(i), n = nid && s.nodes[nid], nd = n && g.nodeDef(n);
     if (n && (nd?.flammable || 0) > 0) { // a tree or plant (rocks stay)
       const yields = n.empty ? [] : (nd.yields || []).map((e) => ({ item: e.item, qty: e.qty * (n.chunks || 1) }));
-      destroyNode(g, nid);
+      destroyNode(g, nid, people);
       const [tx, ty] = downwind(x, y, `n${i}`), prev = g.actor;
       g.actor = g.territoryAt(x, y) || null;
       try { for (const e of yields) if (e.qty > 0 && g.reg.has('item', e.item)) g.createItems(e.item, e.qty, tx, ty, 'divine'); } finally { g.actor = prev; }
     }
     const cr = g.cropIdAt(i);
     if (cr) destroyCrop(g, cr);
-    const sk = g.stackIdAt(i);
-    if (sk) { const [tx, ty] = downwind(x, y, `s${i}`); moveStack(g, sk, tx, ty); }
     const b = g.structAt(x, y);
     if (b?.built && !b.grave && buildingFlammable(g, g.bDef(b)) >= T.light && stormDraw(`${key}:b:${b.id}`) < T.destroy) torn.push(b.id);
   }
+  for (const [sk, x, y, i] of thrown) { const [tx, ty] = downwind(x, y, `s${i}`); moveStack(g, sk, tx, ty, people); }
   const hit = new Set(st.hit);
-  for (const c of Object.values(s.colonists).sort(byId)) {
+  for (const c of people) {
+    if (!s.colonists[c.id]) continue;
     if (hit.has(c.id) || g._dying?.has(c.id)) continue;
     if (Math.max(Math.abs(Math.round(c.x) - st.x), Math.abs(Math.round(c.y) - st.y)) > r) continue;
     injure(g, c, 'wound', T.wound[0] + (T.wound[1] - T.wound[0]) * stormDraw(`${st.key}:w:${c.id}`), 'Hurt by the tornado', false, (c.settlementId || s.playerSettlement) === s.playerSettlement ? 'warn' : 'info');

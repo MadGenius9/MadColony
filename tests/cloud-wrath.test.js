@@ -433,6 +433,9 @@ test('tornado: saved mid-storm the game continues identically; a malformed storm
   const bad = JSON.parse(text);
   Object.values(bad.state.disasters.storms)[0].d = 9;
   assert.throws(() => loadGame(mid.reg, JSON.stringify(bad)), /tornado/);
+  const stuck = JSON.parse(text);
+  Object.values(stuck.state.disasters.storms)[0].next = 1e15; // would never move nor end
+  assert.throws(() => loadGame(mid.reg, JSON.stringify(stuck)), /tornado/);
   const old = JSON.parse(text);
   old.saveFormat = 23; delete old.state.disasters.storms;
   assert.doesNotThrow(() => loadGame(mid.reg, JSON.stringify(old)));
