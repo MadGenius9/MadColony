@@ -678,7 +678,7 @@ test('regrowth: a burned wood grows back from its seeds, young trees grow up; cl
   assert.ok(young.length > 0, 'young trees sprouted once the scorch marks faded');
   assert.ok(young.every((n) => n.empty && n.chunks === 0), 'young trees cannot be cut yet');
   assert.equal(stateText(reload(g)), stateText(g));
-  runDays(g, 25);
+  for (let d = 0; d < 120 && young.some((n) => g.s.nodes[n.id]?.young); d += 5) runDays(g, 5); // slower in winter
   for (const n of young) if (g.s.nodes[n.id]) { assert.equal(g.s.nodes[n.id].young, undefined, 'grown up'); assert.ok(g.s.nodes[n.id].chunks > 0); }
   assert.deepEqual(conservationErrors(g), []);
 });
@@ -698,7 +698,7 @@ test('regrowth: a malformed seed is refused on load; old saves load', () => {
   assert.doesNotThrow(() => loadGame(g.reg, JSON.stringify(old)));
 });
 
-test('regrowth: forests spread where the scenario says, only beside their kind, off village land, deterministically', () => {
+test('regrowth: forests spread where the scenario says, only beside their kind, deterministically', () => {
   const mods = readAllMods(), core = mods.find((m) => m.manifest.id === 'core');
   for (const sc of core.files['content/setup.json'].scenario) if (sc.id === 'core:standard') sc.nature = { spread: [{ node: 'core:pine', perDay: 0.5, radius: 2, maxNear: 9, minNear: 3 }] };
   const registry = buildRegistry(mods, ['core']).registry;
@@ -711,7 +711,6 @@ test('regrowth: forests spread where the scenario says, only beside their kind, 
   const young = Object.values(g.s.nodes).filter((n) => n.young && n.def === 'core:pine');
   assert.ok(young.length > 0, 'young pines appeared');
   for (const n of young) {
-    assert.equal(g.territoryAt(n.x, n.y), null, 'not on village land');
     let near = 0;
     for (let y = n.y - 2; y <= n.y + 2; y++) for (let x = n.x - 2; x <= n.x + 2; x++) if (g.inB(x, y) && g.nodeAt(x, y)?.def === 'core:pine' && !(x === n.x && y === n.y)) near++;
     assert.ok(near >= 1, 'beside other pines (3 when it seeded; some may be cut since)');

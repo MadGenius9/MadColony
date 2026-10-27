@@ -6,7 +6,8 @@
 //   built on, zoned or turned to bare ground is dropped; one still blocked sproutTries days later too.
 // - Forests spread, where the scenario says (`scenario.nature.spread`, the Vast and Living worlds): every hour a
 //   24th of each listed kind's nodes (by their place in the world's list) has its daily chance `perDay` to drop a
-//   seed on a tile within `radius` on the same ground, free, outside every village's land, with at least `minNear`
+//   seed on a tile within `radius` on the same ground, free, with no building, building site or zone (stockpile,
+//   field) within CLEAR tiles (village grounds stay open), with at least `minNear`
 //   (default 3: forests refill, lone trees do not spread over open land) and fewer than `maxNear` of its kind within
 //   2 tiles; the seed sprouts a day or so later, at an hour of its own. Classic games have no spread.
 // Draws are hashes of (seed, node or tile, day); nothing while there are no seeds and no spread rule.
@@ -14,7 +15,7 @@
 import { TICKS_PER_DAY } from './constants.js';
 
 export const REGROW_DEFAULTS = Object.freeze({ seedDays: 10, sproutTries: 30, sproutDays: 10 });
-const NEAR = 2;
+const NEAR = 2, CLEAR = 3;
 
 const hash = (str) => {
   let h = 2166136261;
@@ -54,6 +55,16 @@ function blocked(g, i) {
   const D = g.s.disasters;
   if (D && (Object.hasOwn(D.fires, i) || Object.hasOwn(D.scorched, i))) return 'busy';
   return null;
+}
+
+/** Is there a building, building site or zone within CLEAR tiles of (x, y)? */
+function villageNear(g, x, y) {
+  for (let yy = y - CLEAR; yy <= y + CLEAR; yy++) for (let xx = x - CLEAR; xx <= x + CLEAR; xx++) {
+    if (!g.inB(xx, yy)) continue;
+    const j = g.i(xx, yy);
+    if (g.structIdAt(j) || g.footIdAt(j) || g.zoneAt(j)) return true;
+  }
+  return false;
 }
 
 /** A young node of `def` on tile i. */
@@ -96,7 +107,7 @@ export function tickRegrowth(g) {
       const x = p.x + dx, y = p.y + dy;
       if ((!dx && !dy) || !g.inB(x, y)) continue;
       const i = g.i(x, y);
-      if (g.terrainAt(i) !== g.terrainAt(g.i(p.x, p.y)) || blocked(g, i) || g.territoryAt(x, y)) continue;
+      if (g.terrainAt(i) !== g.terrainAt(g.i(p.x, p.y)) || blocked(g, i) || villageNear(g, x, y)) continue;
       let near = 0;
       for (let yy = y - NEAR; yy <= y + NEAR; yy++) for (let xx = x - NEAR; xx <= x + NEAR; xx++) if (g.inB(xx, yy) && g.nodeAt(xx, yy)?.def === rule.node) near++;
       if (near >= rule.maxNear || near < (rule.minNear ?? 3)) continue;

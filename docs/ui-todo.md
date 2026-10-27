@@ -167,3 +167,11 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Map:** a tile put out turns to ash at once (scorched) with a puff of steam.
 - **Letters:** "<name> put out a fire." (at most one every few hours per village).
 - **Settings (later):** the player may want a "let it burn" order per village; not in the sim yet.
+
+## Phase 5b, slice 6d: regrowth
+- **Map:** young plants (`node.young`, `empty`) drawn as saplings (small, light green) that grow to full size as
+  `node.regrow` goes from 0 to 1; seeds waiting in `g.s.disasters.seeds` need no drawing (perhaps a faint green
+  tint on scorched ground once its seed is due).
+- **Tooltips:** "Young pine: grows up in about N days" (sproutDays × (1 − regrow), slower in winter); it cannot
+  be cut yet.
+- **Letters:** "N young plants sprouted on burned and broken ground." (at most one a day).

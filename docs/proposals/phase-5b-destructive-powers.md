@@ -305,5 +305,32 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   peak; one earlier run showed a single 57 ms tick, not reproduced: a pause outside the sim).
 - **Test kept, not weakened:** the slice-2 test of a wall burning down now runs with firefighting off in its data
   (the burn-out path), and a new test shows far more standing with firefighting than without.
+- **Review fixes:** people seeing to a need, carrying someone or something, or fighting were pulled to the
+  fire every 5 ticks and back (a hungry person starved to half health during a long fire; soldiers swapped
+  between the battle and the fire): only people with no job of that kind and no need below its seek line fight
+  fires now (a test catches the old behaviour). A fire nobody can reach is skipped for a while (the job's target
+  is blocked on "no path"). fightReach 0 turns firefighting off.
 - **Not changed:** classic runs; 130 tests pass (3 more).
+
+### Slice 5d: regrowth (open question 4, answered yes)
+- **Built:** `src/sim/regrow.js`. *Scars heal in every game:* a plant destroyed by a fire, a meteor or a tornado
+  (`ruin.js destroyNode`) leaves a seed in `s.disasters.seeds` (save format 26); it sprouts when due (fire: when
+  the scorch fades, 30 days; else 10 days), at the next hour, if the tile is free (a building, zone, crater or
+  water drops it; anything else blocking it for 30 days too): a young node (`young`, empty, no chunks) that grows
+  up in its `sproutDays` (data: pine 20, berry bush 4, brush 3; slower in winter, faster in rain, not in drought).
+  *Forests spread in the Vast and Living worlds* (`scenario.nature.spread`): each hour a 24th of the listed
+  kinds' nodes has its daily chance (pine 0.004, berry bush and brush 0.01) to seed a tile within 2–3 on the same
+  ground, with no building, site or zone within 3 tiles, with at least `minNear` (3; 1 for berries) and fewer
+  than `maxNear` (pine 6) of its kind within 2 tiles; the seed sprouts a day or so later, at an hour of its own.
+- **Tuning and cost:** at first (perDay 0.02, sprouting at once) the Vast world gained 6% more plants in 10 days,
+  lone pines on grassland seeded open plains, and the game ran a third slower (each sprout changes the walkable
+  areas and the node lists planners and gatherers use; sprouting all seeds at the day start gave a 77 ms tick).
+  With `minNear`, low chances, hourly sprouting and a numeric hash for the check: about 1% more plants in 20 days;
+  the spread check itself costs nothing measurable (0.21 ms a tick with or without it, perDay 0); the Vast world
+  runs about 10–15% slower from day 1 to 12 with real spread, from the world itself (more trees to walk round and
+  search). This is the price of growing forests; lower `perDay` in the data makes it smaller. The Living world:
+  0.32–0.37 ms a tick without, 0.36–0.38 with (within the noise of this machine; its worst tick is the first one).
+- **Deviation:** "outside village land" meant nothing on maps where every tile belongs to the nearest village
+  (classic and Living worlds), so spread keeps 3 tiles clear of buildings, sites and zones instead.
+- **Not changed:** classic runs (no spread rule; seeds only after a power); 134 tests pass (4 more).
 
