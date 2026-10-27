@@ -65,7 +65,7 @@ registerPower('lightning', {
   },
   apply(g, cmd, r) {
     const a = cmd.args, L = rulesOf(r).lightning, { on, near } = peopleNear(g, a.x, a.y, 1), key = keyOf(g, cmd);
-    for (const c of on) (g._dying ||= new Map()).set(c.id, 'lightning');
+    for (const c of on) if (!g._dying?.has(c.id)) (g._dying ||= new Map()).set(c.id, 'lightning');
     for (const c of near) injure(g, c, 'burn', L.wound[0] + (L.wound[1] - L.wound[0]) * draw(`${key}:${c.id}`), 'Burned by lightning', false, mine(g, c.settlementId) ? 'warn' : 'info');
     const fire = ignite(g, g.i(a.x, a.y));
     return { msg: `Lightning struck (${a.x}, ${a.y})${on.length ? `: ${on.map((c) => c.name).join(', ')} killed` : ''}${near.length ? `${on.length ? ',' : ':'} ${near.length} burned` : ''}${fire ? '; a fire broke out' : ''}.`, x: a.x, y: a.y, killed: on.length, burned: near.length, fire };
@@ -118,7 +118,7 @@ registerPower('smite', {
   validate(g, a) {
     const k = extraKey(a, ['colonistId', 'confirm']);
     if (k) return `smite takes only colonistId and confirm (not "${String(k).slice(0, 40)}")`;
-    if (typeof a.colonistId !== 'string' || !Object.hasOwn(g.s.colonists, a.colonistId)) return 'there is no such person';
+    if (typeof a.colonistId !== 'string' || !Object.hasOwn(g.s.colonists, a.colonistId) || g._dying?.has(a.colonistId)) return 'there is no such person';
     return null;
   },
   cost: (g, a, r) => r.costs.smite ?? 20,

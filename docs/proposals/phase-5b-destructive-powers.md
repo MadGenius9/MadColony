@@ -1,7 +1,6 @@
 # Phase 5b: god powers, part 2 (destructive and nature powers)
 
-Status: **in progress** ("go" from the user on 2026-10-27; the open questions' proposals are the working defaults). Slices 1 and 2 (fire) done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). Nothing in
-this note is built yet.
+Status: **in progress** ("go" from the user on 2026-10-27; the open questions' proposals are the working defaults). Slices 1 and 2 (fire) done; see "Results". Branch `cloud-work` (cloud rescue copy; see CLAUDE.md).
 
 ## Goal (from the roadmap and the user)
 - **2026-10-24 direction:** lightning, fire (spreads through forest and wooden buildings), meteor, plague,

@@ -62,6 +62,8 @@ export function newGodState(g, sandbox = false) {
 // before confirming still returns the full preview, so the warnings can be shown.
 const POWERS = new Map();
 const isDestructive = (P, g, a) => (typeof P.destructive === 'function' ? !!P.destructive(g, a) : !!P.destructive);
+/** The arguments a power validates: without `confirm` for powers that do not destroy (a UI may always send it). */
+const plainArgs = (P, g, a) => { if (isDestructive(P, g, a) || a?.confirm === undefined) return a; const { confirm, ...rest } = a; void confirm; return rest; };
 
 export function registerPower(type, spec) {
   if (typeof type !== 'string' || !type) throw new Error('registerPower: a power needs a type name');
@@ -126,9 +128,9 @@ export function previewCommand(g, type, args = {}) {
   let text;
   try { text = JSON.stringify(args); } catch { return refuse(type, 'the command arguments must be plain data'); }
   if (text.length > ARGS_MAX_CHARS) return refuse(type, 'the command arguments are too long');
-  const why = P.validate(g, args, r);
-  if (why) return refuse(type, why);
   if (args.confirm !== undefined && args.confirm !== true) return refuse(type, 'confirm must be true');
+  const why = P.validate(g, plainArgs(P, g, args), r);
+  if (why) return refuse(type, why);
   const sandbox = !!g.s.god?.sandbox;
   const cost = costOf(g, P, args, r), favour = favourNow(g), free = favour - pendingCost(g, r);
   const preview = { type, cost, favour, sandbox, ...P.preview(g, args, r) };
@@ -200,7 +202,7 @@ function applyOne(g, god, cmd) {
 
 function applyOneNow(g, god, cmd) {
   const r = godRulesOf(g), P = POWERS.get(cmd.type);
-  let reason = !r ? 'no god-power rules are loaded' : !P ? `unknown power "${String(cmd.type).slice(0, 40)}" (is its mod enabled?)` : !isPlain(cmd.args) ? 'the command arguments are malformed' : P.validate(g, cmd.args, r);
+  let reason = !r ? 'no god-power rules are loaded' : !P ? `unknown power "${String(cmd.type).slice(0, 40)}" (is its mod enabled?)` : !isPlain(cmd.args) ? 'the command arguments are malformed' : P.validate(g, plainArgs(P, g, cmd.args), r);
   if (!reason && isDestructive(P, g, cmd.args) && cmd.args.confirm !== true) reason = 'it was not confirmed';
   const cost = reason ? 0 : costOf(g, P, cmd.args, r);
   if (!reason && !god.sandbox) {

@@ -214,3 +214,29 @@ test('fire: saved mid-fire, the game continues identically; a malformed fire is 
   runDays(c, 1);
   assert.equal(c.s.disasters, undefined);
 });
+
+// ---------------- review fixes (slice 1) ----------------
+test('a destroyed bed is rebuilt for its owner', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 6);
+  const bed = Object.values(g.s.structures).find((st) => st.built && st.owner && g.bDef(st)?.bed && g.s.colonists[st.owner]?.bedId === st.id);
+  assert.ok(bed, 'an owned bed');
+  const who = bed.owner;
+  const part = destroyStructure(g, bed.id, { reason: null, why: 'A test' });
+  assert.equal(part.owner, who);
+  assert.equal(g.s.colonists[who].bedId, part.id);
+  runDays(g, 3);
+  assert.ok(g.s.structures[part.id]?.built, 'rebuilt');
+  assert.equal(g.s.structures[part.id].owner, who, 'still theirs');
+});
+
+test('nobody is smitten twice in one tick; non-destructive powers accept confirm', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const c = g.colonists()[0];
+  issueCommand(g, 'smite', { colonistId: c.id, confirm: true });
+  issueCommand(g, 'smite', { colonistId: c.id, confirm: true });
+  g.tick();
+  assert.equal(g.s.god.log.filter((e) => e.type === 'smite' && e.result.ok).length, 1);
+  assert.equal(issueCommand(g, 'omen', { text: 'hi', confirm: true }).ok, true);
+});

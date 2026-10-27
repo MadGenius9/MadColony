@@ -32,8 +32,8 @@ import { tickIllness } from './illness.js';
 import { tickRivalry } from './war.js';
 import { tickFallen } from './fallen.js';
 import { tickFire } from './fire.js';
-import './godspawn.js';
-import './godwrath.js'; // registers the destructive powers (Phase 5b) // registers the god power 'spawn' (Phase 2c slice 2)
+import './godwrath.js'; // registers the destructive powers (Phase 5b)
+import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 

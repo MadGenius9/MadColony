@@ -12,6 +12,7 @@
 // burns); nothing is created here. No random numbers are drawn.
 import { endJob } from './ai/ai.js';
 import { planNow } from './planner.js';
+import { isFallen } from './fallen.js';
 
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
@@ -60,12 +61,14 @@ export function destroyStructure(g, id, opts = {}) {
   const s = g.s, st = s.structures[id];
   if (!st) return null;
   const owner = st.settlement || s.playerSettlement, why = opts.why || 'It was destroyed';
+  const people = opts.people || Object.values(s.colonists).sort(byId); // destroyStructures passes the sorted list once
   // Jobs that use it end while it still stands (a station's buffer goes back on the ground in their cleanup).
-  for (const c of Object.values(s.colonists).sort(byId)) if (jobUses(c.job, id)) endJob(g, c, null, why);
+  for (const c of people) if (s.colonists[c.id] && jobUses(c.job, id)) endJob(g, c, null, why);
   lose(g, owner, heldItems(st), st.x, st.y, opts.reason === undefined ? null : opts.reason);
   st.delivered = {}; if (st.reno) st.reno.delivered = {}; st.buffer = []; st.fuel = [];
-  // Beds and medical beds.
-  for (const c of Object.values(s.colonists).sort(byId)) {
+  // Beds and medical beds. A bed's owner keeps the bed's place: the rebuilt bed is theirs again (below).
+  const bedOwner = st.owner && s.colonists[st.owner]?.bedId === id ? st.owner : null;
+  for (const c of people) {
     if (c.bedId === id) c.bedId = null;
     if (c.medBedId === id) c.medBedId = null;
   }
@@ -73,12 +76,13 @@ export function destroyStructure(g, id, opts = {}) {
   const slot = p?.slots?.find((x) => x.filled === id);
   g.removeStructure(id);
   let part = null;
-  if (p && opts.repair !== false) {
+  if (p && opts.repair !== false && !isFallen(g, owner)) { // a ruin is not repaired (fallen.js)
     p.parts = p.parts.filter((x) => x !== id);
     if (slot) delete slot.filled; // decor: the planner fills the slot again (planDecor)
     else if (def) {
       part = g.addStructure(def.id, st.x, st.y, { projectId: p.id, rot: st.rot, order: st.order ?? 1, settlement: owner });
       p.parts.push(part.id);
+      if (bedOwner) { part.owner = bedOwner; s.colonists[bedOwner].bedId = part.id; } // their bed again once rebuilt
       p.status = 'active';
       if (p.homeId && s.homes[p.homeId]) s.homes[p.homeId].complete = false; // until it is rebuilt (completeStructure)
       g.markDirty(st.x, st.y);
@@ -86,6 +90,18 @@ export function destroyStructure(g, id, opts = {}) {
   }
   if (opts.replan !== false) replan(g, [owner]);
   return part;
+}
+
+/** Destroy several structures at once (meteor, earthquake): one sort of the colonists, one replan per village. */
+export function destroyStructures(g, ids, opts = {}) {
+  const people = Object.values(g.s.colonists).sort(byId), owners = [];
+  for (const id of [...ids].sort()) {
+    const st = g.s.structures[id];
+    if (!st) continue;
+    owners.push(st.settlement || g.s.playerSettlement);
+    destroyStructure(g, id, { ...opts, people, replan: false });
+  }
+  if (opts.replan !== false) replan(g, owners);
 }
 
 /** A fresh plan at once for each village (id order), so no saved plan holds what was destroyed. */
@@ -105,21 +121,21 @@ export function destroyNode(g, id) {
   return true;
 }
 
-/** Destroy a stack of goods on the ground, through the ledger (`reason`). Jobs that reserved or target it end first.
- *  Returns the quantity destroyed. */
+/** Destroy a stack of goods on the ground, through the ledger (`reason`): the whole stack as it is now; then the
+ *  jobs that held a reservation on it or were going to it end. Returns the quantity destroyed. */
 export function destroyStack(g, id, reason) {
   const st = g.s.stacks[id];
   if (!st) return 0;
-  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job && (c.job.stackId === id || c.job.res?.some((r) => r.key === id))) endJob(g, c, null, 'The goods were destroyed');
-  const taken = g.s.stacks[id] ? g.takeFromStack(id, g.s.stacks[id].qty) : null;
+  const taken = g.takeFromStack(id, st.qty);
   if (taken) g.consume(taken.item, taken.qty, reason);
+  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job && (c.job.res?.some((r) => r.key === id) || (c.job.stackId === id && !c.carry))) endJob(g, c, null, 'The goods were destroyed');
   return taken?.qty || 0;
 }
 
 /** Destroy a crop (its seed was consumed when sown; nothing to count). */
 export function destroyCrop(g, id) {
   if (!g.s.crops[id]) return false;
-  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job?.cropId === id) endJob(g, c, null, 'The crop was destroyed');
+  for (const c of Object.values(g.s.colonists).sort(byId)) if (c.job?.cropIds?.includes(id) || c.job?.res?.some((r) => r.key === `crop:${id}`)) endJob(g, c, null, 'The crop was destroyed');
   g.removeCrop(id);
   return true;
 }

@@ -112,6 +112,6 @@ export function tickAging(g) {
     if (y === null || y < A.deathAge) continue;
     const perYear = Math.min(0.99, A.perYear + A.perYearStep * Math.floor(y - A.deathAge));
     const perDay = 1 - Math.pow(1 - perYear, 1 / yearDays);
-    if (hash(`${s.seed}:old:${id}:${day}`) / 4294967296 < perDay) (g._dying ||= new Map()).set(id, 'old_age');
+    if (hash(`${s.seed}:old:${id}:${day}`) / 4294967296 < perDay && !g._dying?.has(id)) (g._dying ||= new Map()).set(id, 'old_age');
   }
 }
