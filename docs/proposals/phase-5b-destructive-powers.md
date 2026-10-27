@@ -339,3 +339,31 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   trade and land claims for 20 days or more). A fire nobody of a village can reach is blocked for that village only.
   Not changed: site scoring still counts young pines as wood (as it counts picked bushes).
 - **Not changed:** classic runs (no spread rule; seeds only after a power); 135 tests pass (5 more).
+
+### Phase 5b acceptance (2026-10-27)
+- **Powers run** (`tools/cloud-powers-run.mjs 40 vast 7`, Sandbox): day 2 lightning (one killed, two burned, a
+  fire), day 3 fire in a wood by the player's village (fought and out within hours), day 4 rain there, day 6
+  smite, day 8 meteor on a home of the nearest village (25 parts lost), day 10 earthquake at the player's village
+  (21 parts fell, 2 hurt; rebuilt), day 12 tornado through the nearest village, day 14 plague there, day 16
+  drought at the player's village, day 18 fire at the player's home, day 20 fire in a wood 80 tiles from every
+  village (nobody fights it). After each power a save and load ran 300 ticks side by side: identical every time.
+  Items (ledger and census) and people (start + born + spawned − died) exact every day for 40 days.
+- **Numbers at day 40:** 45 people (24 at the start); deaths: lightning 1, smite 1, infection 1; 12 villages,
+  1 fallen; peak 127 tiles burning at once, 1,489 scorched; 1,407 young plants and 729 seeds waiting; created by
+  powers: 10 iron, 120 wood, 5 berries; burned: 70 wood. Worst tick 32.4 ms after day 1 (91 ms on day 1, the
+  world starting), 14.3 ms while anything burned.
+- **Targets:** each power's preview, confirm, determinism, replay and conservation: met (tests and the run). A
+  forest fire on the Vast world burns out on its own, never above `fire.maxTiles`, no tick over 50 ms: met. A
+  village hit by a meteor or an earthquake rebuilds its homes within days: met for the earthquake (sites
+  rebuilt); a meteor's homes are lost and the village builds new ones elsewhere.
+- **Classic runs unchanged:** `forty` 9426646c1190c148 and `modern` 429910fed998ddb5 (the same hashes as before
+  Phase 5b). The Living and Vast worlds change by design (forest spread).
+- **Bench:** the Phase 5 code (529b86f) and this code measured side by side on the same machine today: small
+  0.208–0.278 / 0.213–0.220, medium 0.322–0.325 / 0.316–0.351, large 0.577–0.591 / 0.618–0.669 ms/tick (3
+  villages; Phase 5 / now), within the noise of this machine (both are slower than the numbers recorded on
+  2026-10-26 on the same tool: the machine, not the code).
+- **Not met / carried over:** the meteor in this run made no crater tiles (the village stood on ground that walks
+  or is claimed differently, so it was cleared but kept its terrain; craters show on grass, soil, gravel and
+  savanna); see the roadmap's "Carried over".
+- **Tests:** 135 in 14 files, all passing.
+

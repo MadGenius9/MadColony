@@ -548,10 +548,26 @@ questions were not answered, so the note's proposals are the working defaults).
 scavenging ruins; a full merge on conquest; more rivalry causes; seasonal outbreaks; winter clothing; earlier wars
 on World; all UI (`docs/ui-todo.md`).
 
-### Phase 5b: god powers, part 2 (destructive)
+### Phase 5b: god powers, part 2 (destructive) (Done in the cloud copy, 2026-10-27)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything
 destructive; built on Phase 5's death, illness and wounds, using the same command, ledger and replay rules
 as Phase 2c.
+
+- **Done:** lightning, fire (spreading, burning out, scorch marks), smite, meteor (craters), earthquake, tornado
+  (an exact path in the preview), plague, rain and drought, each destructive one refused until confirmed with
+  warnings first; safe destruction and repair by the villages (`ruin.js`); firefighting and regrowth (the
+  owner's answers to open questions 1 and 4, 2026-10-27). Save formats 23–26. Design and results:
+  `docs/proposals/phase-5b-destructive-powers.md`.
+- **Acceptance** (`tools/cloud-powers-run.mjs 40 vast 7`): all 11 power uses applied, after each a save and load
+  ran 300 ticks identically, items and people exact every day, worst tick 32 ms after day 1 (14 ms while
+  burning, 127 tiles burning at the peak); classic runs unchanged (same state hashes); bench the same as the
+  Phase 5 code measured side by side on the same machine.
+- **Carried over** (not done): craters on ground that walks or is claimed differently (forest floor, sand, hills,
+  snow, tundra, taiga, jungle) keep their terrain, because a terrain change there rebuilds the whole-map water
+  and territory data (about 0.5 s on Vast); burned land is marked scorched rather than turned to ash for the same
+  reason; buildings have no partial damage (torn down or standing); rocks do not split in an earthquake; forest
+  spread costs the Vast world about 10–15% (more trees to walk round and search: lower `perDay` in the data to
+  trade growth for speed); costs and "powers may hit your own village" stand as proposed (open questions 2–3).
 
 ### Phase 6: government
 Village council and policies that change real decisions (food reserves, research, trade, work allocation,

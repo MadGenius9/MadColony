@@ -47,3 +47,12 @@ Vast preset (`core:vast_world`, size `vast`, seed 7): creation about 3.0 s, days
   `docs/proposals/phase-5-death-and-collapse.md`, "Slice 7". Day 300: 1.017 ms/tick (code before Phase 5: 0.900),
   326 people (345), worst tick 48 ms after day 1, 8.6 minutes in all.
 
+## After Phase 5b (2026-10-27)
+- Tests: 135 in 14 files, all passing.
+- `forty` and `modern`: unchanged (same state hashes as above).
+- Bench (`node tools/bench.js`, today, this machine; slower than on 2026-10-26 for the same code): small 0.213 /
+  0.257, medium 0.316 / 0.441, large 0.669 / 0.900 ms/tick (3 / 5 settlements in the table), ledger ok. The
+  Phase 5 code side by side: small 0.208 / 0.265, medium 0.322 / 0.443, large 0.577 / 0.804: no regression
+  beyond the noise.
+- Powers run (`tools/cloud-powers-run.mjs 40 vast 7`): see the design note, "Phase 5b acceptance".
+
