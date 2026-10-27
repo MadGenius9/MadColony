@@ -128,6 +128,17 @@ test('powers replay identically and survive a save and load', () => {
 });
 
 // ---------------- slice 2: fire ----------------
+import { readAllMods } from '../tools/fsmods.js';
+import { buildRegistry } from '../src/sim/content/modloader.js';
+/** The core rules with firefighting off (fightReach 0, distantPut 0): fires burn as before slice 6c. */
+let NO_FF = null;
+function noFirefighting() {
+  if (NO_FF) return NO_FF;
+  const mods = readAllMods(), core = mods.find((m) => m.manifest.id === 'core');
+  const gr = core.files['content/god.json'].godRules.find((r) => r.id === 'core:god');
+  gr.wrath = { ...(gr.wrath || {}), fire: { ...(gr.wrath?.fire || {}), fightReach: 0, distantPut: 0 } };
+  return (NO_FF = buildRegistry(mods, ['core']).registry);
+}
 import { tileFlammable, isBurning, fireRules } from '../src/sim/fire.js';
 import { serializeGame, loadGame } from './cloud-helpers.js';
 
@@ -166,7 +177,7 @@ test('fire: refused where nothing can burn; it spreads through a wood, never pas
 });
 
 test('fire: a burning wooden home part is lost and rebuilt; stone in it is left on the ground; people flee and get burns', () => {
-  const g = sandbox();
+  const g = newGame({ seed: 4242, sandbox: true, registry: noFirefighting() }); // the burn-out path (slice 6c fights fires)
   runDays(g, 6);
   const home = Object.values(g.s.homes).find((h) => h.complete);
   const p = g.s.projects[home.projectId];
@@ -581,4 +592,54 @@ test('drought: nobody sows into it (no seed wasted on crops that would only with
   issueCommand(g, 'rain', { x: t.x, y: t.y });
   g.tick();
   assert.match(previewCommand(g, 'fire', { x: t.x, y: t.y, confirm: true }).reason, /raining/);
+});
+
+// ---------------- slice 6c: firefighting ----------------
+/** A fire set on a built part of the player's first home. */
+function homeFire(g) {
+  const h = Object.values(g.s.homes).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const st = g.s.projects[h.projectId].parts.map((id) => g.s.structures[id]).find((s) => s?.built);
+  issueCommand(g, 'fire', { x: st.x, y: st.y, confirm: true });
+  g.tick();
+  return st;
+}
+
+test('firefighting: the village fights a fire at a home and puts it out; fighters do not flee; counts exact', () => {
+  const g = sandbox();
+  runDays(g, 4);
+  homeFire(g);
+  let fought = false, outAt = null;
+  for (let t = 0; t < 2400 && outAt === null; t += 10) {
+    g.step(10);
+    for (const c of g.colonists()) if (c.job?.type === 'firefight') { fought = true; assert.notEqual(c.job.type, 'flee'); }
+    if (!Object.keys(g.s.disasters.fires).length) outAt = g.s.tick;
+  }
+  assert.ok(fought, 'someone fought the fire');
+  assert.ok(outAt !== null, 'the fire is out within a day');
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /put out a fire/);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+});
+
+test('firefighting: saved mid-fight, the game continues identically', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 4);
+    homeFire(g);
+    for (let k = 1; k <= 6; k++) { g.step(40); if (cut.includes(k)) g = reload(g); }
+    return g;
+  };
+  const a = run([]), b = run([1, 2, 4]);
+  assert.equal(firstDifference(stateText(a), stateText(b)), null);
+});
+
+test('firefighting saves buildings: the same fire with and without it', () => {
+  const left = (registry) => {
+    const g = newGame({ seed: 7, sandbox: true, ...(registry ? { registry } : {}) });
+    runDays(g, 4);
+    homeFire(g);
+    for (let t = 0; t < 4800 && Object.keys(g.s.disasters.fires).length; t += 25) g.step(25);
+    return Object.values(g.s.structures).filter((s) => s.built).length;
+  };
+  assert.ok(left(null) > left(noFirefighting()) + 10, 'far more stands when the village fights the fire');
 });

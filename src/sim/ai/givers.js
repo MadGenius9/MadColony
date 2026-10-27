@@ -17,7 +17,7 @@ import { isDown, careNeed } from '../health.js';
 import { findFood, findWater } from './needs.js';
 import { fieldCells } from '../game.js';
 import { reachTest, nodesInReach, SLOW_WORK } from './trips.js';
-import { BURIAL_GIVERS } from '../burial.js';
+import { BURIAL_GIVERS } from '../burial.js';
 import { droughtAt } from '../weatherat.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or

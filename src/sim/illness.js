@@ -118,7 +118,7 @@ export function tickIllness(g) {
     const people = g.owned('colonists', sid).sort(byId);
     if (!people.length) continue;
     const sick = people.filter((p) => contagious(g, p));
-    if (!sick.length && day >= (R.graceDays ?? 0)) {
+    if (!sick.length && R.outbreakPerDay > 0 && day >= (R.graceDays ?? 0)) {
       const crowd = crowding(g, sid, people.length);
       const chance = R.outbreakPerDay * (1 + (R.crowding ?? 0) * crowd);
       if (draw(`${s.seed}:outbreak:${sid}:${day}`) < chance) {

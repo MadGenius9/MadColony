@@ -395,7 +395,7 @@ registerPower('plague', {
     if (k) return `plague takes only settlementId and confirm (not "${String(k).slice(0, 40)}")`;
     if (typeof a.settlementId !== 'string' || !Object.hasOwn(g.s.settlements || {}, a.settlementId)) return 'there is no such village';
     const ill = g.reg.get('illness', rulesOf(r).plague.illness);
-    if (!ill) return 'no plague illness is loaded';
+    if (!ill?.plague) return 'no plague illness is loaded (its data needs plague: true)';
     if (!g.owned('colonists', a.settlementId).some((c) => susceptible(g, c, ill))) return 'nobody there can catch it now';
     return null;
   },

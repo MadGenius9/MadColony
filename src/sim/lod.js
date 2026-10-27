@@ -29,7 +29,7 @@ import { completeTech, settlementOf } from './research.js';
 import { legRemaining, deliverLeg } from './villages.js';
 import { tapHasWater, isWaterNode } from './water.js';
 import { fieldCells } from './game.js';
-import { planNow } from './planner.js';
+import { planNow } from './planner.js';
 import { droughtAt } from './weatherat.js';
 
 export { deliverLeg }; // shared by the trade job and caravans

@@ -160,3 +160,10 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Colonists:** "Plague" in the injury list (an illness like the others); the sick can be shown pale.
 - **Village card:** "Plague: N ill" while `g.s.disasters.plague` lasts.
 - **Letters:** "Plague struck <village>: N fell ill.", then the usual "fell ill with plague (caught it from …)".
+
+## Phase 5b, slice 6c: firefighting
+- **Colonists:** job "Fight the fire": status "Running to the fire", "Beating out the fire" or "Throwing water on
+  the fire" (water within 15 tiles); draw them with a bucket or a beater beside the flames.
+- **Map:** a tile put out turns to ash at once (scorched) with a puff of steam.
+- **Letters:** "<name> put out a fire." (at most one every few hours per village).
+- **Settings (later):** the player may want a "let it burn" order per village; not in the sim yet.

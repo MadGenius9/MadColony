@@ -286,5 +286,24 @@ and its damage; sounds (thunder, fire crackle, impact, rumble, wind, rain).
   village share 0.3 and no outbreaks; contacts between villages carry it too.
 - **Tuning:** at 1.3 an hour every case was deadly (a whole village dead in 9 days, cared for or not); at 0.85
   nobody died in a classic village. At 1.0 most villages of 5 lost 1–2 people, some all of them.
+- **Review fixes:** the power is refused unless its illness is marked `plague` (else nothing would spread in a
+  classic world); a saved plague may last at most 1000 days; no outbreak work while only a plague runs. Format 25
+  covers weather and plague (both new in this phase, never released apart).
 - **Not changed:** classic runs; 127 tests pass (2 plague tests and 1 drought-sowing test more).
+
+### Slice 5c: firefighting (open question 1, answered yes)
+- **Built:** `fire.js` (rules) and `firefight.js` (the job, its own module: registering it from fire.js made an
+  import cycle with ai.js). A burning tile within 3 tiles of a village's burnable built part, field or stockpile
+  threatens it (worked out at most once a tick, from the state then, so a loaded game decides the same). Each
+  awake adult of a full-detail village with health above half, within 30 tiles, goes next to the nearest
+  threatening tile and puts it out after 50 work (twice as fast with a well, pump or water within 15 tiles); they
+  no longer flee (others still do) and take the usual burns. A distant village puts out each threatening tile
+  with chance 0.35 a fire step. Data: `godRules.wrath.fire` threat, fightReach, fightWork, fightWater, distantPut.
+- **Tuning** (a fire set on a home, 3 seeds; built parts left of 61, after the fire): no firefighting 26, 4, 2;
+  work 60: 39, 42, –; work 30 or 40: 55–61 (nothing much lost); work 50: 45, 48, 55. A fire should still hurt.
+- **Cost:** worst tick 7 ms on the Vast world with fires in two villages and a wood (83 tiles burning at the
+  peak; one earlier run showed a single 57 ms tick, not reproduced: a pause outside the sim).
+- **Test kept, not weakened:** the slice-2 test of a wall burning down now runs with firefighting off in its data
+  (the burn-out path), and a new test shows far more standing with firefighting than without.
+- **Not changed:** classic runs; 130 tests pass (3 more).
 

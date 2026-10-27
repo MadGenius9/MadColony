@@ -19,7 +19,7 @@ import { isDown, hpOf, workFactor, HEALTH, injure } from '../health.js';
 import { TICKS_PER_HOUR } from '../constants.js';
 import { NEED_BEHAVIORS, GROUND_REST_RATE, bedTooFar } from './needs.js';
 import { energyLastsWalkHome } from './trips.js';
-import { blessingOf } from '../god.js';
+import { blessingOf } from '../god.js';
 import { droughtAt } from '../weatherat.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water

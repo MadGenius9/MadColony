@@ -9,16 +9,24 @@
 // - a tile burns for burnTicks (a third of that for bare ground) and then burns out: what stood on it is gone
 //   (buildings through ruin.js, which brings home parts back as building sites; goods consumed as 'fire') and it
 //   is scorched (no terrain change: on big worlds a terrain change rebuilds the whole-map water and territory data).
+// - Firefighting (slice 6c): a burning tile within `threat` tiles of a village's burnable built part, field or
+//   stockpile threatens that village; its awake, able adults (health above half, not fleeing a fight) within
+//   `fightReach` go next to the nearest threatening tile and beat it out (`fightWork` ticks, twice as fast with a
+//   well, pump or water within `fightWater` tiles: they carry water), and the tile goes out (scorched; what stands
+//   there is kept). They do not flee; they take the usual burns beside a fire. A distant village puts out each tile
+//   threatening it with chance `distantPut` per fire step (nobody walks there).
 // Distant villages burn by the same rules (their people stand round the centre; nobody flees there).
 // Draws are hashes (seed, tile, tick). Cost: O(burning tiles) per step, plus one pass over the colonists while
 // anything burns.
 import { destroyStructure, destroyNode, destroyStack, destroyCrop, replan } from './ruin.js';
 import { injure } from './health.js';
 import { newJob } from './ai/jobs.js';
+import { stageOf } from './people.js';
+import { hpOf } from './health.js';
 import { godRulesOf } from './god.js';
 import { weatherAtTile, weatherRules } from './weather.js';
 
-export const FIRE_DEFAULTS = Object.freeze({ step: 25, spread: 0.3, burnTicks: 300, maxTiles: 600, burnPerStep: 3, scorchDays: 30, cropFlammable: 0.6 });
+export const FIRE_DEFAULTS = Object.freeze({ step: 25, spread: 0.3, burnTicks: 300, maxTiles: 600, burnPerStep: 3, scorchDays: 30, cropFlammable: 0.6, threat: 3, fightReach: 30, fightWork: 50, fightWater: 15, distantPut: 0.35 });
 export const fireRules = (g) => ({ ...FIRE_DEFAULTS, ...(godRulesOf(g)?.wrath?.fire || {}) });
 
 const hash = (str) => {
@@ -143,17 +151,97 @@ export function tickFire(g) {
   }
   for (const j of [...catching].sort((a, b) => a - b)) D.fires[j] = s.tick;
   for (const i of rained) { delete D.fires[i]; D.scorched[i] = s.tick; } // out: what stands there is left
+  // Distant villages put out the fires that threaten them (by chance; nobody walks there).
+  const T = threats(g, F);
+  for (const [sid, list] of T) {
+    if (s.settlements?.[sid]?.detail !== 'abstract') continue;
+    for (const i of list) if (Object.hasOwn(D.fires, i) && draw(`${s.seed}:putout:${sid}:${i}:${s.tick}`) < F.distantPut) putOut(g, i);
+  }
   const owners = [];
   for (const i of out) owners.push(...burnOut(g, i));
   replan(g, owners);
   if (keys.length && !Object.keys(D.fires).length) g.log('The fire has burned out.', 'info', 'fire-out', 2400);
 }
 
-/** ai.js tickColonist (only while something burns): a flee job away from a fire within 2 tiles, or null. */
+/** Put out burning tile i (left scorched; what stands there is kept). */
+export function putOut(g, i) {
+  const D = g.s.disasters;
+  if (!D || !Object.hasOwn(D.fires, i)) return false;
+  delete D.fires[i];
+  D.scorched[i] = g.s.tick;
+  return true;
+}
+
+/** Burning tiles that threaten each village: sid -> sorted tile list (derived: at most once a tick, from the state
+ *  as it is then, so a loaded game builds the same; never saved). O(burning tiles × threat²). */
+function threats(g, F = fireRules(g)) {
+  const D = g.s.disasters, step = g.s.tick;
+  if (g._fireThreat?.step === step && g._fireThreat.D === D) return g._fireThreat.by;
+  const by = new Map(), r = F.threat;
+  for (const i of Object.keys(D?.fires || {}).map(Number).sort((a, b) => a - b)) {
+    const x = i % g.W, y = (i - x) / g.W, seen = new Set();
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (!g.inB(xx, yy)) continue;
+      const j = g.i(xx, yy);
+      let sid = null;
+      const st = g.structAt(xx, yy);
+      if (st?.built && buildingFlammable(g, g.bDef(st)) > 0) sid = st.settlement || g.s.playerSettlement;
+      else {
+        const z = g.zoneAt(j);
+        if (z) sid = z.startsWith('S:') ? z.slice(2) : (g.s.fields[z]?.settlement || g.s.playerSettlement);
+      }
+      if (sid && !seen.has(sid)) { seen.add(sid); if (!by.has(sid)) by.set(sid, []); by.get(sid).push(i); }
+    }
+  }
+  g._fireThreat = { step, D, by };
+  return by;
+}
+
+/** Is there water within r tiles of (x, y): a built well or pump (a building with `water`), or drinkable ground? */
+function waterNear(g, x, y, r) {
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const xx = x + dx, yy = y + dy;
+    if (!g.inB(xx, yy)) continue;
+    if (g.terrainAt(xx, yy).drinkable) return true;
+    const st = g.structAt(xx, yy);
+    if (st?.built && g.bDef(st)?.water) return true;
+  }
+  return false;
+}
+
+/** Can c fight a fire now? An awake adult of a full-detail village, on its feet, health above half. */
+function canFight(g, c) {
+  if (c.sleeping || c.health?.down || hpOf(c) <= 50 || c.carriedBy) return false;
+  const st = stageOf(g, c);
+  if (st && st.untilDays !== undefined) return false; // children do not
+  return g.s.settlements?.[c.settlementId || g.s.playerSettlement]?.detail !== 'abstract';
+}
+
+/** A firefighting job for c: the nearest tile threatening its village within fightReach, or null. */
+function fightFire(g, c, F) {
+  const list = threats(g, F).get(c.settlementId || g.s.playerSettlement);
+  if (!list?.length || !canFight(g, c)) return null;
+  let best = -1, bd = Infinity;
+  for (const i of list) {
+    if (!Object.hasOwn(g.s.disasters.fires, i)) continue;
+    const x = i % g.W, y = (i - x) / g.W, d = Math.max(Math.abs(x - c.x), Math.abs(y - c.y));
+    if (d <= F.fightReach && d < bd) { bd = d; best = i; }
+  }
+  if (best < 0) return null;
+  const x = best % g.W, y = (best - x) / g.W;
+  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: 'A fire threatens the village', label: 'Fight the fire' });
+}
+
+/** ai.js tickColonist (only while something burns): fight a fire that threatens the village (firefighting), else
+ *  a flee job away from a fire within 2 tiles, else null. */
 export function fireDanger(g, c) {
   const D = g.s.disasters;
-  if (!D || !c || c.job?.type === 'flee' || c.health?.down) return null;
+  if (!D || !c || c.job?.type === 'flee' || c.job?.type === 'firefight' || c.health?.down) return null;
   if ((g.s.tick + c.id.length * 7) % 5) return null;
+  if (!Object.keys(D.fires).length) return null;
+  const fight = fightFire(g, c, fireRules(g));
+  if (fight) return fight;
   const x = Math.round(c.x), y = Math.round(c.y), W = g.W;
   let fx = 0, fy = 0, n = 0;
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (Object.hasOwn(D.fires, (y + dy) * W + (x + dx))) { fx += dx; fy += dy; n++; }

@@ -193,7 +193,7 @@ function validateDisasters(s, bad) {
       if (!/^\d{1,8}$/.test(k) || Number(k) >= N || !isInt(t) || t < 0 || t > s.tick) { bad(`state.disasters.${part} has a bad tile or time`); return; }
     }
   }
-  if (D.plague !== undefined && (!isObj(D.plague) || !isInt(D.plague.until) || D.plague.until < 0)) { bad('state.disasters.plague is malformed'); return; } // format 25
+  if (D.plague !== undefined && (!isObj(D.plague) || !isInt(D.plague.until) || D.plague.until < 0 || D.plague.until > s.tick + 2400 * 1000)) { bad('state.disasters.plague is malformed'); return; } // format 25
   if (D.weather !== undefined) { // format 25: rain and drought (weather.js)
     if (!isObj(D.weather)) { bad('state.disasters.weather is malformed'); return; }
     for (const [k, a] of Object.entries(D.weather)) {
