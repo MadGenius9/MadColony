@@ -172,3 +172,14 @@ CLAUDE.md).
   - the ocean world is mostly water;
   - a meteor before anyone lives there leaves a valid save;
   - an island raised from the sea is settled.
+### Slice 4 (2026-10-28): stroke speed
+- **Measured** (radius-8 strokes, about 200 tiles, far from villages, in a running game):
+  - preview 1–4 ms;
+  - a terrain stroke costs one tick of about 0.6 s on Vast and 1.2 s on World, either the tick it applies or a
+    few ticks later, when the first job asks for the map data;
+  - forest, stone and ore strokes cost 16 ms or less (no terrain change).
+- **Where it goes:** about 70% is the whole-map water walk (`game.js waterWalk`: a distance field from every
+  drinkable tile, `path.js terrainDistanceField`), rebuilt per map revision; drink spots are 6% more.
+- **Not changed** (the owner's answer 5 accepted about 0.5 s; World is 1.2 s): an incremental water walk is
+  carried over. Strokes that add water could update it locally; strokes that remove water or block the way need
+  a bounded recompute round the change.
