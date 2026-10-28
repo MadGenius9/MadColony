@@ -109,8 +109,8 @@ rescue copy; see CLAUDE.md).
 - **The animal ledger** (the owner's answer 3): `s.animals.ledger` holds, per species,
   `{ start, born, sent, died: { cause: n } }`.
   - **Causes:** `winter`, `drought`, `starved` (a pack without prey), `prey` (eaten by a pack, far or near),
-    `hunted` (killed by people, far or near), `lost` (off its ground), `crowded`, `faded` (the last animal of a
-    herd below 2) and `gone` (a species removed from the data, dropped on load).
+    `hunted` (killed by people, far or near), `lost` (off its ground), `crowded` and `faded` (the last animal of
+    a herd below 2). A species removed from the data is dropped on load with its herds and its ledger entry.
   - **Neutral changes:** merges, splits, expanding and folding change no total.
   - **The check:** `animalCensus(g)` compares, per species, living (the sum of herd counts) with start + born +
     sent − died, and lists the problems. Tests and the run tools check it like `peopleCensus`.
@@ -239,3 +239,22 @@ while peaceful is on (proposal: no).
     5.94, modern 41.24); the hashes changed because the ledger is now in the state.
   - Bench against the code before 8b (`4af6044`): +5.5% and +4% over all six sizes in two rounds. Single sizes
     swing from −6% to +25% between rounds (this machine's noise).
+
+### Review fixes (2026-10-28)
+- **Lost herds:**
+  - A herd off its ground now walks back across chunks without its ground (any dry tile on the way, `landIn`).
+    Before, it could only step into a chunk next to its ground: 15 horses two chunks from grass died in place.
+  - A near herd that is lost is not kept near by a village, so it can move by chunks.
+  - A new test sends horses two chunks from any of their ground.
+- **Crowding** counts only with other herds of the species in the chunk (competition). Counting the herd itself
+  in the score spread the deer so much that the winter moves were lost (tried, undone).
+- **Previews:** they use the chunk for "none of their ground here" (the rule's test), the joined herd's place in
+  join mode, and the same crowding threshold as the rule.
+- **Refusals:**
+  - Sends onto walls, buildings or trees are refused.
+  - `animals` and `peaceful` say "this world has no animals" when the scenario has none.
+- **Peaceful:** fending ends and no village hunts a pack for an earlier raid (full detail or distant).
+- **Saves:** a format-28 save with herds but no ledger is refused.
+- **Line endings:** 7 source files had been turned from CRLF to LF by text-mode edits since the rescue copy
+  (`constants.js`, `content/types.js`, `lod.js`, `medical.js`, `migrate.js`, `planner.js`, `save.js`). They are
+  CRLF again (commit f89c03c), so patches home show only the real changes. Edits now keep each file's line endings.

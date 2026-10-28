@@ -134,6 +134,18 @@ function groundIn(g, d, c, key) {
   return null;
 }
 
+/** Any passable dry tile in chunk c, by hash (12 tries), or null: the way back for a herd off its ground. */
+function landIn(g, c, key) {
+  const CW = g.CW, cx = c % CW, cy = (c - cx) / CW;
+  for (let k = 0; k < 12; k++) {
+    const x = cx * CHUNK + Math.floor(draw(`${key}:lx${k}`) * CHUNK), y = cy * CHUNK + Math.floor(draw(`${key}:ly${k}`) * CHUNK);
+    if (!g.inB(x, y)) continue;
+    const t = g.terrainAt(x, y);
+    if (t.passable && !t.drinkable) return { x, y };
+  }
+  return null;
+}
+
 function newHerd(g, d, x, y, n, day) {
   const A = g.s.animals, id = `h${A.next++}`;
   A.herds[id] = { id, sp: d.id, x, y, n, day, year: Math.floor(day / climateOf(g).yearDays), next: g.s.tick, fed: day };
@@ -238,7 +250,8 @@ function daily(g, h, d, day) {
   // Phase 8b: a herd off its ground (none in its chunk) or in a chunk holding over CROWDED times what its ground
   // feeds goes thin (and moves on: score); wild herds are placed on their ground and grow only into room.
   const ground = si === undefined ? 0 : Hb.counts[si][c], feeds = (ground / 1000) * d.cap * g._anScale;
-  const why = !ground ? 'lost' : inChunk(g, I, c, d) > CROWDED * Math.max(1, feeds) ? 'crowded' : null;
+  const here = inChunk(g, I, c, d); // crowded: over CROWDED times what it feeds, with other herds there (competition; score moves it off)
+  const why = !ground ? 'lost' : here > CROWDED * Math.max(1, feeds) && here > h.n ? 'crowded' : null;
   if (why) {
     const e = h.n * (why === 'lost' ? d.lostLoss ?? 0.05 : d.crowdLoss ?? 0.03);
     const k = Math.min(h.n, Math.floor(e) + (draw(`${key}:${why}`) < e - Math.floor(e) ? 1 : 0));
@@ -386,7 +399,7 @@ function move(g, h, d) {
     if (v > bv) { bv = v; best = n; }
   }
   if (best === c || (here >= 0 ? bv < here * 1.15 + 1 : bv <= here)) return; // off its ground: any better step
-  const at = groundIn(g, d, best, `${s.seed}:${h.id}:to:${s.tick}`);
+  const at = groundIn(g, d, best, `${s.seed}:${h.id}:to:${s.tick}`) || (here < 0 ? landIn(g, best, `${s.seed}:${h.id}:to:${s.tick}`) : null); // lost: any dry land on the way back
   if (!at) return;
   setCentre(g, h, at.x, at.y);
 }
@@ -517,13 +530,15 @@ function recentre(g, h, live) {
 
 /** Every NEAR_CHECK ticks: herds come near (become animals) or go far (fold back). */
 function checkNear(g) {
-  const A = g.s.animals, P = anchors(g);
+  const A = g.s.animals, P = anchors(g), Hb = habitat(g);
   for (const id of Object.keys(A.herds).sort(byId)) {
     const h = A.herds[id], d = g.reg.get('animal', h.sp);
     if (!d) continue;
     const dist = Math.min(...P.map((p) => hyp(p.x - h.x, p.y - h.y)));
-    if (h.near === undefined && dist <= NEAR) expand(g, h, d);
-    else if (h.near !== undefined && dist > NEAR + 16 && g.s.tick - h.near >= NEAR_HOLD && !g.excl.has(`hunt:${id}`)) fold(g, h); // not while someone hunts it
+    const si = Hb.index.get(d.id), lost = si === undefined || !Hb.counts[si][chunkOf(g, h.x, h.y)]; // off its ground: it must move by chunks
+    const hunted = g.excl.has(`hunt:${id}`);
+    if (h.near === undefined && dist <= NEAR && (!lost || hunted)) expand(g, h, d);
+    else if (h.near !== undefined && (dist > NEAR + 16 || lost) && g.s.tick - h.near >= NEAR_HOLD && !hunted) fold(g, h); // not while someone hunts it
   }
 }
 
@@ -769,7 +784,7 @@ export function farHuntable(g, x, y, r, sid = null) {
   for (const h of herdsWithin(g, x, y, r)) {
     if (h.near !== undefined) continue;
     const d = g.reg.get('animal', h.sp);
-    const raid = d?.diet === 'hunt' && sid && h.raids?.[sid] > g.s.tick;
+    const raid = d?.diet === 'hunt' && sid && h.raids?.[sid] > g.s.tick && !g.s.animals.peaceful; // peaceful: raiders are left alone
     if (!d?.carcass || (!raid && (d.diet !== 'graze' || h.n <= HUNT_LIMIT))) continue;
     const dist = hyp(h.x - x, h.y - y);
     if (dist <= r) out.push({ h, d, dist, raid });
@@ -835,10 +850,11 @@ export function herdToJoin(g, sp, x, y, r) {
  *  chunk, how many of the species live there, and whether sent animals would arrive near a village. */
 export function landFor(g, sp, x, y) {
   const d = g.reg.get('animal', sp), Hb = habitat(g), si = Hb.index.get(sp), c = chunkOf(g, x, y);
-  const ground = si === undefined ? 0 : Hb.counts[si][c];
+  const ground = si === undefined ? 0 : Hb.counts[si][c], feeds = (ground / 1000) * d.cap * g._anScale;
   return {
-    onGround: d.terrains.includes(g.terrainAt(x, y).id), terrains: d.terrains,
-    feeds: Math.round((ground / 1000) * d.cap * g._anScale), living: g.s.animals ? inChunk(g, indexes(g), c, d) : 0, near: nearAnchor(g, x, y),
+    onGround: d.terrains.includes(g.terrainAt(x, y).id), chunkGround: ground > 0, terrains: d.terrains,
+    feeds: Math.round(feeds), crowdedAt: CROWDED * Math.max(1, feeds), // the same rule as daily()
+    living: g.s.animals ? inChunk(g, indexes(g), c, d) : 0, near: nearAnchor(g, x, y),
   };
 }
 

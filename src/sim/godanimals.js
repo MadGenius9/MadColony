@@ -32,12 +32,13 @@ registerPower('animals', {
     const k = extraKey(a, ['x', 'y', 'species', 'count', 'mode', 'confirm']);
     if (k) return `animals takes only x, y, species, count, mode and confirm (not "${String(k).slice(0, 40)}")`;
     if (!Number.isInteger(a.x) || !Number.isInteger(a.y) || !g.inB(a.x, a.y)) return 'pick a tile on the map';
+    if (!animalSpecies(g).length) return 'this world has no animals';
     if (typeof a.species !== 'string' || !animalSpecies(g).some((d) => d.id === a.species)) return 'there is no such animal in this world';
     if (!g.s.animals) return 'the wild has not settled yet (wait a moment)';
     const d = g.reg.get('animal', a.species), mode = a.mode ?? 'herd';
     if (mode !== 'herd' && mode !== 'join') return 'mode must be herd or join';
     const t = g.terrainAt(a.x, a.y);
-    if (!t.passable || t.drinkable) return 'animals need dry land to stand on';
+    if (!t.passable || t.drinkable || !g.isPassable(a.x, a.y)) return 'animals need open dry land to stand on (not water, a wall or a building)';
     const lo = mode === 'herd' ? 2 : 1, hi = d.herd[1];
     if (!Number.isInteger(a.count) || a.count < lo || a.count > hi) return `send ${lo} to ${hi} ${plural(d, 2)}${mode === 'herd' ? ' (a herd needs at least 2)' : ''}`;
     if (mode === 'join' && !herdToJoin(g, a.species, a.x, a.y, JOIN_R)) return `no herd of ${plural(d, 2)} within ${JOIN_R} tiles to join`;
@@ -45,16 +46,16 @@ registerPower('animals', {
   },
   cost: (g, a) => (g.reg.get('animal', a.species)?.godCost ?? 3) * a.count,
   preview(g, a) {
-    const d = g.reg.get('animal', a.species), mode = a.mode ?? 'herd', L = landFor(g, a.species, a.x, a.y), warnings = [];
-    let effect;
-    if (mode === 'join') {
-      const h = herdToJoin(g, a.species, a.x, a.y, JOIN_R);
-      effect = `${a.count} ${plural(d, a.count)} join the herd of ${h.n} nearby (${h.n + a.count}).`;
-    } else effect = `${a.count} ${plural(d, a.count)} appear at (${a.x}, ${a.y}) as a new herd.`;
-    if (!L.onGround) warnings.push(`They live on ${L.terrains.map((t) => g.reg.get('terrain', t)?.name?.toLowerCase() || t).join(', ')}; this is ${g.terrainAt(a.x, a.y).name?.toLowerCase() || 'other ground'}: they will wander off to find their ground and some will die on the way.`);
-    warnings.push(`The land here feeds about ${L.feeds} ${plural(d, 2)}; ${L.living} live here already${L.living + a.count > L.feeds * 1.5 ? ': too many, some will die or move on' : ''}.`);
+    const d = g.reg.get('animal', a.species), mode = a.mode ?? 'herd', warnings = [];
+    const h = mode === 'join' ? herdToJoin(g, a.species, a.x, a.y, JOIN_R) : null, at = h ? { x: h.x, y: h.y } : { x: a.x, y: a.y }; // where they will be
+    const L = landFor(g, a.species, at.x, at.y), terrain = g.terrainAt(at.x, at.y).name?.toLowerCase() || 'other ground';
+    const effect = h ? `${a.count} ${plural(d, a.count)} join the herd of ${h.n} nearby (${h.n + a.count}).` : `${a.count} ${plural(d, a.count)} appear at (${a.x}, ${a.y}) as a new herd.`;
+    const lives = `They live on ${L.terrains.map((t) => g.reg.get('terrain', t)?.name?.toLowerCase() || t).join(', ')}`;
+    if (!L.chunkGround) warnings.push(`${lives}; there is none of it here: they will wander off to find it and some will die on the way.`);
+    else if (!L.onGround) warnings.push(`${lives}; this is ${terrain}, but there is some of their ground nearby to graze.`);
+    warnings.push(`The land here feeds about ${L.feeds} ${plural(d, 2)}; ${L.living} live here already${L.living + a.count > L.crowdedAt ? ': too many, some will die or move on' : ''}.`);
     if (isPack(g, a)) for (const v of villagesNear(g, a.x, a.y)) warnings.push(`Wolves will hunt near ${v.mine ? 'your village' : v.name} (${v.dist} tiles away) and may attack its people.`);
-    return { x: a.x, y: a.y, species: a.species, count: a.count, mode, near: L.near, effect, warnings };
+    return { x: a.x, y: a.y, species: a.species, count: a.count, mode, near: h ? h.near !== undefined : L.near, effect, warnings };
   },
   apply(g, cmd) {
     const a = cmd.args, d = g.reg.get('animal', a.species), mode = a.mode ?? 'herd';
@@ -76,6 +77,7 @@ registerPower('peaceful', {
     const k = extraKey(a, ['on']);
     if (k) return `peaceful takes only on (not "${String(k).slice(0, 40)}")`;
     if (typeof a.on !== 'boolean') return 'on must be true or false';
+    if (!animalSpecies(g).length) return 'this world has no animals';
     if (!g.s.animals) return 'the wild has not settled yet (wait a moment)';
     if (!!g.s.animals.peaceful === a.on) return a.on ? 'the animals are peaceful already' : 'the animals are wild already';
     return null;

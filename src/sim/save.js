@@ -101,7 +101,7 @@ export function validateSave(save) {
   if (s.dead !== undefined) validateDead(s, bad); // format 15
   if (s.bodies !== undefined) validateBodies(s, bad, inB); // format 16
   if (s.disasters !== undefined) validateDisasters(s, bad); // format 23
-  if (s.animals !== undefined) validateAnimals(s, bad); // format 27
+  if (s.animals !== undefined) validateAnimals(s, bad, save.saveFormat); // format 27
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -220,7 +220,7 @@ function validateDisasters(s, bad) {
 }
 
 /** Wild herds (format 27, optional): { herds: id -> { id, sp, x, y, n, day, year, next, fed }, next }. */
-function validateAnimals(s, bad) {
+function validateAnimals(s, bad, format = 28) {
   const A = s.animals, W = s.map?.w || 0, H = s.map?.h || 0;
   if (!isObj(A) || !isObj(A.herds) || !isInt(A.next) || A.next < 1) { bad('state.animals is malformed'); return; }
   for (const [k, h] of Object.entries(A.herds)) {
@@ -234,6 +234,7 @@ function validateAnimals(s, bad) {
   }
   if (A.na !== undefined && (!isInt(A.na) || A.na < 1)) { bad('state.animals.na is malformed'); return; }
   if (A.peaceful !== undefined && A.peaceful !== true) { bad('state.animals.peaceful is malformed'); return; }
+  if (format >= 28 && A.ledger === undefined && Object.keys(A.herds).length) { bad('state.animals has herds but no ledger'); return; } // older saves get one in migrate.js
   if (A.ledger !== undefined) { // the animal ledger (format 28)
     const n = (v) => isInt(v) && v >= 0 && v <= 1e12;
     if (!isObj(A.ledger) || Object.keys(A.ledger).length > 1000) { bad('state.animals.ledger is malformed'); return; }

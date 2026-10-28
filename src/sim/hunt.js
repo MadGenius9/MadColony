@@ -34,7 +34,7 @@ export const HUNT_GIVERS = {
       const people = g.owned('colonists', sid).length;
       const out = [];
       // A pack that attacked the village's people is hunted down whatever the meat (slice 4).
-      for (const hid of nearHerdIds(g)) { // near herds only
+      for (const hid of g.s.animals.peaceful ? [] : nearHerdIds(g)) { // near herds only; none while the wild is peaceful
         const h = g.s.animals.herds[hid];
         if (!h || !(h.raids?.[sid] > g.s.tick) || g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;
         const d = g.reg.get('animal', h.sp);
@@ -111,6 +111,7 @@ export const HUNT_DRIVERS = {
     tick(g, c, j) {
       const t = g.s.animals?.list?.[j.wolf], h = t && g.s.animals.herds[t.herd], d = h && g.reg.get('animal', h.sp);
       if (!t || !d) return 'done'; // dead or gone
+      if (g.s.animals.peaceful) return 'done'; // the gods calmed the wild: no need to fight it
       const w = huntWeapon(g, c);
       if (!w || hpOf(c) <= 30) return { fail: 'Too hurt to fight on' };
       const dist = Math.hypot(t.x - c.x, t.y - c.y);

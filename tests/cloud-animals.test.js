@@ -436,4 +436,7 @@ test('8b ledger: the Vast world (far herds, distant hunting, packs eating) stays
   const bad = JSON.parse(serializeGame(g));
   bad.state.animals.ledger['core:deer'].born = -1;
   assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /ledger/);
+  const none = JSON.parse(serializeGame(g));
+  delete none.state.animals.ledger; // a format-28 save with herds must have its ledger
+  assert.throws(() => loadGame(g.reg, JSON.stringify(none)), /herds but no ledger/);
 });

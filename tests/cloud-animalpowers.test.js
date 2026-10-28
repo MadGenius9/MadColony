@@ -42,7 +42,8 @@ test('8b animals: a scenario with animals off refuses the power', () => {
   for (const sc of core.files['content/setup.json'].scenario) if (sc.id === 'core:standard') sc.animals = { species: [] };
   const g = newGame({ seed: 4242, registry: buildRegistry(mods, ['core']).registry, scenario: 'core:standard' });
   runDays(g, 1);
-  assert.match(previewCommand(g, 'animals', { x: g.s.center.x, y: g.s.center.y, species: 'core:deer', count: 4 }).reason, /no such animal/);
+  assert.match(previewCommand(g, 'animals', { x: g.s.center.x, y: g.s.center.y, species: 'core:deer', count: 4 }).reason, /this world has no animals/);
+  assert.match(previewCommand(g, 'peaceful', { on: true }).reason, /this world has no animals/);
 });
 
 test('8b animals: a herd sent near the village arrives as animals, costs favour, is counted as sent; saves replay identically', () => {
@@ -135,7 +136,8 @@ function vastFar(test) {
   for (let cy = 1; cy < g.CH - 1; cy++) for (let cx = 1; cx < g.CW - 1; cx++) {
     const x = cx * 32 + 16, y = cy * 32 + 16, t = g.terrainAt(x, y);
     if (!t.passable || t.drinkable || centres.some((c) => Math.hypot(c.x - x, c.y - y) < 100)) continue;
-    if (test(g, cy * g.CW + cx, x, y)) return { g, x, y };
+    if (!test(g, cy * g.CW + cx, x, y)) continue;
+    for (let k = 0; k < 64; k++) { const px = x + (k % 8) - 4, py = y + Math.floor(k / 8) - 4; if (g.isPassable(px, py) && !g.terrainAt(px, py).drinkable) return { g, x: px, y: py }; } // an open tile there (not a tree)
   }
   return { g };
 }
@@ -151,7 +153,7 @@ test('8b needs: horses sent where none of their ground is lose some and move off
   assert.equal(issueCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 15 }).ok, true);
   g.tick();
   const h = Object.values(g.s.animals.herds).find((e) => e.origin === 'divine');
-  assert.match(previewCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 2 }).preview.warnings[0], /they will wander off to find their ground/);
+  assert.match(previewCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 2 }).preview.warnings[0], /there is none of it here: they will wander off to find it/);
   runDays(g, 3);
   const now = g.s.animals.herds[h.id];
   const Hb = g._anHab, si = Hb.index.get('core:wild_horse');
@@ -241,4 +243,25 @@ test('8b peaceful: a hungry pack leaves a lone person alone, still kills deer; s
   for (let t = 0; t < 2400 && !bitesOf(c); t++) { if (t % 100 === 0) { const a = Object.values(g.s.animals.list || {}).find((x) => x.herd === 'h901'); if (a) { c.x = a.x + 3; c.y = a.y; c.mv = null; c.path = null; } h.fed = Math.floor(g.s.tick / 2400) - 1; } g.tick(); }
   assert.ok(bitesOf(c) > 0, 'bitten once the wild is wild again');
   assert.deepEqual(conservationErrors(g), []);
+});
+
+test('8b review: horses sent two chunks from any of their ground walk back to it', () => {
+  const { g, x, y } = vastFar((g, c) => {
+    const Hb = g._anHab, si = Hb.index.get('core:wild_horse'), cx = c % g.CW, cy = (c - cx) / g.CW;
+    let ring1 = 0, ring2 = 0;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const n = Hb.counts[si][(cy + dy) * g.CW + cx + dx] || 0;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) ring1 += n; else ring2 += n;
+    }
+    return ring1 === 0 && ring2 > 100;
+  });
+  assert.ok(x !== undefined, 'a chunk with no horse ground in the 3x3 round it, some within 2 chunks');
+  issueCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 15 });
+  g.tick();
+  const h = Object.values(g.s.animals.herds).find((e) => e.origin === 'divine');
+  runDays(g, 4);
+  const now = g.s.animals.herds[h.id], Hb = g._anHab, si = Hb.index.get('core:wild_horse');
+  assert.ok(now, 'the herd lives');
+  assert.ok(Hb.counts[si][Math.floor(now.y / 32) * g.CW + Math.floor(now.x / 32)] > 0, 'it reached its ground');
+  assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
 });
