@@ -72,3 +72,7 @@ built, workshops era on day 5.47), `modern` 14be8f5a6511e9e2 (modern era on day 
 Wolves now go for people: `forty` a3f4673dd1c9392c, `modern` 3982dd57aa2eadad (same outcomes: 5 colonists, 66
 and 90 built, the same era days).
 
+## Phase 8, slice 5 (2026-10-28): classic hashes
+Hunting at work priority 1: `forty` b9406ed4939d61cc (workshops era on day 6.05), `modern` 73214f81e4dcf083
+(modern era on day 44.11).
+

@@ -215,3 +215,9 @@ where, and which sim function or state field provides it. The UI is built at hom
   wolves", herd `raids[village]` until a tick).
 - **Map warning:** a near pack (`herds[…].sp` wolf, `near` set) within 30 tiles of the village could show a
   small wolf icon at the village edge; the village card: "Wolves near: stay in groups, carry spears".
+
+## Phase 8, slice 5: distant villages
+- **World view:** a distant village's hunters are not drawn (they are simulated in aggregate); its stockpile shows
+  carcasses and venison like any village; the village card's food line can read "Hunting deer (a herd of 7, 17
+  tiles away)" (`plans[sid].huntNote`).
+- **Letters:** "Wolves attacked <name> near <village>." (info) for distant villages.

@@ -44,11 +44,12 @@ export const HUNT_GIVERS = {
           return g.reserveExcl(job, `hunt:${h.id}`, c.id) ? job : null;
         } });
       }
-      if (meatOnHand(g, P) >= MEAT_PER_PERSON * Math.max(2, people)) return out;
+      const meat = meatOnHand(g, P);
+      if (meat >= MEAT_PER_PERSON * Math.max(2, people)) return out;
       for (const { h, d, dist } of huntableNear(g, ctr.x, ctr.y, HUNT_REACH)) { // within reach of home (carcasses are hauled there)
         if (g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;
         out.push({
-          x: h.x, y: h.y, urgency: (P?.foodDays ?? 9) < 3 ? 1.2 : 0.6, label: `Hunt ${d.plural || d.name}`, far: dist > 30,
+          x: h.x, y: h.y, urgency: (P?.foodDays ?? 9) < 3 ? 1.6 : meat === 0 ? 1.2 : 0.8, label: `Hunt ${d.plural || d.name}`, far: { x: h.x, y: h.y }, // the trip's far end (trips.js budgets it on big worlds)
           make() {
             const job = newJob('hunt', { herd: h.id, target: null, gx: null, gy: null, cd: 0, started: g.s.tick }, { why: 'The village needs meat', label: `Hunt ${d.plural || d.name}`, workType: wt.id, targetKey: `hunt:${sid}:${h.id}` });
             if (!g.reserveExcl(job, `hunt:${h.id}`, c.id)) return null;

@@ -73,6 +73,25 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
     assert.ok(now[sp]?.animals > 0, `${sp} survive`);
     assert.ok(now[sp].animals < start[sp].animals * 2.5, `${sp} do not explode`);
   }
+  // Slice 5: distant villages hunt too (their kills are not logged, so the ledger counts more than the log).
+  const hunted = g.s.ledger.byReason['created:hunt']?.['core:deer_carcass'] || 0;
+  const logged = g.s.log.filter((e) => / killed a deer\./.test(e.msg)).length;
+  assert.ok(hunted > logged, `distant villages hunted (${hunted} carcasses, ${logged} kills seen close up)`);
+  // A hungry far pack beside a distant village mauls someone there (a chance a day).
+  const v = Object.values(g.s.settlements).filter((x) => x.detail === 'abstract' && !x.fallen).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const A = g.s.animals;
+  A.herds[`h${A.next}`] = { id: `h${A.next}`, sp: 'core:wolf', x: v.center.x + 6, y: v.center.y, n: 5, day: 0, year: 0, next: g.s.tick + 1e6, fed: -10 };
+  const pack = A.herds[`h${A.next++}`];
+  g._anIdx = null;
+  let attacked = false;
+  for (let d = 0; d < 15 && !attacked; d++) {
+    pack.x = v.center.x + 6; pack.y = v.center.y; pack.fed = -10; pack.next = g.s.tick + 1e6; g._anIdx = null;
+    runDays(g, 1);
+    attacked = g.s.log.some((e) => e.msg.startsWith('Wolves attacked') && e.msg.includes(`near ${v.name}`));
+  }
+  assert.ok(attacked, 'wolves mauled someone of a distant village');
+  assert.ok(pack.raids?.[v.id] > 0, 'that village marks the pack to hunt');
+  assert.deepEqual(conservationErrors(g), []);
 });
 
 test('review fix: meteors near herds, then a save and load: the game continues identically', () => {
@@ -329,13 +348,13 @@ test('review fixes: a pack that has eaten today leaves people alone; a load mid-
     for (const id of Object.keys(p.needs)) p.needs[id] = 1; // fed, watered, rested: nothing calls them away
     let angrySeen = false;
     for (let k = 0; k < 8; k++) {
-      for (let t = 0; t < 30; t++) { h.tick(); if (h.s.animals.herds.h901?.angry && h.colonists().some((q) => q.job?.type === 'fend')) angrySeen = true; }
+      for (let t = 0; t < 30; t++) { h.tick(); if (h.s.animals.herds.h901?.angry && h.colonists().some((q) => q.job?.type === 'fend' || (q.job?.type === 'hunt' && q.job.herd === 'h901'))) angrySeen = true; }
       if (cut.includes(k)) h = reload(h);
     }
     h.step(300);
     return { h, angrySeen };
   };
   const a = run([]), b = run([1, 2, 3]);
-  assert.ok(a.angrySeen, 'the pack was angry while someone fended it off');
+  assert.ok(a.angrySeen, 'the pack was angry while someone fought it (fending it off or hunting it down)');
   assert.equal(stateText(b.h), stateText(a.h));
 });

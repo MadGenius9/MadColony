@@ -309,3 +309,26 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
 - **Merge note:** wolves can now kill classic colonists; the home project's fuller test suite (not in this copy)
   may have tests assuming nobody dies in a classic game.
 - **Not changed:** 152 tests pass (4 more in `tests/cloud-animals.test.js`); classic hashes unchanged by the fixes.
+
+### Slice 5: distant villages
+- **Built** (`lod.js taskHunt`, `animals.js farHuntable`/`killFar`/`raidDistant`): an adult of a distant village
+  who may hunt (with their own weapon, or a melee weapon in the village's stock, since nobody equips there),
+  while the village is short of meat, spends time on the nearest far herd of deer or horses within 40 tiles of the
+  centre above the hunting limit, or first on a pack that attacked it: a hunt is 400 work ticks (half of the time
+  counts, `LOD.share.hunt` 0.5, not yet measured against full detail) plus the walk there and back, kept per herd
+  in `settlement.abs.hunt` (saved, validated); at the end a hash draw (0.7) gives a kill: one animal from the herd
+  and its carcass at the centre (`created:hunt`), butchered by the village's bills. One hunter a village an hour,
+  before farming and gathering. A hungry far pack within 20 tiles of a distant village mauls one of its adults
+  once a day with chance 0.3 (a bite of 10–25), and the village marks the pack to hunt. The planner wants weapons
+  for a distant village's hunters by its far herds, and distant villages eat and cook what spoils first.
+- **Found on the way:** hunting never happened on big worlds at all: the hunt giver passed `far: true` where the
+  work chooser expects the trip's far end (a point), so every hunt counted as too far; distant villages' weapons
+  never counted (worn goods carry `dur`); hunting was the last task of a distant villager's hour, so other work
+  used the time. Hunting is now work priority 1 with more urgency when there is no meat.
+- **Vast seed 7, 30 days:** 32 deer hunted world-wide (13 by the player's village), 156 venison, 10 spoiled; no
+  wolf attack on a distant village in that time (packs keep away from villages); a test places a pack beside one.
+- **Classic runs:** `forty` b9406ed4939d61cc (66 built; workshops era on day 6.05, before 5.47), `modern`
+  73214f81e4dcf083 (modern era on day 44.1, before 41.6): with hunting at priority 1 the village spends more time
+  hunting; nothing is lost from the ledger.
+- **Not changed:** 152 tests pass (the Vast test now also checks distant hunting and a raid).
+

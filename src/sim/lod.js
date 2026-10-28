@@ -31,6 +31,8 @@ import { tapHasWater, isWaterNode } from './water.js';
 import { fieldCells } from './game.js';
 import { planNow } from './planner.js';
 import { droughtAt } from './weatherat.js';
+import { farHuntable, killFar, meatOnHand, MEAT_PER_PERSON } from './animals.js';
+import { huntWeapon } from './hunt.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -47,7 +49,7 @@ export const LOD = {
   //   seed 7:  gathered 1.05, crafted 1.12, construction used 1.02, harvested 1.03, sown 1.06, research 0.87
   //   seed 11: gathered 1.04, crafted 1.11, construction used 1.03, harvested 1.22, sown 1.18, research 0.92
   //   (food eaten 1.13 / 1.22; seed 11's full run includes a village whose people collapsed from thirst).
-  share: { research: 0.085, construct: 0.7, bills: 0.73, farm: 0.8, gather: 0.57 },
+  share: { research: 0.085, construct: 0.7, bills: 0.73, farm: 0.8, gather: 0.57, hunt: 0.5 }, // hunt: Phase 8, not measured against full detail yet
 };
 const STACK_RADIUS = 20; // tiles round the centre searched for the village's goods (items overflow up to here)
 const SHORT = 1e-9;
@@ -259,9 +261,12 @@ function planInputs(g, store, inputs, reserve) {
   const use = (it) => { if (!usable.has(it)) usable.set(it, store.free(it) - (reserve[it] || 0)); return usable.get(it); };
   const fromStack = new Map();
   const plan = [];
+  const rot = (st) => g.reg.get('item', st.item)?.spoilPerDay || 0;
   for (const inp of inputs) {
     let need = inp.qty;
-    for (const st of store.stacks()) {
+    // Stacks in id order, what spoils first (Phase 8; a stable sort: without spoiling goods the order is as before).
+    const stacks = inp.tag ? store.stacks().slice().sort((a, b) => rot(b) - rot(a)) : store.stacks();
+    for (const st of stacks) {
       if (need <= 0) break;
       if (st.dur !== undefined || (inp.item ? st.item !== inp.item : !g.reg.itemHasTag(st.item, inp.tag))) continue;
       const q = Math.min(need, store.avail(st) - (fromStack.get(st.id) || 0), use(st.item));
@@ -378,7 +383,8 @@ function pickFood(g, store, reserve) {
     const d = reg.get('item', st.item);
     if (!d?.nutrition || st.dur !== undefined || store.avail(st) < 1 || freeOf(st.item) < 1) continue;
     if (d.tags?.includes('core:meal')) return st;
-    if (!raw && freeOf(st.item) - (reserve[st.item] || 0) >= 1) raw = st;
+    if (freeOf(st.item) - (reserve[st.item] || 0) < 1) continue;
+    if (!raw || (d.spoilPerDay || 0) > (reg.get('item', raw.item)?.spoilPerDay || 0)) raw = st; // raw food that spoils first (Phase 8)
   }
   return raw;
 }
@@ -394,7 +400,7 @@ function hourLabour(g, sid, cols, store, structs, own) {
   const A = settlementOf(g, sid).abs.gather;
   for (const id of Object.keys(A)) if (!g.s.nodes[id]) delete A[id]; // work on a node that is gone is lost, as for a job
   const ctx = makeContext(g, sid, store, structs, own, P);
-  const tasks = [taskResearch, taskConstruct, taskBills, taskFarm, taskGather];
+  const tasks = [taskResearch, taskConstruct, taskBills, taskHunt, taskFarm, taskGather];
   for (const c of workers) {
     let time = LOD.hour;
     for (const task of tasks) {
@@ -686,6 +692,42 @@ function taskGather(g, ctx, c, time) {
     if (time - used <= SHORT) break;
   }
   return used;
+}
+
+// Hunting (Phase 8, slice 5): an adult who may hunt (armed, or a melee weapon in the village's stock), while the village is short of meat (meat and carcasses
+// below MEAT_PER_PERSON a person, counting what was hunted this hour), spends time on the nearest far herd of deer
+// or horses within HUNT_REACH of the centre that is above the hunting limit: a hunt is HUNT_WORK ticks of work
+// (LOD.share.hunt of the time counts) plus the walk there and back; progress is kept per herd
+// (settlement.abs.hunt). At the end a hash draw decides it (HUNT_HIT): a kill takes one animal from the herd and
+// makes its carcass at the centre (`created:hunt`), to be butchered by the village's bills; a miss starts again.
+const HUNT_REACH = 40, HUNT_WORK = 400, HUNT_HIT = 0.7;
+/** Can c hunt in a distant village: their own weapon, or a weapon in the village's stock (nobody equips there). */
+function huntArmed(g, ctx, c) {
+  if (huntWeapon(g, c)) return true;
+  if (ctx.huntGear === undefined) ctx.huntGear = ctx.store.stacks().some((st) => ctx.store.avail(st) >= 1 && g.reg.get('item', st.item)?.equipment?.damage && !g.reg.get('item', st.item).equipment.ammo); // weapons carry wear (dur)
+  return ctx.huntGear;
+}
+function taskHunt(g, ctx, c, time) {
+  if (!can(g, c, 'core:hunt') || !g.s.animals || (ctx.hunter && ctx.hunter !== c.id) || !huntArmed(g, ctx, c)) return 0; // one hunter a village an hour
+  const people = g.owned('colonists', ctx.sid).length;
+  ctx.huntMeat ??= meatOnHand(g, ctx.P);
+  const targets = farHuntable(g, ctx.center.x, ctx.center.y, HUNT_REACH, ctx.sid);
+  const target = targets.find((t) => t.raid) || (ctx.huntMeat < MEAT_PER_PERSON * Math.max(2, people) ? targets[0] : null);
+  if (!target) return 0;
+  ctx.hunter = c.id;
+  const { h, d } = target, abs = (settlementOf(g, ctx.sid).abs.hunt ||= {});
+  for (const id of Object.keys(abs)) if (!g.s.animals.herds[id]) delete abs[id];
+  const cost = HUNT_WORK + 2 * Math.max(1, octile(ctx.center.x, ctx.center.y, h.x, h.y)) * MOVE_TICKS;
+  const done = abs[h.id] || 0, spend = Math.min(time, (cost - done) / LOD.share.hunt);
+  abs[h.id] = done + spend * LOD.share.hunt;
+  practiceFor(g, c, 'core:hunt', 'core:hunting', spend, LOD.share.hunt);
+  if (abs[h.id] + SHORT < cost) return spend;
+  delete abs[h.id];
+  let x = hash(`${g.s.seed}:lodhunt:${ctx.sid}:${h.id}:${g.s.tick}:${c.id}`); // finalised: keys differ only at the end
+  x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16;
+  const hit = (x >>> 0) / 4294967296 < HUNT_HIT;
+  if (hit && d.carcass && g.reg.has('item', d.carcass)) { killFar(g, h.id); makeItems(g, ctx, d.carcass, 1, 'hunt'); ctx.huntMeat += 6; }
+  return spend;
 }
 
 /** Nodes yielding `item` that the village may gather, nearest to its centre first (cached for the hour). */

@@ -209,6 +209,7 @@ function daily(g, h, d, day) {
     const starve = Math.floor(d.starveDays ?? 10);
     if (h.near === undefined && prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
     else if (day - h.fed >= starve && h.n > SMALL_GAME) { h.n--; h.fed = day; } // too many for small game alone
+    if (h.near === undefined && h.fed !== day) raidDistant(g, h, day, key);
   }
   // Two herds of a species in one chunk that fit in one herd join (the lower id takes the other in).
   for (const id of I.byChunk.get(c) || []) {
@@ -225,6 +226,26 @@ function daily(g, h, d, day) {
     if (at) { const k = Math.floor(h.n / 2); h.n -= k; newHerd(g, d, at.x, at.y, k, day); }
   }
   if (h.n < 2) removeHerd(g, h.id);
+}
+
+/** A hungry far pack within RAID_R of a distant village (lod.js) may maul one of its adults once a day (by hash):
+ *  a bite wound, the village marks the pack to hunt. Its people stand round the centre there, so no chase. */
+const RAID_R = 20, RAID_CHANCE = 0.3;
+function raidDistant(g, h, day, key) {
+  const s = g.s;
+  for (const sid of Object.keys(s.settlements || {}).sort(byId)) {
+    const v = s.settlements[sid];
+    if (v.detail !== 'abstract' || v.fallen || !v.center || Math.hypot(v.center.x - h.x, v.center.y - h.y) > RAID_R) continue;
+    if (draw(`${key}:raid:${sid}`) >= RAID_CHANCE) continue;
+    const adults = g.owned('colonists', sid).filter((c) => !c.health?.down && stageOfP(g, c)?.untilDays === undefined).sort((a, b) => byId(a.id, b.id));
+    if (!adults.length) continue;
+    const c = adults[Math.floor(draw(`${key}:who:${sid}`) * adults.length)];
+    injure(g, c, 'bite', 10 + Math.floor(draw(`${key}:maul:${sid}`) * 16), 'Bitten by a wolf', false, 'info');
+    (h.raids ||= {})[sid] = s.tick + 3 * TICKS_PER_DAY;
+    g.log(`Wolves attacked ${c.name} near ${v.name}.`, 'info', `wolves:${sid}`, 2400);
+    if (c.health?.down) h.fed = day;
+    return;
+  }
 }
 
 function removeHerd(g, id) { delete g.s.animals.herds[id]; dirty(g); }
@@ -600,6 +621,29 @@ export function huntableNear(g, x, y, r) {
     if (dist <= r) out.push({ h, d, dist });
   }
   return out.sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
+}
+
+/** Far herds a distant village may hunt (lod.js): packs that attacked village `sid` first (no limit), then grazers
+ *  with a carcass above the hunting limit, within r of (x, y), nearest first (then by id). */
+export function farHuntable(g, x, y, r, sid = null) {
+  const out = [];
+  for (const h of Object.values(g.s.animals?.herds || {})) {
+    if (h.near !== undefined) continue;
+    const d = g.reg.get('animal', h.sp);
+    const raid = d?.diet === 'hunt' && sid && h.raids?.[sid] > g.s.tick;
+    if (!d?.carcass || (!raid && (d.diet !== 'graze' || h.n <= HUNT_LIMIT))) continue;
+    const dist = Math.hypot(h.x - x, h.y - y);
+    if (dist <= r) out.push({ h, d, dist: raid ? dist - 1000 : dist, raid });
+  }
+  return out.sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
+}
+
+/** One animal of far herd hid is killed (a distant village's hunt). */
+export function killFar(g, hid) {
+  const h = g.s.animals?.herds[hid];
+  if (!h || h.near !== undefined) return;
+  h.n--;
+  if (h.n < 2) removeHerd(g, hid);
 }
 
 /** For tests: fold a near herd back into a count now. */

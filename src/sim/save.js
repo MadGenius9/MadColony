@@ -343,7 +343,7 @@ function validateSettlements(s, format, bad, inB) {
     if (st.enforcement !== undefined && !isNum(st.enforcement)) bad(`${L} has an invalid enforcement level`);
     if (st.detail !== undefined && st.detail !== 'full' && st.detail !== 'abstract') bad(`${L} has an unknown level of detail`);
     if (st.detailSince !== undefined && (!isInt(st.detailSince) || st.detailSince < 0)) bad(`${L} has an invalid detail time`);
-    if (st.abs !== undefined && (!isObj(st.abs) || ['craft', 'gather'].some((f) => st.abs[f] !== undefined && (!numMap(st.abs[f]) || Object.values(st.abs[f]).some((v) => v < 0))))) bad(`${L} has invalid distant-work progress`);
+    if (st.abs !== undefined && (!isObj(st.abs) || ['craft', 'gather', 'hunt'].some((f) => st.abs[f] !== undefined && (!numMap(st.abs[f]) || Object.values(st.abs[f]).some((v) => v < 0))))) bad(`${L} has invalid distant-work progress`);
     // Villages founded during play (founding.js): optional, absent in older saves.
     for (const f of ['parent', 'culture']) if (st[f] !== undefined && (!isStr(st[f], 64) || !SAFE_ID.test(st[f]) || (f === 'parent' && st[f] === k))) bad(`${L} has an invalid ${f === 'parent' ? 'parent village' : 'culture'}`); // may name a village that is gone
     if (st.origin !== undefined && st.origin !== 'divine') bad(`${L} has an unknown origin`); // god powers (format 13, godspawn.js)
