@@ -277,6 +277,7 @@ function daily(g, h, d, day) {
 const RAID_R = 20, RAID_CHANCE = 0.3;
 function raidDistant(g, h, day, key) {
   const s = g.s;
+  if (s.animals.peaceful) return; // the gods calmed the wild (Phase 8b)
   for (const sid of Object.keys(s.settlements || {}).sort(byId)) {
     const v = s.settlements[sid];
     if (v.detail !== 'abstract' || v.fallen || !v.center || hyp(v.center.x - h.x, v.center.y - h.y) > RAID_R) continue;
@@ -545,6 +546,7 @@ function act(g, a) {
   // is the easier catch (a pack that has eaten today leaves people alone). People are picked weakest first (a child, someone alone, someone wounded), never inside a
   // room, and a pack holds back from anyone with 3 or more armed people within 6 tiles.
   const day = Math.floor(s.tick / TICKS_PER_DAY), winter = seasonOf(g) === 'Winter';
+  if (A.peaceful && h.angry) delete h.angry; // the gods calmed the wild (Phase 8b): packs leave people alone
   let angry = h.angry && h.angry.until > s.tick ? s.colonists[h.angry.cid] : null;
   if (angry && s.settlements?.[angry.settlementId]?.detail === 'abstract') angry = null; // its place is a stand-in (lod.js)
   if (angry && !angry.health?.down && hyp(angry.x - a.x, angry.y - a.y) <= CHASE * 2) {
@@ -554,7 +556,7 @@ function act(g, a) {
   if (h.alarm > s.tick && h.fx !== undefined) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
   if (h.fed !== day) { // a pack that has eaten today leaves people alone (winter or not) unless angry
     const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
-    const person = pickPerson(g, G, a);
+    const person = A.peaceful ? null : pickPerson(g, G, a);
     const pd = person ? hyp(person.c.x - a.x, person.c.y - a.y) - person.ease : Infinity, ad = prey ? hyp(prey.x - a.x, prey.y - a.y) : Infinity;
     if (person && (!prey || (winter && pd < ad))) { chasePerson(g, a, h, d, person.c, key); return; }
     if (prey) {
@@ -622,6 +624,7 @@ export function woundAnimal(g, id, dmg, c) {
 /** Is the pack of near animal a a danger to people now (hungry or angry)? */
 export function packThreat(g, a) {
   const h = g.s.animals?.herds[a?.herd];
+  if (g.s.animals?.peaceful) return false; // peaceful: nobody need run or fend
   return !!h && (h.fed !== Math.floor(g.s.tick / TICKS_PER_DAY) || (h.angry && h.angry.until > g.s.tick));
 }
 

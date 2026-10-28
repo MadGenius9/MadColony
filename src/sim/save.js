@@ -233,6 +233,7 @@ function validateAnimals(s, bad) {
       || (h.origin !== undefined && h.origin !== 'divine') || (h.sent !== undefined && !(isInt(h.sent) && h.sent <= s.tick))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
   }
   if (A.na !== undefined && (!isInt(A.na) || A.na < 1)) { bad('state.animals.na is malformed'); return; }
+  if (A.peaceful !== undefined && A.peaceful !== true) { bad('state.animals.peaceful is malformed'); return; }
   if (A.ledger !== undefined) { // the animal ledger (format 28)
     const n = (v) => isInt(v) && v >= 0 && v <= 1e12;
     if (!isObj(A.ledger) || Object.keys(A.ledger).length > 1000) { bad('state.animals.ledger is malformed'); return; }

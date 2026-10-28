@@ -190,3 +190,55 @@ test('8b needs: 60 deer sent into one patch thin out and spread', () => {
   assert.ok((g.s.animals.ledger['core:deer'].died.crowded || 0) >= 1, 'held in a crowd, some die');
   assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
 });
+
+// ---------------- slice 3: peaceful animals ----------------
+/** A classic game with only a hungry wolf pack by the village (near), and a deer herd beside it if `deer`. */
+function packGame(deer = false) {
+  const g = newGame({ seed: 4242 });
+  g.tick();
+  const c = g.s.settlements[g.s.playerSettlement].center, A = g.s.animals, day = Math.floor(g.s.tick / 2400);
+  for (const id of Object.keys(A.herds)) delete A.herds[id];
+  A.ledger = {}; // the test's herds are its start
+  A.herds.h901 = { id: 'h901', sp: 'core:wolf', x: c.x - 18, y: c.y + 6, n: 4, day, year: 0, next: g.s.tick, fed: day - 1 };
+  A.ledger['core:wolf'] = { start: 4, born: 0, sent: 0, died: {} };
+  if (deer) { A.herds.h902 = { id: 'h902', sp: 'core:deer', x: c.x - 22, y: c.y + 10, n: 8, day, year: 0, next: g.s.tick + 1e6, fed: day }; /* it stays until the near check */ A.ledger['core:deer'] = { start: 8, born: 0, sent: 0, died: {} }; }
+  A.next = 903; g._anIdx = null;
+  while (g.s.tick % 600 !== 451) g.tick();
+  return g;
+}
+const bitesOf = (c) => (c.health?.injuries || []).filter((i) => i.kind === 'bite').length;
+
+test('8b peaceful: a hungry pack leaves a lone person alone, still kills deer; switched off, it attacks; saves replay', () => {
+  const g = packGame(true);
+  const p = previewCommand(g, 'peaceful', { on: true });
+  assert.equal(p.ok, true, p.reason);
+  assert.equal(p.preview.cost, 0);
+  assert.match(previewCommand(g, 'peaceful', { on: false }).reason, /wild already/);
+  issueCommand(g, 'peaceful', { on: true });
+  g.tick();
+  assert.equal(g.s.animals.peaceful, true);
+  assert.ok(g.s.log.some((e) => /calmed the wild/.test(e.msg)));
+  const c = g.colonists()[0];
+  const put = (x) => { const w = Object.values(x.s.animals.list).find((a) => a.herd === 'h901'), p = x.s.colonists[c.id]; if (w) { p.x = w.x + 4; p.y = w.y; p.mv = null; p.path = null; } };
+  put(g);
+  const b = reload(g);
+  let ran = false;
+  for (let t = 0; t < 2400; t++) { if (t % 100 === 0) { put(g); put(b); } g.tick(); b.tick(); if (c.job?.type === 'flee' && c.job.wolf) ran = true; }
+  assert.equal(bitesOf(c), 0, 'nobody bitten while peaceful');
+  assert.equal(ran, false, 'nobody runs from a peaceful pack');
+  assert.ok((g.s.animals.ledger['core:deer'].died.prey || 0) >= 1, 'the pack still hunts deer');
+  assert.equal(stateText(b), stateText(g), 'a load while peaceful plays on identically');
+  assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
+  // Wild again, with no deer left near: a hungry pack goes for her (outside winter, prey comes before people).
+  const A = g.s.animals;
+  delete A.herds.h902;
+  for (const [id, a] of Object.entries(A.list)) if (a.herd === 'h902') delete A.list[id];
+  g._anIdx = null; g._anNear = null; g._anBeasts = null;
+  issueCommand(g, 'peaceful', { on: false });
+  g.tick();
+  assert.equal(g.s.animals.peaceful, undefined);
+  const h = g.s.animals.herds.h901;
+  for (let t = 0; t < 2400 && !bitesOf(c); t++) { if (t % 100 === 0) { const a = Object.values(g.s.animals.list || {}).find((x) => x.herd === 'h901'); if (a) { c.x = a.x + 3; c.y = a.y; c.mv = null; c.path = null; } h.fed = Math.floor(g.s.tick / 2400) - 1; } g.tick(); }
+  assert.ok(bitesOf(c) > 0, 'bitten once the wild is wild again');
+  assert.deepEqual(conservationErrors(g), []);
+});

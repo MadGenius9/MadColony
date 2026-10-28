@@ -249,3 +249,15 @@ where, and which sim function or state field provides it. The UI is built at hom
   - Wolves near a village need the Confirm step (`needsConfirm`), like the other destructive powers.
 - **Letter:** "The gods sent 6 deer near your village." (info).
 - **Herd tooltip:** a herd with `origin: 'divine'` can read "Sent by the gods (day N)".
+
+## Phase 8b, slice 2: animals obey the land
+- **Herd tooltip:** a herd off its ground can read "Lost: looking for grassland", and a crowded one "Too many
+  here: moving on". Deaths show in the wildlife panel as "lost" and "crowded" (`s.animals.ledger`).
+
+## Phase 8b, slice 3: peaceful animals
+- **God powers panel:** a toggle "Peaceful animals" (`issueCommand(g, 'peaceful', { on })`, free, no confirm). Its
+  preview text is `preview.effect`.
+- **Status line:** while `s.animals.peaceful` is on, show a small dove or calm-paw icon: "Animals leave people
+  alone".
+- **Letters:** "The gods calmed the wild: animals leave people alone." and "The wild is wild again: beware of
+  wolves."

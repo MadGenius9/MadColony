@@ -67,3 +67,23 @@ registerPower('animals', {
     return { msg: `The gods sent ${a.count} ${plural(d, a.count)}${where}.`, herd: h.id };
   },
 });
+
+// Peaceful animals (the owner's answer 5): { on: true | false }. While on, packs never go for people (an angry
+// pack calms down, distant villages are not raided) and people need not run from them; wolves still hunt deer and
+// horses. Free, not destructive, saved as s.animals.peaceful and replayed like any command.
+registerPower('peaceful', {
+  validate(g, a) {
+    const k = extraKey(a, ['on']);
+    if (k) return `peaceful takes only on (not "${String(k).slice(0, 40)}")`;
+    if (typeof a.on !== 'boolean') return 'on must be true or false';
+    if (!g.s.animals) return 'the wild has not settled yet (wait a moment)';
+    if (!!g.s.animals.peaceful === a.on) return a.on ? 'the animals are peaceful already' : 'the animals are wild already';
+    return null;
+  },
+  cost: () => 0,
+  preview: (g, a) => ({ on: a.on, effect: a.on ? 'Animals leave people alone: wolves still hunt deer and horses, but never people, and people need not run from them.' : 'Animals are wild again: hungry wolves may attack people.' }),
+  apply(g, cmd) {
+    if (cmd.args.on) g.s.animals.peaceful = true; else delete g.s.animals.peaceful;
+    return { msg: cmd.args.on ? 'The gods calmed the wild: animals leave people alone.' : 'The wild is wild again: beware of wolves.' };
+  },
+});
