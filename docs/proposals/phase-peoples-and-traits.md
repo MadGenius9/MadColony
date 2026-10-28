@@ -1,7 +1,23 @@
 # Peoples and traits (2026-10-24 direction, item 5)
 
-Status: **design, waiting for the owner's answers** (2026-10-28). Branch `cloud-work` (cloud rescue copy; see
+Status: **building** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
+
+## The owner's answers (2026-10-28)
+1. **The four peoples:** keep Hearthfolk, Reedkin, Cragborn and Duneshade for now.
+2. **Classic games:** left to me. **Traits in every game, classic too**, as with monsters: one rule everywhere,
+   and the change to classic play is small. Classic colonists are Hearthfolk.
+3. **More traits:** added **Quick** (walks ×1.1), **Strong** (mining, woodcutting and construction ×1.1) and
+   **Kind** (tends and treats the sick and hurt ×1.3).
+4. **Mixed villages:** **peoples keep apart.**
+   - A village holds one people.
+   - `spawn` with `join` is refused for another people ("Reedkin will not settle among Cragborn").
+   - Daughter villages take their founders' people.
+   - Conquest already keeps villages apart (the beaten village joins the winner's kingdom; nobody moves), so a
+     kingdom may hold several peoples.
+   - Children have their parents' people (both parents are always of the village's people).
+5. **Feuds between peoples:** yes. Border rivalry grows ×1.5 between villages of different peoples.
+6. **The `trait` power:** yes, for players who want to use it.
 
 ## Goal (from the owner and the roadmap)
 - **Peoples:** 3–4 original peoples, each with its own looks, needs, preferences, temperament and building
@@ -86,10 +102,9 @@ Each people is matched to land the brushes can paint (grass, marsh, hills and sn
   - **food:** each people eats its favoured food first (Reedkin beans, Cragborn meat, Duneshade berries,
     Hearthfolk stew);
   - **land:** daughter villages and the AI's land choice favour the people's home terrain.
-- **Villages:**
-  - each settlement has a `people`: its founders' people, which sets its home style and name pool;
-  - a village may be mixed (settlers joined by spawn or by conquest);
-  - each person keeps their own needs and body.
+- **Villages:** each settlement has one `people` (the owner's answer 4), its founders'. It sets the home style,
+  the name pool and the people of everyone born there.
+- **Feuds:** border rivalry grows ×1.5 between villages of different peoples (answer 5).
 
 ### Traits (data: `mods/core/content/traits.json`, new type `trait`)
 Each person has 0 to 2 traits. Opposite traits never go together.
@@ -104,8 +119,11 @@ Each person has 0 to 2 traits. Opposite traits never go together.
 | **Diligent** | work ×1.1 | Lazy |
 | **Lazy** | work ×0.9; rests a little longer (energy seek threshold lower) | Diligent |
 | **Greedy** | eats ×1.1; a village asks 3% more in trade per greedy adult (at most +15%) | — |
+| **Quick** | walks ×1.1 (each step takes 1/1.1 the ticks) | — |
+| **Strong** | mining, woodcutting and construction ×1.1 | — |
+| **Kind** | tending and treating patients ×1.3 | — |
 
-- **Effects are a few kinds:** work, learning, a need's decay, illness chance and strength, healing, cold
+- **Effects are a few kinds:** work (all or by skill), walking, tending, learning, a need's decay, illness chance and strength, healing, cold
   offset, fight hp, flee range, trade margin.
 - **Assignment:**
   - **New people** (new game, world-start villages, spawned settlers): each trait comes from a hash of the
@@ -115,8 +133,8 @@ Each person has 0 to 2 traits. Opposite traits never go together.
   - each of a parent's traits passes on at 40% (a hash of `seed:born:id:trait`);
   - plus 8% for a new trait;
   - opposites and the cap of 2 settle conflicts;
-  - **people:** the child's people is one parent's (by hash). Their look mixes the parents': each look part
-    comes from one parent's palette.
+  - **people:** the parents' people (villages keep apart, so both parents share it); each look part comes from
+    one parent's (by hash), within the people's palette.
 - **Speed:** each colonist's combined modifiers are a small derived cache, never saved:
   - built from people and traits on load and whenever traits change;
   - the hot paths (`workSpeed`, need decay, `tickHealth`, combat checks) read one number each, with no list
@@ -159,7 +177,7 @@ Each person has 0 to 2 traits. Opposite traits never go together.
 
 ## Slices
 1. **Data and records:**
-   - the `people` and `trait` types, the four peoples and eight traits;
+   - the `people` and `trait` types, the four peoples and eleven traits;
    - fields at all five creation sites by hash;
    - the save format 30 migration, validation and the census by people;
    - the modifier cache.
@@ -187,15 +205,6 @@ Each person has 0 to 2 traits. Opposite traits never go together.
 - **Old saves load** as Hearthfolk with hashed traits.
 - **Every effect is visible** in a status or note.
 
-## Open questions
-1. **The four peoples:** Hearthfolk, Reedkin, Cragborn and Duneshade, as in the table? Rename, change or drop
-   any? Should one be clearly stranger (not human-like at all)?
-2. **Classic games:** traits in all games, which changes classic runs a little, like monsters did? Or only in
-   Living, Vast and Blank worlds?
-3. **Traits:** are the eight right (brave, timid, hardy, sickly, wise, diligent, lazy, greedy)? Add others
-   (e.g. quick, strong, cheerful once there is a mood system)?
-4. **Mixed villages:** may peoples live together (spawned into, or conquered by, another people's village), and
-   may they have children together? Or do they keep apart?
-5. **Temperament:** should peoples also feud more with other peoples than with their own (rivalry ×1.5 between
-   peoples)?
-6. **The `trait` power** (give or remove one trait on one person, about 15 favour): yes or no?
+## Open questions (answered; see "The owner's answers")
+1. The four peoples. 2. Classic games. 3. The traits. 4. Mixed villages. 5. Feuds between peoples. 6. The
+   `trait` power.
