@@ -188,6 +188,7 @@ function arm(g, c) {
 
 test('8c fight: a lone person runs from a Barkmaw; an armed party slays it and its wood is left; then they clear its lair', () => {
   const g = quiet(8);
+  untilHour(g, 10); // awake
   const ctr = g.s.settlements[g.s.playerSettlement].center;
   const m = sendMonster(g, 'core:barkmaw', ctr.x + 14, ctr.y);
   const lair = g.s.monsters.lairs[m.lair];
@@ -347,4 +348,24 @@ test('8c review: a person inside a room is safe from a Gloomstalker at night', (
   for (let t = 0; t < 600; t++) { c.x = room.x; c.y = room.y; c.mv = null; c.path = null; for (const o of g.colonists()) if (o !== c) { o.x = room.x + 25; o.y = room.y + 25; o.mv = null; } g.tick(); }
   assert.equal(woundsOf(c, 'maul'), 0, 'not mauled indoors');
   assert.ok(g.s.monsters.list[m.id]);
+});
+
+test('8c forays: far monsters now and then go near a village for a while and come back; saves replay', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(g, 1);
+  let seen = 0, onForay = 0;
+  for (let d = 0; d < 20; d++) {
+    runDays(g, 1);
+    for (const m of Object.values(g.s.monsters.list)) if (m.foray && m.foray.until > g.s.tick) {
+      onForay++;
+      const v = g.s.settlements[m.foray.sid];
+      assert.ok(Math.hypot(m.foray.x - v.center.x, m.foray.y - v.center.y) <= 40, 'the spot is near the village');
+    }
+  }
+  seen = g.s.log.filter((e) => / was seen near /.test(e.msg)).length;
+  assert.ok(seen >= 1 && onForay >= 1, `forays happened (${seen} seen, ${onForay} monster-days on a foray)`);
+  const b = reload(g);
+  runDays(g, 2); runDays(b, 2);
+  assert.equal(stateText(b), stateText(g), 'a load plays on identically');
+  assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
 });

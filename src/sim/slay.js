@@ -15,7 +15,7 @@ import { newJob, travel, practice } from './ai/jobs.js';
 import { huntWeapon } from './hunt.js';
 import { hpOf } from './health.js';
 import { roomAt } from './heat.js';
-import { killMonster, woundMonster, standing } from './monsters.js';
+import { killMonster, woundMonster, standing, homeOf } from './monsters.js';
 import { isAdult } from './people.js';
 
 const SEE = 10, THREAT = 40, HOLD = 7, PARTY = 8, GIVE_UP = 1500, CLEAR_R = 60, CLEAR_WORK = 300;
@@ -47,7 +47,7 @@ const armedFit = (g, c) => !!huntWeapon(g, c) && hpOf(c) > 50 && !c.health?.down
 function dangerTo(g, o, d, c, night) {
   if (o.angry?.cid === c.id && o.angry.until > g.s.tick) return true;
   if (d.behaviour === 'stalk') return night;
-  if (d.behaviour === 'trample') { const l = g.s.monsters.lairs[o.lair]; return !!l && Math.hypot(c.x - l.x, c.y - l.y) <= 10; }
+  if (d.behaviour === 'trample') { const l = homeOf(g, o); return !!l && Math.hypot(c.x - l.x, c.y - l.y) <= 10; } // its den, or its foray spot
   return true;
 }
 

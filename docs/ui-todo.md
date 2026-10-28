@@ -309,3 +309,8 @@ where, and which sim function or state field provides it. The UI is built at hom
   - "Banish": click near a monster; it removes the nearest one within 20 tiles (favour 30).
   - Both show the cost, the preview `effect` and the `warnings`.
 - **Letters:** "The gods sent a Barkmaw near your village." and "The gods banished the Thornback."
+
+## Phase 8c: forays
+- **Letters:** "A Thornback was seen near Pinecroft." (warn for the player's village, info for others), when a
+  monster sets out for a village (it stays near it for 2 days, `monster.foray`).
+- **Map:** a monster on a foray can be marked near the village it is visiting.

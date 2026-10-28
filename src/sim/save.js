@@ -268,6 +268,7 @@ function validateMonsters(s, bad) {
       && typeof m.hp === 'number' && m.hp > 0 && m.hp <= 1e6 && isStr(m.lair, 20) && M.lairs[m.lair]?.monster === k && isInt(m.day)
       && M.lairs[m.lair].sp === m.sp && ['near', 'cd', 'fed', 'work', 'trampled', 'tday', 'stuck'].every((f) => m[f] === undefined || isInt(m[f]))
       && (m.angry === undefined || (isObj(m.angry) && isStr(m.angry.cid, 64) && isInt(m.angry.until)))
+      && (m.foray === undefined || (isObj(m.foray) && isStr(m.foray.sid, 64) && onMap(m.foray) && isInt(m.foray.until)))
       && (m.raids === undefined || (isObj(m.raids) && Object.keys(m.raids).length <= 200 && Object.entries(m.raids).every(([k2, v]) => isStr(k2, 64) && isInt(v))));
     if (!ok) { bad(`monster "${String(k).slice(0, 40)}" is malformed`); return; }
   }
