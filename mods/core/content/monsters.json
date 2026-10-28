@@ -29,7 +29,8 @@
         "shape": "circle",
         "sprite": "thornback"
       },
-      "about": "A boar-like beast the size of a cart, its back a mat of thorns. It tramples fields and charges whoever comes near its den."
+      "about": "A boar-like beast the size of a cart, its back a mat of thorns. It tramples fields and charges whoever comes near its den.",
+      "behaviour": "trample"
     },
     {
       "id": "core:gloomstalker",
@@ -59,7 +60,8 @@
         "shape": "circle",
         "sprite": "gloomstalker"
       },
-      "about": "A long-limbed, eyeless hunter from the caves. It comes out at night for lone people and never enters a lit room."
+      "about": "A long-limbed, eyeless hunter from the caves. It comes out at night for lone people and never enters a lit room.",
+      "behaviour": "stalk"
     },
     {
       "id": "core:barkmaw",
@@ -96,7 +98,8 @@
         "shape": "circle",
         "sprite": "barkmaw"
       },
-      "about": "An old dead tree that walks on its roots, a split trunk for a mouth. It tears down wooden buildings; stone stops it, and fire burns it."
+      "about": "An old dead tree that walks on its roots, a split trunk for a mouth. It tears down wooden buildings; stone stops it, and fire burns it.",
+      "behaviour": "tear"
     }
   ],
   "item": [

@@ -611,12 +611,12 @@ export const CONTENT_TYPES = {
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
   },
   monster: {
-    doc: 'A wild monster (monsters.js, Phase 8c): a single strong creature living at a lair on its terrains, about one lair per perTiles tiles of them, at least 80 tiles from any village (every game has at least minWorld of the species with the most ground, as far from villages as the map allows). It roams up to roam chunks from its lair; a slain one is replaced after respawnDays unless the lair is cleared. health, speed (tiles a step), damage [lo, hi] a blow, fightGroup: armed people it takes to fight it; night: it hunts only at night. carcass (an item) or drops (items) when slain. godCost: favour to send one. about: what it is (shown).',
+    doc: 'A wild monster (monsters.js, Phase 8c): a single strong creature living at a lair on its terrains, about one lair per perTiles tiles of them, at least 80 tiles from any village (every game has at least minWorld of the species with the most ground, as far from villages as the map allows). It roams up to roam chunks from its lair; a slain one is replaced after respawnDays unless the lair is cleared. health, speed (tiles a step), damage [lo, hi] a blow, fightGroup: armed people it takes to fight it; night: it hunts only at night. behaviour near villages: trample (fields, and anyone near its den), stalk (lone people outdoors at night), tear (wooden building parts). carcass (an item) or drops (items) when slain. godCost: favour to send one. about: what it is (shown).',
     schema: obj({
       id, name, plural: str(40), about: str(300),
       terrains: req(arr(ref('terrain'), { minItems: 1 })), perTiles: req(num(1000, 1e9)), minWorld: int(0, 10),
       health: req(num(1, 100000)), speed: req(num(0.1, 10)), damage: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })), fightGroup: req(int(1, 20)),
-      roam: req(int(0, 20)), respawnDays: req(num(0, 10000)), night: bool(), godCost: num(0, 1000),
+      behaviour: req({ type: 'enum', values: ['trample', 'stalk', 'tear'] }), roam: req(int(0, 20)), respawnDays: req(num(0, 10000)), night: bool(), godCost: num(0, 1000),
       carcass: ref('item'), drops: arr(obj({ item: req(ref('item')), qty: req(int(1, 1000)) })),
       color, render,
     }),

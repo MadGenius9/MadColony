@@ -268,3 +268,18 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Monsters far away:** a monster (`s.monsters.list`) can be drawn zoomed out as a single dark mark near its lair.
 - **Encyclopedia:** each species' `about` text, where it lives and what it leaves when slain.
 - **Letters:** "A new Thornback has come to an old lair." (info).
+
+## Phase 8c, slice 2: monsters near villages
+- **Close up:** draw near monsters (`s.monsters.list`, `near` set) as single large figures:
+  - a Thornback: a thorn-backed boar;
+  - a Gloomstalker: long-limbed and dark, shown only at night;
+  - a Barkmaw: a walking dead tree.
+- **Letters** (warn for the player's village):
+  - "A Thornback trampled crops in the fields!"
+  - "A Gloomstalker attacked Ada!"
+  - "A Barkmaw tore down log wall in First Hearth!"
+  - "The Barkmaw burned to death."
+- **Deaths:** "was gored by a Thornback", "was taken by a Gloomstalker", "was crushed by a Barkmaw".
+- **Wounds:** gore, maul and crush are wounds (bandaged like bites).
+- **Village card:** a village of 3 or fewer people could say "Too small for monsters to bother" (the owner's
+  rule: monsters never wipe a village out).

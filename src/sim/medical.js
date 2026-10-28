@@ -11,7 +11,7 @@ import { octile } from './util.js';
 import { fuelLoaded } from './power.js';
 
 export const MED = {
-  woundKinds: ['wound', 'injury', 'burn', 'bite'], // what bandages are for (burns: Phase 5b; bites: Phase 8)
+  woundKinds: ['wound', 'injury', 'burn', 'bite', 'gore', 'maul', 'crush'], // what bandages are for (burns: Phase 5b; bites: Phase 8; monsters: Phase 8c)
   minSeverity: 4, // smaller scrapes need nothing
   infectAfterHours: 6, // undressed wounds older than this may get infected
   infectPerHour: 0.02, // chance per hour for each undressed wound
