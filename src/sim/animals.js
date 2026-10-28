@@ -559,15 +559,18 @@ function bite(g, a, pack, prey, key) {
   pack.fed = Math.floor(g.s.tick / TICKS_PER_DAY);
 }
 
-const free = (g, a, x, y) => g.isPassable(x, y) && g.regionOf(x, y) === g.regionOf(a.x, a.y);
+/** Can animal a step onto (x, y): passable and in its own region (`home`: its region, worked out once a step). */
+const free = (g, a, x, y, home = g.regionOf(a.x, a.y)) => g.isPassable(x, y) && g.regionOf(x, y) === home;
 function stepAway(g, a, fx, fy) {
   let best = null, bd = Math.hypot(a.x - fx, a.y - fy);
-  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y)) { bd = dd; best = [x, y]; } }
+  const home = g.regionOf(a.x, a.y);
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
   if (best) { a.x = best[0]; a.y = best[1]; }
 }
 function stepToward(g, a, tx, ty) {
   let best = null, bd = Math.hypot(a.x - tx, a.y - ty);
-  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y)) { bd = dd; best = [x, y]; } }
+  const home = g.regionOf(a.x, a.y);
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
   if (best) { a.x = best[0]; a.y = best[1]; }
 }
 function stepNear(g, a, cx, cy, r, key) {
