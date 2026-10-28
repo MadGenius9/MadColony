@@ -12,7 +12,7 @@
 //   GIVE_UP ticks.
 // Draws come from the game's random stream, like other colonist work.
 import { travel, newJob, practice } from './ai/jobs.js';
-import { huntableNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, packThreat, nearHerdIds, HUNT_LIMIT, MEAT_PER_PERSON } from './animals.js';
+import { huntableNear, bringNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, packThreat, nearHerdIds, HUNT_LIMIT, MEAT_PER_PERSON } from './animals.js';
 import { roomAt } from './heat.js';
 import { hpOf } from './health.js';
 
@@ -52,6 +52,7 @@ export const HUNT_GIVERS = {
           make() {
             const job = newJob('hunt', { herd: h.id, target: null, gx: null, gy: null, cd: 0, started: g.s.tick }, { why: 'The village needs meat', label: `Hunt ${d.plural || d.name}`, workType: wt.id, targetKey: `hunt:${sid}:${h.id}` });
             if (!g.reserveExcl(job, `hunt:${h.id}`, c.id)) return null;
+            bringNear(g, h.id); // a far herd becomes animals for the hunt
             return job;
           },
         });

@@ -344,7 +344,7 @@ function move(g, h, d) {
 // tiles), else graze a step now and then near the centre; a pack that has not eaten today chases the nearest prey
 // animal within CHASE tiles and bites it (health); a kill feeds the pack. Animals never block tiles; they step only
 // onto passable tiles of the region they stand in.
-const NEAR = 48, NEAR_CHECK = 600, NEAR_HOLD = 2400, STEP = 10, CELL = 8, CHASE = 20, GRAZE = 5, ALARM = 300;
+const NEAR = 28, NEAR_CHECK = 600, NEAR_HOLD = 2400, STEP = 10, CELL = 8, CHASE = 20, GRAZE = 5, ALARM = 300;
 
 /** Near animals by herd and by step slot (derived; rebuilt when animals come or go). */
 function nearIndex(g) {
@@ -464,7 +464,7 @@ function checkNear(g) {
     if (!d) continue;
     const dist = Math.min(...P.map((p) => Math.hypot(p.x - h.x, p.y - h.y)));
     if (h.near === undefined && dist <= NEAR) expand(g, h, d);
-    else if (h.near !== undefined && dist > NEAR + 16 && g.s.tick - h.near >= NEAR_HOLD) fold(g, h);
+    else if (h.near !== undefined && dist > NEAR + 16 && g.s.tick - h.near >= NEAR_HOLD && !g.excl.has(`hunt:${id}`)) fold(g, h); // not while someone hunts it
   }
 }
 
@@ -687,12 +687,12 @@ function herdsWithin(g, x, y, r) {
   return out;
 }
 
-/** Near herds a village may hunt: grazers with a carcass, above the hunting limit, within `r` of (x, y), nearest
- *  first (then by id). */
+/** Herds a full-detail village may hunt, near or far (a far one becomes animals when a hunt starts: bringNear):
+ *  grazers with a carcass, above the hunting limit, within `r` of (x, y), nearest first (then by id). */
 export function huntableNear(g, x, y, r) {
   const out = [];
   for (const h of herdsWithin(g, x, y, r)) {
-    if (h.near === undefined || h.n <= HUNT_LIMIT) continue;
+    if (h.n <= HUNT_LIMIT) continue;
     const d = g.reg.get('animal', h.sp);
     if (!d?.carcass || d.diet !== 'graze') continue;
     const dist = Math.hypot(h.x - x, h.y - y);
@@ -722,6 +722,13 @@ export function killFar(g, hid) {
   if (!h || h.near !== undefined) return;
   h.n--;
   if (h.n < 2) removeHerd(g, hid);
+}
+
+/** A hunt starts on far herd hid (hunt.js): it becomes animals now, so the hunter finds them (folded again once
+ *  nobody hunts it and it is far from every village). */
+export function bringNear(g, hid) {
+  const h = g.s.animals?.herds[hid], d = h && g.reg.get('animal', h.sp);
+  if (h && d && h.near === undefined) expand(g, h, d);
 }
 
 /** For tests: fold a near herd back into a count now. */
