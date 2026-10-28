@@ -1,8 +1,9 @@
-// Spoilage (Phase 8, slice 3; the owner's answer 2: meat spoils). Items with `spoilPerDay` in data (meat 0.15,
-// carcasses 0.2) lose that share of every stack, every colonist's load and every station buffer each day at the
-// day start: whole units, the fraction by a hash draw (seed, holder, day), in id order; they leave through the
+// Spoilage (Phase 8, slice 3; the owner's answer 2: meat spoils). Items with `spoilPerDay` in data (meat 0.1,
+// carcasses 0.2) lose that share of every stack (its free units only: what a job has reserved or a trade holds is
+// on its way to be used) and every colonist's load each day at the day start (goods in a station's buffer are
+// being worked and do not spoil; nor do goods in caravans or held for want of space): whole units, the fraction by a hash draw (seed, holder, day), in id order; they leave through the
 // ledger (`consumed:spoil`). Cooked meals do not spoil. Nothing happens in a game with no spoiling goods.
-// Cost: O(stacks + colonists + buildings with buffers) once a day.
+// Cost: O(stacks + colonists) once a day.
 import { TICKS_PER_DAY } from './constants.js';
 
 const hash = (str) => {
@@ -36,8 +37,8 @@ export function tickSpoil(g) {
   for (const id of Object.keys(s.stacks).sort(byId)) {
     const st = s.stacks[id];
     if (!st) continue;
-    const n = spoiled(g, st.item, st.qty, id);
-    if (!n) continue;
+    const n = Math.min(spoiled(g, st.item, st.qty, id), g.availQty(id)); // reserved units are kept (save/load)
+    if (n <= 0) continue;
     const item = st.item, owner = st.settlement;
     if (g.takeFromStack(id, n)) gone(owner, item, n);
   }
@@ -49,17 +50,6 @@ export function tickSpoil(g) {
     cr.qty -= n;
     gone(c.settlementId, cr.item, n);
     if (cr.qty <= 0) c.carry = null;
-  }
-  for (const id of Object.keys(s.structures).sort(byId)) {
-    const b = s.structures[id];
-    if (!b.buffer?.length) continue;
-    for (const e of b.buffer) {
-      const n = spoiled(g, e.item, e.qty, `${id}:${e.item}`);
-      if (!n) continue;
-      e.qty -= n;
-      gone(b.settlement, e.item, n);
-    }
-    b.buffer = b.buffer.filter((e) => e.qty > 0);
   }
   for (const [item, n] of Object.entries(lost)) g.log(`${n} ${g.reg.get('item', item)?.name || item} spoiled.`, 'info', `spoil:${item}`, 2400);
 }

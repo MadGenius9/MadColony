@@ -281,7 +281,8 @@
         }
       ],
       "work": 120,
-      "skill": "core:cooking"
+      "skill": "core:cooking",
+      "fromStock": true
     },
     {
       "id": "core:butcher_horse",
@@ -305,7 +306,8 @@
         }
       ],
       "work": 160,
-      "skill": "core:cooking"
+      "skill": "core:cooking",
+      "fromStock": true
     },
     {
       "id": "core:skin_wolf",
@@ -325,7 +327,8 @@
         }
       ],
       "work": 80,
-      "skill": "core:cooking"
+      "skill": "core:cooking",
+      "fromStock": true
     }
   ]
 }

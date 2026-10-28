@@ -217,6 +217,7 @@ export const CONTENT_TYPES = {
       minSkill: int(0, 10),
       // A fallback recipe is only used while its output cannot be gathered (e.g. quarrying once no boulders are left).
       fallback: { type: 'bool' },
+      fromStock: { type: 'bool' }, // Phase 8: only uses up goods on hand (butchering); the planner bills it only for a want naming it
     }),
   },
   workType: {

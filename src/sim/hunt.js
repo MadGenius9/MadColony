@@ -2,7 +2,7 @@
 // core:hunt_animals, job `hunt`.
 // - The giver offers a hunt to an armed adult (a melee weapon, or a ranged one with ammunition) when the village is
 //   short of meat (meat and carcasses in stock below MEAT_PER_PERSON a person) and a near herd of a huntable
-//   grazing species is within HUNT_REACH of the hunter and above the hunting limit (animals.js HUNT_LIMIT). One
+//   grazing species is within HUNT_REACH of the village centre and above the hunting limit (animals.js HUNT_LIMIT). One
 //   hunter per herd (reserved).
 // - The job follows the herd's nearest animal (a new walk goal when it has moved 2 tiles away), and when in weapon
 //   range strikes or shoots at the weapon's cooldown: hit chance from the weapon's accuracy and the distance (as in
@@ -28,11 +28,11 @@ export const HUNT_GIVERS = {
   'core:hunt_animals': {
     find(g, c, params, wt) {
       if (!g.s.animals?.list || !huntWeapon(g, c)) return [];
-      const P = g.planOf(c), sid = c.settlementId || g.s.playerSettlement;
+      const P = g.planOf(c), sid = c.settlementId || g.s.playerSettlement, ctr = g.s.settlements?.[sid]?.center || g.s.center;
       const people = g.owned('colonists', sid).length;
       if (meatOnHand(g, P) >= MEAT_PER_PERSON * Math.max(2, people)) return [];
       const out = [];
-      for (const { h, d, dist } of huntableNear(g, c.x, c.y, HUNT_REACH)) {
+      for (const { h, d, dist } of huntableNear(g, ctr.x, ctr.y, HUNT_REACH)) { // within reach of home (carcasses are hauled there)
         if (g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;
         out.push({
           x: h.x, y: h.y, urgency: (P?.foodDays ?? 9) < 3 ? 1.2 : 0.6, label: `Hunt ${d.plural || d.name}`, far: dist > 30,
@@ -50,7 +50,7 @@ export const HUNT_GIVERS = {
 
 export const HUNT_DRIVERS = {
   hunt: {
-    valid(g, c, j) { const h = g.s.animals?.herds[j.herd]; return !!h && h.near !== undefined && h.n > HUNT_LIMIT; },
+    valid(g, c, j) { return typeof j.herd === 'string'; }, // the herd's state is checked each tick (it may change at any time)
     tick(g, c, j) {
       const h = g.s.animals?.herds[j.herd];
       if (!h || h.near === undefined || h.n <= HUNT_LIMIT) return 'done'; // gone, far, or at the limit: leave the rest
@@ -77,7 +77,7 @@ export const HUNT_DRIVERS = {
       if (g.s.tick < j.cd) return 'running';
       j.cd = g.s.tick + (w.eq.cooldown || 45);
       if (w.eq.ammo) { c.ammo.qty--; g.consume(w.eq.ammo, 1, 'shot'); if (c.ammo.qty <= 0) c.ammo = null; }
-      if (c.equip.weapon) c.equip.weapon.dur = (c.equip.weapon.dur ?? w.eq.durability ?? 1000) - 1;
+      if (c.equip.weapon) c.equip.weapon.dur = Math.max(0, (c.equip.weapon.dur ?? w.eq.durability ?? 1000) - 1); // as combat wears weapons
       practice(g, c, 'core:hunt', 'core:hunting');
       const skill = c.skills?.['core:hunting'] || 0;
       const p = Math.min(0.95, Math.max(0.05, (w.eq.accuracy ?? 0.7) * (1 - Math.max(0, dist - 1) / (range * 2.5))) + 0.02 * skill);

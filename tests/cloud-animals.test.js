@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservationErrors } from './cloud-helpers.js';
 import { herdCensus, animalSpecies, foldHerdForTest } from '../src/sim/animals.js';
 import { issueCommand } from '../src/sim/god.js';
+import { planNow } from '../src/sim/planner.js';
+import { endJob } from '../src/sim/ai/ai.js';
+import { newJob } from '../src/sim/ai/jobs.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 
@@ -207,12 +210,43 @@ test('spoilage: meat and carcasses lose a share a day through the ledger; other 
   runDays(g, 1);
   const c = g.s.settlements[g.s.playerSettlement].center;
   g.createItems('core:venison', 40, c.x + 3, c.y + 3, 'start');
-  const woodBefore = Object.values(g.s.stacks).filter((s) => s.item === 'core:wood').reduce((a, s) => a + s.qty, 0);
   const spoiledBefore = g.s.ledger.byReason['consumed:spoil']?.['core:venison'] || 0;
   runDays(g, 1);
   const spoiled = (g.s.ledger.byReason['consumed:spoil']?.['core:venison'] || 0) - spoiledBefore;
   assert.ok(spoiled >= 2 && spoiled <= 6, `about a tenth of 40 spoiled in a day (${spoiled})`);
   assert.equal(g.s.ledger.byReason['consumed:spoil']?.['core:wood'], undefined, 'wood does not spoil');
-  assert.ok(woodBefore >= 0);
   assert.deepEqual(conservationErrors(g), []);
+});
+
+test('review fixes: a village short of raw food forages and farms, it does not plan to butcher deer it has not got', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 3);
+  for (const id of Object.keys(g.s.stacks)) { const st = g.s.stacks[id]; if (g.reg.itemHasTag(st.item, 'core:raw_food') || g.reg.itemHasTag(st.item, 'core:meal')) { const t = g.takeFromStack(id, st.qty); g.consume(t.item, t.qty, 'eat'); } }
+  planNow(g, g.s.playerSettlement);
+  const P = g.plans[g.s.playerSettlement];
+  assert.ok(!P.bills.some((b) => /butcher/.test(b.recipe)), 'no butchering bill without carcasses');
+  assert.ok(!Object.values(P.blockers || {}).flat().some((b) => /Deer carcass/.test(JSON.stringify(b))), 'no carcass blocker');
+  assert.ok((P.wants['core:berry']?.remaining || 0) > 0 || (P.farmPressure || 0) > 0, 'it forages or farms');
+});
+
+test('review fixes: spoilage keeps reserved units, so a save and load mid-haul plays on identically', () => {
+  const run = (cut) => {
+    let g = newGame({ seed: 4242 });
+    runDays(g, 1);
+    const c = g.s.settlements[g.s.playerSettlement].center;
+    g.createItems('core:venison', 30, c.x + 6, c.y + 6, 'start');
+    while (g.s.tick % 2400 !== 2399) g.tick();
+    // A hauler reserves the whole stack just before the day start (spoilage runs then).
+    const st = Object.values(g.s.stacks).find((x) => x.item === 'core:venison' && x.qty === 30);
+    const h = g.colonists()[0];
+    if (h.job) endJob(g, h, null, 'test');
+    h.job = newJob('haul', { stackId: st.id, item: st.item, qty: 30, stage: 'src', dest: { kind: 'stock', x: c.x, y: c.y } }, { why: 'test' });
+    assert.ok(g.reserveQty(h.job, st.id, 30));
+    g.tick();
+    assert.equal(g.s.stacks[st.id]?.qty, 30, 'reserved units do not spoil');
+    if (cut) g = reload(g);
+    g.step(300);
+    return g;
+  };
+  assert.equal(stateText(run(true)), stateText(run(false)));
 });

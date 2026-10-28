@@ -325,9 +325,9 @@ function planSettlement(g, sid) {
   // Carcasses spoil: their meat (or hide) is wanted at once, so they are butchered (Phase 8).
   for (const [it, q] of Object.entries(P.stock)) {
     if (q <= 0 || !reg.get('item', it)?.tags?.includes('core:carcass')) continue;
-    const r = reg.all('recipe').find((x) => x.inputs.some((e) => e.item === it));
+    const r = reg.all('recipe').find((x) => x.fromStock && x.inputs.some((e) => e.item === it));
     const out = r?.outputs[0];
-    if (out) D.push({ item: out.item, qty: (P.stock[out.item] || 0) + q * out.qty, urgency: 0.9, why: `Butcher the ${reg.get('item', it).name.toLowerCase()} before it spoils` });
+    if (out) D.push({ item: out.item, qty: (P.stock[out.item] || 0) + q * out.qty, urgency: 0.9, why: `Butcher the ${reg.get('item', it).name.toLowerCase()} before it spoils`, recipe: r.id, maxRuns: q });
   }
   for (const [it, q] of Object.entries(pol.stock || {})) if (reg.get('item', it)) D.push({ item: it, qty: q, urgency: 0.25, why: 'Keep a basic stockpile' });
   // Ammunition for everyone carrying a ranged weapon.
@@ -412,6 +412,9 @@ function planSettlement(g, sid) {
     if (depth > 6 || seen.has(key)) { block(goal, `Production chain for ${label} is circular or too deep`); return; }
     const seen2 = new Set(seen); seen2.add(key);
     let allRecipes = spec.item ? (reg.idx.recipesFor[spec.item] || []) : reg.recipesForTag(spec.tag);
+    // Recipes that only use up goods on hand (`fromStock`: butchering a carcass) serve only a want that names them
+    // (Phase 8): meat is raw food, but a village short of food forages and farms, it does not plan to butcher deer.
+    allRecipes = spec.recipe ? allRecipes.filter((r) => r.id === spec.recipe) : allRecipes.filter((r) => !r.fromStock);
     // Fallback recipes (quarrying) are used only while the item cannot be gathered on reachable land.
     if (allRecipes.some((r) => r.fallback)) {
       const nodeIds = spec.item ? (reg.idx.nodesFor[spec.item] || []).map((n) => n.id) : [];
@@ -465,7 +468,7 @@ function planSettlement(g, sid) {
       }
       if (machine) r = machine;
       const out = r.outputs.find((o) => (spec.item ? o.item === spec.item : reg.itemHasTag(o.item, spec.tag)));
-      const runs = Math.ceil(short / out.qty);
+      const runs = Math.min(Math.ceil(short / out.qty), spec.maxRuns ?? Infinity);
       addBill(r, runs, urgency, machine ? `${why}; made on the ${reg.get('building', r.station).name} (faster)` : why, goal);
       const st = ensureStation(g, P, r.station, urgency, why, sid);
       const stName = g.reg.get('building', r.station).name;
@@ -526,7 +529,7 @@ function planSettlement(g, sid) {
       if (inf > 0) trace(d.goal, 1, `${inf} already being made or gathered`, 'working');
       short -= inf;
     }
-    if (short > 0) resolve(d.tag ? { tag: d.tag } : { item: d.item }, short, d.urgency, d.why, d.goal, 0, new Set());
+    if (short > 0) resolve(d.tag ? { tag: d.tag } : { item: d.item, ...(d.recipe ? { recipe: d.recipe, maxRuns: d.maxRuns } : {}) }, short, d.urgency, d.why, d.goal, 0, new Set());
   }
   P.bills = [...billMap.values()].sort((a, b) => b.urgency - a.urgency);
   // ---- Machine count sized to demand (Phase 3 slice 3): a 2nd or 3rd machine when work keeps waiting ----

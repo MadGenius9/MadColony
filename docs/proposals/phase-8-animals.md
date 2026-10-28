@@ -269,5 +269,13 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   condition or picks a village where it holds, with the same assertions (none weakened).
 - **Classic runs:** `forty` 729318226c0f973c (66 built, workshops era on day 5.47, before 6.04), `modern`
   81ac639d99e0b452 (modern era on day 41.6); no conservation errors.
-- **Not changed:** 146 tests pass (3 more in `tests/cloud-animals.test.js`).
-
+- **Review fixes:** meat is raw food, so a village short of food planned to butcher deer it did not have (the
+  stew chain took the butcher recipes and never reached foraging or farming): butcher recipes are `fromStock` in
+  data, billed only by the want to butcher the carcasses on hand (that recipe, at most one run a carcass); a test
+  checks a hungry village forages and farms. Spoilage took reserved units, so a save and load mid-haul played on
+  differently (reproduced): only free units spoil now (a test with a real reservation). Spoilage in a station's
+  buffer let a butchering make meat from a spoiled carcass: buffers do not spoil now. The founding test keeps the
+  player's village as parent (two settlers join first when its families cannot leave). Hunting reach is measured
+  from the village centre; a hunt's `valid` checks only the job's shape; weapon wear stops at 0.
+- **Classic runs** after the fixes: `forty` 75cdeebbd8710a70, `modern` 14be8f5a6511e9e2 (same outcomes).
+- **Not changed:** 148 tests pass (5 more in `tests/cloud-animals.test.js`).

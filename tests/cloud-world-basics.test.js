@@ -15,13 +15,13 @@ let g, parent, first, second;
 before(() => {
   g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
   runDays(g, 6);
-  // On day 6 most villages have 3 people of one family, who stay together. The parent is the first village (the
-  // player's first, then by id) with a family free to leave (not holding the village's only physician or teacher);
-  // which homes people share depends on the run (Phase 8: hunting changed the timing). canFound is still checked
-  // on an AI village below.
-  const order = [g.s.playerSettlement, ...Object.keys(g.s.settlements).sort().filter((k) => k !== g.s.playerSettlement)];
-  parent = order.find((sid) => chooseFounders(g, sid, 2).length > 0);
-  assert.ok(parent, 'some village can send settlers on day 6');
+  // On day 6 most villages have 3 people of one family, who stay together. canFound is still checked on an AI
+  // village below. Which homes people share depends on the run (Phase 8: hunting changed the timing).
+  // The player's village is the parent (a later test checks that even the player's daughter is run by the AI);
+  // two settlers with no family join it first, so it has someone free to leave whatever homes its people share.
+  parent = g.s.playerSettlement;
+  if (!chooseFounders(g, parent, 2).length) addSettlers(parent, 2);
+  assert.ok(chooseFounders(g, parent, 2).length > 0, 'the player\'s village can send settlers');
 });
 
 /** Settlers join `sid` by divine power (adults without family, so they may leave again), applied next tick. */
