@@ -76,3 +76,6 @@ and 90 built, the same era days).
 Hunting at work priority 1: `forty` b9406ed4939d61cc (workshops era on day 6.05), `modern` 73214f81e4dcf083
 (modern era on day 44.11).
 
+
+After the review (hunting priority back to 0.8; the `far` fix has no effect on classic worlds): `forty`
+a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.

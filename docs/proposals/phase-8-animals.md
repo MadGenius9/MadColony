@@ -331,4 +331,13 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   73214f81e4dcf083 (modern era on day 44.1, before 41.6): with hunting at priority 1 the village spends more time
   hunting; nothing is lost from the ledger.
 - **Not changed:** 152 tests pass (the Vast test now also checks distant hunting and a raid).
+- **Review fixes:**
+  - A distant village with only bows never hunted (only melee weapons counted); a bow now counts when its arrows are in stock too.
+  - Hunting priority and urgency are back to 0.8 and 1.2/0.6. The big-world bug was only the `far` point, and the raise had slowed classic games for no gain.
+  - The planner's note for a pack that raided now says so, with the real distance.
+  - Distant hunters count meat from the live stacks each hour, not from the 6-hour-old plan.
+  - Targets are found once per village and hour.
+  - The Vast test counts carcasses made during distant hours, not ledger against log.
+  - Not modelled (accepted): distant hunters do not spend arrows or wear weapons. A raid mark is lost when the raiding pack merges the same day (harmless).
+- **After the review:** 152 tests pass. Classic hashes: `forty` a3f4673dd1c9392c (workshops era on day 5.47) and `modern` 3982dd57aa2eadad (modern era on day 41.63), back to their pre-slice era days.
 
