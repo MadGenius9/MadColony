@@ -31,6 +31,12 @@ const hash = (str) => {
   return h >>> 0;
 };
 const draw = (key) => hash(key) / 4294967296;
+/** A number in [0, 1) from a base hash and a small integer (no string building: hot loops). */
+const mixDraw = (base, n) => {
+  let h = Math.imul(base ^ Math.imul(n + 1, 0x9e3779b1), 0x85ebca6b);
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+};
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** The species this game has (scenario.animals.species, default: every species in data), in id order. */
@@ -314,9 +320,10 @@ function move(g, h, d) {
   const winter = seasonOf(g) === 'Winter' && !!d.winterTerrains; // winter moves (slice 6)
   const here = score(g, I, Hb, h, d, c, villages, winter);
   let best = c, bv = here;
+  const base = hash(`${s.seed}:${h.id}:mv:${s.tick}`);
   for (const n of neighbours(g, c)) {
     if (L.comp[n] < 0 || L.comp[n] !== L.comp[c]) continue; // its landmass only
-    const v = score(g, I, Hb, h, d, n, villages, winter) * (0.95 + 0.1 * draw(`${s.seed}:${h.id}:mv:${s.tick}:${n}`));
+    const v = score(g, I, Hb, h, d, n, villages, winter) * (0.95 + 0.1 * mixDraw(base, n));
     if (v > bv) { bv = v; best = n; }
   }
   if (best === c || bv < here * 1.15 + 1) return;
@@ -358,9 +365,10 @@ const nearDirty = (g) => { if (g._anNear) g._anNear.dirty = true; };
 function grids(g) {
   if (g._anGrid?.tick === g.s.tick) return g._anGrid;
   const people = new Map(), beasts = new Map(), key = (x, y) => ((y / CELL) | 0) * 100000 + ((x / CELL) | 0);
-  for (const c of Object.values(g.s.colonists)) {
-    if (g.s.settlements?.[c.settlementId]?.detail === 'abstract') continue; // their places are stand-ins (lod.js)
-    const k = key(c.x, c.y); if (!people.has(k)) people.set(k, []); people.get(k).push(c); }
+  for (const [sid, m] of g.ownIndex('colonists')) { // by village: distant ones are skipped whole
+    if (g.s.settlements?.[sid]?.detail === 'abstract') continue; // their places are stand-ins (lod.js)
+    for (const c of m.values()) { const k = key(c.x, c.y); if (!people.has(k)) people.set(k, []); people.get(k).push(c); }
+  }
   for (const a of Object.values(g.s.animals?.list || {})) { const k = key(a.x, a.y); if (!beasts.has(k)) beasts.set(k, []); beasts.get(k).push(a); }
   return (g._anGrid = { tick: g.s.tick, people, beasts, key });
 }
