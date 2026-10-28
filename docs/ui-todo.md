@@ -232,3 +232,20 @@ where, and which sim function or state field provides it. The UI is built at hom
   drought power's preview could add "Grazing herds will thin and move away".
 - **Encyclopedia or species card:** per species: herd size, where it lives and where it winters, what it eats,
   births in spring, losses in winter (three times as many on poor winter ground) and in droughts.
+
+## Phase 8b, slice 0: the animal ledger
+- **Reports (optional):** a "Wildlife" panel can show per species: living now, born, sent by the gods, and deaths by
+  cause (winter, drought, starved, eaten by wolves, hunted, lost, crowded, faded) from `s.animals.ledger`.
+
+## Phase 8b, slice 1: the animals power
+- **God powers panel:** a new power "Send animals":
+  - choose a species (deer, wolf, wild horse: `animalSpecies`), a count (2 to the herd maximum; 1 and up when
+    joining) and the mode "New herd" or "Join a herd";
+  - then click a tile.
+- **Preview** (`previewCommand(g, 'animals', args).preview`):
+  - show `effect` ("6 deer appear at (x, y) as a new herd" or "2 deer join the herd of 9 nearby (11)") and the cost
+    in favour (deer 2, horse 3, wolf 4 a head);
+  - then the warnings: not their ground, how many the land feeds, and for wolves the villages they will hunt near.
+  - Wolves near a village need the Confirm step (`needsConfirm`), like the other destructive powers.
+- **Letter:** "The gods sent 6 deer near your village." (info).
+- **Herd tooltip:** a herd with `origin: 'divine'` can read "Sent by the gods (day N)".

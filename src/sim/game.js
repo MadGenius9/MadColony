@@ -40,6 +40,7 @@ import { tickSpoil } from './spoil.js';
 import './godwrath.js'; // registers the destructive powers (Phase 5b)
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
+import './godanimals.js'; // registers the god power 'animals' (Phase 8b)
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];

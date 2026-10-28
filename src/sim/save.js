@@ -229,7 +229,8 @@ function validateAnimals(s, bad) {
       && isInt(h.day) && isInt(h.year) && isInt(h.next) && isInt(h.fed);
     const angryOk = h.angry === undefined || (isObj(h.angry) && isStr(h.angry.cid, 64) && isInt(h.angry.until) && h.angry.until <= s.tick + 1e6);
     const raidsOk = h.raids === undefined || (isObj(h.raids) && Object.keys(h.raids).length <= 200 && Object.entries(h.raids).every(([k, v]) => isStr(k, 64) && isInt(v) && v <= s.tick + 1e6));
-    if (!ok || !angryOk || !raidsOk || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
+    if (!ok || !angryOk || !raidsOk || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))
+      || (h.origin !== undefined && h.origin !== 'divine') || (h.sent !== undefined && !(isInt(h.sent) && h.sent <= s.tick))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
   }
   if (A.na !== undefined && (!isInt(A.na) || A.na < 1)) { bad('state.animals.na is malformed'); return; }
   if (A.ledger !== undefined) { // the animal ledger (format 28)

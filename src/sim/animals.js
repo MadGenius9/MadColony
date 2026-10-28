@@ -775,6 +775,56 @@ export function bringNear(g, hid) {
   if (h && d && h.near === undefined) expand(g, h, d);
 }
 
+// ---------------- animals sent by the gods (Phase 8b, godanimals.js) ----------------
+/** Is (x, y) within the near distance of a full-detail village (sent animals then arrive as animals)? */
+const nearAnchor = (g, x, y) => anchors(g).some((p) => hyp(p.x - x, p.y - y) <= NEAR);
+
+/** A new herd of n animals of species sp centred on (x, y), sent by the gods: counted as sent in the ledger; near a
+ *  full-detail village it becomes animals at once. Returns the herd. */
+export function sendHerd(g, sp, x, y, n) {
+  const d = g.reg.get('animal', sp), day = Math.floor(g.s.tick / TICKS_PER_DAY);
+  const h = newHerd(g, d, x, y, n, day);
+  h.origin = 'divine'; h.sent = g.s.tick;
+  sentAnimals(g, sp, n);
+  if (nearAnchor(g, x, y)) expand(g, h, d);
+  return h;
+}
+
+/** k animals sent by the gods join herd hid (near: they appear round its centre). */
+export function joinHerd(g, hid, k) {
+  const A = g.s.animals, h = A.herds[hid], d = h && g.reg.get('animal', h.sp);
+  if (!d || k < 1) return null;
+  h.n += k; sentAnimals(g, h.sp, k);
+  if (h.near !== undefined) {
+    A.list ||= {}; A.na ||= 1;
+    for (let j = 0; j < k; j++) { const at = spotNear(g, h.x, h.y, 2, `${g.s.seed}:${h.id}:sent:${g.s.tick}:${j}`), id = `a${A.na++}`; A.list[id] = { id, herd: h.id, x: at.x, y: at.y, hp: d.health }; }
+    nearDirty(g);
+  }
+  return h;
+}
+
+/** The herd of species sp nearest (x, y) within r (then by id), for animals sent to join one; or null. */
+export function herdToJoin(g, sp, x, y, r) {
+  let best = null, bd = Infinity;
+  for (const h of herdsWithin(g, x, y, r)) {
+    if (h.sp !== sp) continue;
+    const dd = hyp(h.x - x, h.y - y);
+    if (dd <= r && (dd < bd || (dd === bd && h.id < best.id))) { bd = dd; best = h; }
+  }
+  return best;
+}
+
+/** What the land at (x, y) is for species sp (previews): its ground or not, about how many it feeds in that
+ *  chunk, how many of the species live there, and whether sent animals would arrive near a village. */
+export function landFor(g, sp, x, y) {
+  const d = g.reg.get('animal', sp), Hb = habitat(g), si = Hb.index.get(sp), c = chunkOf(g, x, y);
+  const ground = si === undefined ? 0 : Hb.counts[si][c];
+  return {
+    onGround: d.terrains.includes(g.terrainAt(x, y).id), terrains: d.terrains,
+    feeds: Math.round((ground / 1000) * d.cap * g._anScale), living: g.s.animals ? inChunk(g, indexes(g), c, d) : 0, near: nearAnchor(g, x, y),
+  };
+}
+
 /** For tests: fold a near herd back into a count now. */
 export const foldHerdForTest = (g, id) => fold(g, g.s.animals.herds[id]);
 
