@@ -99,6 +99,13 @@ export const MIGRATIONS = {
   25() {},
   // 26 -> 27: wild animals (Phase 8). `s.animals` is optional: absent, the herds are placed at the next tick.
   26() {},
+  // 27 -> 28: the animal ledger (Phase 8b). Herds from before it: the living animals are its start.
+  27(s) {
+    const A = s.animals;
+    if (!A?.herds || A.ledger) return;
+    A.ledger = {};
+    for (const h of Object.values(A.herds)) (A.ledger[h.sp] ||= { start: 0, born: 0, sent: 0, died: {} }).start += Number(h.n) || 0;
+  },
 };
 
 export function migrateState(s, fromFormat, reg = null) {

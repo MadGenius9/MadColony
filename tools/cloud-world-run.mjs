@@ -7,7 +7,7 @@ import { serializeGame, loadGame } from '../src/sim/save.js';
 import { peopleCensus } from '../src/sim/godspawn.js';
 import { metPairs } from '../src/sim/contact.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
-import { herdCensus } from '../src/sim/animals.js';
+import { herdCensus, animalCensus } from '../src/sim/animals.js';
 
 /** Phase 8: raw food made so far (nutrition, from the ledger) and the share that is meat (hunting, butchering). */
 function foodShare(g) {
@@ -76,7 +76,8 @@ for (let d = 1; d <= days; d++) {
   if (d % every === 0 || d === days) {
     const st = Object.values(g.s.settlements);
     const cons = conservationErrors(g), pc = peopleCensus(g, start);
-    if (cons.length || !pc.ok) failed = true;
+    const ac = animalCensus(g);
+    if (cons.length || !pc.ok || !ac.ok) failed = true;
     const m = g.s.contact ? metPairs(g) : null;
     console.log(JSON.stringify({
       day: d, msPerTick: +(windowMs / windowTicks).toFixed(3), worstTickMs: +worst.toFixed(1),
@@ -85,7 +86,7 @@ for (let d = 1; d <= days; d++) {
       wars: Object.values(g.s.relations || {}).filter((r) => r.aggressor).length, ...ev, pairsMet: m?.pairs,
       herds: g.s.animals ? Object.fromEntries(Object.entries(herdCensus(g)).map(([k, v]) => [k.replace('core:', ''), v.animals])) : undefined,
       hunted: g.s.ledger?.byReason?.['created:hunt'], meatShare: foodShare(g),
-      heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok,
+      heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok,
     }));
     windowMs = 0; windowTicks = 0; worst = 0;
   }

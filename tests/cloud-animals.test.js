@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservationErrors } from './cloud-helpers.js';
-import { herdCensus, animalSpecies, foldHerdForTest } from '../src/sim/animals.js';
+import { herdCensus, animalSpecies, foldHerdForTest, animalCensus } from '../src/sim/animals.js';
 import { issueCommand } from '../src/sim/god.js';
 import { planNow } from '../src/sim/planner.js';
 import { endJob } from '../src/sim/ai/ai.js';
@@ -404,4 +404,36 @@ test('slice 6: grazers in a drought lose some of their number and the game saves
   const n = (x) => x.s.animals.herds[herd.id]?.n || 0;
   assert.ok(n(g) < n(ctl), `the herd in the drought is smaller (${n(g)} against ${n(ctl)})`);
   assert.deepEqual(conservationErrors(g), []);
+});
+
+// ---------------- Phase 8b slice 0: the animal ledger ----------------
+test('8b ledger: a classic year and a spring keep living = start + born + sent - died every day, across a save and load', () => {
+  const g = newGame({ seed: 4242 });
+  const causes = new Set();
+  for (let d = 0; d < 34; d++) { // the first births come in the second spring (day 30 on)
+    runDays(g, 1);
+    const c = animalCensus(g);
+    assert.ok(c.ok, `day ${d + 1}: ${c.problems.join('; ')}`);
+    for (const L of Object.values(g.s.animals.ledger)) for (const k of Object.keys(L.died)) causes.add(k);
+    if (d === 14) { const b = reload(g); runDays(b, 1); runDays(g, 1); assert.equal(stateText(b), stateText(g), 'reload mid-year identical'); d++; }
+  }
+  const L = g.s.animals.ledger;
+  assert.ok(Object.values(L).some((x) => x.born > 0), 'spring births counted');
+  assert.ok(causes.has('hunted'), `hunting deaths counted (${[...causes].join(', ')})`);
+});
+
+test('8b ledger: the Vast world (far herds, distant hunting, packs eating) stays exact; an older save gets a ledger', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  for (let d = 0; d < 8; d++) { runDays(g, 1); const c = animalCensus(g); assert.ok(c.ok, `day ${d + 1}: ${c.problems.join('; ')}`); }
+  const died = Object.values(g.s.animals.ledger).flatMap((L) => Object.keys(L.died));
+  assert.ok(died.includes('prey'), `packs' kills counted (${[...new Set(died)].join(', ')})`);
+  const old = JSON.parse(serializeGame(g));
+  old.saveFormat = 27; delete old.state.animals.ledger;
+  const h = loadGame(g.reg, JSON.stringify(old));
+  const c = animalCensus(h);
+  assert.ok(c.ok, c.problems.join('; '));
+  for (const [sp, n] of Object.entries(c.living)) assert.equal(h.s.animals.ledger[sp].start, n, `${sp}: the living are the start`);
+  const bad = JSON.parse(serializeGame(g));
+  bad.state.animals.ledger['core:deer'].born = -1;
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /ledger/);
 });

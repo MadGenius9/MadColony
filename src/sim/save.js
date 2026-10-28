@@ -232,6 +232,14 @@ function validateAnimals(s, bad) {
     if (!ok || !angryOk || !raidsOk || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
   }
   if (A.na !== undefined && (!isInt(A.na) || A.na < 1)) { bad('state.animals.na is malformed'); return; }
+  if (A.ledger !== undefined) { // the animal ledger (format 28)
+    const n = (v) => isInt(v) && v >= 0 && v <= 1e12;
+    if (!isObj(A.ledger) || Object.keys(A.ledger).length > 1000) { bad('state.animals.ledger is malformed'); return; }
+    for (const [sp, L] of Object.entries(A.ledger)) {
+      if (!isStr(sp, 100) || !isObj(L) || !n(L.start) || !n(L.born) || !n(L.sent) || !isObj(L.died) || Object.keys(L.died).length > 50
+        || !Object.entries(L.died).every(([k, v]) => /^[a-z]{1,20}$/.test(k) && n(v))) { bad(`the animal ledger of "${String(sp).slice(0, 40)}" is malformed`); return; }
+    }
+  }
   if (A.list === undefined) return; // near animals (slice 2)
   if (!isObj(A.list) || A.na === undefined) { bad('state.animals.list is malformed'); return; }
   for (const [k, a] of Object.entries(A.list)) {
@@ -530,6 +538,7 @@ export function loadGame(reg, saveOrText) {
   const q = (kind, data, extra = {}) => s.orphans.push({ kind, data, ...extra, since: s.tick });
   for (const [id, n] of Object.entries(s.nodes)) if (!reg.has('node', n.def)) { q('node', n); delete s.nodes[id]; }
   for (const [id, h] of Object.entries(s.animals?.herds || {})) if (!reg.has('animal', h.sp)) delete s.animals.herds[id]; // a species whose mod is gone: its herds go (animals hold no items)
+  for (const sp of Object.keys(s.animals?.ledger || {})) if (!reg.has('animal', sp)) delete s.animals.ledger[sp]; // and its ledger
   if (s.animals?.list) { for (const [id, a] of Object.entries(s.animals.list)) if (!s.animals.herds[a.herd]) delete s.animals.list[id]; if (!Object.keys(s.animals.list).length) delete s.animals.list; } // and their animals
   for (const [id, b] of Object.entries(s.structures)) {
     if (!reg.has('building', b.def)) { q('structure', b); delete s.structures[id]; continue; }

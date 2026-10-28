@@ -143,7 +143,7 @@ function newHerd(g, d, x, y, n, day) {
 /** Place the first herds (the first tick of a game without `s.animals`). */
 function placeHerds(g) {
   const s = g.s, sp = animalSpecies(g), Hb = habitat(g), day = Math.floor(s.tick / TICKS_PER_DAY);
-  s.animals = { herds: {}, next: 1 };
+  s.animals = { herds: {}, next: 1, ledger: {} };
   const centres = Object.values(s.settlements || {}).map((v) => v.center).filter(Boolean);
   if (!centres.length && s.center) centres.push(s.center);
   const n = g.CW * g.CH, L = landChunks(g);
@@ -158,7 +158,8 @@ function placeHerds(g) {
         const at = groundIn(g, d, c, `${key}:${j}`);
         if (!at || centres.some((p) => hyp(p.x - at.x, p.y - at.y) < NEAR_VILLAGE)) continue;
         const [lo, hi] = d.herd;
-        newHerd(g, d, at.x, at.y, lo + (hash(`${key}:${j}:n`) % (hi - lo + 1)), day);
+        const h = newHerd(g, d, at.x, at.y, lo + (hash(`${key}:${j}:n`) % (hi - lo + 1)), day);
+        ledgerOf(g, d.id).start += h.n;
       }
     });
   }
@@ -219,16 +220,19 @@ function daily(g, h, d, day) {
     const cap = ((si === undefined ? 0 : Hb.counts[si][c]) / 1000) * d.cap * g._anScale;
     const room = cap > 0 && !hungry ? Math.max(0, 1 - inChunk(g, I, c, d) / cap) : 0;
     const e = h.n * d.births * room;
-    h.n += Math.floor(e) + (draw(`${key}:born`) < e - Math.floor(e) ? 1 : 0);
+    const k = Math.floor(e) + (draw(`${key}:born`) < e - Math.floor(e) ? 1 : 0);
+    h.n += k; born(g, h, k);
   }
   if (season === 'Winter') { // three times the loss on poor winter ground (under a fifth of its ground)
     const poor = si !== undefined && Hb.winter[si][c] < 0.2 * Hb.counts[si][c];
     const e = h.n * d.winterLoss * (poor ? 3 : 1);
-    h.n -= Math.floor(e) + (draw(`${key}:winter`) < e - Math.floor(e) ? 1 : 0);
+    const k = Math.min(h.n, Math.floor(e) + (draw(`${key}:winter`) < e - Math.floor(e) ? 1 : 0));
+    h.n -= k; died(g, h, k, 'winter');
   }
   if (d.droughtLoss && droughtAt(g, h.x, h.y)) { // grazers in a drought go thin (and move away: score)
     const e = h.n * d.droughtLoss;
-    h.n -= Math.floor(e) + (draw(`${key}:drought`) < e - Math.floor(e) ? 1 : 0);
+    const k = Math.min(h.n, Math.floor(e) + (draw(`${key}:drought`) < e - Math.floor(e) ? 1 : 0));
+    h.n -= k; died(g, h, k, 'drought');
   }
   if (d.diet === 'hunt') { // a pack eats from a prey herd in its chunk or the next ones
     let prey = null;
@@ -237,8 +241,8 @@ function daily(g, h, d, day) {
       if (p && p !== h && p.near === undefined && h.near === undefined && (d.prey || []).includes(p.sp) && p.n > 0 && (!prey || p.n > prey.n || (p.n === prey.n && p.id < prey.id))) prey = p;
     }
     const starve = Math.floor(d.starveDays ?? 10);
-    if (h.near === undefined && prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
-    else if (day - h.fed >= starve && h.n > SMALL_GAME) { h.n--; h.fed = day; } // too many for small game alone
+    if (h.near === undefined && prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; died(g, prey, 1, 'prey'); h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
+    else if (day - h.fed >= starve && h.n > SMALL_GAME) { h.n--; died(g, h, 1, 'starved'); h.fed = day; } // too many for small game alone
     if (h.near === undefined && h.fed !== day) raidDistant(g, h, day, key);
   }
   // Two herds of a species in one chunk that fit in one herd join (the lower id takes the other in).
@@ -246,7 +250,7 @@ function daily(g, h, d, day) {
     const o = A.herds[id];
     if (!o || o === h || o.sp !== h.sp || o.near !== undefined || h.near !== undefined || o.n + h.n > d.herd[1] || !s.animals.herds[h.id]) continue;
     const [keep, gone] = o.id < h.id ? [o, h] : [h, o];
-    keep.n += gone.n; removeHerd(g, gone.id);
+    keep.n += gone.n; removeHerd(g, gone.id, null); // they live on in `keep`
     if (gone === h) return;
     break;
   }
@@ -278,7 +282,45 @@ function raidDistant(g, h, day, key) {
   }
 }
 
-function removeHerd(g, id) { delete g.s.animals.herds[id]; dirty(g); }
+/** Herd id goes. Its remaining animals (fewer than 2, or none) are recorded as dead of `cause` (default 'faded');
+ *  pass null when they live on in another herd (a merge). */
+function removeHerd(g, id, cause = 'faded') {
+  const h = g.s.animals.herds[id];
+  if (h && cause && h.n > 0) died(g, h, h.n, cause);
+  delete g.s.animals.herds[id]; dirty(g);
+}
+
+// ---------------- the animal ledger (Phase 8b slice 0) ----------------
+// s.animals.ledger: species -> { start, born, sent, died: { cause: n } }. Every change of a herd's count is
+// recorded here (merges, splits, expanding and folding change no total), so animalCensus can check, per species,
+// living = start + born + sent - died, as peopleCensus does for people.
+function ledgerOf(g, sp) {
+  const A = g.s.animals;
+  A.ledger ||= {};
+  return (A.ledger[sp] ||= { start: 0, born: 0, sent: 0, died: {} });
+}
+function born(g, h, k) { if (k > 0) ledgerOf(g, h.sp).born += k; }
+function died(g, h, k, cause) { if (k > 0) { const L = ledgerOf(g, h.sp).died; L[cause] = (L[cause] || 0) + k; } }
+/** Herd h's count becomes n (a near herd recounted from its animals): any difference is recorded (normally none). */
+function recount(g, h, n) {
+  if (n < h.n) died(g, h, h.n - n, 'faded'); else if (n > h.n) born(g, h, n - h.n);
+  h.n = n;
+}
+/** Add k animals of species sp made by a power (Phase 8b): counted as sent. */
+export function sentAnimals(g, sp, k) { if (k > 0) ledgerOf(g, sp).sent += k; }
+
+/** The animal ledger checked against the herds, per species: { ok, living, problems }. */
+export function animalCensus(g) {
+  const A = g.s.animals, living = {}, problems = [];
+  if (!A) return { ok: true, living, problems };
+  for (const h of Object.values(A.herds)) living[h.sp] = (living[h.sp] || 0) + h.n;
+  for (const sp of new Set([...Object.keys(living), ...Object.keys(A.ledger || {})])) {
+    const L = A.ledger?.[sp] || { start: 0, born: 0, sent: 0, died: {} };
+    const dead = Object.values(L.died).reduce((x, y) => x + y, 0), want = L.start + L.born + L.sent - dead, have = living[sp] || 0;
+    if (want !== have) problems.push(`${sp}: start ${L.start} + born ${L.born} + sent ${L.sent} - died ${dead} = ${want}, but ${have} are living`);
+  }
+  return { ok: !problems.length, living, problems };
+}
 
 /** Chunks within r of c (c first, then row by row), in a fixed order. */
 function around(g, c, r) {
@@ -444,7 +486,7 @@ function fold(g, h) {
   for (const a of live) delete A.list[a.id];
   delete h.near;
   nearDirty(g);
-  h.n = live.length;
+  recount(g, h, live.length);
   if (live.length) recentre(g, h, live);
   if (h.n < 2) removeHerd(g, h.id);
   if (!Object.keys(A.list || {}).length) delete A.list;
@@ -587,7 +629,7 @@ function bite(g, a, pack, prey, key) {
   if (prey.hp > 0) return;
   delete A.list[prey.id];
   nearDirty(g);
-  if (ph) { ph.n--; if (ph.n < 1) { delete ph.near; removeHerd(g, ph.id); } }
+  if (ph) { ph.n--; died(g, ph, 1, 'prey'); if (ph.n < 1) { delete ph.near; removeHerd(g, ph.id); } }
   pack.fed = Math.floor(g.s.tick / TICKS_PER_DAY);
 }
 
@@ -635,7 +677,7 @@ function driftAway(g, h) {
 /** Near herds: their count and centre from their animals (hourly, before the herd's own hour). */
 function syncNear(g, h) {
   const ids = nearIndex(g).byHerd.get(h.id) || [];
-  h.n = ids.filter((id) => g.s.animals.list?.[id]).length; // the centre is where they graze (it drifts; fold recentres)
+  recount(g, h, ids.filter((id) => g.s.animals.list?.[id]).length); // the centre is where they graze (it drifts; fold recentres)
 }
 
 // ---------------- for hunting (slice 3) ----------------
@@ -666,7 +708,7 @@ export function killAnimal(g, id, fx, fy) {
   delete A.list[id];
   nearDirty(g);
   const h = A.herds[a.herd];
-  if (h) { h.n--; h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); if (h.n < 1) { delete h.near; removeHerd(g, h.id); } }
+  if (h) { h.n--; died(g, h, 1, 'hunted'); h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); if (h.n < 1) { delete h.near; removeHerd(g, h.id); } }
   if (!Object.keys(A.list).length) delete A.list;
   return h;
 }
@@ -722,7 +764,7 @@ export function farHuntable(g, x, y, r, sid = null) {
 export function killFar(g, hid) {
   const h = g.s.animals?.herds[hid];
   if (!h || h.near !== undefined) return;
-  h.n--;
+  h.n--; died(g, h, 1, 'hunted');
   if (h.n < 2) removeHerd(g, hid);
 }
 
