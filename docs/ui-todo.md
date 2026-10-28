@@ -175,3 +175,10 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Tooltips:** "Young pine: grows up in about N days" (sproutDays × (1 − regrow), slower in winter); it cannot
   be cut yet.
 - **Letters:** "N young plants sprouted on burned and broken ground." (at most one a day).
+
+## Phase 8, slice 1: species and far herds
+- **World view:** each herd in `g.s.animals.herds` (sp, x, y, n) drawn as a dot (or a small cluster of dots) in
+  its species' colour (`animal.color`: deer brown, wolves grey, wild horses chestnut), its size by `n`;
+  tooltip "Deer: a herd of 8".
+- **Map legend:** the three species; wolves marked as dangerous.
+- **Close up:** nothing yet (individual animals come in slice 2).

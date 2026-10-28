@@ -56,3 +56,8 @@ Vast preset (`core:vast_world`, size `vast`, seed 7): creation about 3.0 s, days
   beyond the noise.
 - Powers run (`tools/cloud-powers-run.mjs 40 vast 7`): see the design note, "Phase 5b acceptance".
 
+## Phase 8, slice 1 (2026-10-28): new classic hashes
+Animals are in every game (the owner's answer), so the herds are part of the saved state: `forty`
+b6c75f52735d338a, `modern` 8d4917d8556d4f55. With `s.animals` removed `forty` still hashes to 9426646c1190c148
+(nothing else changed). Later slices compare against the new hashes.
+

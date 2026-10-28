@@ -182,3 +182,30 @@ games change from slice 1 on, so `forty` and `modern` are recorded again then.
 Herds as dots zoomed out (species colour, size by count); animals close up (procedural sprites, grazing, running);
 the hunt (hunter with bow, arrows, a fleeing wounded deer), carcasses, the butcher's table; wolves (a pack, a
 bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Food from hunting: N%".
+
+## Results
+
+### Slice 1: species and far herds
+- **Built:** content type `animal` (`mods/core/content/animals.json`: deer, wolves, wild horses), on in every
+  game (`scenario.animals.species`, default every species; `[]` turns them off). `src/sim/animals.js`: at the
+  first tick (of a new game or an older save) herds are placed per chunk by the share of the species' ground
+  (density per 1,000 tiles), never within 24 tiles of a village, by hash draws (the world and the game's random
+  stream are unchanged). Every herd once an hour, staggered by id: once a day births (spring, once a year, less as
+  its chunk fills: `cap`), winter losses, packs eating deer or horses within 2 chunks (in winter a pack that has
+  not eaten for 10 days loses one; the rest of the year small game keeps it), splits above 1.5 × the largest herd,
+  merges of two that fit in one herd, fades below 2; at most every `moveHours` a move of one chunk toward more of
+  its ground, less crowding, away from villages (packs toward prey), on its landmass (`contact.js landChunks`).
+  `s.animals` (save format 27, validated; an older save gets herds at the next tick).
+- **Tuning** (Vast seed 7): at first wolves died out (300 → 19 by day 300): their land cap (4 per 1,000 tiles) was
+  smaller than one pack, so packs never bred, and packs that had emptied their range starved all year. With cap
+  12, births 0.6, starving only in winter and a 2-chunk view of prey: wolves 298 → 428, deer 2,207 → 1,639,
+  wild horses 729 → 447 over 180 days, all three steady from day 90 on. Classic seed 4242: 4 deer herds (29 deer)
+  and 1 horse herd, 35 deer after 90 days.
+- **Cost:** the herd update is about 0.0005 ms a tick on Vast (600 herds); Vast days 2–60: 0.385 and 0.408 ms a
+  tick with animals, 0.378 and 0.368 without (two runs each; worst ticks 35–46 ms with, 35–173 ms without: the
+  spikes are not the herds).
+- **Classic runs:** new state hashes `forty` b6c75f52735d338a, `modern` 8d4917d8556d4f55 (herds are saved).
+  With `s.animals` left out, `forty` hashes to the old 9426646c1190c148: the herds change nothing else yet. Same
+  outcome numbers (5 colonists, 65 built, workshops era at day 40; modern era reached).
+- **Not changed:** 139 tests pass (4 new in `tests/cloud-animals.test.js`).
+
