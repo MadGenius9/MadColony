@@ -295,7 +295,9 @@ export const MEDICAL_DRIVERS = {
 export function medicalSummary(g, sid) {
   const cols = g.owned('colonists', sid);
   const patients = cols.filter((c) => isDown(c) || treatmentNeeds(g, c).length);
-  const needs = patients.flatMap((c) => treatmentNeeds(g, c));
+  // A snapshot of each injury at planning time: the plan only counts and shows them, and a live injury here would
+  // differ from its copy in a loaded save (plancodec.js) as it heals or worsens.
+  const needs = patients.flatMap((c) => treatmentNeeds(g, c)).map((n) => ({ ...n, inj: { ...n.inj } }));
   const { beds, free } = medicalBeds(g, sid);
   const doctors = cols.filter((c) => !isDown(c) && !c.workOff?.['core:doctor']);
   const bandages = supplyCount(g, sid, 'core:bandage'), medicine = supplyCount(g, sid, 'core:medicine');
