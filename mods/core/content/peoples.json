@@ -27,7 +27,8 @@
       "about": "Small, slight people of marshes and riverbanks: thirsty but light eaters, patient growers and cooks, slow to anger.",
       "terrains": [
         "core:marsh",
-        "core:shallows"
+        "core:shallows",
+        "core:jungle"
       ],
       "needs": {
         "core:thirst": 1.3,
@@ -92,7 +93,8 @@
       "terrains": [
         "core:hills",
         "core:snow",
-        "core:gravel"
+        "core:gravel",
+        "core:tundra"
       ],
       "needs": {
         "core:hunger": 1.2
@@ -159,7 +161,8 @@
       "plural": "Duneshade",
       "about": "Lean people of the sands: they need little water and walk far, skilled crafters, but the cold reaches them early.",
       "terrains": [
-        "core:sand"
+        "core:sand",
+        "core:savanna"
       ],
       "needs": {
         "core:thirst": 0.6

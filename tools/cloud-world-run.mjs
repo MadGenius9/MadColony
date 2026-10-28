@@ -1,4 +1,4 @@
-// A long world run for the Phase 5 acceptance (cloud copy; Phase 8 adds herd numbers, hunting and the meat share of raw food). Prints a progress line about every 10 s and a JSON
+// A long world run for the Phase 5 acceptance (cloud copy; Phase 8 adds herd numbers, hunting and the meat share of raw food; Peoples and traits adds people and standing villages by people). Prints a progress line about every 10 s and a JSON
 // summary every `every` days; checks conservation (items and people) at each summary, and at `saveAt` saves, loads
 // a copy and checks that the copy runs 1 day identically. Exit code 1 on any failed check.
 //   node tools/cloud-world-run.mjs [days=300] [size=world] [seed=7] [every=25] [saveAt=150]
@@ -87,6 +87,8 @@ for (let d = 1; d <= days; d++) {
       wars: Object.values(g.s.relations || {}).filter((r) => r.aggressor).length, ...ev, pairsMet: m?.pairs,
       herds: g.s.animals ? Object.fromEntries(Object.entries(herdCensus(g)).map(([k, v]) => [k.replace('core:', ''), v.animals])) : undefined,
       hunted: g.s.ledger?.byReason?.['created:hunt'], meatShare: foodShare(g),
+      peoples: Object.fromEntries(Object.entries(pc.byPeople || {}).map(([k, v]) => [k.replace('core:', ''), v])),
+      villagesByPeople: st.filter((x) => !x.fallen).reduce((o, x) => { const k = String(x.people || 'none').replace('core:', ''); o[k] = (o[k] || 0) + 1; return o; }, {}),
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;

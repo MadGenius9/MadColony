@@ -309,8 +309,8 @@ Each person has 0 to 2 traits. Opposite traits never go together.
   - **Peoples by land** (scenario `peoplesByLand`, Living and Vast worlds; `peoples.js peopleByLand`): an AI
     village without a profile people takes the people whose home terrains cover the largest share (at least
     10%) of the land within 10 tiles.
-    - Seed 7: Vast world villages are Hearthfolk 3, Cragborn 3 and Reedkin 1; Living world villages are
-      Hearthfolk 6, Cragborn 3 and Duneshade 2.
+    - Seed 7, after acceptance added the planet's terrains (see slice 7): Vast world villages are Hearthfolk 2,
+      Cragborn 3, Reedkin 1 and Duneshade 1; Living world villages are Hearthfolk 5, Cragborn 4 and Duneshade 2.
     - The player's village stays Hearthfolk, and classic and neighbours games are all Hearthfolk.
 - **Not built:**
   - Daughter villages keep their founders' people, but their site is still the nearest good one, not the
