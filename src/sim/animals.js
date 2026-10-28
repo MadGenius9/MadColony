@@ -339,30 +339,25 @@ function move(g, h, d) {
 // centred on the one nearest their middle). Checked every NEAR_CHECK ticks. While near, the herd's count is its
 // animals; its centre is where they graze, drifting a tile an hour away from a village within 30 tiles (strays
 // walk back to it); it does not move by chunks, and births and losses come and go as animals.
-// Each animal acts every STEP ticks (grazers every GRAZE_PACE * STEP; staggered by id): grazers flee (the whole herd, for a while) from people and
+// Each animal acts every STEP ticks (staggered by id): grazers flee (the whole herd, for a while) from people and
 // predators within their fear ranges, stepping to the free neighbour tile farthest from the danger (their speed in
 // tiles), else graze a step now and then near the centre; a pack that has not eaten today chases the nearest prey
 // animal within CHASE tiles and bites it (health); a kill feeds the pack. Animals never block tiles; they step only
 // onto passable tiles of the region they stand in.
 const NEAR = 48, NEAR_CHECK = 600, NEAR_HOLD = 2400, STEP = 10, CELL = 8, CHASE = 20, GRAZE = 5, ALARM = 300;
-// Grazers act every GRAZE_PACE turns and take GRAZE_PACE times the steps (the same speed, fewer lookups: most near
-// animals are grazers); packs act every turn, so a chase and its bites keep their pace.
-const GRAZE_PACE = 2;
 
 /** Near animals by herd and by step slot (derived; rebuilt when animals come or go). */
 function nearIndex(g) {
   const A = g.s.animals;
   if (g._anNear?.A === A && !g._anNear.dirty) return g._anNear;
-  const byHerd = new Map(), slots = Array.from({ length: STEP }, () => []), par = new Map();
+  const byHerd = new Map(), slots = Array.from({ length: STEP }, () => []);
   for (const id of Object.keys(A.list || {}).sort(byId)) {
-    const a = A.list[id], hv = hash(id);
+    const a = A.list[id];
     if (!byHerd.has(a.herd)) byHerd.set(a.herd, []);
     byHerd.get(a.herd).push(id);
-    slots[hv % STEP].push(id);
-    const h = A.herds[a.herd];
-    if (h && g.reg.get('animal', h.sp)?.diet === 'graze') par.set(id, (hv >>> 8) & 1); // grazers: every other turn
+    slots[hash(id) % STEP].push(id);
   }
-  return (g._anNear = { A, byHerd, slots, par, dirty: false });
+  return (g._anNear = { A, byHerd, slots, dirty: false });
 }
 const nearDirty = (g) => { if (g._anNear) g._anNear.dirty = true; g._anBeasts = null; };
 
@@ -483,8 +478,8 @@ function act(g, a) {
     const who = (fp && nearestIn(G, G.people, a.x, a.y, fp, () => true))
       || (fw && nearestIn(G, G.beasts, a.x, a.y, fw, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (g.reg.get('animal', oh.sp)?.prey || []).includes(h.sp); }));
     if (who) { h.alarm = s.tick + ALARM; h.fx = Math.round(who.x); h.fy = Math.round(who.y); }
-    if (h.alarm > s.tick) { for (let k = 0; k < GRAZE_PACE * Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
-    for (let k = 0; k < GRAZE_PACE; k++) if (draw(`${key}:${k}`) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, `${key}:${k}`);
+    if (h.alarm > s.tick) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
+    if (draw(key) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, key);
     return;
   }
   // A pack (slice 4: wolves are as dangerous as real ones). It turns on whoever hurt one of it; when it has not
@@ -620,12 +615,7 @@ function tickNear(g) {
   const A = g.s.animals;
   if (!A.list) return;
   const N = nearIndex(g);
-  const turn = Math.floor(g.s.tick / STEP) & 1;
-  for (const id of N.slots[g.s.tick % STEP]) {
-    const p = N.par.get(id);
-    if (p !== undefined && p !== turn) continue; // a grazer acts every GRAZE_PACE * STEP ticks
-    if (A.list?.[id]) act(g, A.list[id]);
-  }
+  for (const id of N.slots[g.s.tick % STEP]) if (A.list?.[id]) act(g, A.list[id]);
 }
 
 /** A near herd's grazing centre drifts a tile an hour away from a village within DRIFT tiles (people disturb
