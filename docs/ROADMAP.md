@@ -602,11 +602,12 @@ population-level simulation for distant regions.
   - every species survives 300 days within its land (day 300: 290 wolves, 2,282 deer, 1,049 horses);
   - 662 carcasses hunted, with meat 1.7–4.7% of raw food;
   - the save at day 150 continued identically, and items and people were exact at every check;
-  - classic `forty` unchanged and `modern` reaching the modern era on day 42.76 (41.63 before).
+  - classic runs `forty` ac37a8f860cb8e30 and `modern` 26aff18c94590ae1 (the modern era on day 41.24).
 - **Carried over** (not done):
-  - **Speed:** animals near villages cost 0–20% on bench small, 25–35% on medium and +35% on World by day 50
-    (explained, not fixed: each near animal is simulated every 10 ticks; with animals off the code is as fast as
-    before). Fewer full-detail animals would be the fix and is the owner's call.
+  - **Speed:** after the owner chose fewer full-detail animals (herds become animals within 28 tiles of a
+    village, a hunt brings its herd near), the bench is about +5% on average against the code before Phase 8
+    (medium alone +12%, small +6%); World was +35% by day 50 before this change and has not been timed alone
+    since.
   - **Wolves:** they decline slowly on the World map (598 at day 50 to 290 at day 300), and none killed anyone in
     the 300-day World run; whether they should be more dangerous is open.
   - **Distant hunting:** distant villages spend no arrows and wear no weapons on hunts; their hunting share is not
