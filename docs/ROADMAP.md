@@ -633,9 +633,21 @@ real needs and behaviour.
   - bench +4–6% overall against the code before 8b (within this machine's noise).
 - **Carried over** (not done): livestock to spawn (Phase 9); costs to revisit (owner's answer 2).
 
-### Phase 8c: wild monsters (planned; the owner's answer 1 to Phase 8b)
+### Phase 8c: wild monsters (Done in the cloud copy, 2026-10-28)
 Original wild monsters that attack villages (2026-10-24 direction, item 3), with their own design note: new
 creatures, their looks, lairs and behaviour, built on the animal system.
+
+- **Done:** the Thornback, the Gloomstalker and the Barkmaw:
+  - lairs in every game, classic too (owner's answer 1), with far roaming and regrowth after 60 days;
+  - behaviour near villages: fields, people, wooden parts;
+  - fleeing, hunt parties, carcasses and drops, clearing lairs;
+  - aggregate raids on distant villages;
+  - the `monster` and `banish` powers (answer 6);
+  - a village with 3 or fewer standing is never hurt (answer 3); peaceful does not cover monsters (answer 4);
+  - a monster ledger; save format 29.
+  - Design and results: `docs/proposals/phase-8c-wild-monsters.md`.
+- **Carried over** (not done): monsters do not find paths (a blocked one goes home after 30 steps); "lit
+  buildings" are not checked (rooms and fire only); no use yet for the gloom eye or heartwood (answer 5).
 
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
