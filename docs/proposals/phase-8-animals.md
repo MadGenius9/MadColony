@@ -341,3 +341,24 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   - Not modelled (accepted): distant hunters do not spend arrows or wear weapons. A raid mark is lost when the raiding pack merges the same day (harmless).
 - **After the review:** 152 tests pass. Classic hashes: `forty` a3f4673dd1c9392c (workshops era on day 5.47) and `modern` 3982dd57aa2eadad (modern era on day 41.63), back to their pre-slice era days.
 
+
+### Slice 6: horses and seasons
+- **Already there from slice 1:** wild horse herds (grass, savanna, soil), births once a year in spring and losses
+  every winter day for all species.
+- **Built** (`animals.js`, data `winterTerrains`, `droughtLoss`):
+  - **Winter ground:** each species may name its winter ground (deer: forest floor and taiga; horses: grass and
+    savanna; wolves: none, they follow their prey).
+  - **Winter moves:** in winter a far herd scores chunks by its winter ground (plus a tenth of its other ground),
+    so deer gather in the woods and horses on open grass; in spring they spread out again.
+  - **Winter losses:** on poor winter ground (under a fifth of its ground) a herd loses three times `winterLoss`.
+  - **Droughts:** grazers in a drought lose `droughtLoss` a day (deer 5%, horses 4%; a drought lasts 4 days) and
+    far herds score a drought chunk at 0.3, so they move away.
+  - The winter ground counts are part of the habitat cache (derived, keyed by map and terrain revisions).
+    Nothing new is saved, so the save format stays 27.
+- **Vast seed 7, 30 days:** the share of far deer on chunks that are at least half winter ground goes from 0.28
+  in autumn to 0.42 in winter and back to 0.29 in spring; horses go from 0.94 to 1.00. After the year: deer 2,038
+  (2,181 before), horses 709 (734), wolves 297 (297).
+- **Classic runs:** `forty` a3f4673dd1c9392c and `modern` 3982dd57aa2eadad are unchanged: classic maps have no
+  far herds and the runs have no drought.
+- **Tests:** 153 pass. The Vast test checks the winter move. A new test checks that a deer herd in a drought ends
+  up smaller than in the same game without one, and that a save and load mid-drought plays on identically.
