@@ -23,6 +23,7 @@ import { stageOf as stageOfP } from './people.js';
 import { endJob } from './ai/ai.js';
 import { droughtAt } from './weatherat.js';
 
+const CROWDED = 1.5; // a chunk over this times what its ground feeds is crowded (Phase 8b)
 const HOUR = 100, NEAR_VILLAGE = 24, SMALL_GAME = 3, D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 const hash = (str) => {
   let h = 2166136261;
@@ -234,6 +235,15 @@ function daily(g, h, d, day) {
     const k = Math.min(h.n, Math.floor(e) + (draw(`${key}:drought`) < e - Math.floor(e) ? 1 : 0));
     h.n -= k; died(g, h, k, 'drought');
   }
+  // Phase 8b: a herd off its ground (none in its chunk) or in a chunk holding over CROWDED times what its ground
+  // feeds goes thin (and moves on: score); wild herds are placed on their ground and grow only into room.
+  const ground = si === undefined ? 0 : Hb.counts[si][c], feeds = (ground / 1000) * d.cap * g._anScale;
+  const why = !ground ? 'lost' : inChunk(g, I, c, d) > CROWDED * Math.max(1, feeds) ? 'crowded' : null;
+  if (why) {
+    const e = h.n * (why === 'lost' ? d.lostLoss ?? 0.05 : d.crowdLoss ?? 0.03);
+    const k = Math.min(h.n, Math.floor(e) + (draw(`${key}:${why}`) < e - Math.floor(e) ? 1 : 0));
+    h.n -= k; died(g, h, k, why);
+  }
   if (d.diet === 'hunt') { // a pack eats from a prey herd in its chunk or the next ones
     let prey = null;
     for (const cc of around(g, c, 2)) for (const id of I.byChunk.get(cc) || []) {
@@ -340,7 +350,11 @@ function neighbours(g, c) {
  *  with a village there or, for a species that suffers in droughts (droughtLoss), a drought; packs like prey. */
 function score(g, I, Hb, h, d, c, villages, winter = false) {
   const si = Hb.index.get(d.id), ground = si === undefined ? 0 : Hb.counts[si][c];
-  if (!ground) return -1;
+  if (!ground) { // none here: below any ground, but better the more of it lies within 2 chunks (the way back)
+    let near = 0;
+    if (si !== undefined) for (const cc of around(g, c, 2)) near += Hb.counts[si][cc];
+    return -1 + near / (25 * CHUNK * CHUNK + 1);
+  }
   const cap = (ground / 1000) * d.cap * g._anScale, others = inChunk(g, I, c, d) - (chunkOf(g, h.x, h.y) === c ? h.n : 0);
   let v = (winter ? Hb.winter[si][c] + 0.1 * ground : ground) * Math.max(0.05, 1 - others / Math.max(1, cap));
   if (d.droughtLoss && (c === chunkOf(g, h.x, h.y) ? droughtAt(g, h.x, h.y) : droughtInChunk(g, c))) v *= 0.3; // its own spot, or any of the chunk
@@ -370,7 +384,7 @@ function move(g, h, d) {
     const v = score(g, I, Hb, h, d, n, villages, winter) * (0.95 + 0.1 * mixDraw(base, n));
     if (v > bv) { bv = v; best = n; }
   }
-  if (best === c || bv < here * 1.15 + 1) return;
+  if (best === c || (here >= 0 ? bv < here * 1.15 + 1 : bv <= here)) return; // off its ground: any better step
   const at = groundIn(g, d, best, `${s.seed}:${h.id}:to:${s.tick}`);
   if (!at) return;
   setCentre(g, h, at.x, at.y);

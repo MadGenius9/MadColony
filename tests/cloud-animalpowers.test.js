@@ -125,3 +125,68 @@ test('8b animals: on the Vast world a herd sent far from every village stays a c
   assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
   assert.ok(census['core:wild_horse'].animals > 0);
 });
+
+// ---------------- slice 2: real needs ----------------
+/** Vast, Sandbox, a day old; and a chunk (by its middle tile) far from villages passing ok(counts of a species). */
+function vastFar(test) {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast', sandbox: true });
+  runDays(g, 1);
+  const centres = Object.values(g.s.settlements).map((v) => v.center).filter(Boolean);
+  for (let cy = 1; cy < g.CH - 1; cy++) for (let cx = 1; cx < g.CW - 1; cx++) {
+    const x = cx * 32 + 16, y = cy * 32 + 16, t = g.terrainAt(x, y);
+    if (!t.passable || t.drinkable || centres.some((c) => Math.hypot(c.x - x, c.y - y) < 100)) continue;
+    if (test(g, cy * g.CW + cx, x, y)) return { g, x, y };
+  }
+  return { g };
+}
+
+test('8b needs: horses sent where none of their ground is lose some and move off toward it', () => {
+  const { g, x, y } = vastFar((g, c, x, y) => {
+    const Hb = g._anHab, si = Hb.index.get('core:wild_horse'), cx = c % g.CW, cy = (c - cx) / g.CW;
+    if (Hb.counts[si][c] !== 0) return false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (Hb.counts[si][(cy + dy) * g.CW + cx + dx] > 300) return true; // their ground next door
+    return false;
+  });
+  assert.ok(x !== undefined, 'a chunk with no horse ground beside one with plenty');
+  assert.equal(issueCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 15 }).ok, true);
+  g.tick();
+  const h = Object.values(g.s.animals.herds).find((e) => e.origin === 'divine');
+  assert.match(previewCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 2 }).preview.warnings[0], /they will wander off to find their ground/);
+  runDays(g, 3);
+  const now = g.s.animals.herds[h.id];
+  const Hb = g._anHab, si = Hb.index.get('core:wild_horse');
+  assert.ok(!now || Hb.counts[si][Math.floor(now.y / 32) * g.CW + Math.floor(now.x / 32)] > 0, 'it found its ground (or faded)');
+  assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
+  // Held there (it cannot move): it loses some every day.
+  issueCommand(g, 'animals', { x, y, species: 'core:wild_horse', count: 15 });
+  g.tick();
+  const held = Object.values(g.s.animals.herds).filter((e) => e.origin === 'divine').sort((a, b) => b.sent - a.sent)[0];
+  const lost0 = g.s.animals.ledger['core:wild_horse'].died.lost || 0;
+  for (let d = 0; d < 3; d++) { held.next = g.s.tick + 1e6; runDays(g, 1); }
+  assert.ok((g.s.animals.ledger['core:wild_horse'].died.lost || 0) > lost0, 'held off its ground, some are lost');
+  assert.ok(g.s.animals.herds[held.id] === undefined || g.s.animals.herds[held.id].n < 15);
+  assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
+});
+
+test('8b needs: 60 deer sent into one patch thin out and spread', () => {
+  const { g, x, y } = vastFar((g, c) => { const Hb = g._anHab, si = Hb.index.get('core:deer'); return Hb.counts[si][c] > 600; });
+  assert.ok(x !== undefined, 'a chunk of deer ground far from villages');
+  for (let k = 0; k < 5; k++) assert.equal(issueCommand(g, 'animals', { x, y, species: 'core:deer', count: 12 }).ok, true);
+  g.tick();
+  const sent = Object.values(g.s.animals.herds).filter((e) => e.origin === 'divine').map((e) => e.id);
+  assert.equal(sent.length, 5);
+  const p = previewCommand(g, 'animals', { x, y, species: 'core:deer', count: 12 });
+  assert.ok(p.preview.warnings.some((w) => /too many, some will die or move on/.test(w)), p.preview.warnings.join(' | '));
+  runDays(g, 4);
+  const chunk = (h) => Math.floor(h.y / 32) * g.CW + Math.floor(h.x / 32), c0 = Math.floor(y / 32) * g.CW + Math.floor(x / 32);
+  const left = Object.values(g.s.animals.herds).filter((h) => h.sp === 'core:deer' && chunk(h) === c0).reduce((n, h) => n + h.n, 0);
+  assert.ok(left < 60, `fewer deer in that chunk (${left})`);
+  assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
+  // Held there (they cannot move): the crowd thins.
+  for (let k = 0; k < 5; k++) issueCommand(g, 'animals', { x, y, species: 'core:deer', count: 12 });
+  g.tick();
+  const held = Object.values(g.s.animals.herds).filter((e) => e.origin === 'divine' && e.sent === g.s.tick);
+  for (let d = 0; d < 3; d++) { for (const h of held) h.next = g.s.tick + 1e6; runDays(g, 1); }
+  assert.ok((g.s.animals.ledger['core:deer'].died.crowded || 0) >= 1, 'held in a crowd, some die');
+  assert.ok(animalCensus(g).ok, animalCensus(g).problems.join('; '));
+});

@@ -610,7 +610,7 @@ export const CONTENT_TYPES = {
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
   },
   animal: {
-    doc: 'A wild animal species (animals.js, Phase 8). Herds of herd [lo, hi] live on its terrains: density herds per 1,000 tiles of them when the world starts, cap animals per 1,000 tiles the land feeds. Far from people a herd is a count, moved one chunk at most every moveHours and grown once a year in spring by births (less as its land fills); winterLoss a day in winter (three times that on poor winter ground: under a fifth of its ground is winterTerrains, which it moves toward in winter); droughtLoss a day in a drought (grazers also move away from one). godCost: favour a head when the gods send it (the animals power, godanimals.js). diet graze or hunt (prey: species it eats; a pack with no prey for starveDays loses one). fear: the distance at which it runs from people and from predators.',
+    doc: 'A wild animal species (animals.js, Phase 8). Herds of herd [lo, hi] live on its terrains: density herds per 1,000 tiles of them when the world starts, cap animals per 1,000 tiles the land feeds. Far from people a herd is a count, moved one chunk at most every moveHours and grown once a year in spring by births (less as its land fills); winterLoss a day in winter (three times that on poor winter ground: under a fifth of its ground is winterTerrains, which it moves toward in winter); droughtLoss a day in a drought (grazers also move away from one). godCost: favour a head when the gods send it (the animals power, godanimals.js). lostLoss (default 0.05) a day in a chunk with none of its ground, crowdLoss (default 0.03) in a chunk holding over 1.5 times what its ground feeds; such herds also move on. diet graze or hunt (prey: species it eats; a pack with no prey for starveDays loses one). fear: the distance at which it runs from people and from predators.',
     schema: obj({
       id, name, plural: str(40),
       herd: req(arr(int(1, 100), { minItems: 2, maxItems: 2 })), terrains: req(arr(ref('terrain'), { minItems: 1 })),
@@ -618,7 +618,7 @@ export const CONTENT_TYPES = {
       diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
       fear: obj({ people: num(0, 50), predators: num(0, 50) }),
       carcass: ref('item'), // what a kill leaves (hunting, Phase 8 slice 3)
-      births: req(num(0, 10)), winterLoss: req(num(0, 1)), winterTerrains: arr(ref('terrain'), { minItems: 1 }), droughtLoss: num(0, 1), godCost: num(0, 1000), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
+      births: req(num(0, 10)), winterLoss: req(num(0, 1)), winterTerrains: arr(ref('terrain'), { minItems: 1 }), droughtLoss: num(0, 1), godCost: num(0, 1000), lostLoss: num(0, 1), crowdLoss: num(0, 1), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
       color, render,
     }),
   },
