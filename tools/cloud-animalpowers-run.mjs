@@ -9,7 +9,13 @@ import { issueCommand } from '../src/sim/god.js';
 import { peopleCensus } from '../src/sim/godspawn.js';
 import { animalCensus, herdCensus } from '../src/sim/animals.js';
 import { TICKS_PER_DAY, CHUNK } from '../src/sim/constants.js';
-import { firstDifference } from '../tests/cloud-helpers.js';
+/** The first path where two plain values differ (for a replay failure), or null. */
+function diffPath(a, b, path = '') {
+  if (JSON.stringify(a) === JSON.stringify(b)) return null;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return `${path}: ${JSON.stringify(a)?.slice(0, 200)} / ${JSON.stringify(b)?.slice(0, 200)}`;
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) { const d = diffPath(a[k], b[k], `${path}.${k}`); if (d) return d; }
+  return `${path}: (order)`;
+}
 
 const [days = 30, size = 'vast', seed = 7] = process.argv.slice(2).map((v, i) => (i === 1 ? v : Number(v)));
 const g = newGame({ seed, scenario: 'core:vast_world', size, sandbox: true });
@@ -77,7 +83,7 @@ for (let d = 1; d <= days; d++) {
     console.error(`[power] day ${d} ${type}: ${res.msg}`);
     const copy = loadGame(g.reg, serializeGame(g));
     for (let t = 0; t < 300; t++) { timedTick(d); copy.tick(); }
-    if (state(g) !== state(copy)) fail(`${type} on day ${d}: the loaded copy differs after 300 ticks: ${JSON.stringify(firstDifference(JSON.parse(state(g)), JSON.parse(state(copy)))).slice(0, 600)}`);
+    if (state(g) !== state(copy)) fail(`${type} on day ${d}: the loaded copy differs after 300 ticks: ${diffPath(JSON.parse(state(g)).state, JSON.parse(state(copy)).state)}`);
   }
   while (g.s.tick < d * TICKS_PER_DAY) {
     timedTick(d);
