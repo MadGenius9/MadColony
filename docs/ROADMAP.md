@@ -40,6 +40,10 @@ signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases co
    greedy, wise, sickly, ...) that change behaviour; peoples can be spawned with god powers.
 6. **World laws** (new): settings toggled during play, e.g. no wars, no aging, fast growth, endless plague,
    peaceful animals.
+6b. **Civilization laws** (owner, 2026-10-28): laws that villages and kingdoms keep and change (conscription,
+   curfews, rationing, taxes or tithes, borders, schooling, hunting and forest protection, punishments, ...),
+   chosen by their people, temperament and rulers, with reasons; kingdoms set laws for their members. Its own
+   phase and design note, right after World laws (which are the gods' world switches).
 7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
    performance work needed.
 Then Phase 3, Phase 4 and the rest, as written below.

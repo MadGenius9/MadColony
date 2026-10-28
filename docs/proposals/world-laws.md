@@ -1,7 +1,21 @@
 # World laws (2026-10-24 direction, item 6)
 
-Status: **design, waiting for the owner's answers** (2026-10-28). Branch `cloud-work` (cloud rescue copy; see
+Status: **building** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
+
+## The owner's answers (2026-10-28)
+1. **The list:** the owner expected laws of civilizations: laws villages and kingdoms keep (conscription, curfews,
+   rationing, taxes, borders, ...). Those become their own phase, **Civilization laws**, right after this one,
+   with its own design note. This phase builds the world switches below, as answered.
+2. **Cost:** free.
+3. **Peace does not end running wars.** It stops new wars from starting (declarations, and the AI's and the
+   player's new attacks); wars already running go on to their end as usual.
+4. **Ageless:** children still grow up. Only adults stop aging, and nobody dies of old age.
+5. **Growth:** one switch, **Fast growth**: births, crops, forest spread and new daughter villages come twice as
+   fast. (The levels were how much faster; one doubling is simpler.)
+6. **Endless plague** keeps the rule that a village is never wiped out completely: villages with 3 or fewer
+   standing are spared.
+7. **Endless season** (summer or winter) is included.
 
 ## Goal (from the owner and the roadmap)
 - **Settings the player toggles during play**, e.g. no wars, no aging, fast growth, endless plague, peaceful
@@ -52,10 +66,10 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
 
 | Law | While it holds | Turning it on | Turning it off |
 |---|---|---|---|
-| **Peace** (no wars) | no declarations, raids, battles or conquests; nobody counts as an enemy; rivalry stops falling below neutral | every war ends at once in a truce (`makePeace`), and attack orders go back to defend | rivalry resumes from where relations stand |
+| **Peace** (no new wars) | no new declarations, and no new attack orders or raids against a village one is not already at war with; rivalry stops falling below neutral. Running wars go on to their end (answer 3) | nothing ends | rivalry resumes from where relations stand |
 | **Ageless** (no aging) | adults do not age and nobody dies of old age; children still grow up (question 4) | ages are frozen where they stand | ages run on from the frozen values |
-| **Growth: normal, fast ×2, wild ×4** | births, crops, forest spread and daughter-village cooldowns are scaled (births: the same single draw, as a blessing) | — | — |
-| **Plague: normal, none, endless** | none: no new cases (running cases finish their course). Endless: outbreaks of the plague illness keep coming, about one a village every 10 days | none: nothing more; endless: a plague breaks out in the largest village | the plague runs its course |
+| **Fast growth** | births, crops, forest spread and daughter-village cooldowns twice as fast (births: the same single draw, as a blessing; answer 5) | — | — |
+| **Plague: normal, none, endless** | none: no new cases (running cases finish their course). Endless: outbreaks of the plague illness keep coming, about one a village every 10 days, sparing villages of 3 or fewer standing (answer 6) | none: nothing more; endless: a plague breaks out in the largest village | the plague runs its course |
 | **Peaceful animals** | as today (the existing `peaceful` power becomes a shortcut for this law) | as today | as today |
 | **Tame monsters** | monsters stay near their lairs: no forays, no raids on distant villages, no strikes on people or crops | monsters on a foray turn home | forays resume after the usual 15-day gap |
 | **No spreading fire** | fire burns only what it was set on; nothing catches from a neighbour | — | — |
@@ -73,7 +87,7 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
 - **One god power, `law`**, with args `{ law, value }` (true or false for a switch, a level id for levels).
 - **Validated:** a known law, a known value, and not the current one.
 - **Applied at the next tick**, like every command, so a replay or a loaded save gives the same game.
-- **The preview** says what changes now: "Peace: the 3 wars running end in truces; no new war can start".
+- **The preview** says what changes now: "Peace: no new war can start; the 2 wars running go on to their end".
 - **Cost:** free, like the peaceful switch (question 2).
 
 ### Saves (format 31)
@@ -98,10 +112,11 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
    - save format 31 with the peaceful migration, and `peaceful` as a shortcut;
    - validation;
    - a `lawOf(g, id)` helper.
-2. **Peace, peaceful animals, tame monsters:** the gates in war, combat, raids, the distant paths and
-   `isEnemy`. Tests: wars end on apply; none start while it holds, at full and distant detail; save and load.
-3. **Ageless and growth:** the age freeze and thaw; no old-age death; growth levels for births, crops,
-   forest spread and founding. Tests: ages frozen and resumed exactly; births and crops faster by the level.
+2. **Peace, peaceful animals, tame monsters:** the gates on new declarations, new attack orders and raids,
+   the distant paths and monster forays. Tests: running wars go on; none start while it holds, at full and
+   distant detail; save and load.
+3. **Ageless and growth:** the age freeze and thaw; no old-age death; fast growth for births, crops,
+   forest spread and founding. Tests: ages frozen and resumed exactly; births and crops twice as fast.
 4. **Plague:** none and endless, through `infect` and `spreadRules`. Tests: no cases under none; outbreaks
    keep coming under endless; the "3 or fewer standing" rule (question 6).
 5. **No spreading fire, endless season.**
@@ -110,15 +125,4 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
    - classic runs unchanged with no laws;
    - the bench, README and roadmap.
 
-## Open questions
-1. **The list:** peace, ageless, growth, plague, peaceful animals, tame monsters, no spreading fire, endless
-   season. Add or drop any (e.g. "no starvation", "no monsters at all", "no immigration")?
-2. **Cost:** free like the peaceful switch, or favour (say 50 to turn a law on)?
-3. **Peace:** should it also stop the player's own attack orders (proposed: yes, with the reason), and end
-   running wars at once in truces (proposed: yes)?
-4. **Ageless:** do children still grow up into adults (proposed: yes; only adults stop aging), or does
-   everyone freeze?
-5. **Growth:** three levels (normal, ×2, ×4), or a different set?
-6. **Endless plague:** keep the rule that a village is never wiped out completely (villages of 3 or fewer
-   standing are spared), or may it empty the world?
-7. **Endless season:** include it (summer or winter), or leave it out?
+## Open questions (answered; see "The owner's answers")
