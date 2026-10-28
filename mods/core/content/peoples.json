@@ -1,0 +1,48 @@
+{
+  "$comment": "Peoples and traits (docs/proposals/phase-peoples-and-traits.md). Every colonist and village belongs to one people; villages keep to one. Traits are personal (at most two) and children may inherit them. All effects are read through peoples.js.",
+  "people": [
+    {
+      "id": "core:hearthfolk", "name": "Hearthfolk", "plural": "Hearthfolk", "default": true,
+      "about": "Settled farming folk of the open grasslands: the people of every classic village.",
+      "terrains": ["core:grass", "core:soil"],
+      "temperament": 2, "food": "core:stew", "traitOdds": [40, 45, 15], "color": "#c9a46a"
+    },
+    {
+      "id": "core:reedkin", "name": "Reedkin", "plural": "Reedkin",
+      "about": "Small, slight people of marshes and riverbanks: thirsty but light eaters, patient growers and cooks, slow to anger.",
+      "terrains": ["core:marsh", "core:shallows"],
+      "needs": { "core:thirst": 1.3, "core:hunger": 0.85 },
+      "work": { "core:farming": 1.15, "core:cooking": 1.15, "core:mining": 0.8 },
+      "temperament": 1, "food": "core:bean", "traitOdds": [40, 45, 15], "color": "#6f8f4e"
+    },
+    {
+      "id": "core:cragborn", "name": "Cragborn", "plural": "Cragborn",
+      "about": "Tall, broad people of hills and snowfields: big eaters who shrug off the cold, born miners and builders, proud and quick to feud.",
+      "terrains": ["core:hills", "core:snow", "core:gravel"],
+      "needs": { "core:hunger": 1.2 }, "cold": 6,
+      "work": { "core:mining": 1.15, "core:construction": 1.15, "core:farming": 0.9 },
+      "temperament": 4, "food": "core:venison", "traitOdds": [40, 45, 15], "color": "#8a8f99"
+    },
+    {
+      "id": "core:duneshade", "name": "Duneshade", "plural": "Duneshade",
+      "about": "Lean people of the sands: they need little water and walk far, skilled crafters, but the cold reaches them early.",
+      "terrains": ["core:sand"],
+      "needs": { "core:thirst": 0.6 }, "cold": -4, "walk": 1.1,
+      "work": { "core:crafting": 1.15 },
+      "temperament": 3, "food": "core:berry", "traitOdds": [40, 45, 15], "color": "#b5763c"
+    }
+  ],
+  "trait": [
+    { "id": "core:brave", "name": "Brave", "opposite": "core:timid", "weight": 10, "inherit": 0.4, "about": "Fights on while badly hurt, fends off wolves when wounded and is first to join a hunt party.", "effects": { "fightHp": 30, "wolfHp": 25, "party": "first" } },
+    { "id": "core:timid", "name": "Timid", "opposite": "core:brave", "weight": 10, "inherit": 0.4, "about": "Never joins a fight or a hunt party unless cornered, and flees danger from farther away.", "effects": { "fightHp": 101, "flee": 8, "party": "never" } },
+    { "id": "core:hardy", "name": "Hardy", "opposite": "core:sickly", "weight": 10, "inherit": 0.4, "about": "Illness takes a lighter hold, wounds heal faster and the cold comes later.", "effects": { "illnessStrength": 0.6, "heal": 1.25, "cold": 2 } },
+    { "id": "core:sickly", "name": "Sickly", "opposite": "core:hardy", "weight": 8, "inherit": 0.4, "about": "Catches illness more easily, suffers it worse and heals slowly.", "effects": { "illnessChance": 1.5, "illnessStrength": 1.4, "heal": 0.8 } },
+    { "id": "core:wise", "name": "Wise", "weight": 8, "inherit": 0.4, "about": "Learns every skill half again as fast.", "effects": { "learn": 1.5 } },
+    { "id": "core:diligent", "name": "Diligent", "opposite": "core:lazy", "weight": 10, "inherit": 0.4, "about": "Works a tenth faster at everything.", "effects": { "work": 1.1 } },
+    { "id": "core:lazy", "name": "Lazy", "opposite": "core:diligent", "weight": 8, "inherit": 0.4, "about": "Works a tenth slower and tires a little sooner.", "effects": { "work": 0.9, "needs": { "core:energy": 1.1 } } },
+    { "id": "core:greedy", "name": "Greedy", "weight": 8, "inherit": 0.4, "about": "Eats a tenth more; their village drives a harder bargain (3% a greedy adult, at most 15%).", "effects": { "needs": { "core:hunger": 1.1 }, "trade": 0.03 } },
+    { "id": "core:quick", "name": "Quick", "weight": 8, "inherit": 0.4, "about": "Walks a tenth faster.", "effects": { "walk": 1.1 } },
+    { "id": "core:strong", "name": "Strong", "weight": 10, "inherit": 0.4, "about": "Mines, chops and builds a tenth faster.", "effects": { "workBy": { "core:mining": 1.1, "core:woodcutting": 1.1, "core:construction": 1.1 } } },
+    { "id": "core:kind", "name": "Kind", "weight": 8, "inherit": 0.4, "about": "Tends and treats the sick and hurt a third faster.", "effects": { "tend": 1.3 } }
+  ]
+}

@@ -40,6 +40,7 @@ import { claimsFreeFor, claimRadius } from './territory.js';
 import { isDiscovered } from './contact.js';
 import { coldWait } from './life.js';
 import { livingCount } from './fallen.js';
+import { peopleOfSettlement } from './peoples.js';
 
 export const FOUNDING_DEFAULTS = Object.freeze({
   maxVillages: 30, minAdults: 6, crowdedDays: 3, foodDaysLeft: 5, cooldownDays: 20, founders: Object.freeze([3, 5]),
@@ -513,6 +514,7 @@ export function foundDaughter(g, sid, opts = {}) {
     policy: clone(parent.policy || {}), trade: clone(parent.trade || {}), laws: { ...(parent.laws || {}) },
     ...(parent.enforcement !== undefined ? { enforcement: parent.enforcement } : {}),
   };
+  if (peopleOfSettlement(g, sid)) rec.people = peopleOfSettlement(g, sid); // the founders' people (villages keep to one)
   s.settlements[child] = rec;
   ensureSettlement(g.reg, s, rec);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + child); }

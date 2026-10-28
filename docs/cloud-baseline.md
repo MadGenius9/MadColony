@@ -114,3 +114,8 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   875b3904209fce3d (modern era on day 45.5), as after Phase 8c.
 - Shaping run (`tools/cloud-shape-run.mjs 60 vast 7`): ok; 56 strokes, worst stroke tick 72.7 ms; after 60 days
   7 people, 103 buildings, 4 fields, no deaths; worst living tick 100.4 ms.
+
+## Peoples and traits, slice 1 (2026-10-28): new classic hashes
+- The records only (people and traits saved; no effect yet): 194 tests pass; era days and buildings unchanged.
+- `forty` 517c43bfd1770f87 (workshops era on day 5.94, 66 built), `modern` 9a9001ab3f13385b (modern era on day
+  45.5, 90 built).

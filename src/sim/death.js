@@ -121,6 +121,8 @@ export function killColonist(g, c, kind = null, opts = {}) {
   if (c.bornTick !== undefined && c.bornTick !== null) rec.bornTick = c.bornTick;
   if (c.origin) rec.origin = c.origin;
   if (c.parents?.length) rec.parents = [...c.parents];
+  if (c.people) rec.people = c.people; // Peoples and traits
+  if (c.traits?.length) rec.traits = [...c.traits];
   (s.dead ||= {})[c.id] = rec;
   delete s.colonists[c.id];
   g.ownReset('colonists');

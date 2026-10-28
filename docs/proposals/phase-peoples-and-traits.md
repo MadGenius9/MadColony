@@ -159,8 +159,9 @@ Each person has 0 to 2 traits. Opposite traits never go together.
   - every colonist and village becomes Hearthfolk;
   - traits come from the same hash as new people, so a loaded old save and the same game continued give the
     same traits.
-- **Unknown people or traits** (a mod removed) fall back to Hearthfolk and no trait on load, like missing skills
-  today.
+- **On load** (`save.js`), like missing skills today:
+  - a people a removed mod defined, or one other than the village's, becomes the village's people;
+  - unknown traits, and a trait beside its opposite, are dropped (the person keeps the rest).
 - **The census:** `peopleCensus` also counts by people (born + spawned − died = living, per people).
 
 ### Scale
@@ -208,3 +209,29 @@ Each person has 0 to 2 traits. Opposite traits never go together.
 ## Open questions (answered; see "The owner's answers")
 1. The four peoples. 2. Classic games. 3. The traits. 4. Mixed villages. 5. Feuds between peoples. 6. The
    `trait` power.
+
+## Results
+### Slice 1 (2026-10-28): the records
+- **Built:**
+  - **Content types** `people` and `trait` (`content/types.js`), with the four peoples and eleven traits as data
+    (`mods/core/content/peoples.json`). Village profiles may name a `people`.
+  - **`src/sim/peoples.js`:**
+    - the default people;
+    - traits drawn by hash (`${seed}:${id}`, never `g.rng`);
+    - inheritance at birth, one hash per parent trait plus 8% for a new one;
+    - `modsOf`, the combined effects as a derived cache. Nothing reads it yet: behaviour is unchanged.
+  - **Every place a colonist is made** gives people and traits: the new game, AI villages, births, divine
+    settlers. Daughter villages take their founders' people. The dead keep people and traits.
+  - **Save format 30**, validated. Old saves are filled on load with the village's people and the same hashed
+    traits a new game gives, so an old save plays on exactly as a new one.
+  - **The census** counts the living by people and checks every person is of their village's people (the
+    owner's answer 4).
+- **Not yet:** a per-people ledger (born + spawned − died per people). It needs a start count per people and
+  arrives with the slices that bring other peoples into play (5 and 6).
+- **Tests** (`tests/cloud-peoples.test.js`, 5):
+  - classic colonists;
+  - old saves and mended records;
+  - combined effects and inheritance;
+  - AI villages, births and divine settlers;
+  - a Reedkin village and its daughter.
+

@@ -44,6 +44,7 @@ import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase
 import './godanimals.js'; // registers the god power 'animals' (Phase 8b)
 import './godmonsters.js'; // registers the god powers 'monster' and 'banish' (Phase 8c)
 import './godshape.js'; // registers the god power 'shape' (world shaping)
+import { defaultPeople, settleFolk } from './peoples.js';
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
@@ -129,6 +130,7 @@ export class Game {
     if (empty) { s.settlements = {}; s.playerSettlement = null; } else {
       // One settlement for now. Colonists belong to it; the planner plans for it. See docs/ARCHITECTURE.md.
       s.settlements = { t1: { id: 't1', name: 'First Hearth', founded: 0, center: { ...s.center }, stockpile: pile, color: '#e8b84a' } };
+      if (defaultPeople({ reg })) s.settlements.t1.people = defaultPeople({ reg });
       s.playerSettlement = 't1';
       // Remove anything spawned on the stockpile.
       for (const [id, n] of Object.entries(s.nodes)) if (pile.includes(`${n.x},${n.y}`)) delete s.nodes[id];
@@ -159,6 +161,7 @@ export class Game {
         homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false,
         idle: 0, status: { goal: 'Arriving', action: 'Looking around', target: '', blocker: '' }, workCount: {},
       };
+      settleFolk(game, s.colonists[id], 't1' in s.settlements ? s.settlements.t1.people : null);
     }
     // Neighbouring AI villages (scenario option), founded after the player's colonists.
     if (!empty && scenario.neighbors?.length) {

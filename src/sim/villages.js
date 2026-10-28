@@ -8,6 +8,7 @@ import { makeLook } from './appearance.js';
 import { namePoolOf, uniqueName, firstByKey } from './names.js';
 import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.js';
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
+import { knownPeople, settleFolk } from './peoples.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
 export const RELATION_LABEL = { unknown: 'Not met', neutral: 'Neutral', friendly: 'Friendly', hostile: 'Hostile' };
@@ -270,6 +271,7 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
     id: sid, name, profile: profile.id, ai: true, color: chosenSite ? villageColor(g, profile.color || VILLAGE_COLORS[n % VILLAGE_COLORS.length], n) : (profile.color || VILLAGE_COLORS[n % VILLAGE_COLORS.length]),
     founded: s.tick, center: { x: site.x, y: site.y + 3 }, stockpile: pile, research, policy: profile.policy || {}, trade: profile.trade || {}, laws: { ...(profile.laws || {}) }, enforcement: profile.enforcement ?? 0.6,
   };
+  if (knownPeople(g, profile.people)) s.settlements[sid].people = knownPeople(g, profile.people);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryChanged();
   g.actor = sid;
@@ -293,6 +295,7 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
       homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false, idle: 0,
       status: { goal: 'Arriving', action: 'Looking around', target: '', blocker: '' }, workCount: {},
     };
+    settleFolk(g, s.colonists[id], s.settlements[sid].people);
     g.ownAdd('colonists', s.colonists[id]);
   }
   g.markDirty();

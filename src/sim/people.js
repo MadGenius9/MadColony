@@ -17,6 +17,7 @@ import { makeLook } from './appearance.js';
 import { namePoolOf, surnameOf, uniqueName, usedNames } from './names.js';
 import { startAge } from './life.js';
 import { blessingOf } from './god.js';
+import { peopleOfSettlement, inheritTraits } from './peoples.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
 
@@ -134,6 +135,8 @@ function birth(g, sid, home, bed, parents) {
     idle: 0, status: { goal: 'Newborn', action: 'Sleeping', target: '', blocker: '' }, workCount: {},
     stage: stages(g)[0].id, bornTick: s.tick, parents: parents.map((p) => p.id), quals: [], education: 0, health: { injuries: [] },
   };
+  const folk = peopleOfSettlement(g, sid); // villages keep to one people, so the parents share it
+  if (folk) { s.colonists[id].people = folk; s.colonists[id].traits = inheritTraits(g, `${s.seed}:${id}`, parents, folk); }
   g.ownAdd('colonists', s.colonists[id]);
   bed.owner = id;
   home.owners.push(id);

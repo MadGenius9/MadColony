@@ -340,3 +340,9 @@ where, and which sim function or state field provides it. The UI is built at hom
   season and the coming low temperature where the cursor is, and warns "Cold season: settlers will need shelter
   at once" while it is cold there. Saplings from the forest brush need 20 days before they give wood; their
   tooltip says "Young pine: grown in N days".
+
+## Peoples and traits, slice 1: the records
+- **Inspector card** (colonist): the people's name (`g.reg.get('people', c.people).name`) and up to two trait
+  chips (`c.traits`). Hovering a chip shows the trait's `about`; hovering the people shows its `about`.
+- **Village panel:** the village's people (`settlement.people`).
+- **Dead records** keep people and traits (`s.dead[id].people`, `.traits`) for the graves and family lists.

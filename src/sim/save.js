@@ -11,6 +11,7 @@ import { WORLD_SIZES } from './worldgen.js';
 import { encodeState, decodeState } from './savecodec.js';
 import { claimsForSave, decodeClaimGrid } from './territory.js';
 import { validDisc } from './contact.js';
+import { drawTraits, defaultPeople, withTrait, MAX_TRAITS } from './peoples.js';
 
 export class SaveError extends Error {
   constructor(message, problems = []) { super(message); this.problems = problems; }
@@ -144,6 +145,8 @@ export function validateSave(save) {
     if (!isObj(e.status)) bad(`colonist "${k}" has no status`);
     if (e.stage !== undefined && !isStr(e.stage, 100)) bad(`colonist "${k}" has an invalid life stage`);
     if (e.origin !== undefined && e.origin !== 'divine') bad(`colonist "${k}" has an unknown origin`); // god powers (format 13, godspawn.js)
+    if (e.people !== undefined && !isStr(e.people, 100)) bad(`colonist "${k}" has an invalid people`); // format 30 (peoples.js)
+    if (e.traits !== undefined && (!Array.isArray(e.traits) || e.traits.length > MAX_TRAITS || new Set(e.traits).size !== e.traits.length || e.traits.some((t) => !isStr(t, 100)))) bad(`colonist "${k}" has invalid traits`); // format 30
     for (const f of ['bornTick', 'ageYears', 'ageTick', 'education']) if (e[f] !== undefined && e[f] !== null && !isNum(e[f])) bad(`colonist "${k}" has an invalid ${f}`);
     if (e.quals !== undefined && (!Array.isArray(e.quals) || e.quals.some((q) => !isStr(q, 100)))) bad(`colonist "${k}" has invalid qualifications`);
     if (e.medBedId !== undefined && e.medBedId !== null && !isStr(e.medBedId, 64)) bad(`colonist "${k}" has an invalid medical bed`);
@@ -304,6 +307,7 @@ function validateDead(s, bad) {
     if (d.origin !== undefined && d.origin !== 'divine') { bad(`the record of the dead "${k}" has an unknown origin`); return; }
     if ((d.buried !== undefined && (!isInt(d.buried) || d.buried > s.tick)) || (d.graveId !== undefined && !isStr(d.graveId, 64))) { bad(`the record of the dead "${k}" has an invalid burial`); return; } // format 16
     if (d.parents !== undefined && (!Array.isArray(d.parents) || d.parents.length > 4 || d.parents.some((p) => !isStr(p, 64)))) { bad(`the record of the dead "${k}" has invalid parents`); return; }
+    if ((d.people !== undefined && !isStr(d.people, 100)) || (d.traits !== undefined && (!Array.isArray(d.traits) || d.traits.length > MAX_TRAITS || d.traits.some((t) => !isStr(t, 100))))) { bad(`the record of the dead "${k}" has an invalid people or traits`); return; } // format 30
   }
 }
 
@@ -385,6 +389,7 @@ function validateSettlements(s, format, bad, inB) {
     // Villages founded during play (founding.js): optional, absent in older saves.
     for (const f of ['parent', 'culture']) if (st[f] !== undefined && (!isStr(st[f], 64) || !SAFE_ID.test(st[f]) || (f === 'parent' && st[f] === k))) bad(`${L} has an invalid ${f === 'parent' ? 'parent village' : 'culture'}`); // may name a village that is gone
     if (st.origin !== undefined && st.origin !== 'divine') bad(`${L} has an unknown origin`); // god powers (format 13, godspawn.js)
+    if (st.people !== undefined && !isStr(st.people, 100)) bad(`${L} has an invalid people`); // format 30 (peoples.js)
     for (const f of ['founded', 'crowdedSince', 'lastFounding', 'noSiteAt']) if (st[f] !== undefined && (!isNum(st[f]) || st[f] < 0)) bad(`${L} has an invalid ${f} time`);
     if (st.training !== undefined && st.training !== null && (!isObj(st.training) || !isStr(st.training.cid, 64) || !isStr(st.training.qual, 100) || !isNum(st.training.progress))) bad(`${L} has invalid training data`);
     const r = st.research;
@@ -609,6 +614,27 @@ export function loadGame(reg, saveOrText) {
     if (c.carry && !reg.has('item', c.carry.item)) { q('stack', { id: `s_orph_carry_${c.id}`, item: c.carry.item, qty: c.carry.qty, x: c.x, y: c.y, ...(c.carry.dur !== undefined ? { dur: c.carry.dur } : {}) }); c.carry = null; }
     for (const sk of reg.all('skill')) if (c.skills[sk.id] === undefined) c.skills[sk.id] = 0;
     for (const nd of reg.all('need')) if (c.needs[nd.id] === undefined) c.needs[nd.id] = 0.8;
+  }
+  // Peoples and traits (format 30). Old saves get the village's people (else the default) and the traits the same
+  // hash gives a new colonist of that id (peoples.js). A people a removed mod defined, or one other than the
+  // village's (villages keep to one), becomes the village's; unknown traits and a trait beside its opposite are
+  // dropped (the person keeps the rest).
+  const folkDef = defaultPeople({ reg });
+  if (folkDef) {
+    const known = (id) => id && reg.has('people', id);
+    for (const st of Object.values(s.settlements || {})) if (!known(st.people)) st.people = folkDef;
+    for (const c of Object.values(s.colonists)) {
+      const home = s.settlements?.[c.settlementId || s.playerSettlement]?.people;
+      const want = known(home) ? home : folkDef;
+      const had = c.people !== undefined;
+      if (c.people !== want) c.people = want;
+      if (!had || !Array.isArray(c.traits)) c.traits = drawTraits({ reg }, `${s.seed}:${c.id}`, c.people);
+      else {
+        let t = [];
+        for (const x of c.traits) if (reg.has('trait', x)) t = withTrait(reg, t, x);
+        if (t.length !== c.traits.length) c.traits = t;
+      }
+    }
   }
   if (!reg.has('aiProfile', s.aiProfileId)) s.aiProfileId = reg.all('aiProfile')[0]?.id;
   // God powers (format 13): a blessing of a settlement that no longer exists has nothing to bless; it is dropped.

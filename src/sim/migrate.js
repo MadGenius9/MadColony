@@ -108,6 +108,9 @@ export const MIGRATIONS = {
   },
   // 28 -> 29: wild monsters (Phase 8c). `s.monsters` is optional: absent, the lairs are placed at the next tick.
   28() {},
+  // 29 -> 30: peoples and traits (colonist people and traits, settlement and dead people). Absent: filled on load
+  // (save.js) with the default people and traits drawn by the colonist's hash, as a new colonist of that id gets.
+  29() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

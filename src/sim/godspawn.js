@@ -30,6 +30,7 @@ import { LOD, wantDetail, setDetail, isAbstract } from './lod.js';
 import { rings, octile } from './util.js';
 import { claimRadius } from './territory.js';
 import { livingCount } from './fallen.js';
+import { defaultPeople, peopleOfSettlement, settleFolk } from './peoples.js';
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -209,6 +210,7 @@ function makeSettlers(g, cmd, sid, color, spots, why) {
       homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false, idle: 0,
       status: { goal: 'Arriving', action: why, target: '', blocker: '' }, workCount: {}, origin: 'divine',
     };
+    settleFolk(g, c, peopleOfSettlement(g, sid));
     ensureAdult(g, c);
     g.ownAdd('colonists', c);
     ids.push(id);
@@ -237,6 +239,7 @@ function applyFound(g, cmd, r) {
       center: { x: a.x, y: a.y }, stockpile: pile, research,
       policy: clone(prof?.policy), trade: clone(prof?.trade), laws: { ...(prof?.laws || {}) }, enforcement: prof?.enforcement ?? 0.6,
     };
+  if (defaultPeople(g)) rec.people = defaultPeople(g);
   s.settlements[sid] = rec;
   if (first) { s.playerSettlement = sid; s.center = { x: a.x, y: a.y }; g._own = null; } // the player's village from now on
   ensureSettlement(g.reg, s, rec);
@@ -300,5 +303,12 @@ export function peopleCensus(g, start = null) {
   if (divine !== spawned) problems.push(`${divine} people came by divine power but the ledger counts ${spawned}`);
   const others = living + died - born - divine;
   if (start !== null && start + born + spawned - died - left !== living) problems.push(`start ${start} + born ${born} + spawned ${spawned} - died ${died} - left ${left} = ${start + born + spawned - died - left}, but ${living} are living`);
-  return { living, start: start ?? others, born, spawned, died, left, adults, ok: !problems.length, problems };
+  // Peoples and traits: villages keep to one people, so everyone is of their village's people.
+  const byPeople = {};
+  if (defaultPeople(g)) for (const c of Object.values(g.s.colonists)) {
+    byPeople[c.people] = (byPeople[c.people] || 0) + 1;
+    if (!g.reg.get('people', c.people)) problems.push(`${c.name} has no known people`);
+    else if (c.people !== peopleOfSettlement(g, c.settlementId || g.s.playerSettlement)) problems.push(`${c.name} (${c.people}) lives in a village of another people`);
+  }
+  return { living, start: start ?? others, born, spawned, died, left, adults, byPeople, ok: !problems.length, problems };
 }

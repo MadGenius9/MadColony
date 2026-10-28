@@ -554,7 +554,7 @@ export const CONTENT_TYPES = {
   villageProfile: {
     doc: 'The personality of an AI village: who lives there, what it starts with, what it researches and keeps in stock, and how it trades. No free resources: it uses the same economy as the player.',
     schema: obj({
-      id, name,
+      id, name, people: ref('people'), // its villages' people (Peoples and traits; default: the default people)
       settlementNames: req(arr(str(40), { minItems: 1 })),
       // Kingdom name patterns ("Kingdom of {capital}"), used when a village of this profile becomes a capital
       // (kingdoms.js picks one by a hash of the capital's id; without them the defaults are used).
@@ -610,6 +610,30 @@ export const CONTENT_TYPES = {
   namePool: {
     doc: 'Colonist names.',
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
+  },
+  people: {
+    doc: 'A people (peoples.js, Peoples and traits): every colonist and village belongs to one; villages keep to one people. default: the people of classic colonists and old saves (exactly one should have it). terrains: its home land (founding and spawn previews). needs: need decay multipliers (1 = as defined); cold: degrees C later (+) or sooner (-) the cold sets in; work: work-speed multipliers by skill; walk: walking speed multiplier; temperament: border rivalry 0-5 for its villages without a profile temperament; food: eaten first; traitOdds: [none, one, two] weights of how many traits a new person has. about: what it is (shown).',
+    schema: obj({
+      id, name, plural: str(40), about: str(300), default: bool(),
+      terrains: arr(ref('terrain')),
+      needs: map({ type: 'ref', to: 'need' }, num(0.1, 10)), cold: num(-30, 30),
+      work: map({ type: 'ref', to: 'skill' }, num(0.1, 10)), walk: num(0.25, 4),
+      temperament: int(0, 5), food: ref('item'),
+      traitOdds: arr(num(0, 100), { minItems: 3, maxItems: 3 }),
+      color,
+    }),
+  },
+  trait: {
+    doc: 'A personal trait (peoples.js, Peoples and traits): each person has at most two; children may inherit them (inherit: the chance each passes on). opposite: a trait it never goes with. weight: how often it is drawn for a new person. effects: work (all work), workBy (by skill), walk, learn (skill gain), tend (tending and treating patients), needs (decay by need), illnessChance and illnessStrength, heal, cold (degrees C later the cold sets in), fightHp (the health an armed person needs to fight; above 100: never fights), wolfHp (the health needed to fend off wolves), flee (tiles at which danger is fled), party (first: joins hunt parties first; never: does not join), trade (a village asks this much more per such adult). about: what it does (shown).',
+    schema: obj({
+      id, name, about: str(300), opposite: ref('trait'), weight: req(num(0, 100)), inherit: num(0, 1),
+      effects: obj({
+        work: num(0.1, 10), workBy: map({ type: 'ref', to: 'skill' }, num(0.1, 10)), walk: num(0.25, 4), learn: num(0, 10), tend: num(0.1, 10),
+        needs: map({ type: 'ref', to: 'need' }, num(0.1, 10)), illnessChance: num(0, 10), illnessStrength: num(0.1, 10), heal: num(0.1, 10),
+        cold: num(-30, 30), fightHp: num(0, 101), wolfHp: num(0, 100), flee: num(0, 50),
+        party: { type: 'enum', values: ['first', 'never'] }, trade: num(0, 1),
+      }),
+    }),
   },
   monster: {
     doc: 'A wild monster (monsters.js, Phase 8c): a single strong creature living at a lair on its terrains, about one lair per perTiles tiles of them, at least 80 tiles from any village (every game has at least minWorld of the species with the most ground, as far from villages as the map allows). It roams up to roam chunks from its lair; a slain one is replaced after respawnDays unless the lair is cleared. health, speed (tiles a step), damage [lo, hi] a blow, fightGroup: armed people it takes to fight it; night: it hunts only at night. behaviour near villages: trample (fields, and anyone near its den), stalk (lone people outdoors at night), tear (wooden building parts). carcass (an item) or drops (items) when slain. godCost: favour to send one. about: what it is (shown).',
