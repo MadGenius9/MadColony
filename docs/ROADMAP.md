@@ -613,9 +613,29 @@ population-level simulation for distant regions.
   - **Distant hunting:** distant villages spend no arrows and wear no weapons on hunts; their hunting share is not
     measured against full detail.
 
-### Phase 8b: god powers, part 3 (animals)
+### Phase 8b: god powers, part 3 (animals) (Done in the cloud copy, 2026-10-28)
 Spawn animals (deer, wolves, horses, later livestock) as herds or single animals, using the animal system's
 real needs and behaviour.
+
+- **Done:**
+  - the `animals` power: a new herd, or animals joining the nearest herd; wolves near a village need confirm;
+  - herds off their ground or crowded lose some and move on (all herds);
+  - a full animal ledger, with births, sends and deaths by cause checked every day (owner's answer 3);
+  - the `peaceful` switch: predators leave people alone (owner's answer 5);
+  - save format 28.
+  - Design and results: `docs/proposals/phase-8b-animal-powers.md`.
+- **Acceptance** (`tools/cloud-animalpowers-run.mjs 30 vast 7`):
+  - 9 power uses, with a save and load after each identical for 300 ticks;
+  - items, people and animals exact every day;
+  - worst tick 33 ms after day 1;
+  - 164 tests pass;
+  - classic era days unchanged;
+  - bench +4–6% overall against the code before 8b (within this machine's noise).
+- **Carried over** (not done): livestock to spawn (Phase 9); costs to revisit (owner's answer 2).
+
+### Phase 8c: wild monsters (planned; the owner's answer 1 to Phase 8b)
+Original wild monsters that attack villages (2026-10-24 direction, item 3), with their own design note: new
+creatures, their looks, lairs and behaviour, built on the animal system.
 
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan

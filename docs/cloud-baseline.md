@@ -91,3 +91,14 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Phase 5 code (`529b86f`) on the same machine, World, day 50: 0.359 ms/tick (0.186 recorded on 2026-10-26: the
   machine is slower now).
 - After the near distance went to 28 tiles: `forty` ac37a8f860cb8e30, `modern` 26aff18c94590ae1.
+
+## Phase 8b acceptance (2026-10-28)
+- Classic: `forty` d75653ad30ecf912, `modern` a9171d273506ce65. The era days are unchanged; the hashes changed
+  because the animal ledger is part of the state.
+- Bench (the code before 8b, `4af6044`, against now, two rounds each in turn):
+  - small 0.309–0.401 against 0.330–0.418;
+  - medium 0.439–0.783 against 0.545–0.742;
+  - large 0.798–1.322 against 0.809–1.458 ms/tick;
+  - the sum over all six sizes: +5.5% and +4%.
+- Animal powers run (`tools/cloud-animalpowers-run.mjs 30 vast 7`): ok, worst tick 33.0 ms after day 1 (147.8 on
+  day 1).

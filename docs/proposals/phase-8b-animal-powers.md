@@ -1,6 +1,6 @@
 # Phase 8b: god powers, part 3 (animals)
 
-Status: **in progress** ("go" from the owner on 2026-10-28, with the answers below). Branch `cloud-work` (cloud
+Status: **done** (2026-10-28) ("go" from the owner on 2026-10-28, with the answers below). Branch `cloud-work` (cloud
 rescue copy; see CLAUDE.md).
 
 ## The owner's answers (2026-10-28)
@@ -233,3 +233,9 @@ while peaceful is on (proposal: no).
   - The 15 horses sent off their ground found it and were all alive on day 30.
   - Of the 36 deer sent on day 16, two herds remained (10 and 8) after the crowd thinned and spread.
 - **People:** 24 → 48; no one died (people killed 2 wolves in the 30 days).
+- **Full checks:**
+  - 164 tests pass.
+  - Classic `forty` d75653ad30ecf912 and `modern` a9171d273506ce65: the era days are unchanged (workshops
+    5.94, modern 41.24); the hashes changed because the ledger is now in the state.
+  - Bench against the code before 8b (`4af6044`): +5.5% and +4% over all six sizes in two rounds. Single sizes
+    swing from −6% to +25% between rounds (this machine's noise).
