@@ -38,6 +38,8 @@ const mixDraw = (base, n) => {
   return (h >>> 0) / 4294967296;
 };
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+/** Distance of (dx, dy): a plain square root (Math.hypot is several times slower; the same for whole tiles). */
+const hyp = (dx, dy) => Math.sqrt(dx * dx + dy * dy);
 
 /** The species this game has (scenario.animals.species, default: every species in data), in id order. */
 export function animalSpecies(g) {
@@ -154,7 +156,7 @@ function placeHerds(g) {
       const k = Math.floor(e) + (draw(key) < e - Math.floor(e) ? 1 : 0);
       for (let j = 0; j < k; j++) {
         const at = groundIn(g, d, c, `${key}:${j}`);
-        if (!at || centres.some((p) => Math.hypot(p.x - at.x, p.y - at.y) < NEAR_VILLAGE)) continue;
+        if (!at || centres.some((p) => hyp(p.x - at.x, p.y - at.y) < NEAR_VILLAGE)) continue;
         const [lo, hi] = d.herd;
         newHerd(g, d, at.x, at.y, lo + (hash(`${key}:${j}:n`) % (hi - lo + 1)), day);
       }
@@ -263,7 +265,7 @@ function raidDistant(g, h, day, key) {
   const s = g.s;
   for (const sid of Object.keys(s.settlements || {}).sort(byId)) {
     const v = s.settlements[sid];
-    if (v.detail !== 'abstract' || v.fallen || !v.center || Math.hypot(v.center.x - h.x, v.center.y - h.y) > RAID_R) continue;
+    if (v.detail !== 'abstract' || v.fallen || !v.center || hyp(v.center.x - h.x, v.center.y - h.y) > RAID_R) continue;
     if (draw(`${key}:raid:${sid}`) >= RAID_CHANCE) continue;
     const adults = g.owned('colonists', sid).filter((c) => !c.health?.down && stageOfP(g, c)?.untilDays === undefined).sort((a, b) => byId(a.id, b.id));
     if (!adults.length) continue;
@@ -401,7 +403,7 @@ function nearestIn(G, map, x, y, r, ok) {
   const c0x = ((x - r) / CELL) | 0, c1x = ((x + r) / CELL) | 0, c0y = ((y - r) / CELL) | 0, c1y = ((y + r) / CELL) | 0;
   for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) for (const o of map.get(cy * 100000 + cx) || []) {
     if (!ok(o)) continue;
-    const d = Math.hypot(o.x - x, o.y - y);
+    const d = hyp(o.x - x, o.y - y);
     if (d <= r && (d < bd || (d === bd && o.id < best.id))) { bd = d; best = o; }
   }
   return best;
@@ -452,7 +454,7 @@ function fold(g, h) {
 function recentre(g, h, live) {
   const mx = live.reduce((s, a) => s + a.x, 0) / live.length, my = live.reduce((s, a) => s + a.y, 0) / live.length;
   let best = live[0];
-  for (const a of live) { const d = Math.hypot(a.x - mx, a.y - my), bd = Math.hypot(best.x - mx, best.y - my); if (d < bd || (d === bd && a.id < best.id)) best = a; }
+  for (const a of live) { const d = hyp(a.x - mx, a.y - my), bd = hyp(best.x - mx, best.y - my); if (d < bd || (d === bd && a.id < best.id)) best = a; }
   setCentre(g, h, best.x, best.y);
 }
 
@@ -462,7 +464,7 @@ function checkNear(g) {
   for (const id of Object.keys(A.herds).sort(byId)) {
     const h = A.herds[id], d = g.reg.get('animal', h.sp);
     if (!d) continue;
-    const dist = Math.min(...P.map((p) => Math.hypot(p.x - h.x, p.y - h.y)));
+    const dist = Math.min(...P.map((p) => hyp(p.x - h.x, p.y - h.y)));
     if (h.near === undefined && dist <= NEAR) expand(g, h, d);
     else if (h.near !== undefined && dist > NEAR + 16 && g.s.tick - h.near >= NEAR_HOLD && !g.excl.has(`hunt:${id}`)) fold(g, h); // not while someone hunts it
   }
@@ -489,7 +491,7 @@ function act(g, a) {
   const day = Math.floor(s.tick / TICKS_PER_DAY), winter = seasonOf(g) === 'Winter';
   let angry = h.angry && h.angry.until > s.tick ? s.colonists[h.angry.cid] : null;
   if (angry && s.settlements?.[angry.settlementId]?.detail === 'abstract') angry = null; // its place is a stand-in (lod.js)
-  if (angry && !angry.health?.down && Math.hypot(angry.x - a.x, angry.y - a.y) <= CHASE * 2) {
+  if (angry && !angry.health?.down && hyp(angry.x - a.x, angry.y - a.y) <= CHASE * 2) {
     if (armedGroup(g, G, angry).group >= ARMED_GROUP) { delete h.angry; h.alarm = s.tick + ALARM; h.fx = Math.round(angry.x); h.fy = Math.round(angry.y); } // outmatched: the pack breaks off and runs
     else { chasePerson(g, a, h, d, angry, key); return; }
   }
@@ -497,7 +499,7 @@ function act(g, a) {
   if (h.fed !== day) { // a pack that has eaten today leaves people alone (winter or not) unless angry
     const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
     const person = pickPerson(g, G, a);
-    const pd = person ? Math.hypot(person.c.x - a.x, person.c.y - a.y) - person.ease : Infinity, ad = prey ? Math.hypot(prey.x - a.x, prey.y - a.y) : Infinity;
+    const pd = person ? hyp(person.c.x - a.x, person.c.y - a.y) - person.ease : Infinity, ad = prey ? hyp(prey.x - a.x, prey.y - a.y) : Infinity;
     if (person && (!prey || (winter && pd < ad))) { chasePerson(g, a, h, d, person.c, key); return; }
     if (prey) {
       if (Math.max(Math.abs(prey.x - a.x), Math.abs(prey.y - a.y)) <= 1) bite(g, a, h, prey, key);
@@ -515,7 +517,7 @@ const armed = (g, c) => { const eq = c.equip?.weapon && g.reg.get('item', c.equi
 function armedGroup(g, G, c) {
   let group = 0, near = 0;
   for (let ky = (((c.y - GROUP_R) / CELL) | 0); ky <= (((c.y + GROUP_R) / CELL) | 0); ky++) for (let kx = (((c.x - GROUP_R) / CELL) | 0); kx <= (((c.x + GROUP_R) / CELL) | 0); kx++) {
-    for (const o of G.people.get(ky * 100000 + kx) || []) if (Math.hypot(o.x - c.x, o.y - c.y) <= GROUP_R && !o.health?.down) { near++; if (armed(g, o)) group++; }
+    for (const o of G.people.get(ky * 100000 + kx) || []) if (hyp(o.x - c.x, o.y - c.y) <= GROUP_R && !o.health?.down) { near++; if (armed(g, o)) group++; }
   }
   return { group, near };
 }
@@ -526,7 +528,7 @@ function pickPerson(g, G, a) {
   const c0x = ((a.x - CHASE) / CELL) | 0, c1x = ((a.x + CHASE) / CELL) | 0, c0y = ((a.y - CHASE) / CELL) | 0, c1y = ((a.y + CHASE) / CELL) | 0;
   for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) for (const c of G.people.get(cy * 100000 + cx) || []) {
     if (!g.s.colonists[c.id] || c.health?.down) continue;
-    const dist = Math.hypot(c.x - a.x, c.y - a.y);
+    const dist = hyp(c.x - a.x, c.y - a.y);
     if (dist > CHASE || roomAt(g, Math.round(c.x), Math.round(c.y))) continue; // safe indoors
     const { group, near } = armedGroup(g, G, c);
     if (group >= ARMED_GROUP) continue; // an armed group: the pack holds back
@@ -592,21 +594,21 @@ function bite(g, a, pack, prey, key) {
 /** Can animal a step onto (x, y): passable and in its own region (`home`: its region, worked out once a step). */
 const free = (g, a, x, y, home = g.regionOf(a.x, a.y)) => g.isPassable(x, y) && g.regionOf(x, y) === home;
 function stepAway(g, a, fx, fy) {
-  let best = null, bd = Math.hypot(a.x - fx, a.y - fy);
+  let best = null, bd = hyp(a.x - fx, a.y - fy);
   const home = g.regionOf(a.x, a.y);
-  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = hyp(x - fx, y - fy); if (dd > bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
   if (best) place(g, a, best[0], best[1]);
 }
 function stepToward(g, a, tx, ty) {
-  let best = null, bd = Math.hypot(a.x - tx, a.y - ty);
+  let best = null, bd = hyp(a.x - tx, a.y - ty);
   const home = g.regionOf(a.x, a.y);
-  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = hyp(x - tx, y - ty); if (dd < bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
   if (best) place(g, a, best[0], best[1]);
 }
 function stepNear(g, a, cx, cy, r, key) {
-  if (Math.hypot(a.x - cx, a.y - cy) > r) { stepToward(g, a, cx, cy); return; } // back to the herd
+  if (hyp(a.x - cx, a.y - cy) > r) { stepToward(g, a, cx, cy); return; } // back to the herd
   const [dx, dy] = D8[Math.floor(draw(`${key}:dir`) * 8) % 8], x = a.x + dx, y = a.y + dy;
-  if (Math.hypot(x - cx, y - cy) <= r && free(g, a, x, y)) place(g, a, x, y);
+  if (hyp(x - cx, y - cy) <= r && free(g, a, x, y)) place(g, a, x, y);
 }
 
 /** Game.tick (from tickAnimals): the near check and the animals due this tick. */
@@ -623,10 +625,10 @@ function tickNear(g) {
 const DRIFT = 30;
 function driftAway(g, h) {
   let p = null, pd = Infinity;
-  for (const c of anchors(g)) { const d = Math.hypot(c.x - h.x, c.y - h.y); if (d < pd) { pd = d; p = c; } }
+  for (const c of anchors(g)) { const d = hyp(c.x - h.x, c.y - h.y); if (d < pd) { pd = d; p = c; } }
   if (!p || pd > DRIFT) return;
   let best = null, bd = pd;
-  for (const [dx, dy] of D8) { const x = h.x + dx, y = h.y + dy, d = Math.hypot(x - p.x, y - p.y); if (d > bd && g.isPassable(x, y)) { bd = d; best = [x, y]; } }
+  for (const [dx, dy] of D8) { const x = h.x + dx, y = h.y + dy, d = hyp(x - p.x, y - p.y); if (d > bd && g.isPassable(x, y)) { bd = d; best = [x, y]; } }
   if (best) setCentre(g, h, best[0], best[1]);
 }
 
@@ -695,7 +697,7 @@ export function huntableNear(g, x, y, r) {
     if (h.n <= HUNT_LIMIT) continue;
     const d = g.reg.get('animal', h.sp);
     if (!d?.carcass || d.diet !== 'graze') continue;
-    const dist = Math.hypot(h.x - x, h.y - y);
+    const dist = hyp(h.x - x, h.y - y);
     if (dist <= r) out.push({ h, d, dist });
   }
   return out.sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
@@ -710,7 +712,7 @@ export function farHuntable(g, x, y, r, sid = null) {
     const d = g.reg.get('animal', h.sp);
     const raid = d?.diet === 'hunt' && sid && h.raids?.[sid] > g.s.tick;
     if (!d?.carcass || (!raid && (d.diet !== 'graze' || h.n <= HUNT_LIMIT))) continue;
-    const dist = Math.hypot(h.x - x, h.y - y);
+    const dist = hyp(h.x - x, h.y - y);
     if (dist <= r) out.push({ h, d, dist, raid });
   }
   return out.sort((a, b) => b.raid - a.raid || a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1)); // packs that raided first
