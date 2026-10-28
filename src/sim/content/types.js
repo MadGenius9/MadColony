@@ -422,6 +422,7 @@ export const CONTENT_TYPES = {
           if (v.startAges && v.startAges[0] > v.startAges[1]) err('startAges must be [lowest, highest]');
         } }),
       }),
+      animals: obj({ species: req(arr(ref('animal'))), scale: num(0, 100) }), // Phase 8 (animals.js): wild herds (default: every species; [] turns them off)
       nature: obj({ spread: arr(obj({ node: req(ref('node')), perDay: req(num(0, 1)), radius: req(int(1, 10)), minNear: int(0, 24), maxNear: req(int(1, 24)) })) }), // Phase 5b (regrow.js): forests spread
       travel: TRAVEL, // trip budgets for colonists (ai/trips.js); absent: off unless the AI profile sets it
       eraDrive: obj({ urgency: num(0, 2), afterDays: num(0, 3650) }), // afterDays: from this many days after the village's founding (default 0)
@@ -605,6 +606,18 @@ export const CONTENT_TYPES = {
   namePool: {
     doc: 'Colonist names.',
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
+  },
+  animal: {
+    doc: 'A wild animal species (animals.js, Phase 8). Herds of herd [lo, hi] live on its terrains: density herds per 1,000 tiles of them when the world starts, cap animals per 1,000 tiles the land feeds. Far from people a herd is a count, moved one chunk at most every moveHours and grown once a year in spring by births (less as its land fills); winterLoss a day in winter. diet graze or hunt (prey: species it eats; a pack with no prey for starveDays loses one). fear: the distance at which it runs from people and from predators.',
+    schema: obj({
+      id, name, plural: str(40),
+      herd: req(arr(int(1, 100), { minItems: 2, maxItems: 2 })), terrains: req(arr(ref('terrain'), { minItems: 1 })),
+      density: req(num(0, 100)), cap: req(num(0, 1000)), health: req(num(1, 1000)), speed: req(num(0.1, 10)),
+      diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
+      fear: obj({ people: num(0, 50), predators: num(0, 50) }),
+      births: req(num(0, 10)), winterLoss: req(num(0, 1)), moveHours: req(num(1, 1000)), starveDays: num(1, 1000),
+      color, render,
+    }),
   },
   illness: {
     doc: 'A contagious illness (illness.js, Phase 5). While ill (days), its severity grows by growPerHour (treatedGrowth of that once a doctor treats it with medicine); then it heals and the person is immune for immunityDays. contagion: daily chance to pass it to each person sharing a home (scenario villageShare of it for the rest of the village); travel: chance to pass along a contact between villages (a delivery, caravan or traders).',

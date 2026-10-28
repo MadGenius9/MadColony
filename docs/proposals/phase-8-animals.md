@@ -1,6 +1,17 @@
 # Phase 8: animals and the wild (design note)
 
-Status: **proposal** (cloud copy, 2026-10-27). Nothing here is built until the owner says "go".
+Status: **approved** (owner's "keep going", 2026-10-28), with the owner's answers below; built slice by slice.
+
+## The owner's answers (2026-10-28)
+1. **Animals in every game**, classic games too (their reference state hashes are recorded again, with the reason).
+2. **Meat spoils:** meat and carcasses lose a share of every stack each day (`consumed:spoil` in the ledger);
+   cooked meals keep. Cold storage comes later.
+3. **Horses** are wild herds in Phase 8; taming and riding come later.
+4. **Wolves are as dangerous as real wolves:** packs hunt, guard their kills, and attack people outdoors,
+   most readily when hungry (winter, no prey), when someone is alone, wounded or a child, or when a wolf is
+   cornered or hurt; they kill. Only a group (3 or more, armed) makes a pack hold back; a lone hunter or woodcutter
+   at the forest edge in winter is in real danger.
+5. **Hunting limit:** villages leave every herd at least 3 animals.
 
 ## Where this comes from
 - **Roadmap, Phase 8:** wildlife ecology (deer and predators), hunting chain to the kitchen, horses; herds as dots
@@ -83,8 +94,9 @@ winterLoss, color, render`. New items: `core:venison` and `core:horse_meat` (tag
 - **Wolves hunt:** a hungry pack picks the weakest deer in reach, closes in, bites (`injure` on the animal's own
   health store, the same severities as wounds); a kill feeds the pack and leaves the carcass (it becomes a
   `core:deer_carcass` item only if people take it; see below).
-- **Wolves and people:** a hungry pack (winter, or no prey for days) may attack a lone colonist outdoors who is
-  not armed, or anyone who corners or wounds one: a bite is a wound ("Bitten by a wolf"; death cause "was killed
+- **Wolves and people** (answer 4): a pack attacks people outdoors within its range when hungry (no kill for a
+  day, more in winter), always when one of them is hurt or cornered or someone comes at its kill, and picks the
+  weakest: a child, someone alone, someone wounded; it holds back from a group of 3 or more armed people: a bite is a wound ("Bitten by a wolf"; death cause "was killed
   by wolves"). Colonists who see wolves close by run home; armed ones fight them (combat learns a second kind of
   target: an animal). A village attacked by wolves sets its hunters on the pack.
 
@@ -104,6 +116,9 @@ winterLoss, color, render`. New items: `core:venison` and `core:horse_meat` (tag
   "No herd within reach" appear among the food reasons; the trace says why hunting is not done (no weapon, herd
   at its limit, too far).
 - **Hides** are only goods for now (clothing is Phase 9); villages may trade them.
+- **Spoilage** (answer 2): items with `spoilPerDay` in data (venison, horse meat: 0.15; carcasses: 0.2) lose that
+  share of every stack and load each day at the day start (`consumed:spoil`; whole units by hash), so meat must be
+  cooked; stew keeps. Planners count meat at what it will be worth by the time it is eaten.
 
 ### Distant villages
 - **Hunting in aggregate** (`lod.js taskHunt`, a new task after gathering): an adult hunter spends time on the
@@ -123,9 +138,9 @@ winterLoss, color, render`. New items: `core:venison` and `core:horse_meat` (tag
 - Nothing runs in a game without animals.
 
 ### Which games get animals
-Proposal: the Vast and Living worlds (and their World preset) get herds from the start, placed after the rest
-of the world by hash draws; classic games get none, so their state hashes stay. A scenario turns animals on with
-`scenario.animals` (data), as it does life and illness rules.
+Every game (answer 1): herds are placed after the rest of the world by hash draws (the world itself is the same
+for a seed); a scenario can list its species or turn animals off (`scenario.animals: { species: [] }`). Classic
+games change from slice 1 on, so `forty` and `modern` are recorded again then.
 
 ## Slices
 1. **Species and far herds:** content type and data, `s.animals.herds`, placing herds by hash, hourly far
@@ -152,7 +167,7 @@ of the world by hash draws; classic games get none, so their state hashes stay. 
 - Wolves kill some deer and, in winter, occasionally hurt people; a village defends itself.
 - Saves and loads identical mid-hunt and mid-switch; worst tick under 50 ms on the World preset.
 
-## Open questions for the owner
+## Open questions for the owner (answered 2026-10-28: see the top)
 1. **Classic games:** animals only in the Vast and Living worlds (proposal; classic games unchanged), or in
    every game (classic baselines re-recorded)?
 2. **Spoilage:** there is no spoilage today; should meat spoil (a new rule for all food), or wait?

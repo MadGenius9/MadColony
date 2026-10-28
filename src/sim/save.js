@@ -101,6 +101,7 @@ export function validateSave(save) {
   if (s.dead !== undefined) validateDead(s, bad); // format 15
   if (s.bodies !== undefined) validateBodies(s, bad, inB); // format 16
   if (s.disasters !== undefined) validateDisasters(s, bad); // format 23
+  if (s.animals !== undefined) validateAnimals(s, bad); // format 27
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -215,6 +216,18 @@ function validateDisasters(s, bad) {
       && isInt(t.n) && t.n >= 0 && isInt(t.next) && isInt(t.until) && t.next <= t.until && t.until <= s.tick + 1e6 && isStr(t.key, 120)
       && Array.isArray(t.hit) && t.hit.length <= 100000 && t.hit.every((h) => isStr(h, 64));
     if (!ok) { bad(`tornado "${String(k).slice(0, 40)}" is malformed`); return; }
+  }
+}
+
+/** Wild herds (format 27, optional): { herds: id -> { id, sp, x, y, n, day, year, next, fed }, next }. */
+function validateAnimals(s, bad) {
+  const A = s.animals, W = s.map?.w || 0, H = s.map?.h || 0;
+  if (!isObj(A) || !isObj(A.herds) || !isInt(A.next) || A.next < 1) { bad('state.animals is malformed'); return; }
+  for (const [k, h] of Object.entries(A.herds)) {
+    const ok = isObj(h) && h.id === k && /^h\d{1,9}$/.test(k) && Number(k.slice(1)) < A.next && isStr(h.sp, 100)
+      && isInt(h.x) && isInt(h.y) && h.x >= 0 && h.y >= 0 && h.x < W && h.y < H && isInt(h.n) && h.n >= 1 && h.n <= 100000
+      && isInt(h.day) && isInt(h.year) && isInt(h.next) && isInt(h.fed);
+    if (!ok) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
   }
 }
 

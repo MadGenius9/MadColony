@@ -32,6 +32,7 @@
     "content/machines.json",
     "content/planet.json",
     "content/vast-world.json",
+    "content/animals.json",
     "content/god.json"
   ]
 }

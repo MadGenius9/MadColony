@@ -97,6 +97,8 @@ export const MIGRATIONS = {
   24() {},
   // 25 -> 26: regrowth (Phase 5b). `s.disasters.seeds` and `node.young` are optional: nothing waits to sprout.
   25() {},
+  // 26 -> 27: wild animals (Phase 8). `s.animals` is optional: absent, the herds are placed at the next tick.
+  26() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {
