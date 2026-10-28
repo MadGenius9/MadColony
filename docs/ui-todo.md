@@ -335,3 +335,8 @@ where, and which sim function or state field provides it. The UI is built at hom
   village yet: shape the land, then send settlers" and offer the spawn tool. The spawn preview reads "… found X
   here: your village".
 - After the first village is founded, the UI centres on it (it becomes `s.playerSettlement`).
+- **Season hint when founding:** a year is 30 days and settlers who land near midwinter (about days 18–27 of
+  the year) with no house yet freeze, collapse and starve (seen in the island run). The spawn tool shows the
+  season and the coming low temperature where the cursor is, and warns "Cold season: settlers will need shelter
+  at once" while it is cold there. Saplings from the forest brush need 20 days before they give wood; their
+  tooltip says "Young pine: grown in N days".

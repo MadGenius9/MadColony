@@ -43,18 +43,24 @@ function stroke(args) {
   console.error(`[stroke] ${args.brush} (${args.x}, ${args.y}) r${args.r}: ${p.preview.tiles} tiles, worst tick ${w.toFixed(0)} ms`);
   return true;
 }
-// 1. An island: raise a 3x3 block of discs (16 apart, so they hardly overlap) until the middle of each is dry
-// land (sand), then flatten each one to grass, which can be farmed.
+// 1. An island: raise a 3x3 block of discs 12 apart (they overlap, so the island is one piece), each until its
+// middle is dry land, flattening after every raise so the overlaps stay grass (raise lifts grass to hills and
+// hills to mountain; flatten turns hills and sand back to grass, which can be farmed).
 for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
-  const at = { x: sea.x + i * 16, y: sea.y + j * 16 };
-  for (let k = 0; k < 6 && !dry(at.x, at.y); k++) stroke({ brush: 'raise', ...at, r: 8 });
+  const at = { x: sea.x + i * 12, y: sea.y + j * 12 };
+  for (let k = 0; k < 6 && !dry(at.x, at.y); k++) { stroke({ brush: 'raise', ...at, r: 8 }); stroke({ brush: 'flatten', ...at, r: 8 }); }
 }
-for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) stroke({ brush: 'flatten', x: sea.x + i * 16, y: sea.y + j * 16, r: 8 });
+let cut = 0;
+for (let y = sea.y - 24; y <= sea.y + 24; y++) for (let x = sea.x - 24; x <= sea.x + 24; x++) if (dry(x, y) && !g.reachableFrom(sea.x, sea.y, x, y, 'on')) cut++;
+if (cut) fail(`the island is in pieces: ${cut} dry tiles cannot be walked to from its middle`);
 // 2. A lake, forest, stone and ore on it.
 stroke({ brush: 'water', x: sea.x - 8, y: sea.y - 8, r: 3 });
 stroke({ brush: 'forest', x: sea.x + 10, y: sea.y - 10, r: 6 });
 stroke({ brush: 'stone', x: sea.x - 10, y: sea.y + 10, r: 4 });
 stroke({ brush: 'ore', x: sea.x + 10, y: sea.y + 10, r: 4 });
+// The forest brush plants saplings; let them grow up for a year (pines take 20 days, a year is 30) so the
+// settlers have wood and land in the season a new game starts in (they freeze if they land in midwinter).
+for (const end = g.s.tick + 30 * TICKS_PER_DAY; g.s.tick < end;) tick();
 // 3. The first village.
 let found = null;
 for (let r = 0; r < 20 && !found; r++) for (let dy = -r; dy <= r && !found; dy++) for (let dx = -r; dx <= r && !found; dx++) {
