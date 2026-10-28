@@ -258,3 +258,10 @@ while peaceful is on (proposal: no).
 - **Line endings:** 7 source files had been turned from CRLF to LF by text-mode edits since the rescue copy
   (`constants.js`, `content/types.js`, `lod.js`, `medical.js`, `migrate.js`, `planner.js`, `save.js`). They are
   CRLF again (commit f89c03c), so patches home show only the real changes. Edits now keep each file's line endings.
+- **After the review fixes:**
+  - 165 tests pass.
+  - Classic hashes are unchanged (`forty` d75653ad30ecf912, `modern` a9171d273506ce65).
+  - The animal powers run is ok again: every save and load was identical, and items, people and animals were
+    exact every day.
+  - Worst tick 52.2 ms after day 1, against 33.0 ms before the fixes; not looked into further. Single worst ticks
+    on this machine vary that much between runs.
