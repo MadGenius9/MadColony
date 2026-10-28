@@ -137,3 +137,30 @@ test('grazers flee from people; wolves chase and kill deer near the village; all
   assert.ok(pack && pack.fed >= Math.floor(g.s.tick / 2400) - 2, 'the pack ate in the last days');
   assert.equal(stateText(run(true)), stateText(g));
 });
+
+test('review fixes: two packs on one deer kill it once; a removed species takes its animals with it', () => {
+  const g = wildGame();
+  while (g.s.tick % 600 !== 451) g.tick();
+  const A = g.s.animals;
+  // A second pack beside the first: whatever they kill, the deer's count always matches its animals.
+  const w = Object.values(A.list).find((a) => a.herd === 'h901');
+  A.herds.h902 = { ...A.herds.h901, id: 'h902', n: 1 }; A.next = 903;
+  A.list[`a${A.na}`] = { id: `a${A.na}`, herd: 'h902', x: w.x, y: w.y, hp: 40 }; A.na++;
+  g._anNear = null; g._anIdx = null;
+  for (let t = 0; t < 1200; t++) {
+    g.tick();
+    const h = A.herds.h900, live = Object.values(A.list || {}).filter((a) => a.herd === 'h900').length;
+    if (h) assert.equal(live, h.n, 'the count is its animals');
+    assert.ok(Object.values(A.list || {}).every((a) => A.herds[a.herd]?.near !== undefined), 'no animal without its herd');
+  }
+  assert.doesNotThrow(() => loadGame(g.reg, serializeGame(g)));
+  // A species whose mod is gone: its herds and their animals go on load; the game saves again.
+  const mods = readAllMods(), core = mods.find((m) => m.manifest.id === 'core');
+  core.files['content/animals.json'].animal = core.files['content/animals.json'].animal.filter((d) => d.id !== 'core:wolf');
+  const registry = buildRegistry(mods, ['core']).registry;
+  const h = loadGame(registry, serializeGame(g));
+  assert.ok(!Object.values(h.s.animals.herds).some((x) => x.sp === 'core:wolf'), 'the packs are gone');
+  assert.ok(Object.values(h.s.animals.list || {}).every((a) => h.s.animals.herds[a.herd]), 'and their animals');
+  h.tick();
+  assert.doesNotThrow(() => loadGame(registry, serializeGame(h)));
+});

@@ -158,7 +158,7 @@ export function tickAnimals(g) {
 
 function hourly(g, h, d) {
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
-  if (h.near !== undefined) { syncNear(g, h); if (h.n < 1) { delete h.near; removeHerd(g, h.id); return; } }
+  if (h.near !== undefined) { syncNear(g, h); if (h.n < 1) { delete h.near; removeHerd(g, h.id); return; } driftAway(g, h); }
   if (h.day !== day) { h.day = day; const before = h.n; daily(g, h, d, day); if (!s.animals.herds[h.id]) { dropAnimals(g, h.id); return; } if (h.near !== undefined && h.n !== before) nearCount(g, h, d, before); }
   if (h.near === undefined && s.tick >= h.next) { move(g, h, d); h.next = s.tick + Math.round(d.moveHours * HOUR); }
 }
@@ -203,7 +203,7 @@ function daily(g, h, d, day) {
       if (p && p !== h && p.near === undefined && h.near === undefined && (d.prey || []).includes(p.sp) && p.n > 0 && (!prey || p.n > prey.n || (p.n === prey.n && p.id < prey.id))) prey = p;
     }
     const starve = Math.floor(d.starveDays ?? 10);
-    if (h.near !== undefined) { /* near: it hunts for real (act) */ } else if (prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
+    if (h.near === undefined && prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
     else if (day - h.fed >= starve && h.n > SMALL_GAME) { h.n--; h.fed = day; } // too many for small game alone
   }
   // Two herds of a species in one chunk that fit in one herd join (the lower id takes the other in).
@@ -272,7 +272,8 @@ function move(g, h, d) {
 // individual animals (`s.animals.list`: id -> { id, herd, x, y, hp }), made round its centre by hash; one that has
 // been near for NEAR_HOLD ticks and is NEAR + 16 away from all of them folds back into a count (the living ones,
 // centred on the one nearest their middle). Checked every NEAR_CHECK ticks. While near, the herd's count is its
-// animals and its centre follows them; it does not move by chunks, and births and losses come and go as animals.
+// animals; its centre is where they graze, drifting a tile an hour away from a village within 30 tiles (strays
+// walk back to it); it does not move by chunks, and births and losses come and go as animals.
 // Each animal acts every STEP ticks (staggered by id): grazers flee (the whole herd, for a while) from people and
 // predators within their fear ranges, stepping to the free neighbour tile farthest from the danger (their speed in
 // tiles), else graze a step now and then near the centre; a pack that has not eaten today chases the nearest prey
@@ -299,7 +300,9 @@ const nearDirty = (g) => { if (g._anNear) g._anNear.dirty = true; };
 function grids(g) {
   if (g._anGrid?.tick === g.s.tick) return g._anGrid;
   const people = new Map(), beasts = new Map(), key = (x, y) => ((y / CELL) | 0) * 100000 + ((x / CELL) | 0);
-  for (const c of Object.values(g.s.colonists)) { const k = key(c.x, c.y); if (!people.has(k)) people.set(k, []); people.get(k).push(c); }
+  for (const c of Object.values(g.s.colonists)) {
+    if (g.s.settlements?.[c.settlementId]?.detail === 'abstract') continue; // their places are stand-ins (lod.js)
+    const k = key(c.x, c.y); if (!people.has(k)) people.set(k, []); people.get(k).push(c); }
   for (const a of Object.values(g.s.animals?.list || {})) { const k = key(a.x, a.y); if (!beasts.has(k)) beasts.set(k, []); beasts.get(k).push(a); }
   return (g._anGrid = { tick: g.s.tick, people, beasts, key });
 }
@@ -354,7 +357,7 @@ function fold(g, h) {
   h.n = live.length;
   if (live.length) recentre(g, h, live);
   if (h.n < 2) removeHerd(g, h.id);
-  if (!Object.keys(A.list).length) delete A.list;
+  if (!Object.keys(A.list || {}).length) delete A.list;
 }
 
 /** The herd's centre: the animal nearest the middle of them (a real tile; by id on ties). */
@@ -380,12 +383,12 @@ function checkNear(g) {
 /** A step of one animal. */
 function act(g, a) {
   const s = g.s, A = s.animals, h = A.herds[a.herd], d = h && g.reg.get('animal', h.sp);
-  if (!d) return;
+  if (!d || h.near === undefined) { delete A.list[a.id]; nearDirty(g); return; } // its herd is gone (never left behind)
   const G = grids(g), key = `${s.seed}:${a.id}:${s.tick}`;
   if (d.diet === 'graze') {
     const fp = d.fear?.people || 0, fw = d.fear?.predators || 0;
     const who = (fp && nearestIn(G, G.people, a.x, a.y, fp, () => true))
-      || (fw && nearestIn(G, G.beasts, a.x, a.y, fw, (o) => { const oh = A.herds[o.herd]; return !!oh && (g.reg.get('animal', oh.sp)?.prey || []).includes(h.sp); }));
+      || (fw && nearestIn(G, G.beasts, a.x, a.y, fw, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (g.reg.get('animal', oh.sp)?.prey || []).includes(h.sp); }));
     if (who) { h.alarm = s.tick + ALARM; h.fx = Math.round(who.x); h.fy = Math.round(who.y); }
     if (h.alarm > s.tick) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
     if (draw(key) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, key);
@@ -394,7 +397,7 @@ function act(g, a) {
   // A pack: chase and bite the nearest prey when it has not eaten today.
   const day = Math.floor(s.tick / TICKS_PER_DAY);
   if (h.fed !== day) {
-    const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
+    const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
     if (prey) {
       if (Math.max(Math.abs(prey.x - a.x), Math.abs(prey.y - a.y)) <= 1) bite(g, a, h, prey, key);
       else for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepToward(g, a, prey.x, prey.y);
@@ -406,6 +409,7 @@ function act(g, a) {
 
 function bite(g, a, pack, prey, key) {
   const A = g.s.animals, ph = A.herds[prey.herd];
+  if (!A.list?.[prey.id] || prey.hp <= 0) return; // already killed this tick (the grid is the tick's start)
   prey.hp -= 10 + Math.floor(draw(`${key}:bite`) * 10);
   if (ph) { ph.alarm = g.s.tick + ALARM; ph.fx = a.x; ph.fy = a.y; }
   if (prey.hp > 0) return;
@@ -427,6 +431,7 @@ function stepToward(g, a, tx, ty) {
   if (best) { a.x = best[0]; a.y = best[1]; }
 }
 function stepNear(g, a, cx, cy, r, key) {
+  if (Math.hypot(a.x - cx, a.y - cy) > r) { stepToward(g, a, cx, cy); return; } // back to the herd
   const [dx, dy] = D8[Math.floor(draw(`${key}:dir`) * 8) % 8], x = a.x + dx, y = a.y + dy;
   if (Math.hypot(x - cx, y - cy) <= r && free(g, a, x, y)) { a.x = x; a.y = y; }
 }
@@ -440,11 +445,22 @@ function tickNear(g) {
   for (const id of N.slots[g.s.tick % STEP]) if (A.list?.[id]) act(g, A.list[id]);
 }
 
+/** A near herd's grazing centre drifts a tile an hour away from a village within DRIFT tiles (people disturb
+ *  them), so herds do not settle round villages for good; the animals follow as they graze. */
+const DRIFT = 30;
+function driftAway(g, h) {
+  let p = null, pd = Infinity;
+  for (const c of anchors(g)) { const d = Math.hypot(c.x - h.x, c.y - h.y); if (d < pd) { pd = d; p = c; } }
+  if (!p || pd > DRIFT) return;
+  let best = null, bd = pd;
+  for (const [dx, dy] of D8) { const x = h.x + dx, y = h.y + dy, d = Math.hypot(x - p.x, y - p.y); if (d > bd && g.isPassable(x, y)) { bd = d; best = [x, y]; } }
+  if (best) setCentre(g, h, best[0], best[1]);
+}
+
 /** Near herds: their count and centre from their animals (hourly, before the herd's own hour). */
 function syncNear(g, h) {
-  const ids = nearIndex(g).byHerd.get(h.id) || [], live = ids.map((id) => g.s.animals.list?.[id]).filter(Boolean);
-  h.n = live.length;
-  if (live.length) recentre(g, h, live);
+  const ids = nearIndex(g).byHerd.get(h.id) || [];
+  h.n = ids.filter((id) => g.s.animals.list?.[id]).length; // the centre is where they graze (it drifts; fold recentres)
 }
 
 /** For tests: fold a near herd back into a count now. */

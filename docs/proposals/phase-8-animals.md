@@ -233,5 +233,13 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   (`setCentre`, lists kept in id order). The per-tick grid of people and near animals is about 0.01 ms.
 - **Classic runs:** new hashes `forty` 58a33fd49d1db4de, `modern` a6dc12f1df32b2a4 (near animals are saved); same
   outcomes (5 colonists, 65 and 89 built).
-- **Not changed:** 142 tests pass (2 more in `tests/cloud-animals.test.js`).
-
+- **Review fixes:** two packs could kill the same deer twice in one tick (the grid of animals is the tick's
+  start): the herd's count went below its animals, the herd was removed with animals left over, and the game
+  refused its own save (reproduced; a bite now checks the prey is alive, the dead are neither chased nor feared,
+  an animal whose herd is gone is dropped). Herds of a species whose mod is gone took their animals with them only
+  in the count (their animals stayed: every later save failed); they go together now. Near packs starve like far
+  ones. Near herds settled round villages for good: their grazing centre now drifts a tile an hour away from a
+  village within 30 tiles and strays walk back to it. Deer no longer fear the stand-in places of distant villages'
+  people. Malformed saves (a near herd with no animals list, a bad animal counter) are refused or handled.
+- **Classic runs** after the fixes: `forty` 6b934c050e95907a, `modern` e34dfb5baf5a02bc; same outcomes.
+- **Not changed:** 143 tests pass (3 more in `tests/cloud-animals.test.js`).

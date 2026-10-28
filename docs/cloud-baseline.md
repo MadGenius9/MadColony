@@ -62,5 +62,4 @@ b6c75f52735d338a, `modern` 8d4917d8556d4f55. With `s.animals` removed `forty` st
 (nothing else changed). Later slices compare against the new hashes.
 
 ## Phase 8, slice 2 (2026-10-28): classic hashes
-Near animals are saved: `forty` 58a33fd49d1db4de, `modern` a6dc12f1df32b2a4 (same outcomes as before).
-
+Near animals are saved: `forty` 6b934c050e95907a, `modern` e34dfb5baf5a02bc after the review fixes (first 58a33fd49d1db4de / a6dc12f1df32b2a4; same outcomes as before).

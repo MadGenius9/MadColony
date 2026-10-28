@@ -229,8 +229,9 @@ function validateAnimals(s, bad) {
       && isInt(h.day) && isInt(h.year) && isInt(h.next) && isInt(h.fed);
     if (!ok || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
   }
+  if (A.na !== undefined && (!isInt(A.na) || A.na < 1)) { bad('state.animals.na is malformed'); return; }
   if (A.list === undefined) return; // near animals (slice 2)
-  if (!isObj(A.list) || !isInt(A.na) || A.na < 1) { bad('state.animals.list is malformed'); return; }
+  if (!isObj(A.list) || A.na === undefined) { bad('state.animals.list is malformed'); return; }
   for (const [k, a] of Object.entries(A.list)) {
     const ok = isObj(a) && a.id === k && /^a\d{1,9}$/.test(k) && Number(k.slice(1)) < A.na && isStr(a.herd, 20) && A.herds[a.herd]?.near !== undefined
       && isInt(a.x) && isInt(a.y) && a.x >= 0 && a.y >= 0 && a.x < W && a.y < H && typeof a.hp === 'number' && a.hp > 0 && a.hp <= 100000;
@@ -527,6 +528,7 @@ export function loadGame(reg, saveOrText) {
   const q = (kind, data, extra = {}) => s.orphans.push({ kind, data, ...extra, since: s.tick });
   for (const [id, n] of Object.entries(s.nodes)) if (!reg.has('node', n.def)) { q('node', n); delete s.nodes[id]; }
   for (const [id, h] of Object.entries(s.animals?.herds || {})) if (!reg.has('animal', h.sp)) delete s.animals.herds[id]; // a species whose mod is gone: its herds go (animals hold no items)
+  if (s.animals?.list) { for (const [id, a] of Object.entries(s.animals.list)) if (!s.animals.herds[a.herd]) delete s.animals.list[id]; if (!Object.keys(s.animals.list).length) delete s.animals.list; } // and their animals
   for (const [id, b] of Object.entries(s.structures)) {
     if (!reg.has('building', b.def)) { q('structure', b); delete s.structures[id]; continue; }
     // Battery charge (format 14) never exceeds the store of the loaded definition: a mod may have lowered it, so the
