@@ -22,7 +22,12 @@ const SEE = 10, THREAT = 40, HOLD = 7, PARTY = 8, GIVE_UP = 1500, CLEAR_R = 60, 
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 const centreOf = (g, sid) => g.s.settlements?.[sid]?.center || g.s.center;
-const nearMonsters = (g) => Object.values(g.s.monsters?.list || {}).filter((m) => m.near !== undefined).sort((a, b) => byId(a.id, b.id));
+/** Near monsters in id order (derived, once a tick). */
+function nearMonsters(g) {
+  if (g._slayNear?.tick === g.s.tick) return g._slayNear.list;
+  const list = Object.values(g.s.monsters?.list || {}).filter((m) => m.near !== undefined).sort((a, b) => byId(a.id, b.id));
+  return (g._slayNear = { tick: g.s.tick, list }).list;
+}
 
 /** Does monster m threaten village sid now (a hunt party may go for it)? */
 export function threatens(g, m, sid) {
@@ -49,9 +54,10 @@ function dangerTo(g, o, d, c, night) {
 /** ai.js tickColonist: run from a monster close by that is a danger to this person (every 5 ticks, staggered). */
 export function monsterDanger(g, c) {
   if (!c || c.health?.down || c.carriedBy || c.sleeping) return null;
+  if ((g.s.tick + (Number(c.id.slice(1)) || 0)) % 5) return null;
+  if (!nearMonsters(g).length) return null; // the usual case: no monster near any village
   const t = c.job?.type;
   if (t === 'flee' || t === 'slay' || t === 'fight' || t === 'arm' || t === 'firefight') return null;
-  if ((g.s.tick + (Number(c.id.slice(1)) || 0)) % 5) return null;
   const cx = Math.round(c.x), cy = Math.round(c.y);
   if (roomAt(g, cx, cy)) return null; // safe indoors
   const hour = g.hour, night = hour >= 21 || hour < 5;

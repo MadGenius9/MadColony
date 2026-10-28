@@ -116,15 +116,23 @@ function placeLairs(g) {
   }
 }
 
+/** Monster ids in id order with their hashes (derived; rebuilt when monsters come or go). */
+function ids(g) {
+  const L = g.s.monsters.list, n = Object.keys(L).length, next = g.s.monsters.next;
+  if (g._mnIds?.L === L && g._mnIds.n === n && g._mnIds.next === next) return g._mnIds.list;
+  const list = Object.keys(L).sort(byId).map((id) => [id, hash(id)]);
+  g._mnIds = { L, n, next, list };
+  return list;
+}
+
 /** Game.tick: lairs on the first tick; each monster's hour (staggered by id); near ones act every STEP ticks;
  *  lairs regrow monsters. */
 export function tickMonsters(g) {
   if (!g.s.monsters) { if (!monsterSpecies(g).length) return; placeLairs(g); }
   const s = g.s, M = s.monsters, slot = s.tick % HOUR;
-  for (const id of Object.keys(M.list).sort(byId)) {
+  for (const [id, h] of ids(g)) {
     const m = M.list[id];
     if (!m) continue;
-    const h = hash(id);
     if (h % HOUR === slot) hourly(g, m);
     if (m.near !== undefined && h % STEP === s.tick % STEP && M.list[id]) act(g, m);
   }
