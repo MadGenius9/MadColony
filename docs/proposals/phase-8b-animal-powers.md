@@ -232,4 +232,4 @@ while peaceful is on (proposal: no).
   - horses: start 968, sent 15, born 3, died 252 (206 eaten, 33 winter, 13 hunted).
   - The 15 horses sent off their ground found it and were all alive on day 30.
   - Of the 36 deer sent on day 16, two herds remained (10 and 8) after the crowd thinned and spread.
-- **People:** 24 → 48; no one died (wolves near Frostholm were hunted down: 2 wolves killed by people).
+- **People:** 24 → 48; no one died (people killed 2 wolves in the 30 days).
