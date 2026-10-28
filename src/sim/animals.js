@@ -359,17 +359,39 @@ function nearIndex(g) {
   }
   return (g._anNear = { A, byHerd, slots, dirty: false });
 }
-const nearDirty = (g) => { if (g._anNear) g._anNear.dirty = true; };
+const nearDirty = (g) => { if (g._anNear) g._anNear.dirty = true; g._anBeasts = null; };
 
-/** People and near animals by cell of CELL tiles (derived, once a tick). */
+const cellKey = (x, y) => ((y / CELL) | 0) * 100000 + ((x / CELL) | 0);
+/** Near animals by cell (derived): rebuilt when animals come or go (nearDirty), kept current as they step (place). */
+function beastGrid(g) {
+  const L = g.s.animals?.list;
+  if (g._anBeasts?.list === L) return g._anBeasts.cells;
+  const cells = new Map();
+  for (const a of Object.values(L || {})) { const k = cellKey(a.x, a.y); if (!cells.has(k)) cells.set(k, []); cells.get(k).push(a); }
+  g._anBeasts = { list: L, cells };
+  return cells;
+}
+/** Move near animal a to (x, y), keeping the animal grid current (order within a cell does not matter: lookups
+ *  take the nearest, then the lowest id). */
+function place(g, a, x, y) {
+  const B = g._anBeasts, from = cellKey(a.x, a.y), to = cellKey(x, y);
+  a.x = x; a.y = y;
+  if (!B || B.list !== g.s.animals?.list || from === to) return;
+  const f = B.cells.get(from), k = f ? f.indexOf(a) : -1;
+  if (k < 0) { g._anBeasts = null; return; } // not where expected: rebuild on next use
+  f.splice(k, 1); if (!f.length) B.cells.delete(from);
+  if (!B.cells.has(to)) B.cells.set(to, []);
+  B.cells.get(to).push(a);
+}
+
+/** People (once a tick) and near animals (beastGrid) by cell of CELL tiles (derived). */
 function grids(g) {
-  if (g._anGrid?.tick === g.s.tick) return g._anGrid;
-  const people = new Map(), beasts = new Map(), key = (x, y) => ((y / CELL) | 0) * 100000 + ((x / CELL) | 0);
+  if (g._anGrid?.tick === g.s.tick) { g._anGrid.beasts = beastGrid(g); return g._anGrid; }
+  const people = new Map(), beasts = beastGrid(g), key = cellKey;
   for (const [sid, m] of g.ownIndex('colonists')) { // by village: distant ones are skipped whole
     if (g.s.settlements?.[sid]?.detail === 'abstract') continue; // their places are stand-ins (lod.js)
     for (const c of m.values()) { const k = key(c.x, c.y); if (!people.has(k)) people.set(k, []); people.get(k).push(c); }
   }
-  for (const a of Object.values(g.s.animals?.list || {})) { const k = key(a.x, a.y); if (!beasts.has(k)) beasts.set(k, []); beasts.get(k).push(a); }
   return (g._anGrid = { tick: g.s.tick, people, beasts, key });
 }
 
@@ -573,18 +595,18 @@ function stepAway(g, a, fx, fy) {
   let best = null, bd = Math.hypot(a.x - fx, a.y - fy);
   const home = g.regionOf(a.x, a.y);
   for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
-  if (best) { a.x = best[0]; a.y = best[1]; }
+  if (best) place(g, a, best[0], best[1]);
 }
 function stepToward(g, a, tx, ty) {
   let best = null, bd = Math.hypot(a.x - tx, a.y - ty);
   const home = g.regionOf(a.x, a.y);
   for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
-  if (best) { a.x = best[0]; a.y = best[1]; }
+  if (best) place(g, a, best[0], best[1]);
 }
 function stepNear(g, a, cx, cy, r, key) {
   if (Math.hypot(a.x - cx, a.y - cy) > r) { stepToward(g, a, cx, cy); return; } // back to the herd
   const [dx, dy] = D8[Math.floor(draw(`${key}:dir`) * 8) % 8], x = a.x + dx, y = a.y + dy;
-  if (Math.hypot(x - cx, y - cy) <= r && free(g, a, x, y)) { a.x = x; a.y = y; }
+  if (Math.hypot(x - cx, y - cy) <= r && free(g, a, x, y)) place(g, a, x, y);
 }
 
 /** Game.tick (from tickAnimals): the near check and the animals due this tick. */
