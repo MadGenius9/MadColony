@@ -205,3 +205,13 @@ where, and which sim function or state field provides it. The UI is built at hom
   now", "No herd near enough to hunt") beside the food note; a "Food from hunting" share from the ledger
   (`created:hunt` carcasses butchered into meat).
 - **Work tab:** the new work type Hunting (skill Hunting) can be turned off per colonist like any work.
+
+## Phase 8, slice 4: wolves and people
+- **Wolves attacking:** a pack running at a person, bites (a red flash), the victim's injury list "Bitten by a
+  wolf" (kind `bite`; can become infected; bandaged like wounds); a letter "Wolves attacked Ada!" (warn) and,
+  if they die, "Ada was killed by wolves.".
+- **People:** "Running from the wolves" (flee) or "Fending off a wolf" (job `fend`, spear or bow out); a pack
+  that met an armed group running off; hunters going after a pack that attacked the village ("Hunt down the
+  wolves", herd `raids[village]` until a tick).
+- **Map warning:** a near pack (`herds[…].sp` wolf, `near` set) within 30 tiles of the village could show a
+  small wolf icon at the village edge; the village card: "Wolves near: stay in groups, carry spears".

@@ -34,6 +34,7 @@ const CAUSE_TEXT = {
   smite: 'was smitten by the gods',
   burn: 'burned to death',
   meteor: 'was crushed by a falling star',
+  bite: 'was killed by wolves', // Phase 8 (animals.js)
 };
 export const causeText = (kind) => (Object.hasOwn(CAUSE_TEXT, kind) ? CAUSE_TEXT[kind] : 'died of their injuries');
 

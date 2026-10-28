@@ -23,7 +23,7 @@ export const COMBAT = {
   unarmed: { name: 'fists', damage: 3, range: 1.5, cooldown: 50, accuracy: 0.7 },
   woundRelation: -2, // relation cost per wound inflicted
 };
-export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm']);
+export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm', 'fend']); // fend: against wild animals (hunt.js)
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 

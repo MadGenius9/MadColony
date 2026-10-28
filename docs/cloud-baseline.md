@@ -67,3 +67,8 @@ Near animals are saved: `forty` 6b934c050e95907a, `modern` e34dfb5baf5a02bc afte
 ## Phase 8, slice 3 (2026-10-28): classic hashes
 Hunting changes classic villages (they hunt the deer near them): `forty` 75cdeebbd8710a70 (5 colonists, 66
 built, workshops era on day 5.47), `modern` 14be8f5a6511e9e2 (modern era on day 41.63), after the review fixes.
+
+## Phase 8, slice 4 (2026-10-28): classic hashes
+Wolves now go for people: `forty` a3f4673dd1c9392c, `modern` 3982dd57aa2eadad (same outcomes: 5 colonists, 66
+and 90 built, the same era days).
+

@@ -17,6 +17,9 @@
 import { TICKS_PER_DAY, CHUNK } from './constants.js';
 import { seasonOf, climateOf } from './heat.js';
 import { landChunks } from './contact.js';
+import { injure, hpOf as hpOfP } from './health.js';
+import { roomAt } from './heat.js';
+import { stageOf as stageOfP } from './people.js';
 
 const HOUR = 100, NEAR_VILLAGE = 24, SMALL_GAME = 3, D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 const hash = (str) => {
@@ -394,10 +397,22 @@ function act(g, a) {
     if (draw(key) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, key);
     return;
   }
-  // A pack: chase and bite the nearest prey when it has not eaten today.
-  const day = Math.floor(s.tick / TICKS_PER_DAY);
-  if (h.fed !== day) {
-    const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
+  // A pack (slice 4: wolves are as dangerous as real ones). It turns on whoever hurt one of it; when it has not
+  // eaten today it chases the nearest prey animal, or a person when no prey is near; in winter it takes whichever
+  // is the easier catch. People are picked weakest first (a child, someone alone, someone wounded), never inside a
+  // room, and a pack holds back from anyone with 3 or more armed people within 6 tiles.
+  const day = Math.floor(s.tick / TICKS_PER_DAY), winter = seasonOf(g) === 'Winter';
+  const angry = h.angry && h.angry.until > s.tick ? s.colonists[h.angry.cid] : null;
+  if (angry && !angry.health?.down && Math.hypot(angry.x - a.x, angry.y - a.y) <= CHASE * 2) {
+    if (armedGroup(g, G, angry).group >= ARMED_GROUP) { delete h.angry; h.alarm = s.tick + ALARM; h.fx = Math.round(angry.x); h.fy = Math.round(angry.y); } // outmatched: the pack breaks off and runs
+    else { chasePerson(g, a, h, d, angry, key); return; }
+  }
+  if (h.alarm > s.tick && h.fx !== undefined) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
+  if (h.fed !== day || winter) {
+    const prey = h.fed !== day ? nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); }) : null;
+    const person = pickPerson(g, G, a);
+    const pd = person ? Math.hypot(person.c.x - a.x, person.c.y - a.y) - person.ease : Infinity, ad = prey ? Math.hypot(prey.x - a.x, prey.y - a.y) : Infinity;
+    if (person && (!prey || (winter && pd < ad))) { chasePerson(g, a, h, d, person.c, key); return; }
     if (prey) {
       if (Math.max(Math.abs(prey.x - a.x), Math.abs(prey.y - a.y)) <= 1) bite(g, a, h, prey, key);
       else for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepToward(g, a, prey.x, prey.y);
@@ -405,6 +420,65 @@ function act(g, a) {
     }
   }
   if (draw(key) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, key);
+}
+
+const ARMED_GROUP = 3, GROUP_R = 6;
+const armed = (g, c) => { const eq = c.equip?.weapon && g.reg.get('item', c.equip.weapon.item)?.equipment; return !!eq?.damage; };
+
+/** People on their feet within GROUP_R of c (c too), and how many of them are armed. */
+function armedGroup(g, G, c) {
+  let group = 0, near = 0;
+  for (let ky = (((c.y - GROUP_R) / CELL) | 0); ky <= (((c.y + GROUP_R) / CELL) | 0); ky++) for (let kx = (((c.x - GROUP_R) / CELL) | 0); kx <= (((c.x + GROUP_R) / CELL) | 0); kx++) {
+    for (const o of G.people.get(ky * 100000 + kx) || []) if (Math.hypot(o.x - c.x, o.y - c.y) <= GROUP_R && !o.health?.down) { near++; if (armed(g, o)) group++; }
+  }
+  return { group, near };
+}
+
+/** The person a wolf at a would go for: { c, ease } (ease: how much easier than the distance says), or null. */
+function pickPerson(g, G, a) {
+  let best = null, bs = Infinity;
+  const c0x = ((a.x - CHASE) / CELL) | 0, c1x = ((a.x + CHASE) / CELL) | 0, c0y = ((a.y - CHASE) / CELL) | 0, c1y = ((a.y + CHASE) / CELL) | 0;
+  for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) for (const c of G.people.get(cy * 100000 + cx) || []) {
+    if (!g.s.colonists[c.id] || c.health?.down) continue;
+    const dist = Math.hypot(c.x - a.x, c.y - a.y);
+    if (dist > CHASE || roomAt(g, Math.round(c.x), Math.round(c.y))) continue; // safe indoors
+    const { group, near } = armedGroup(g, G, c);
+    if (group >= ARMED_GROUP) continue; // an armed group: the pack holds back
+    const st = stageOfP(g, c);
+    const ease = (st && st.untilDays !== undefined ? 6 : 0) + (near <= 1 ? 4 : 0) + (hpOfP(c) < 70 ? 4 : 0);
+    const sc = dist - ease;
+    if (sc < bs || (sc === bs && c.id < best.c.id)) { bs = sc; best = { c, ease }; }
+  }
+  return best;
+}
+
+/** A wolf closes on a person and bites (a wound: 'bite'). A pack whose victim is down has had its fill and goes. */
+function chasePerson(g, a, h, d, c, key) {
+  const s = g.s, cx = Math.round(c.x), cy = Math.round(c.y);
+  if (Math.max(Math.abs(cx - a.x), Math.abs(cy - a.y)) > 1) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepToward(g, a, cx, cy); return; }
+  const mine = (c.settlementId || s.playerSettlement) === s.playerSettlement;
+  injure(g, c, 'bite', 6 + Math.floor(draw(`${key}:maul`) * 9), 'Bitten by a wolf', false, mine ? 'warn' : 'info');
+  const sid = c.settlementId || s.playerSettlement;
+  (h.raids ||= {})[sid] = s.tick + 3 * TICKS_PER_DAY; // that village will hunt the pack
+  g.log(`Wolves attacked ${c.name}!`, mine ? 'warn' : 'info', `wolves:${c.id}`, 600);
+  if (c.health?.down) { h.fed = Math.floor(s.tick / TICKS_PER_DAY); delete h.angry; h.alarm = s.tick + ALARM; h.fx = cx; h.fy = cy; }
+}
+
+/** A person hurts an animal (fend, hunt): health down; a wolf's pack turns on them. Returns true when it died. */
+export function woundAnimal(g, id, dmg, c) {
+  const a = g.s.animals?.list?.[id], h = a && g.s.animals.herds[a.herd];
+  if (!a) return false;
+  a.hp -= dmg;
+  const d = h && g.reg.get('animal', h.sp);
+  if (d?.diet === 'hunt' && c) h.angry = { cid: c.id, until: g.s.tick + 600 };
+  return a.hp <= 0;
+}
+
+/** The nearest wolf (an animal of a hunting species) within r of (x, y), or null. */
+export function wolfNear(g, x, y, r) {
+  if (!g.s.animals?.list) return null;
+  const G = grids(g), A = g.s.animals;
+  return nearestIn(G, G.beasts, x, y, r, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && g.reg.get('animal', oh.sp)?.diet === 'hunt'; });
 }
 
 function bite(g, a, pack, prey, key) {

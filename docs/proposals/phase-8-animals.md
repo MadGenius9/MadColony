@@ -279,3 +279,23 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   from the village centre; a hunt's `valid` checks only the job's shape; weapon wear stops at 0.
 - **Classic runs** after the fixes: `forty` 75cdeebbd8710a70, `modern` 14be8f5a6511e9e2 (same outcomes).
 - **Not changed:** 148 tests pass (5 more in `tests/cloud-animals.test.js`).
+
+### Slice 4: wolves and people
+- **Built** (`animals.js` pack branch, `hunt.js`): a near pack turns on whoever hurt one of it (unless that
+  person is in an armed group of 3: then it breaks off and runs); when it has not eaten today it chases the
+  nearest deer or horse, or a person when no prey is near; in winter whichever is the easier catch. People are
+  picked weakest first (a child +6, someone alone +4, someone below 70% health +4 against the distance), never
+  inside a room, and never anyone with 3 or more armed people within 6 tiles. A bite is a wound of kind `bite`
+  (6–14; bandaged, may become infected or deep like other wounds; death cause "was killed by wolves"); a pack whose
+  victim is down has had its fill and goes; the bitten person's village marks the pack (`raids`) for 3 days.
+  People who see a wolf within 7 tiles run 10 tiles away from it, or, armed (a spear, or a bow with arrows) and
+  above 40% health, fend it off (job `fend`, the same strike as hunting; a kill leaves a wolf carcass, skinned
+  for a hide); a village whose people were attacked hunts the pack down (urgency 1.5, no hunting limit for
+  wolves; hunting a wolf makes the pack turn on the hunter).
+- **Seen** (classic seed 4242, a pack of 4 placed by the village): Tamsin, alone and unarmed, was bitten four
+  times, a bite festered, the village treated her; the pack, its victim down, moved off. Three armed people
+  together were never bitten (the pack fled when they struck one).
+- **Classic runs:** `forty` a3f4673dd1c9392c, `modern` 3982dd57aa2eadad (the 40-day world has wolves on its
+  grassland); same outcomes.
+- **Not changed:** 151 tests pass (3 more in `tests/cloud-animals.test.js`).
+

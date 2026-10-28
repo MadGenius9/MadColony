@@ -7,6 +7,7 @@ import { issueCommand } from '../src/sim/god.js';
 import { planNow } from '../src/sim/planner.js';
 import { endJob } from '../src/sim/ai/ai.js';
 import { newJob } from '../src/sim/ai/jobs.js';
+import { causeText } from '../src/sim/death.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 
@@ -249,4 +250,67 @@ test('review fixes: spoilage keeps reserved units, so a save and load mid-haul p
     return g;
   };
   assert.equal(stateText(run(true)), stateText(run(false)));
+});
+
+// ---------------- slice 4: wolves and people ----------------
+/** A classic game with only a hungry wolf pack, near the village (it becomes near); people placed by hand. */
+function wolfGame() {
+  const g = newGame({ seed: 4242 });
+  g.tick();
+  const c = g.s.settlements[g.s.playerSettlement].center, A = g.s.animals;
+  for (const id of Object.keys(A.herds)) delete A.herds[id];
+  const day = Math.floor(g.s.tick / 2400);
+  A.herds.h901 = { id: 'h901', sp: 'core:wolf', x: c.x - 18, y: c.y + 6, n: 4, day, year: 0, next: g.s.tick, fed: day - 1 };
+  A.next = 902; g._anIdx = null;
+  while (g.s.tick % 600 !== 451) g.tick();
+  return g;
+}
+/** Give c a spear through the ledger (created, then taken up). */
+function arm(g, c) {
+  g.createItems('core:spear', 1, Math.round(c.x), Math.round(c.y), 'start');
+  const st = Object.values(g.s.stacks).find((s) => s.item === 'core:spear');
+  const t = g.takeFromStack(st.id, 1);
+  c.equip.weapon = { item: t.item, dur: 1500 };
+}
+const bites = (c) => (c.health?.injuries || []).filter((i) => i.kind === 'bite').length;
+const place = (g, c, x, y) => { c.x = x; c.y = y; c.mv = null; c.path = null; if (c.job) endJob(g, c, null, 'test'); };
+
+test('wolves: a hungry pack goes for a lone person outdoors; bites are wounds; the village will hunt the pack', () => {
+  const g = wolfGame();
+  const w = Object.values(g.s.animals.list)[0], c = g.colonists()[0];
+  place(g, c, w.x + 4, w.y);
+  for (let t = 0; t < 400 && !bites(c); t++) g.tick();
+  assert.ok(bites(c) > 0, 'bitten');
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /Wolves attacked/);
+  assert.ok(g.s.animals.herds.h901.raids?.[c.settlementId || g.s.playerSettlement] > g.s.tick, 'the village marks the pack to hunt');
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('wolves: a pack holds back from 3 armed people together; an armed person fends one off and may kill it', () => {
+  const g = wolfGame();
+  const w = Object.values(g.s.animals.list)[0], [a, b, c] = g.colonists();
+  for (const p of [a, b, c]) { arm(g, p); place(g, p, w.x + 3, w.y + (p === b ? 1 : p === c ? -1 : 0)); }
+  let bitten = 0, fended = false;
+  for (let t = 0; t < 600; t++) {
+    for (const p of [a, b, c]) if (Math.hypot(p.x - (w.x + 3), p.y - w.y) > 4) { p.x = w.x + 3; p.y = w.y; p.mv = null; } // they stay together
+    g.tick();
+    if ([a, b, c].some((p) => p.job?.type === 'fend')) fended = true;
+  }
+  for (const p of [a, b, c]) bitten += bites(p);
+  assert.ok(fended, 'armed people turn on a wolf close by');
+  assert.equal(bitten, 0, 'nobody in the armed group was bitten');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+test('wolves: killed by wolves is a death cause; a save and load mid-attack plays on identically', () => {
+  assert.equal(causeText('bite'), 'was killed by wolves');
+  const run = (cut) => {
+    let g = wolfGame();
+    const w = Object.values(g.s.animals.list)[0], c = g.colonists()[0];
+    place(g, c, w.x + 4, w.y);
+    for (let k = 0; k < 6; k++) { g.step(60); if (cut.includes(k)) g = reload(g); }
+    return g;
+  };
+  assert.equal(stateText(run([1, 3])), stateText(run([])));
 });
