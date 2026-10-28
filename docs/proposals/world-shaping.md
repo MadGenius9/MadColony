@@ -1,7 +1,16 @@
 # World shaping (2026-10-24 direction, item 4)
 
-Status: **design** (2026-10-28). Waiting for the owner's "go" and answers to the open questions; the proposals below
-are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md).
+Status: **design, answered** (2026-10-28, the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
+CLAUDE.md).
+
+## The owner's answers (2026-10-28)
+1. **Brushes:** all of them, plus painting desert, snow and marsh.
+2. **Blank world:** open water with a few islands, as proposed. Also, generated maps should come with all their
+   land already made (terrain, forests, rocks, ore, as worldgen makes them) but no people. So the Blank world has
+   two starts: an empty ocean, and a generated world without people (the player spawns the first villages).
+3. **Running games:** yes, the player may reshape land where villages live (confirm near villages).
+4. **Cost:** yes, a cost (0.2 favour a tile in normal games; free in Sandbox and the Blank world).
+5. **Speed:** about 0.5 s a stroke on Vast is accepted for now; incremental caches later if it feels slow.
 
 ## Goal
 - **2026-10-24 direction, item 4:**
@@ -47,6 +56,8 @@ are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md)
   - **stone** and **ore:** place rock or ore nodes on free land (`created:divine` is not needed: nodes are not
     items, and mining them goes through the ledger as usual).
   - **flatten:** clear brush and rocks and level hills to grass, for building.
+  - **paint desert, snow or marsh** (the owner's answer 1): the land's surface becomes sand, snow or marsh (marsh
+    walks slowly; plants and crops follow the new ground: those that cannot grow there wither).
 - **Safety:**
   - A stroke never traps anyone (the existing `wouldTrap` check: tiles that would shut a person or a village in
     are left out).
@@ -60,9 +71,12 @@ are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md)
   - In a running game, at most one stroke an hour of game time is applied (the rest wait in the queue, shown).
   - Making the caches incremental (rebuild only round the change) is a later speed slice if strokes feel slow.
 
-### Blank world (a scenario)
-- A Vast-sized world of open water with a few islands (or flat grass: open question 2), no people, no animals and
-  no monsters at the start. Sandbox rules: favour is free.
+### Blank world (scenarios; the owner's answer 2)
+- **Empty ocean:** a Vast-sized world of open water with a few islands; no people, animals or monsters at the
+  start.
+- **Generated, no people:** any worldgen preset (temperate, continent, planet) generates as usual (terrain,
+  forests, rocks, ore), but no village is founded.
+- Both use Sandbox rules: favour is free.
 - The player shapes it with the brushes, then:
   - **spawn people** (the existing `spawn` power founds villages);
   - **animals** (Phase 8b `animals` power);
@@ -84,8 +98,9 @@ are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md)
 2. **The water, mountain, flatten, forest, stone and ore brushes.**
    - Tests: lakes drinkable, mountains impassable and people moved off, trees sprout and grow, ore mined through
      the ledger.
-3. **The Blank world scenario and "Start life".**
-   - Tests: an empty world shaped, people spawned, herds and lairs placed on the shaped land.
+3. **The Blank world scenarios (empty ocean; generated without people) and "Start life".**
+   - Tests: an empty world shaped, a generated world with no people, people spawned, herds and lairs placed on the
+     shaped land.
 4. **Speed:**
    - measure strokes on Vast and World;
    - the one-stroke-an-hour queue in running games;
@@ -93,7 +108,7 @@ are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md)
 5. **Acceptance:** a scripted shaping run (a continent built from water, villages founded, 60 days), save and
    load after each stroke, the classic runs, the bench, README and roadmap.
 
-## Open questions for the owner
+## Open questions (answered; see "The owner's answers")
 1. **Brushes:** raise, lower, water, mountain, flatten, forest, stone and ore. Add or drop any, e.g. desert, snow
    or marsh painting?
 2. **The Blank world's start:** open water with a few islands, or one flat grass plain?
