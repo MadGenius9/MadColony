@@ -208,4 +208,12 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   With `s.animals` left out, `forty` hashes to the old 9426646c1190c148: the herds change nothing else yet. Same
   outcome numbers (5 colonists, 65 built, workshops era at day 40; modern era reached).
 - **Not changed:** 139 tests pass (4 new in `tests/cloud-animals.test.js`).
+- **Review fixes:** the herds' ground counts were cached by the map revision, which craters leave alone (Phase 5b
+  keeps whole-map caches): a game saved after a meteor played on differently from one that was not (reproduced;
+  `terrainDrawRev` is now in the key, and a test checks meteors then a save and load). Wolves with no prey never
+  starved (winter is shorter than starveDays), so their numbers followed the land, not the deer: now a pack breeds
+  only after big prey and loses members above 3 (small game feeds 3) without it. Vast seed 7, 180 days: wolves
+  297 → 347 (day 60) → 189, deer 2,181 → 1,605 → 1,740, wild horses 734 → 484, all steady at the end. Herds are not
+  placed in mostly-water chunks (they could never move); herds of a species whose mod is gone are dropped on load;
+  `starveDays` is a whole number (else the game refused its own save).
 
