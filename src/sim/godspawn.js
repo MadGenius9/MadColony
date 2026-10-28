@@ -160,7 +160,8 @@ function preview(g, a, r) {
   return {
     mode: 'found', site: { x: a.x, y: a.y, ok: true }, village: { name, profile: prof?.id || null, profileName: prof?.name || '', color, detail: far ? 'abstract' : 'full' },
     people: a.count, supplies: sup, costPer: cost.per,
-    effect: `${plural(a.count, 'settler')} found ${name} here (${prof?.name || 'their own'} ways), bringing ${listText(sup) || 'nothing'}${far ? '; it is far from your village, so it is simulated at a distance' : ''}.`,
+    effect: g.s.playerSettlement === null ? `${plural(a.count, 'settler')} found ${name} here: your village, bringing ${listText(sup) || 'nothing'}.`
+      : `${plural(a.count, 'settler')} found ${name} here (${prof?.name || 'their own'} ways), bringing ${listText(sup) || 'nothing'}${far ? '; it is far from your village, so it is simulated at a distance' : ''}.`,
   };
 }
 
@@ -227,12 +228,17 @@ function applyFound(g, cmd, r) {
   for (const [f, p] of Object.entries(prof?.research || {})) research.priorities[f] = p;
   const pile = pileCells(a.x, a.y).map(([x, y]) => `${x},${y}`);
   const clone = (o) => JSON.parse(JSON.stringify(o || {}));
-  const rec = {
-    id: sid, name, ...(prof ? { profile: prof.id } : {}), ai: true, color, founded: s.tick, origin: 'divine',
-    center: { x: a.x, y: a.y }, stockpile: pile, research,
-    policy: clone(prof?.policy), trade: clone(prof?.trade), laws: { ...(prof?.laws || {}) }, enforcement: prof?.enforcement ?? 0.6,
-  };
+  // In a world with no people yet (world shaping), the first village founded is the player's: no AI profile,
+  // laws and policy as a starting player village.
+  const first = s.playerSettlement === null;
+  const rec = first ? { id: sid, name, color: '#e8b84a', founded: s.tick, origin: 'divine', center: { x: a.x, y: a.y }, stockpile: pile, research }
+    : {
+      id: sid, name, ...(prof ? { profile: prof.id } : {}), ai: true, color, founded: s.tick, origin: 'divine',
+      center: { x: a.x, y: a.y }, stockpile: pile, research,
+      policy: clone(prof?.policy), trade: clone(prof?.trade), laws: { ...(prof?.laws || {}) }, enforcement: prof?.enforcement ?? 0.6,
+    };
   s.settlements[sid] = rec;
+  if (first) { s.playerSettlement = sid; s.center = { x: a.x, y: a.y }; g._own = null; } // the player's village from now on
   ensureSettlement(g.reg, s, rec);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryAdded(sid);
@@ -246,9 +252,10 @@ function applyFound(g, cmd, r) {
   g.planDirty = true;
   (g.plans ||= {})[sid] = emptyPlan();
   (g.replanSids ||= new Set()).add(sid);
-  if (g.big && wantDetail(g, sid) === 'abstract') setDetail(g, sid, 'abstract', 'it is far from the player');
-  const ways = prof ? `, ${prof.name} ways` : '';
-  return { msg: `Divine settlers founded ${name} (${peopleN(ids.length)}${ways}; they brought ${listText(sup) || 'nothing'}).`, settlementId: sid, colonists: ids };
+  if (first) g.plan = g.plans[sid];
+  else if (g.big && wantDetail(g, sid) === 'abstract') setDetail(g, sid, 'abstract', 'it is far from the player');
+  const ways = prof && !first ? `, ${prof.name} ways` : '';
+  return { msg: `Divine settlers founded ${first ? 'your village, ' : ''}${name} (${peopleN(ids.length)}${ways}; they brought ${listText(sup) || 'nothing'}).`, settlementId: sid, colonists: ids };
 }
 
 function applyJoin(g, cmd, r) {

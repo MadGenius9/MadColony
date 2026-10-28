@@ -73,7 +73,7 @@ export class Game {
     this.plan = emptyPlan();
     this.plans = {};
     this.actor = null; // settlement acting right now (owner of items it creates/drops)
-    state.playerSettlement ||= 't1';
+    if (state.playerSettlement === undefined) state.playerSettlement = 't1'; // null: a world with no people yet (world shaping)
     state.settlements ||= { [state.playerSettlement]: { id: state.playerSettlement, name: 'First Hearth', founded: 0 } };
     for (const st of Object.values(state.settlements)) ensureSettlement(reg, state, st);
     for (const st of Object.values(state.settlements)) st.stockpile ||= [];
@@ -101,7 +101,9 @@ export class Game {
     const scenario = (opts.scenarioId && reg.get('scenario', opts.scenarioId)) || reg.all('scenario')[0];
     const size = WORLD_SIZES[opts.size] || WORLD_SIZES[scenario?.size] || null; // a size preset overrides the world's own width and height
     // The generator: one asked for, else the size preset's own (Vast and World are planets), else the scenario's.
-    const wg0 = (opts.worldgenId && reg.get('worldgen', opts.worldgenId)) || (size?.worldgen && reg.get('worldgen', size.worldgen)) || (scenario?.worldgen && reg.get('worldgen', scenario.worldgen)) || reg.all('worldgen')[0];
+    // A scenario's own planet-style generator (world shaping's ocean) wins over the size preset's planet.
+    const own = scenario?.worldgen && reg.get('worldgen', scenario.worldgen);
+    const wg0 = (opts.worldgenId && reg.get('worldgen', opts.worldgenId)) || (own?.planet && own) || (size?.worldgen && reg.get('worldgen', size.worldgen)) || own || reg.all('worldgen')[0];
     const wg = wg0 && size ? { ...wg0, width: size.w, height: size.h } : wg0;
     const prof = (opts.aiProfileId && reg.get('aiProfile', opts.aiProfileId)) || reg.all('aiProfile')[0];
     if (!scenario || !wg || !prof) throw new Error('Cannot start a game: scenario, worldgen or aiProfile content is missing.');
@@ -121,22 +123,27 @@ export class Game {
     const pile = [];
     for (let y = sy0; y < sy0 + 4; y++) for (let x = sx0; x < sx0 + 6; x++) pile.push(`${x},${y}`);
     s.center = { x: cx, y: cy + 3 };
-    // One settlement for now. Colonists belong to it; the planner plans for it. See docs/ARCHITECTURE.md.
-    s.settlements = { t1: { id: 't1', name: 'First Hearth', founded: 0, center: { ...s.center }, stockpile: pile, color: '#e8b84a' } };
-    s.playerSettlement = 't1';
-    // Remove anything spawned on the stockpile.
-    for (const [id, n] of Object.entries(s.nodes)) if (pile.includes(`${n.x},${n.y}`)) delete s.nodes[id];
+    // A world with no people (world shaping: scenario people: false): no village, no colonists, no neighbours;
+    // the first village founded by the spawn power becomes the player's (godspawn.js).
+    const empty = scenario.people === false;
+    if (empty) { s.settlements = {}; s.playerSettlement = null; } else {
+      // One settlement for now. Colonists belong to it; the planner plans for it. See docs/ARCHITECTURE.md.
+      s.settlements = { t1: { id: 't1', name: 'First Hearth', founded: 0, center: { ...s.center }, stockpile: pile, color: '#e8b84a' } };
+      s.playerSettlement = 't1';
+      // Remove anything spawned on the stockpile.
+      for (const [id, n] of Object.entries(s.nodes)) if (pile.includes(`${n.x},${n.y}`)) delete s.nodes[id];
+    }
 
     const game = new Game(reg, s);
     const g = game;
     // Starting items go into the stockpile.
-    for (const it of scenario.startItems) g.createItems(it.item, it.qty, s.center.x, s.center.y, 'start', undefined, true);
+    if (!empty) for (const it of scenario.startItems) g.createItems(it.item, it.qty, s.center.x, s.center.y, 'start', undefined, true);
     // Colonists
     const pool = reg.get('namePool', scenario.namePool);
     const names = rng.shuffle([...pool.names]);
     const skills = reg.all('skill');
     const needs = reg.all('need');
-    for (let i = 0; i < scenario.colonists; i++) {
+    for (let i = 0; i < (empty ? 0 : scenario.colonists); i++) {
       const id = 'c' + s.nextId++;
       const sk = {};
       for (const k of skills) sk[k.id] = (scenario.skillMin ?? 0) + rng.int((scenario.skillMax ?? 6) - (scenario.skillMin ?? 0) + 1);
@@ -154,7 +161,7 @@ export class Game {
       };
     }
     // Neighbouring AI villages (scenario option), founded after the player's colonists.
-    if (scenario.neighbors?.length) {
+    if (!empty && scenario.neighbors?.length) {
       // Village spacing grows with the map (square root of its area relative to the standard 72x52).
       const scale = Math.max(1, Math.sqrt((s.map.w * s.map.h) / (72 * 52)) * 0.75);
       game._neighborDistance = Math.round((scenario.neighborDistance || 24) * scale);
@@ -176,7 +183,7 @@ export class Game {
     startClaims(game); // organic territory: every settlement claims its first land (nothing otherwise)
     runPlanner(game);
     if (game.big) game.warmCaches();
-    game.log('The settlers have arrived. They will look after themselves; set goals to steer them.', 'good');
+    game.log(empty ? 'The world is empty: shape it, then send the first people (the spawn power).' : 'The settlers have arrived. They will look after themselves; set goals to steer them.', 'good');
     if (opts.sandbox) s.god = newGodState(game, true); // Sandbox: god powers are free (god.js); otherwise s.god is made by the first power used
     return game;
   }
@@ -858,7 +865,7 @@ export class Game {
   }
   /** Items that fit nowhere on the map are held (counted, shown in the UI) until space frees up. Never discarded. */
   holdOverflow(item, qty, x, y, dur) {
-    (this.s.overflow ||= []).push({ item, qty, x, y, settlement: this.currentOwner(), ...(dur !== undefined ? { dur } : {}), since: this.s.tick });
+    (this.s.overflow ||= []).push({ item, qty, x, y, settlement: this.currentOwner() || undefined, ...(dur !== undefined ? { dur } : {}), since: this.s.tick });
     this.log(`No free ground for ${qty} ${this.reg.get('item', item)?.name || item}; holding it until space frees up.`, 'warn', 'overflow:' + item, 600);
   }
   retryOverflow() {
@@ -1107,7 +1114,7 @@ export class Game {
   addStack(item, qty, x, y, dur) {
     this._holds?.clear();
     const id = this.newId('s');
-    const st = { id, item, qty, x, y, settlement: this.currentOwner() };
+    const st = { id, item, qty, x, y, settlement: this.currentOwner() || undefined }; // no owner yet (a world with no people): none
     if (dur !== undefined) st.dur = dur;
     this.s.stacks[id] = st;
     this.setStackId(this.i(x, y), id);

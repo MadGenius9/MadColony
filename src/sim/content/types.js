@@ -357,6 +357,7 @@ export const CONTENT_TYPES = {
     schema: obj({
       id, name,
       colonists: req(int(1, 20)),
+      people: bool(), // false: a world with no people at the start (world shaping); the first spawned village is the player's
       startItems: req(qtyList()),
       namePool: req(ref('namePool')),
       skillMin: int(0, 10),

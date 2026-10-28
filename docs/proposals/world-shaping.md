@@ -148,3 +148,27 @@ CLAUDE.md).
     3-tile clearance round villages and people.
 - **Test:** pines planted as previewed, replayed after a load and grown up within 45 days; ore rocks placed;
   nothing planted in the village.
+### Slice 3 (2026-10-28): the Blank world scenarios
+- **Built** (design A, from an explorer's audit of every place that assumes a player village):
+  - **Scenarios** (`mods/core/content/shaping.json`):
+    - `core:blank_generated`: the planet generator, all its land, forests, rocks, animals and monster lairs, but
+      no people (the owner's answer 2);
+    - `core:blank_ocean`: a new generator `core:ocean` (the planet with ocean share 0.9 and 2 continents: about
+      9% land).
+    - Both have `people: false`, a new scenario flag.
+  - **No player village yet:** `s.playerSettlement` is null, there are no settlements and no colonists. Saves
+    accept that. The planner plans nothing, and items made with no owner carry no `settlement`.
+  - **The first village founded by the spawn power becomes the player's:** no AI profile, laws or policy, at full
+    detail, the preview says "your village", and the landing spot moves there. Later villages are AI villages as
+    before.
+  - A scenario's own planet-style generator now wins over the size preset's planet (only the ocean differs; every
+    existing scenario plays as before).
+- **Not built:** "Start life" (holding animals and monsters back until the player starts it). The owner wants
+  generated maps to have everything but people, so herds and lairs are placed as usual.
+- **Tests** (`tests/cloud-blank.test.js`):
+  - an empty generated world runs, saves and loads;
+  - the first found is the player's, at full detail; the second is an AI village;
+  - people and items counted;
+  - the ocean world is mostly water;
+  - a meteor before anyone lives there leaves a valid save;
+  - an island raised from the sea is settled.

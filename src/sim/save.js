@@ -363,8 +363,8 @@ function validateContact(s, m, bad, inB) {
  *  validation and then crash the running game. */
 function validateSettlements(s, format, bad, inB) {
   const ids = new Set(Object.keys(s.settlements));
-  if (!ids.size) bad('the save has no settlements');
-  if (s.playerSettlement !== undefined && !ids.has(s.playerSettlement)) bad(`the player's settlement "${String(s.playerSettlement).slice(0, 40)}" does not exist`);
+  if (!ids.size && s.playerSettlement !== null) bad('the save has no settlements'); // null: a world with no people yet
+  if (s.playerSettlement !== undefined && s.playerSettlement !== null && !ids.has(s.playerSettlement)) bad(`the player's settlement "${String(s.playerSettlement).slice(0, 40)}" does not exist`);
   const numMap = (o) => isObj(o) && Object.values(o).every((v) => isNum(v));
   for (const [k, st] of Object.entries(s.settlements)) {
     const L = `settlement "${String(k).slice(0, 40)}"`;

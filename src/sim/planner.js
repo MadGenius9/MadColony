@@ -90,6 +90,7 @@ export function runPlanner(g, dueOnly = false) {
   const s = g.s;
   if (!s.center) return;
   const ids = Object.keys(s.settlements || {});
+  if (!ids.length && s.playerSettlement === null) return; // a world with no people yet: nothing to plan
   if (!ids.length) ids.push(s.playerSettlement || 't1');
   const prev = g.plans || {};
   const plans = dueOnly ? prev : {};
@@ -127,7 +128,7 @@ export function planNow(g, sid) {
 
 function planSettlement(g, sid) {
   const reg = g.reg, s = g.s, pol = g.policyFor(sid);
-  const player = s.playerSettlement || sid;
+  const player = s.playerSettlement === null ? null : s.playerSettlement || sid; // null: no player village yet
   const isPlayer = sid === player;
   const own = (e) => (e?.settlement || player) === sid;
   const center = settlementOf(g, sid)?.center || s.center;

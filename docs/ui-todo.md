@@ -327,3 +327,11 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Map:** the terrain redraws after a stroke (the map revision changes).
 - **More brushes (slice 2):** forest (young pines), stone (boulders) and ore (ore-bearing rocks, drawn as a
   reddish rock).
+
+## World shaping, slice 3: Blank worlds
+- **New game screen:** two new starts, "Blank world: generated land, no people yet" and "Blank world: open ocean
+  with a few islands".
+- **While `s.playerSettlement` is null:** the village panels, research, trade, goals and plan views show "No
+  village yet: shape the land, then send settlers" and offer the spawn tool. The spawn preview reads "… found X
+  here: your village".
+- After the first village is founded, the UI centres on it (it becomes `s.playerSettlement`).
