@@ -336,7 +336,7 @@ function move(g, h, d) {
 // predators within their fear ranges, stepping to the free neighbour tile farthest from the danger (their speed in
 // tiles), else graze a step now and then near the centre; a pack that has not eaten today chases the nearest prey
 // animal within CHASE tiles and bites it (health); a kill feeds the pack. Animals never block tiles; they step only
-// onto passable tiles of the region they stand in.
+// onto passable neighbour tiles, never diagonally between two blocked ones.
 const NEAR = 48, NEAR_CHECK = 600, NEAR_HOLD = 2400, STEP = 10, CELL = 8, CHASE = 20, GRAZE = 5, ALARM = 300;
 
 /** Near animals by herd and by step slot (derived; rebuilt when animals come or go). */
@@ -559,18 +559,17 @@ function bite(g, a, pack, prey, key) {
   pack.fed = Math.floor(g.s.tick / TICKS_PER_DAY);
 }
 
-/** Can animal a step onto (x, y): passable and in its own region (`home`: its region, worked out once a step). */
-const free = (g, a, x, y, home = g.regionOf(a.x, a.y)) => g.isPassable(x, y) && g.regionOf(x, y) === home;
+/** Can animal a step onto the neighbour tile (x, y): passable and, on a diagonal, not squeezing between two
+ *  blocked tiles (so a step never leaves its walkable area; no region lookups, which would force rebuilds). */
+const free = (g, a, x, y) => g.isPassable(x, y) && (x === a.x || y === a.y || g.isPassable(x, a.y) || g.isPassable(a.x, y));
 function stepAway(g, a, fx, fy) {
   let best = null, bd = Math.hypot(a.x - fx, a.y - fy);
-  const home = g.regionOf(a.x, a.y);
-  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y)) { bd = dd; best = [x, y]; } }
   if (best) { a.x = best[0]; a.y = best[1]; }
 }
 function stepToward(g, a, tx, ty) {
   let best = null, bd = Math.hypot(a.x - tx, a.y - ty);
-  const home = g.regionOf(a.x, a.y);
-  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y, home)) { bd = dd; best = [x, y]; } }
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y)) { bd = dd; best = [x, y]; } }
   if (best) { a.x = best[0]; a.y = best[1]; }
 }
 function stepNear(g, a, cx, cy, r, key) {
