@@ -352,9 +352,9 @@ test('8c review: a person inside a room is safe from a Gloomstalker at night', (
 
 test('8c forays: far monsters now and then go near a village for a while and come back; saves replay', () => {
   const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
-  runDays(g, 1);
+  runDays(g, 15); // forays begin on day 15
   let seen = 0, onForay = 0;
-  for (let d = 0; d < 20; d++) {
+  for (let d = 0; d < 25; d++) {
     runDays(g, 1);
     for (const m of Object.values(g.s.monsters.list)) if (m.foray && m.foray.until > g.s.tick) {
       onForay++;

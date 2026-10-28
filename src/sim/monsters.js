@@ -407,22 +407,23 @@ export function woundMonster(g, id, dmg, c) {
 }
 
 /** Far roaming: every other day back at the lair, else a tile of its ground within `roam` chunks of it. */
-// Forays: a far monster sets out, with chance FORAY_P a day, for the nearest standing village (more than SMALL
-// people) within FORAY_R tiles of its lair: it goes to a spot FORAY_AT tiles from the village centre on the side of
-// its lair and stays there FORAY_DAYS (its `home` meanwhile: den, fields and wandering centre on it), then goes back.
-// Near a full-detail village it acts there; near a distant one it raids in aggregate.
-const FORAY_P = 0.1, FORAY_R = 160, FORAY_AT = 24, FORAY_DAYS = 2;
+// Forays: from day FORAY_FROM on, a far monster sets out, with chance FORAY_P a day, for the nearest standing
+// village (more than SMALL people) within FORAY_R tiles of its lair that no monster visited in the last FORAY_GAP
+// days (s.monsters.visits): it goes to a spot FORAY_AT tiles from the village centre on the side of its lair and
+// stays there FORAY_DAYS (its `home` meanwhile: den, fields and wandering centre on it), then goes back. Near a
+// full-detail village it acts there; near a distant one it raids in aggregate.
+const FORAY_P = 0.04, FORAY_R = 160, FORAY_AT = 24, FORAY_DAYS = 2, FORAY_FROM = 15, FORAY_GAP = 15;
 /** Where monster m centres its life now: its foray spot while on a foray, else its lair. */
 export function homeOf(g, m) {
   return m.foray && m.foray.until > g.s.tick ? m.foray : g.s.monsters.lairs[m.lair];
 }
 function foray(g, m, d, lair, day) {
-  const s = g.s, key = `${s.seed}:${m.id}:foray:${day}`;
-  if (draw(key) >= FORAY_P) return false;
+  const s = g.s, key = `${s.seed}:${m.id}:foray:${day}`, V = (s.monsters.visits ||= {});
+  if (day < FORAY_FROM || draw(key) >= FORAY_P) return false;
   let best = null, bd = Infinity;
   for (const sid of Object.keys(s.settlements || {}).sort(byId)) {
     const v = s.settlements[sid];
-    if (v.fallen || !v.center || standing(g, g.owned('colonists', sid)) <= SMALL) continue;
+    if (v.fallen || !v.center || (V[sid] ?? -Infinity) > s.tick - FORAY_GAP * TICKS_PER_DAY || standing(g, g.owned('colonists', sid)) <= SMALL) continue;
     const dist = Math.hypot(v.center.x - lair.x, v.center.y - lair.y);
     if (dist <= FORAY_R && dist < bd) { bd = dist; best = { sid, v }; }
   }
@@ -432,6 +433,7 @@ function foray(g, m, d, lair, day) {
     const r = FORAY_AT + k, x = Math.round(v.center.x + ux * r + (k % 3) - 1), y = Math.round(v.center.y + uy * r + ((k >> 1) % 3) - 1);
     if (!g.inB(x, y) || !g.isPassable(x, y) || g.terrainAt(x, y).drinkable) continue;
     m.x = x; m.y = y; m.foray = { sid: best.sid, x, y, until: s.tick + FORAY_DAYS * TICKS_PER_DAY };
+    V[best.sid] = s.tick;
     g.log(`A ${d.name} was seen near ${v.name}.`, best.sid === s.playerSettlement ? 'warn' : 'info', `monster-seen:${m.id}`, 2400);
     return true;
   }

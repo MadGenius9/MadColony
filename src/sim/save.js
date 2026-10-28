@@ -258,6 +258,7 @@ function validateMonsters(s, bad) {
   const M = s.monsters, W = s.map?.w || 0, H = s.map?.h || 0, n = (v) => isInt(v) && v >= 0 && v <= 1e12;
   const onMap = (o) => isInt(o.x) && isInt(o.y) && o.x >= 0 && o.y >= 0 && o.x < W && o.y < H;
   if (!isObj(M) || !isObj(M.lairs) || !isObj(M.list) || !isInt(M.next) || M.next < 1 || !isObj(M.ledger)) { bad('state.monsters is malformed'); return; }
+  if (M.visits !== undefined && !(isObj(M.visits) && Object.keys(M.visits).length <= 10000 && Object.entries(M.visits).every(([k, v]) => isStr(k, 64) && isInt(v) && v <= s.tick))) { bad('state.monsters.visits is malformed'); return; }
   for (const [k, l] of Object.entries(M.lairs)) {
     const ok = isObj(l) && l.id === k && /^l\d{1,9}$/.test(k) && Number(k.slice(1)) < M.next && isStr(l.sp, 100) && onMap(l)
       && (l.monster === null || (isStr(l.monster, 20) && M.list[l.monster]?.lair === k)) && (l.since === undefined || (isInt(l.since) && l.since <= s.tick)) && (l.cleared === undefined || l.cleared === true);
