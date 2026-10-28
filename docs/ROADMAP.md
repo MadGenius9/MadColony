@@ -656,6 +656,26 @@ creatures, their looks, lairs and behaviour, built on the animal system.
   villages met a monster in the World run (forays may need tuning once the owner has played it); one 358 ms tick
   on day 170 of the World run is not explained.
 
+### World shaping (Done in the cloud copy, 2026-10-28)
+Terrain brushes and the Blank world (2026-10-24 direction, item 4), with their own design note.
+
+- **Done:**
+  - the `shape` power: raise, lower, water, mountain, flatten, paint desert, snow or marsh (the owner's answer 1),
+    and forest, stone and ore;
+  - strokes of radius 1-8 or drags; tiles under buildings, fields, stockpiles and people are kept;
+  - brushes that block the way keep 3 tiles clear of villages and people;
+  - 0.2 favour a tile, free in Sandbox (answer 4); destructive near villages, with a confirm (answer 3);
+  - the Blank world scenarios: generated land with no people, and an open ocean with a few islands (answer 2);
+    the first village founded there is the player's.
+  - Design and results: `docs/proposals/world-shaping.md`. No new state; save format stays 29.
+- **Acceptance:**
+  - 189 tests pass; classic runs unchanged;
+  - an island raised from open sea in 56 strokes, each saved, loaded and replayed identically, then settled:
+    after 60 days 7 people, 103 buildings, no deaths, everything counted.
+- **Carried over** (not done): an incremental water walk (a terrain stroke costs 0.6 s on Vast and 1.2 s on World
+  in a running game; the owner's answer 5 accepted about 0.5 s); an exact trap check instead of the 3-tile
+  clearance; "Start life" was dropped (generated maps keep their animals and monsters).
+
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
 (reserved road corridors, plots, farmland, expansion space) replacing nearest-good-spot site choice, with
@@ -663,7 +683,8 @@ reasons.
 
 ### Later: god powers, part 4 (terrain and weather), then worship
 Once weather exists: terrain brushes (raise and lower land, dig water, plant forest) and weather powers
-(rain, drought, storms). Later still: worship and favour coming from villages.
+(rain, drought, storms). Later still: worship and favour coming from villages. (2026-10-28: the terrain brushes
+are done, see "World shaping"; rain and drought came with Phase 5b.)
 
 ### Phase 10: leftovers, then review
 Families (partnerships, old age, more professions), contraband selling policy, scripting API for mods, zip

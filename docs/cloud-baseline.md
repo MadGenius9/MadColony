@@ -108,3 +108,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   45.5; monster forays from day 15 slow it).
 - Bench (the code before 8c, `1d05d00`, against now, two rounds): the sum over all six sizes was +8% and +1%.
 - World acceptance run: day 300 at 2.299 ms/tick, 289 people, 64 villages; save 12.3 MB; 21.1 min.
+
+## World shaping acceptance (2026-10-28)
+- No engine change since slice 4 (`fe93027`): 189 tests pass; classic `forty` f2b307a1c300840c, `modern`
+  875b3904209fce3d (modern era on day 45.5), as after Phase 8c.
+- Shaping run (`tools/cloud-shape-run.mjs 60 vast 7`): ok; 56 strokes, worst stroke tick 72.7 ms; after 60 days
+  7 people, 103 buildings, 4 fields, no deaths; worst living tick 100.4 ms.

@@ -183,3 +183,29 @@ CLAUDE.md).
 - **Not changed** (the owner's answer 5 accepted about 0.5 s; World is 1.2 s): an incremental water walk is
   carried over. Strokes that add water could update it locally; strokes that remove water or block the way need
   a bounded recompute round the change.
+### Slice 5 (2026-10-28): acceptance
+- **Run** (`tools/cloud-shape-run.mjs 60 vast 7`, the Blank ocean world in Sandbox): ok.
+  - **Shaping:** an island raised out of open sea from a 3x3 block of radius-8 discs 12 apart, with a lake,
+    a forest, stone and ore on it. 56 strokes.
+  - **Checks after every stroke:** a save and load, then 300 ticks; the copy matched the original every time.
+  - **A year passes** for the saplings to grow, then 5 settlers found the first village (it became the
+    player's).
+  - **After 60 days:** 7 people (2 born), 103 buildings, 4 fields and no deaths.
+  - **Counted every day:** items, people, animals and monsters.
+  - **Speed:** worst stroke tick 72.7 ms (no village yet, so no job asks for the water walk); worst living tick
+    100.4 ms.
+- **Learned on the way** (the run, not the engine, was wrong; the player can make the same mistakes):
+  - **Discs 16 apart only touch at points:** nine islets, and the village could not walk to its forest
+    ("No reachable Pine tree"). Discs that overlap fix it.
+  - **Overlapping raises pile up:** they lift grass to hills and then mountain. A flatten after each raise
+    keeps the overlaps grass.
+  - **The forest brush plants saplings:** they give no wood for 20 days.
+  - **The cold:** settlers who land near midwinter (day 21 of a 30-day year) with no house yet freeze, collapse
+    and starve.
+  - The UI notes ask for the season, a cold warning and the sapling's growth days.
+- **Suite:** 189 tests pass. Classic `forty` and `modern` are unchanged (no engine change since slice 4).
+- **Carried over** (not done):
+  - an incremental water walk (strokes cost 0.6 s on Vast and 1.2 s on World in a running game);
+  - an exact trap check instead of the 3-tile clearance;
+  - "Start life" (dropped: generated maps keep their animals and monsters);
+  - save format 30 was not needed (no new state).
