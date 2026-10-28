@@ -102,3 +102,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   - the sum over all six sizes: +5.5% and +4%.
 - Animal powers run (`tools/cloud-animalpowers-run.mjs 30 vast 7`): ok, worst tick 33.0 ms after day 1 (147.8 on
   day 1).
+
+## Phase 8c acceptance (2026-10-28)
+- Classic: `forty` f2b307a1c300840c (workshops era on day 5.94), `modern` 875b3904209fce3d (modern era on day
+  45.5; monster forays from day 15 slow it).
+- Bench (the code before 8c, `1d05d00`, against now, two rounds): the sum over all six sizes was +8% and +1%.
+- World acceptance run: day 300 at 2.299 ms/tick, 289 people, 64 villages; save 12.3 MB; 21.1 min.

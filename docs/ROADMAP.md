@@ -646,8 +646,15 @@ creatures, their looks, lairs and behaviour, built on the animal system.
   - a village with 3 or fewer standing is never hurt (answer 3); peaceful does not cover monsters (answer 4);
   - a monster ledger; save format 29.
   - Design and results: `docs/proposals/phase-8c-wild-monsters.md`.
+- **Acceptance:**
+  - 182 tests pass;
+  - World 300 days: 2.30 ms/tick at day 300, everything counted, save and load identical, no village wiped out;
+  - classic `forty` unchanged; `modern` on day 45.5 (monster forays from day 15);
+  - bench +1–8% against the code before 8c.
 - **Carried over** (not done): monsters do not find paths (a blocked one goes home after 30 steps); "lit
-  buildings" are not checked (rooms and fire only); no use yet for the gloom eye or heartwood (answer 5).
+  buildings" are not checked (rooms and fire only); no use yet for the gloom eye or heartwood (answer 5); few
+  villages met a monster in the World run (forays may need tuning once the owner has played it); one 358 ms tick
+  on day 170 of the World run is not explained.
 
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan

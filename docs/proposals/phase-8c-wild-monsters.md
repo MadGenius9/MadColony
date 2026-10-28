@@ -1,6 +1,6 @@
 # Phase 8c: wild monsters
 
-Status: **in progress** (the owner's answers on 2026-10-28, below). Branch `cloud-work` (cloud rescue copy; see
+Status: **done** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
 
 ## The owner's answers (2026-10-28)
@@ -227,3 +227,35 @@ All the names and looks are new to this game.
     - the hold-back test now checks that the fighter waits, then that the party fights;
     - new: the downed are never struck; a send on the first tick still gets the world's lairs; a person in a room
       is safe at night.
+
+### Forays and acceptance (2026-10-28)
+- **Forays:**
+  - A first World run showed no monster ever met a village in 300 days: lairs are 80+ tiles away and monsters
+    only roamed near home.
+  - Now, from day 15, a far monster sets out on a foray on about one day in 25, for the nearest standing village
+    of more than 3 people within 160 tiles. Each village is visited at most once in 15 days.
+  - It stays about 24 tiles from the village for 2 days (its den, fields and wandering centre on that spot),
+    then goes home. A letter says "A Thornback was seen near …".
+  - With forays on one day in 10 from the start, 12 older tests failed and the classic seed 4242 reached Modern
+    on day 47.5, so they were made rarer and later.
+- **Checks:**
+  - 182 tests pass.
+  - Classic `forty` f2b307a1c300840c: workshops on day 5.94 (unchanged), 5 colonists, nothing lost.
+  - Classic `modern` 875b3904209fce3d: the modern era on day 45.5 (41.24 before). The eras up to industry come
+    on the same days; the Thornback's forays to the one village from day 15 slow the rest. This is the cost of
+    monsters in classic games (the owner's answer 1).
+- **Bench** against the code before 8c (`1d05d00`, two rounds each in turn): the sum over all six sizes was
+  +8% and +1%.
+- **World, 50 days, profiled one after the other:** 0.691 ms/tick before 8c and 0.726 now (+5%); `tickMonsters`
+  took 0.24 s of 84 s.
+- **World acceptance run** (`tools/cloud-world-run.mjs 300 world 7 25 150`, nothing else running):
+  - day 300: 2.299 ms/tick (Phase 8's run: 2.577), 289 people, 64 villages (60 standing);
+  - items, people, animals and monsters exact at every check;
+  - the save at day 150 continued identically;
+  - one Thornback was slain by villagers and its lair grew another; no deaths by monsters;
+  - worst tick 358 ms on day 170 (not looked into; 224.6 ms on day 1).
+- **Targets:**
+  - Monsters rare, dangerous and visible: rare, yes; in this run few met villages (forays now begin on day 15).
+  - No village wiped out by monsters: met.
+  - Lairs regrow unless cleared: met (tests and the run).
+  - No cost when no monster is near: about 5% on World.
