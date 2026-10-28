@@ -568,6 +568,9 @@ as Phase 2c.
   reason; buildings have no partial damage (torn down or standing); rocks do not split in an earthquake; forest
   spread costs the Vast world about 10–15% (more trees to walk round and search: lower `perDay` in the data to
   trade growth for speed); costs and "powers may hit your own village" stand as proposed (open questions 2–3).
+  Found in Phase 8: on the World map forest spread costs about +35% by day 50 (Phase 5 code 0.359 ms/tick,
+  Phase 5b code 0.485, same machine), mostly from region rebuilds forced by the new trees' trap checks; the
+  Phase 5b acceptance timed small maps only.
 
 ### Phase 6: government
 Village council and policies that change real decisions (food reserves, research, trade, work allocation,
@@ -584,9 +587,30 @@ together with warehouses; the coarse-route corridor parked in Phase 1 (branch
 `phase1-path-corridor-experiment`) and a path cache, to be measured again once roads change how people
 travel.
 
-### Phase 8: animals and the wild
+### Phase 8: animals and the wild (Done in the cloud copy, 2026-10-28)
 Wildlife ecology (deer and predators), hunting chain to the kitchen, horses; herds as dots zoomed out;
 population-level simulation for distant regions.
+
+- **Done:** deer, wolves and wild horses in every game (owner's answer 1), as herd counts far from people and
+  single animals near full-detail villages; spring births, winter losses, winter ground and winter moves,
+  drought losses; wolf packs eating deer and horses; hunting with weapons, a hunting limit of 3 (answer 5),
+  carcasses, butchering, venison, horse meat and hides; meat and carcasses spoil (answer 2); wolves as
+  dangerous as real ones to lone people, with fleeing, fending off and hunting a pack down (answer 4);
+  distant villages hunt and are raided in aggregate. Wild horses only; taming comes later (answer 3). Save
+  format 27. Design and results: `docs/proposals/phase-8-animals.md`.
+- **Acceptance** (`tools/cloud-world-run.mjs 300 world 7 25 150`):
+  - every species survives 300 days within its land (day 300: 290 wolves, 2,282 deer, 1,049 horses);
+  - 662 carcasses hunted, with meat 1.7–4.7% of raw food;
+  - the save at day 150 continued identically, and items and people were exact at every check;
+  - classic `forty` unchanged and `modern` reaching the modern era on day 42.76 (41.63 before).
+- **Carried over** (not done):
+  - **Speed:** animals near villages cost 0–20% on bench small, 25–35% on medium and +35% on World by day 50
+    (explained, not fixed: each near animal is simulated every 10 ticks; with animals off the code is as fast as
+    before). Fewer full-detail animals would be the fix and is the owner's call.
+  - **Wolves:** they decline slowly on the World map (598 at day 50 to 290 at day 300), and none killed anyone in
+    the 300-day World run; whether they should be more dangerous is open.
+  - **Distant hunting:** distant villages spend no arrows and wear no weapons on hunts; their hunting share is not
+    measured against full detail.
 
 ### Phase 8b: god powers, part 3 (animals)
 Spawn animals (deer, wolves, horses, later livestock) as herds or single animals, using the animal system's
@@ -668,7 +692,8 @@ A village council and settlement policies that actually change decisions (food r
 - Acceptance: a settlement identifies a transport need, builds infrastructure, makes or acquires transport through the economy, and delivers real goods to another settlement unassisted.
 
 ## Larger world and animals (Phases 1 and 8)
-**There is no animal or wildlife system today**: no animals, no placeholder animal sprites.
+**Wildlife exists since Phase 8** (deer, wolves, wild horses, hunting and butchering; see Phase 8). Still open:
+taming, horses as mounts, wagons, and drawing animals in the UI (`docs/ui-todo.md`).
 1. A configurable, seeded world in regions or chunks, with lower-frequency updates for distant regions that never reset populations or history. Performance is measured before scaling up; a world map shows settlements and routes.
 2. Deer ecology (habitat, food, movement, fear, reproduction, population caps) and a complete hunting chain: policy → equipment → travel → hunt (animal health, no instant inventory) → butcher → haul → kitchen. Sustainable hunting limits as a policy.
 3. Horses: taming or acquisition, ownership, feeding, pasture or shelter, breeding.

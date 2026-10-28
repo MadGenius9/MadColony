@@ -79,3 +79,14 @@ Hunting at work priority 1: `forty` b9406ed4939d61cc (workshops era on day 6.05)
 
 After the review (hunting priority back to 0.8; the `far` fix has no effect on classic worlds): `forty`
 a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
+
+## Phase 8 acceptance (2026-10-28)
+- Classic: `forty` a3f4673dd1c9392c (unchanged), `modern` 0c1fcaacd5934528 (modern era on day 42.76): the
+  herd-move draw changed, which affects far herds on a classic map.
+- Bench (2 days, neighbours, seed 7; the code before Phase 8, `b77cbfc`, against now, same machine): small
+  0.23–0.30 against 0.27–0.35, medium 0.34–0.54 against 0.42–0.64, large 0.66–1.07 against 0.69–1.07 ms/tick.
+  With animals off, the current code matches the code before Phase 8.
+- World acceptance run (`tools/cloud-world-run.mjs 300 world 7 25 150`): day 300 at 2.577 ms/tick, 314 people,
+  64 villages; save 12.7 MB; 21.4 min. Table in `docs/proposals/phase-8-animals.md`, "Slice 7".
+- Phase 5 code (`529b86f`) on the same machine, World, day 50: 0.359 ms/tick (0.186 recorded on 2026-10-26: the
+  machine is slower now).

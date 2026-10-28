@@ -369,3 +369,71 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   - Whether a species moves away from droughts now comes from the data (`droughtLoss`), not from its diet.
   - The Vast test now also casts a drought on a far deer herd and checks that the herd leaves it within two days.
   - After the fixes: 153 tests pass; the classic hashes are unchanged.
+
+### Slice 7: acceptance (2026-10-28)
+- **World run** (`tools/cloud-world-run.mjs 300 world 7 25 150`, World 2048×1536, seed 7; the tool now also
+  reports herd numbers, carcasses hunted and the meat share of raw food made):
+
+| Day | ms/tick | Worst tick | People | Villages | Wolves | Deer | Horses | Hunted (total) | Meat share |
+|---|---|---|---|---|---|---|---|---|---|
+| 25 | 0.487 | 142.5 (day 1) | 41 | 7 | 523 | 4,265 | 1,559 | 36 | 4.7% |
+| 50 | 0.587 | 71.4 | 61 | 13 | 598 | 3,617 | 1,532 | 79 | 4.7% |
+| 100 | 0.945 | 77.7 | 129 | 31 | 576 | 2,906 | 1,255 | 181 | 3.7% |
+| 150 | 1.576 | 86.2 | 226 | 53 | 404 | 2,202 | 1,015 | 314 | 2.9% |
+| 200 | 2.574 | 96.4 | 310 | 64 | 359 | 2,449 | 1,045 | 496 | 2.3% |
+| 250 | 2.361 | 101.3 | 311 | 64 | 322 | 2,609 | 1,098 | 592 | 2.0% |
+| 300 | 2.577 | 196.0 | 314 | 64 | 290 | 2,282 | 1,049 | 662 | 1.7% |
+
+- **Targets:**
+  - Every species survives 300 days and none grows past its land: met. Deer and horses settle from day 150
+    (deer 2,200–2,700 with the yearly cycle, horses about 1,000–1,100). Wolves fall slowly all the way (598 at
+    day 50, 290 at day 300), as packs thin the deer near villages; see "Carried over".
+  - A village near deer gets part of its food from hunting (`created:hunt`): met. 662 carcasses by day 300, but
+    meat is only 1.7–4.7% of raw food made (farms grow far more).
+  - Save and load: met. A save at day 150 loaded in 4.4 s; two copies and the unsaved game ran the next day
+    identically.
+  - Conservation: met. Items and people were exact at every check.
+- **Wolves and people:** no one was killed by wolves in 300 days (deaths: sickness 16, dehydration 6,
+  hypothermia 2, old age 2, infection 1). In classic and Vast tests a hungry pack does bite and kill a lone
+  person. On the World map, villages are placed away from herds, packs keep off villages, and a pack that has
+  eaten leaves people alone.
+- **Classic runs:**
+  - `forty` a3f4673dd1c9392c: unchanged.
+  - `modern` 0c1fcaacd5934528: the modern era on day 42.76 (41.63 before; 5 colonists, 90 built). The new herd-move
+    draw (one hash per move) changes the far herds of a classic map: herds more than 48 tiles from the village are
+    far there too.
+- **Speed:**
+  - Changes that keep results the same:
+    - hunting lookups use the herd chunk index;
+    - herd moves share one village set a tick and one hash;
+    - an animal's region is looked up once a step;
+    - the near-animal grid is kept current as animals step;
+    - the person grid is built from the village index.
+  - Tried and undone (no measurable gain):
+    - steps without region lookups;
+    - grazers acting every other turn.
+  - Measured on the same machine against the code before Phase 8 (`b77cbfc`):
+    - With animals turned off, the current code is as fast as before (medium game 0.431–0.433 against
+      0.433–0.462 ms/tick).
+    - With animals on, bench small is 0–20% slower and medium 25–35%. Large is within noise (+0–5%).
+    - World is +8% over the first 30 days and about +35% by day 50–60.
+  - **Explained, not fixed:**
+    - The cost is the animals near villages, each simulated every 10 ticks: the medium bench game keeps about
+      110 animals near 11 people, at about 11 µs an act (fleeing steps, nearest-person and nearest-prey lookups,
+      region checks). Colonists' work choice adds about 5% (hunting options), and the wolf check adds 1%.
+    - Halving the grazers' turns saved no measurable time, so there is no single hot spot left. The real lever is
+      fewer full-detail animals (a smaller NEAR radius, or near herds only round the player's village on small
+      maps): a design choice for the owner (open question below).
+  - Worst ticks on the World run: 142 ms on day 1 (the world starting) and up to 196 ms later (tick 702437).
+    In a 50-day run of the code before Phase 8 the worst ticks were about 100 ms on day 1 and 47 ms by day 50; this run's were 71 ms by day 50.
+- **Found on the way (Phase 5b):**
+  - On the same machine the World run costs 0.359 ms/tick at day 50 with the Phase 5 code (`529b86f`) and
+    0.485 with the code before Phase 8: +35%, from forest spread.
+  - New trees check whether they would trap someone (`wouldTrap`), and that forces region rebuilds.
+  - Phase 5b's acceptance timed small maps only.
+- **Carried over:**
+  - **Wolves:** a slow decline on the World map; whether wolves should kill people more often (the owner asked
+    for wolves as dangerous as real ones); full-detail animals cost 10–35% on small and medium maps (above).
+  - **Hunting:** distant villages do not spend arrows or wear weapons on hunts; `LOD.share.hunt` is not measured
+    against full detail.
+  - **Phase 5b:** the forest-spread cost on World (+35%).
