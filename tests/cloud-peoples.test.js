@@ -19,6 +19,10 @@ import { tickRivalry } from '../src/sim/war.js';
 import { relationOf } from '../src/sim/villages.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
+import { makeLook, inheritLook, SKIN, HAIR } from '../src/sim/appearance.js';
+import { namePoolOf } from '../src/sim/names.js';
+import { foundVillage } from '../src/sim/villages.js';
+import { Rng } from '../src/sim/rng.js';
 
 /** No colonist has more than two traits, a trait twice or a trait with its opposite. */
 function traitsOk(g, c) {
@@ -295,4 +299,40 @@ test('peoples: rivalry grows faster between villages of different peoples', () =
   assert.ok(same.d > 0, `rivalry between neighbours (${same.d})`);
   // Reedkin temperament 1, Hearthfolk 1: only the 1.5 for different peoples changes the fall.
   assert.ok(Math.abs(other.d - 1.5 * same.d) < 0.02, `${other.d} against ${same.d}`);
+});
+
+// ---- slice 4: names and looks
+test('peoples: Hearthfolk look as before; other peoples have their own names and palette; children take after their parents', () => {
+  const g = newGame({ seed: 8, scenario: 'core:neighbours', size: 'large', villages: 1 });
+  assert.deepEqual(makeLook('7:3'), makeLook('7:3', null), 'no palette: today\'s look, drawn as before');
+  assert.ok(SKIN.includes(makeLook('k').skin) && HAIR.includes(makeLook('k').hair));
+  const pal = g.reg.get('people', 'core:cragborn').look;
+  for (let i = 0; i < 30; i++) {
+    const l = makeLook(`c${i}`, pal);
+    assert.ok(pal.skin.includes(l.skin) && pal.hair.includes(l.hair) && pal.styles.includes(l.style));
+    assert.ok(l.height >= pal.height[0] && l.height <= pal.height[1]);
+  }
+  assert.equal(namePoolOf(g, 'X', 'core:hearthfolk').names, namePoolOf(g, 'X').names, 'Hearthfolk: the scenario\'s names');
+  assert.ok(namePoolOf(g, 'X', 'core:cragborn').names.includes('Haska'));
+  // A child's skin and hair come from a parent; height lies near theirs.
+  const a = makeLook('pa', pal), b = makeLook('pb', pal);
+  for (let i = 0; i < 20; i++) {
+    const k = inheritLook(`kid${i}`, a, b, pal);
+    assert.ok([a.skin, b.skin].includes(k.skin) && [a.hair, b.hair].includes(k.hair));
+    assert.ok(Math.abs(k.height - (a.height + b.height) / 2) <= 0.021);
+    assert.deepEqual(k, inheritLook(`kid${i}`, a, b, pal));
+  }
+  // An AI village of a profile naming the Cragborn: its people, names and palette.
+  const prof = { ...g.reg.all('villageProfile')[0], people: 'core:cragborn' };
+  const used = new Set(Object.values(g.s.colonists).map((c) => c.name));
+  const sid = foundVillage(g, prof, new Rng({ s: 5 }), used);
+  assert.ok(sid, 'a site for the village');
+  assert.equal(g.s.settlements[sid].people, 'core:cragborn');
+  const pool = namePoolOf(g, 'X', 'core:cragborn');
+  for (const c of g.owned('colonists', sid)) {
+    assert.equal(c.people, 'core:cragborn');
+    assert.ok(pool.names.includes(c.name.split(' ')[0]), c.name);
+    assert.ok(pal.skin.includes(c.look.skin));
+  }
+  assert.ok(peopleCensus(g).ok, JSON.stringify(peopleCensus(g).problems));
 });

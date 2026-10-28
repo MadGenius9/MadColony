@@ -36,6 +36,9 @@ export function knownPeople(g, id) { return id && g.reg.get('people', id) ? id :
 /** A settlement's people (its own, else the default). */
 export function peopleOfSettlement(g, sid) { return knownPeople(g, g.s.settlements[sid]?.people); }
 
+/** A people's look palette (appearance.js makeLook), or null for today's palette. */
+export function paletteOf(g, people) { return (people && g.reg.get('people', people)?.look) || null; }
+
 /** Do traits a and b clash (the same, or opposites)? */
 function clash(reg, a, b) {
   if (a === b) return true;

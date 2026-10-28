@@ -8,7 +8,7 @@ import { makeLook } from './appearance.js';
 import { namePoolOf, uniqueName, firstByKey } from './names.js';
 import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.js';
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
-import { knownPeople, settleFolk, modsOf } from './peoples.js';
+import { knownPeople, settleFolk, modsOf, paletteOf } from './peoples.js';
 import { isAdult } from './people.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
@@ -278,7 +278,8 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
   g.actor = sid;
   for (const it of profile.startItems) g.createItems(it.item, it.qty, site.x, site.y + 3, 'start', undefined, true);
   g.actor = null;
-  const pool = namePoolOf(g, 'Settler');
+  const folk = s.settlements[sid].people;
+  const pool = namePoolOf(g, 'Settler', folk); // the people's names (peoples.js), else the scenario's
   const names = rng.shuffle(pool.names.filter((x) => !usedNames.has(x)));
   const skills = g.reg.all('skill');
   for (let i = 0; i < profile.colonists; i++) {
@@ -291,7 +292,7 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
     const nd = {};
     for (const nn of g.reg.all('need')) nd[nn.id] = nn.behavior === 'core:shelter' ? 0.6 : 0.8;
     s.colonists[id] = {
-      id, settlementId: sid, name: cname, color: profile.color, look: makeLook(`${s.seed}:${sid}:${i}`),
+      id, settlementId: sid, name: cname, color: profile.color, look: makeLook(`${s.seed}:${sid}:${i}`, paletteOf(g, folk)),
       x: site.x - 1 + (i % 3), y: site.y, mv: null, skills: sk, xp: {}, needs: nd, carry: null, equip: { tool: null, weapon: null },
       homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false, idle: 0,
       status: { goal: 'Arriving', action: 'Looking around', target: '', blocker: '' }, workCount: {},

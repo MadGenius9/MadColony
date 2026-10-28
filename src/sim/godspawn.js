@@ -30,7 +30,7 @@ import { LOD, wantDetail, setDetail, isAbstract } from './lod.js';
 import { rings, octile } from './util.js';
 import { claimRadius } from './territory.js';
 import { livingCount } from './fallen.js';
-import { defaultPeople, peopleOfSettlement, settleFolk } from './peoples.js';
+import { defaultPeople, peopleOfSettlement, settleFolk, paletteOf } from './peoples.js';
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -190,7 +190,7 @@ function placesAround(g, x0, y0, region, n) {
 /** n new adult colonists of `sid` (like world-start founders, but every random choice from a hash of the
  *  command): ids from s.nextId, names from the scenario's pool, skills 0..5. Counted in s.god.spawned. */
 function makeSettlers(g, cmd, sid, color, spots, why) {
-  const s = g.s, key = keyOf(g, cmd), pool = namePoolOf(g, 'Settler');
+  const s = g.s, key = keyOf(g, cmd), folk = peopleOfSettlement(g, sid), pool = namePoolOf(g, 'Settler', folk);
   const used = usedNames(s); // the living and the dead (death.js)
   const skills = g.reg.all('skill'), needs = g.reg.all('need');
   const ids = [];
@@ -205,7 +205,7 @@ function makeSettlers(g, cmd, sid, color, spots, why) {
     const nd = {};
     for (const n of needs) nd[n.id] = n.behavior === 'core:shelter' ? 0.6 : 0.8;
     const c = s.colonists[id] = {
-      id, settlementId: sid, name, color, look: makeLook(`${key}:${i}`),
+      id, settlementId: sid, name, color, look: makeLook(`${key}:${i}`, paletteOf(g, folk)),
       x, y, mv: null, skills: sk, xp: {}, needs: nd, carry: null, equip: { tool: null, weapon: null },
       homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false, idle: 0,
       status: { goal: 'Arriving', action: why, target: '', blocker: '' }, workCount: {}, origin: 'divine',

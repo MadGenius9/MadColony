@@ -612,7 +612,7 @@ export const CONTENT_TYPES = {
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
   },
   people: {
-    doc: 'A people (peoples.js, Peoples and traits): every colonist and village belongs to one; villages keep to one people. default: the people of classic colonists and old saves (exactly one should have it). terrains: its home land (founding and spawn previews). needs: need decay multipliers (1 = as defined); cold: degrees C later (+) or sooner (-) the cold sets in; work: work-speed multipliers by skill; walk: walking speed multiplier; temperament: border rivalry 0-5 for its villages without a profile temperament; food: eaten first; traitOdds: [none, one, two] weights of how many traits a new person has. about: what it is (shown).',
+    doc: 'A people (peoples.js, Peoples and traits): every colonist and village belongs to one; villages keep to one people. default: the people of classic colonists and old saves (exactly one should have it). terrains: its home land (founding and spawn previews). namePool: its own names; look: its own palette (appearance.js). needs: need decay multipliers (1 = as defined); cold: degrees C later (+) or sooner (-) the cold sets in; work: work-speed multipliers by skill; walk: walking speed multiplier; temperament: border rivalry 0-5 for its villages without a profile temperament; food: eaten first; traitOdds: [none, one, two] weights of how many traits a new person has. about: what it is (shown).',
     schema: obj({
       id, name, plural: str(40), about: str(300), default: bool(),
       terrains: arr(ref('terrain')),
@@ -620,6 +620,12 @@ export const CONTENT_TYPES = {
       work: map({ type: 'ref', to: 'skill' }, num(0.1, 10)), walk: num(0.25, 4),
       temperament: int(0, 5), food: ref('item'),
       traitOdds: arr(num(0, 100), { minItems: 3, maxItems: 3 }),
+      namePool: ref('namePool'), // its own names (default: the scenario's)
+      look: obj({ // its own palette (default: today's, appearance.js)
+        skin: arr(color, { minItems: 1 }), hair: arr(color, { minItems: 1 }), pants: arr(color, { minItems: 1 }),
+        styles: arr({ type: 'enum', values: ['short', 'crop', 'long', 'bun', 'ponytail', 'curly', 'bald', 'braid', 'mohawk'] }, { minItems: 1 }),
+        build: arr(num(0.5, 2), { minItems: 2, maxItems: 2 }), height: arr(num(0.5, 2), { minItems: 2, maxItems: 2 }), beard: num(0, 1),
+      }),
       color,
     }),
   },

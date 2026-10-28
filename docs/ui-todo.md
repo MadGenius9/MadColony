@@ -358,3 +358,9 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Trade window:** the offer's lines include "Greedy folk there: they ask N% more."
 - **Relations panel:** a rivalry reason ending "(Hearthfolk and Reedkin)" means the feud is faster because
   they are different peoples.
+
+## Peoples and traits, slice 4: looks
+- **Colonist sprites** read `look` as before. The new palettes only use existing parts.
+- **Optional:** a "wrapped" head style for the Duneshade.
+- **Optional:** Cragborn are taller and broader (height 1.02–1.12, build 1.0–1.3); Reedkin are small (height
+  0.86–0.96). Sprites should scale with `height` and `build` if they do not already.

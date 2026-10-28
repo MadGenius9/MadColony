@@ -282,3 +282,17 @@ Each person has 0 to 2 traits. Opposite traits never go together.
 - **Not built:**
   - favourite food in distant villages (their food is picked for the whole village);
   - greed in trades between two AI villages (only offers to and from the player use it).
+### Slice 4 (2026-10-28): names and looks
+- **Built:**
+  - **Name pools:** each people may name a `namePool` (`names.js namePoolOf`). Reedkin, Cragborn and Duneshade
+    have their own 24 first names and 8 surnames, all invented for this game. Hearthfolk keep the scenario's.
+  - **Look palettes:** each people may give a `look` (skin, hair, trousers, hair styles, build and height
+    ranges, beard chance; `appearance.js makeLook`).
+    - Without one (the Hearthfolk), looks are drawn exactly as before.
+    - The palettes use the existing hair styles only. A "wrapped" style for the Duneshade is a UI note.
+  - **Children take after their parents** (`inheritLook`): skin and hair each from one parent, build and
+    height between theirs, the rest their own.
+  - **Where:** AI villages, divine settlers and births use their people's names and palette.
+  - **Already done in slice 1:** traits inherited at birth.
+- **Classic:** a child born now takes after the parents, so their look differs from before (play does not).
+  The classic runs have no births, so their hashes are unchanged. 201 tests pass.
