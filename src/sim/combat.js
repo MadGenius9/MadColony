@@ -23,7 +23,7 @@ export const COMBAT = {
   unarmed: { name: 'fists', damage: 3, range: 1.5, cooldown: 50, accuracy: 0.7 },
   woundRelation: -2, // relation cost per wound inflicted
 };
-export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm', 'fend']); // fend: against wild animals (hunt.js)
+export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm', 'fend', 'slay']); // fend: against wild animals (hunt.js); slay: monsters (slay.js)
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 
@@ -267,7 +267,7 @@ export function armJob(g, c) {
 export function combatDecision(g, c) {
   if (isDown(c)) return null;
   if ((g.s.tick + c.id.length * 3) % COMBAT.scanEvery) return null;
-  if (c.job && COMBAT_JOBS.has(c.job.type) && c.job.type !== 'fend' && !(c.job.type === 'flee' && c.job.wolf)) return null; // raiders come before wolves
+  if (c.job && COMBAT_JOBS.has(c.job.type) && c.job.type !== 'fend' && c.job.type !== 'slay' && !(c.job.type === 'flee' && (c.job.wolf || c.job.monster))) return null; // raiders come before wolves and monsters
   const sid = sidOf(g, c);
   const ord = orderOf(g, sid);
   const st = settlementOf(g, sid);

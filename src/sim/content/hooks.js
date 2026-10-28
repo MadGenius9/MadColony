@@ -35,6 +35,14 @@ export const GIVER_SPECS = {
     doc: 'Phase 8: when the village is short of meat and a herd of a huntable species (one with a carcass) is near and above the hunting limit, an armed hunter stalks it, kills one animal and leaves its carcass to be hauled and butchered.',
     params: obj({}),
   },
+  'core:slay_monster': {
+    doc: 'Phase 8c: when a monster threatens the village (a Barkmaw near it, or a monster that hurt its people, fields or buildings in the last 3 days) and the village has enough armed, fit adults (the monster\'s fightGroup), they form a hunt party; they close in only together and leave the carcass or drops where it fell.',
+    params: obj({}),
+  },
+  'core:clear_lair': {
+    doc: 'Phase 8c: an empty, uncleared monster lair within 60 tiles of the village is cleared by one adult, so no monster grows there again.',
+    params: obj({}),
+  },
   'core:bills': {
     doc: 'Works production bills (recipes whose `workType` matches this work type) at a free station.',
     params: obj({}),

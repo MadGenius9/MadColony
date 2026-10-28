@@ -154,7 +154,7 @@ function hourly(g, m) {
 // Fire hurts every monster standing in it (BURN a step); a Barkmaw burns twice as fast.
 // The owner's answer 3: a village of SMALL or fewer people is never wiped out: its people and buildings are left
 // alone (its fields may still be trampled). Steps: passable tiles, never diagonally between two blocked ones.
-const NEAR = 40, STEP = 10, DEN = 8, FIELD = 40, STALK = 30, TEAR = 30, TEAR_WORK = 100, BURN = 25, SMALL = 3, COOL = 40, FEAST = 3;
+const NEAR = 40, STEP = 10, DEN = 8, FIELD = 40, STALK = 30, TEAR = 30, TEAR_WORK = 100, BURN = 25, SMALL = 3, COOL = 60, FEAST = 3;
 const D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 const WOUND = { trample: ['gore', 'Gored by a Thornback'], stalk: ['maul', 'Mauled by a Gloomstalker'], tear: ['crush', 'Crushed by a Barkmaw'] };
 
@@ -198,8 +198,13 @@ function trample(g, m, d) {
   if (!cr) return;
   destroyCrop(g, cr.id);
   m.trampled = (m.trampled || 0) + 1;
+  raided(g, m, cr.settlement);
   g.log(`A ${d.name} trampled crops in the fields!`, 'warn', `monster-trample:${m.id}`, 1200);
 }
+
+/** The village sid (or the player's) will hunt monster m for RAID ticks (slay.js). */
+const RAID = 3 * TICKS_PER_DAY;
+function raided(g, m, sid) { (m.raids ||= {})[sid || g.s.playerSettlement] = g.s.tick + RAID; }
 
 /** Strike person c (adjacent): a wound by kind, wakes them, a letter. */
 function strike(g, m, d, c, key) {
@@ -210,6 +215,7 @@ function strike(g, m, d, c, key) {
   injure(g, c, kind, lo + Math.floor(draw(`${key}:hit`) * (hi - lo + 1)), cause, false, mine ? 'warn' : 'info');
   if (c.sleeping) { c.sleeping = false; if (c.job?.type === 'sleep') endJob(g, c, null, `Woken by a ${d.name}`); }
   g.log(`A ${d.name} attacked ${c.name}!`, mine ? 'warn' : 'info', `monster:${c.id}`, 600);
+  raided(g, m, c.settlementId);
   if (c.health?.down) m.fed = Math.floor(g.s.tick / TICKS_PER_DAY); // a kill (or a downed one): it has had its fill today
 }
 
@@ -254,6 +260,7 @@ function act(g, m) {
     m.work = 0;
     const name = g.bDef(t)?.name?.toLowerCase() || 'a building';
     destroyStructures(g, [t.id], { reason: null, why: `A ${d.name} tore it down` });
+    raided(g, m, t.settlement);
     g.log(`A ${d.name} tore down ${name}${t.settlement ? ` in ${g.s.settlements[t.settlement]?.name || 'a village'}` : ''}!`, 'warn', `monster-tear:${m.id}`, 300);
   }
 }

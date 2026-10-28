@@ -13,11 +13,11 @@
       ],
       "perTiles": 60000,
       "minWorld": 1,
-      "health": 400,
+      "health": 180,
       "speed": 1.6,
       "damage": [
-        15,
-        30
+        12,
+        24
       ],
       "fightGroup": 3,
       "roam": 3,
@@ -43,11 +43,11 @@
         "core:snow"
       ],
       "perTiles": 80000,
-      "health": 250,
+      "health": 120,
       "speed": 2.0,
       "damage": [
-        20,
-        40
+        15,
+        30
       ],
       "fightGroup": 3,
       "roam": 4,
@@ -73,13 +73,13 @@
         "core:jungle"
       ],
       "perTiles": 80000,
-      "health": 600,
+      "health": 240,
       "speed": 0.6,
       "damage": [
-        10,
-        20
+        8,
+        16
       ],
-      "fightGroup": 4,
+      "fightGroup": 3,
       "roam": 2,
       "respawnDays": 60,
       "godCost": 60,
@@ -154,6 +154,58 @@
         "icon": "logs"
       },
       "value": 50
+    }
+  ],
+  "recipe": [
+    {
+      "id": "core:butcher_thornback",
+      "name": "Butcher a thornback",
+      "station": "core:butcher_table",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "item": "core:thornback_carcass",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:venison",
+          "qty": 30
+        },
+        {
+          "item": "core:hide",
+          "qty": 4
+        }
+      ],
+      "work": 300,
+      "skill": "core:cooking",
+      "fromStock": true
+    },
+    {
+      "id": "core:skin_gloomstalker",
+      "name": "Skin a gloomstalker",
+      "station": "core:butcher_table",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "item": "core:gloomstalker_carcass",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:hide",
+          "qty": 2
+        },
+        {
+          "item": "core:gloom_eye",
+          "qty": 1
+        }
+      ],
+      "work": 200,
+      "skill": "core:cooking",
+      "fromStock": true
     }
   ]
 }

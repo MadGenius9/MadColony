@@ -60,7 +60,7 @@ Each is a single creature (not a herd), much stronger than any animal, living in
 | What | a boar-like beast the size of a cart, its back a mat of thorns | a long-limbed, eyeless hunter that comes out at night | an old dead tree that walks, roots for legs, a split trunk for a mouth |
 | Lives in | thickets in forest and grassland (lair: a thorn den) | caves in hills and mountains (lair: a cave mouth) | old forests (lair: a ring of fallen trunks) |
 | Does | tramples fields and crops, charges whoever comes near its den, knocks people down | hunts lone people at night, never enters a lit room, flees light and fire | tears down wooden building parts, smashes fences and stockpiles; slow; stone stops it |
-| Health | 400 | 250 | 600 |
+| Health | 180 | 120 | 240 (a blow: 12–24, 15–30, 8–16, every 60 ticks; balanced so a small village's spear party can win) |
 | Speed | 1.6 (charges) | 2.0 | 0.6 |
 | Weak to | spears (reach) | light and fire (runs from lit buildings; a torch or fire hurts it) | fire (burns: `ignite` on its tile hurts it a lot) |
 | When slain | 40 meat, 4 hides (`core:thornback_carcass`) | 2 hides; a "gloom eye" trophy (sold or kept) | 30 wood, 1 "heartwood" (a rare wood) |

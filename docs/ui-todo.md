@@ -283,3 +283,16 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Wounds:** gore, maul and crush are wounds (bandaged like bites).
 - **Village card:** a village of 3 or fewer people could say "Too small for monsters to bother" (the owner's
   rule: monsters never wipe a village out).
+
+## Phase 8c, slice 3: people fight back
+- **People:**
+  - "Run from the Barkmaw" (flee);
+  - "Hunt the Thornback" (job `slay`), with the action "Waiting for the hunt party (2 of 3)" or "Fighting the
+    Thornback";
+  - "Clear the Barkmaw's lair" (job `clearlair`).
+- **Village card:** `plans[sid].monsterNote` ("A Thornback threatens the village: arming 3 fighters to hunt it").
+- **Letters:**
+  - "Ada and the hunt party slew the Thornback!" (good);
+  - "Ada cleared the Thornback's lair: nothing will live there again." (good).
+- **Items:** Thornback and Gloomstalker carcasses are butchered at the butcher's table (venison and hides; hides
+  and a gloom eye). A slain Barkmaw leaves 30 wood and a piece of heartwood.

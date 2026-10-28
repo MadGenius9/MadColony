@@ -14,8 +14,9 @@ import { tripChecker, farFromHome } from './trips.js';
 import { fireDanger } from '../fire.js';
 import { FIRE_DRIVERS } from '../firefight.js';
 import { HUNT_DRIVERS, wolfDanger } from '../hunt.js';
+import { SLAY_DRIVERS, monsterDanger } from '../slay.js';
 
-Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS);
+Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS, SLAY_DRIVERS);
 
 export function tickColonist(g, c) {
   for (const def of g.reg.all('need')) NEED_BEHAVIORS[def.behavior]?.tick(g, c, def);
@@ -38,7 +39,7 @@ export function tickColonist(g, c) {
     return;
   }
   // Threats first: fight, flee or march according to the settlement's orders.
-  const cj = combatDecision(g, c) || (g.s.disasters ? fireDanger(g, c) : null) || (g.s.animals?.list ? wolfDanger(g, c) : null); // fire: fire.js (Phase 5b); wolves: hunt.js (Phase 8)
+  const cj = combatDecision(g, c) || (g.s.disasters ? fireDanger(g, c) : null) || (g.s.animals?.list ? wolfDanger(g, c) : null) || (g.s.monsters ? monsterDanger(g, c) : null); // fire: fire.js (Phase 5b); wolves: hunt.js (Phase 8); monsters: slay.js (Phase 8c)
   if (cj) { if (c.job) endJob(g, c, null, `Danger: ${cj.why}`); startJob(g, c, cj); }
 
   if (c.job) {

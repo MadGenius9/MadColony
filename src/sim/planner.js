@@ -3,6 +3,7 @@
 // starts projects (homes, stations, fields, stockpile growth). It never moves a colonist itself; it
 // publishes `g.plan` (wants, bills, clear list, equipment needs, goal explanations) for job givers.
 import { huntableNear, farHuntable, meatOnHand, MEAT_PER_PERSON } from './animals.js';
+import { monsterThreats } from './slay.js';
 import { staffing, educationSummary } from './education.js';
 import { isAdult as isAdultP, BIRTH, mayDoWork } from './people.js';
 import { storageStatus, hubName } from './storage.js';
@@ -32,7 +33,7 @@ export function emptyPlan() {
   return {
     tick: -1, wants: {}, bills: [], clear: new Map(), equipNeeds: [], seedReserve: {}, goalInfo: {}, notes: [],
     blockers: {}, trace: {}, foodDays: 0, growingDays: 0, stock: {}, mealCount: 0, bedsBuilt: 0, anyFood: true, stockFull: false,
-    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
+    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', monsterNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
   };
 }
 
@@ -294,6 +295,14 @@ function planSettlement(g, sid) {
     for (const c of pool.slice(0, 2)) hunterIds.add(c.id);
   }
   const raid = herdsNear.find((t) => t.raid);
+  // Monsters (Phase 8c, slay.js): while one threatens the village, its fightGroup best hunters get a weapon if they
+  // have none (a hunt party needs that many armed).
+  const threat = s.monsters && s.settlements?.[sid]?.detail !== 'abstract' ? monsterThreats(g, sid)[0] : null, td = threat && reg.get('monster', threat.sp);
+  if (td) {
+    const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
+    for (const c of pool.slice(0, td.fightGroup)) hunterIds.add(c.id);
+  }
+  P.monsterNote = td ? `A ${td.name} threatens the village: arming ${td.fightGroup} fighters to hunt it` : '';
   P.huntNote = raid ? `Hunting down the ${raid.d.plural || raid.d.name} that attacked the village (${Math.round(raid.dist)} tiles away)` : !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
   for (const c of cols) {
     if (!isAdultP(g, c)) continue; // children get no tools or weapons

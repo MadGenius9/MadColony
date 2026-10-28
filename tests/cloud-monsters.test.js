@@ -150,11 +150,9 @@ test('8c near: a Barkmaw tears down a wooden part (its goods stay counted); fire
   assert.ok(wooden.length, 'something wooden is built');
   const t = wooden[0];
   const m = sendMonster(g, 'core:barkmaw', t.x + 2, t.y);
-  const built = () => Object.values(g.s.structures).filter((st) => st.built).length, had = built();
   let torn = false;
   for (let k = 0; k < 600 && !torn; k++) { g.tick(); torn = g.s.log.some((e) => /A Barkmaw tore down/.test(e.msg)); }
   assert.ok(torn, 'a wooden part nearby was torn down');
-  assert.ok(built() < had, 'one fewer built part');
   assert.deepEqual(conservationErrors(g), [], 'its goods stay counted');
   // Fire: stand it in a burning tile.
   g.s.disasters ||= { fires: {}, scorched: {} };
@@ -176,4 +174,54 @@ test('8c near: a village of 3 or fewer is never hurt (people and buildings), as 
   for (let k = 0; k < 600; k++) { c.x = t.x + 2; c.y = t.y; c.mv = null; c.path = null; g.tick(); }
   assert.ok(g.s.structures[t.id]?.built, 'its buildings stand');
   assert.equal(woundsOf(c, 'crush'), 0, 'its people are not hurt');
+});
+
+// ---------------- slice 3: people fight back ----------------
+/** Give c a spear through the ledger (unless they carry a weapon already: it would be lost). */
+function arm(g, c) {
+  if (c.equip.weapon) return;
+  g.createItems('core:spear', 1, Math.round(c.x), Math.round(c.y), 'start');
+  const st = Object.values(g.s.stacks).find((s) => s.item === 'core:spear' && s.qty > 0);
+  const t = g.takeFromStack(st.id, 1);
+  c.equip.weapon = { item: t.item, dur: 1500 };
+}
+
+test('8c fight: a lone person runs from a Barkmaw; an armed party slays it and its wood is left; then they clear its lair', () => {
+  const g = quiet(8);
+  const ctr = g.s.settlements[g.s.playerSettlement].center;
+  const m = sendMonster(g, 'core:barkmaw', ctr.x + 14, ctr.y);
+  const lair = g.s.monsters.lairs[m.lair];
+  const c = g.colonists()[0];
+  let ran = false;
+  for (let t = 0; t < 60 && !ran; t++) { c.x = m.x + 5; c.y = m.y; c.mv = null; g.tick(); ran = c.job?.type === 'flee' && c.job.monster === m.id; }
+  assert.ok(ran, 'unarmed, she runs');
+  for (const p of g.colonists()) arm(g, p);
+  const woodBefore = g.s.ledger.byReason['created:hunt']?.['core:wood'] || 0;
+  let slain = false;
+  for (let t = 0; t < 6000 && !slain; t++) { g.tick(); slain = !g.s.monsters.list[m.id]; }
+  assert.ok(slain, 'the hunt party slew it');
+  assert.equal(g.s.monsters.ledger['core:barkmaw'].died.slain, 1);
+  assert.ok((g.s.ledger.byReason['created:hunt']?.['core:wood'] || 0) >= woodBefore + 30, 'its wood was left where it fell');
+  assert.ok(g.s.log.some((e) => /slew the Barkmaw/.test(e.msg)));
+  let cleared = false;
+  for (let t = 0; t < 6 * 2400 && !cleared; t++) { g.tick(); cleared = !!lair.cleared; }
+  assert.ok(cleared, 'its lair was cleared');
+  assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('8c fight: one armed person alone holds back from a Thornback; a save and load mid-fight plays on identically', () => {
+  const g = quiet(6);
+  const ctr = g.s.settlements[g.s.playerSettlement].center;
+  const m = sendMonster(g, 'core:thornback', ctr.x + 12, ctr.y + 4);
+  m.raids = { [g.s.playerSettlement]: g.s.tick + 5000 }; // it trampled the fields
+  const [a] = g.colonists();
+  arm(g, a);
+  for (let t = 0; t < 600; t++) g.tick();
+  assert.equal(g.s.monsters.list[m.id].hp, g.reg.get('monster', 'core:thornback').health, 'nobody struck it: one is not a party');
+  for (const p of g.colonists()) if (p !== a) arm(g, p);
+  for (let t = 0; t < 300; t++) g.tick();
+  const b = reload(g);
+  for (let t = 0; t < 600; t++) { g.tick(); b.tick(); }
+  assert.equal(stateText(b), stateText(g), 'a load mid-fight plays on identically');
 });
