@@ -19,6 +19,7 @@ import { fieldCells } from '../game.js';
 import { reachTest, nodesInReach, SLOW_WORK } from './trips.js';
 import { BURIAL_GIVERS } from '../burial.js';
 import { droughtAt } from '../weatherat.js';
+import { HUNT_GIVERS } from '../hunt.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or
  *  near the centre (lod.js caravanReach). If those cannot cover what is still owed, one colonist at a time per
@@ -652,7 +653,9 @@ function pickIngredientsIn(g, c, rec, spot) {
       if (!g.canReach(c, st.x, st.y, 'on')) continue;
       cands.push({ st, a, d: octile(spot.x, spot.y, st.x, st.y) });
     }
-    cands.sort((a, b) => a.d - b.d);
+    // What spoils goes first (Phase 8, spoil.js); otherwise the nearest (the same order as before).
+    const rot = (it) => g.reg.get('item', it)?.spoilPerDay || 0;
+    cands.sort((a, b) => rot(b.st.item) - rot(a.st.item) || a.d - b.d);
     for (const { st, a } of cands) {
       // One pick is one trip: a stack bigger than a colonist can carry is fetched in several trips.
       let left = a;
@@ -693,3 +696,4 @@ export function equipCandidate(g, c) {
 Object.assign(GIVERS, MEDICAL_GIVERS); // rescue and treatment (medical.js)
 Object.assign(GIVERS, EDUCATION_GIVERS); // school, teaching and college (education.js)
 Object.assign(GIVERS, BURIAL_GIVERS); // carrying the dead to the graveyard (burial.js)
+Object.assign(GIVERS, HUNT_GIVERS); // hunting (hunt.js, Phase 8)

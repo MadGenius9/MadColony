@@ -89,6 +89,7 @@ export const CONTENT_TYPES = {
       value: num(0, 100000), // trade value per unit (default 1)
       tags,
       nutrition: num(0, 2),
+      spoilPerDay: num(0, 1), // Phase 8 (spoil.js): this share of every stack and load spoils each day
       fuel: num(0, 100), // burn-time multiplier when used as generator fuel (default 1)
       equipment: obj({
         slot: req({ type: 'enum', values: ['tool', 'weapon'] }),
@@ -615,6 +616,7 @@ export const CONTENT_TYPES = {
       density: req(num(0, 100)), cap: req(num(0, 1000)), health: req(num(1, 1000)), speed: req(num(0.1, 10)),
       diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
       fear: obj({ people: num(0, 50), predators: num(0, 50) }),
+      carcass: ref('item'), // what a kill leaves (hunting, Phase 8 slice 3)
       births: req(num(0, 10)), winterLoss: req(num(0, 1)), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
       color, render,
     }),

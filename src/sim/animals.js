@@ -463,6 +463,59 @@ function syncNear(g, h) {
   h.n = ids.filter((id) => g.s.animals.list?.[id]).length; // the centre is where they graze (it drifts; fold recentres)
 }
 
+// ---------------- for hunting (slice 3) ----------------
+export const HUNT_LIMIT = 3; // villages leave every herd at least this many (the owner's answer 5)
+export const MEAT_PER_PERSON = 2; // a village hunts while it has less meat than this a person
+
+/** Meat on hand for the village of plan P (meat items and carcasses, a carcass counted as 6). */
+export function meatOnHand(g, P) {
+  let n = 0;
+  for (const [it, q] of Object.entries(P?.stock || {})) {
+    const d = g.reg.get('item', it);
+    if (d?.tags?.includes('core:meat')) n += q;
+    else if (d?.tags?.includes('core:carcass')) n += 6 * q;
+  }
+  return n;
+}
+
+/** The live animals of a near herd, in id order. */
+export function herdAnimals(g, hid) {
+  const A = g.s.animals;
+  return (nearIndex(g).byHerd.get(hid) || []).map((id) => A.list?.[id]).filter(Boolean);
+}
+
+/** An animal is killed (by a hunter): it leaves the herd, the herd runs. Returns the herd (or null). */
+export function killAnimal(g, id, fx, fy) {
+  const A = g.s.animals, a = A.list?.[id];
+  if (!a) return null;
+  delete A.list[id];
+  nearDirty(g);
+  const h = A.herds[a.herd];
+  if (h) { h.n--; h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); if (h.n < 1) { delete h.near; removeHerd(g, h.id); } }
+  if (!Object.keys(A.list).length) delete A.list;
+  return h;
+}
+
+/** A wounded animal: its herd runs from (fx, fy). */
+export function alarmHerd(g, hid, fx, fy) {
+  const h = g.s.animals?.herds[hid];
+  if (h) { h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); }
+}
+
+/** Near herds a village may hunt: grazers with a carcass, above the hunting limit, within `r` of (x, y), nearest
+ *  first (then by id). */
+export function huntableNear(g, x, y, r) {
+  const out = [];
+  for (const h of Object.values(g.s.animals?.herds || {})) {
+    if (h.near === undefined || h.n <= HUNT_LIMIT) continue;
+    const d = g.reg.get('animal', h.sp);
+    if (!d?.carcass || d.diet !== 'graze') continue;
+    const dist = Math.hypot(h.x - x, h.y - y);
+    if (dist <= r) out.push({ h, d, dist });
+  }
+  return out.sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
+}
+
 /** For tests: fold a near herd back into a count now. */
 export const foldHerdForTest = (g, id) => fold(g, g.s.animals.herds[id]);
 

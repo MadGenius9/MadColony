@@ -31,6 +31,10 @@ export const GIVER_SPECS = {
     doc: 'Researches the current technology of the colonist settlement at a free research station (fetching its material cost first).',
     params: obj({}),
   },
+  'core:hunt_animals': {
+    doc: 'Phase 8: when the village is short of meat and a herd of a huntable species (one with a carcass) is near and above the hunting limit, an armed hunter stalks it, kills one animal and leaves its carcass to be hauled and butchered.',
+    params: obj({}),
+  },
   'core:bills': {
     doc: 'Works production bills (recipes whose `workType` matches this work type) at a free station.',
     params: obj({}),

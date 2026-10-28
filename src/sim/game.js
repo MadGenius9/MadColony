@@ -36,6 +36,7 @@ import { tickStorms } from './storm.js';
 import { tickWeather } from './weather.js';
 import { tickRegrowth, natureRules } from './regrow.js';
 import { tickAnimals, animalSpecies } from './animals.js';
+import { tickSpoil } from './spoil.js';
 import './godwrath.js'; // registers the destructive powers (Phase 5b)
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
@@ -1452,7 +1453,7 @@ export class Game {
     // Daily, at the start of the day, right after the villages' diplomacy: settlers of crowded villages may
     // found a new one (founding.js; off unless the scenario has `founding`; it draws no random numbers).
     // Births come later in the day (people.js, 06:00) and see the new head-counts.
-    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); updateMarkets(this); if (this._cl) growClaims(this); tickAging(this); tickIllness(this); tickRivalry(this); tickFallen(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
+    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); updateMarkets(this); if (this._cl) growClaims(this); tickAging(this); tickIllness(this); tickRivalry(this); tickFallen(this); tickSpoil(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
     tickPower(this);
     tickWater(this);
     tickPeople(this);

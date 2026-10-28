@@ -2,25 +2,330 @@
   "$comment": "Phase 8: wild animals (src/sim/animals.js). Herds of each species live on its terrains (density: herds per 1,000 tiles of it when the world starts; cap: animals per 1,000 tiles the land can feed). Far from people a herd is a count moved and grown by the hour. Scenarios turn animals on with their `animals` block.",
   "animal": [
     {
-      "id": "core:deer", "name": "Deer", "plural": "deer",
-      "herd": [4, 12], "terrains": ["core:forest_floor", "core:taiga", "core:grass", "core:savanna", "core:soil"],
-      "density": 1.2, "cap": 30, "health": 30, "speed": 1.3, "diet": "graze",
-      "fear": { "people": 8, "predators": 10 },
-      "births": 0.45, "winterLoss": 0.006, "moveHours": 6, "color": "#a0703c"
+      "id": "core:deer",
+      "name": "Deer",
+      "plural": "deer",
+      "herd": [
+        4,
+        12
+      ],
+      "terrains": [
+        "core:forest_floor",
+        "core:taiga",
+        "core:grass",
+        "core:savanna",
+        "core:soil"
+      ],
+      "density": 1.2,
+      "cap": 30,
+      "health": 30,
+      "speed": 1.3,
+      "diet": "graze",
+      "fear": {
+        "people": 8,
+        "predators": 10
+      },
+      "births": 0.45,
+      "winterLoss": 0.006,
+      "moveHours": 6,
+      "color": "#a0703c",
+      "carcass": "core:deer_carcass"
     },
     {
-      "id": "core:wolf", "name": "Wolf", "plural": "wolves",
-      "herd": [3, 6], "terrains": ["core:forest_floor", "core:taiga", "core:tundra", "core:snow", "core:grass"],
-      "density": 0.3, "cap": 12, "health": 40, "speed": 1.4, "diet": "hunt", "prey": ["core:deer", "core:wild_horse"],
-      "fear": { "people": 0, "predators": 0 },
-      "births": 0.6, "winterLoss": 0.004, "moveHours": 4, "starveDays": 10, "color": "#6b6b70"
+      "id": "core:wolf",
+      "name": "Wolf",
+      "plural": "wolves",
+      "herd": [
+        3,
+        6
+      ],
+      "terrains": [
+        "core:forest_floor",
+        "core:taiga",
+        "core:tundra",
+        "core:snow",
+        "core:grass"
+      ],
+      "density": 0.3,
+      "cap": 12,
+      "health": 40,
+      "speed": 1.4,
+      "diet": "hunt",
+      "prey": [
+        "core:deer",
+        "core:wild_horse"
+      ],
+      "fear": {
+        "people": 0,
+        "predators": 0
+      },
+      "births": 0.6,
+      "winterLoss": 0.004,
+      "moveHours": 4,
+      "starveDays": 10,
+      "color": "#6b6b70",
+      "carcass": "core:wolf_carcass"
     },
     {
-      "id": "core:wild_horse", "name": "Wild horse", "plural": "wild horses",
-      "herd": [5, 15], "terrains": ["core:grass", "core:savanna", "core:soil"],
-      "density": 0.4, "cap": 15, "health": 60, "speed": 1.6, "diet": "graze",
-      "fear": { "people": 10, "predators": 10 },
-      "births": 0.3, "winterLoss": 0.005, "moveHours": 8, "color": "#8a5a3a"
+      "id": "core:wild_horse",
+      "name": "Wild horse",
+      "plural": "wild horses",
+      "herd": [
+        5,
+        15
+      ],
+      "terrains": [
+        "core:grass",
+        "core:savanna",
+        "core:soil"
+      ],
+      "density": 0.4,
+      "cap": 15,
+      "health": 60,
+      "speed": 1.6,
+      "diet": "graze",
+      "fear": {
+        "people": 10,
+        "predators": 10
+      },
+      "births": 0.3,
+      "winterLoss": 0.005,
+      "moveHours": 8,
+      "color": "#8a5a3a",
+      "carcass": "core:horse_carcass"
+    }
+  ],
+  "skill": [
+    {
+      "id": "core:hunting",
+      "name": "Hunting"
+    }
+  ],
+  "item": [
+    {
+      "id": "core:venison",
+      "name": "Venison",
+      "color": "#9b3b2e",
+      "stackLimit": 60,
+      "nutrition": 0.2,
+      "spoilPerDay": 0.1,
+      "tags": [
+        "core:food",
+        "core:raw_food",
+        "core:meat"
+      ],
+      "render": {
+        "shape": "basket",
+        "icon": "produce"
+      },
+      "value": 2
+    },
+    {
+      "id": "core:horse_meat",
+      "name": "Horse meat",
+      "color": "#8c3a2a",
+      "stackLimit": 60,
+      "nutrition": 0.2,
+      "spoilPerDay": 0.1,
+      "tags": [
+        "core:food",
+        "core:raw_food",
+        "core:meat"
+      ],
+      "render": {
+        "shape": "basket",
+        "icon": "produce"
+      },
+      "value": 1.8
+    },
+    {
+      "id": "core:hide",
+      "name": "Hide",
+      "color": "#b08a5a",
+      "stackLimit": 30,
+      "tags": [
+        "core:material"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "sack"
+      },
+      "value": 3
+    },
+    {
+      "id": "core:deer_carcass",
+      "name": "Deer carcass",
+      "color": "#8a5a3a",
+      "stackLimit": 1,
+      "spoilPerDay": 0.2,
+      "tags": [
+        "core:carcass"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "sack"
+      },
+      "value": 10
+    },
+    {
+      "id": "core:wolf_carcass",
+      "name": "Wolf carcass",
+      "color": "#6b6b70",
+      "stackLimit": 1,
+      "spoilPerDay": 0.2,
+      "tags": [
+        "core:carcass"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "sack"
+      },
+      "value": 4
+    },
+    {
+      "id": "core:horse_carcass",
+      "name": "Horse carcass",
+      "color": "#8a5a3a",
+      "stackLimit": 1,
+      "spoilPerDay": 0.2,
+      "tags": [
+        "core:carcass"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "sack"
+      },
+      "value": 14
+    }
+  ],
+  "workType": [
+    {
+      "id": "core:hunt",
+      "name": "Hunting",
+      "skill": "core:hunting",
+      "priority": 0.8,
+      "givers": [
+        {
+          "giver": "core:hunt_animals"
+        }
+      ],
+      "color": "#7a5c3a"
+    }
+  ],
+  "building": [
+    {
+      "id": "core:butcher_table",
+      "name": "Butcher's table",
+      "category": "station",
+      "passable": false,
+      "cost": [
+        {
+          "item": "core:wood",
+          "qty": 10
+        }
+      ],
+      "work": 120,
+      "skill": "core:construction",
+      "interaction": [
+        0,
+        1
+      ],
+      "color": "#7a4a2a",
+      "render": {
+        "shape": "table"
+      }
+    }
+  ],
+  "template": [
+    {
+      "id": "core:butcher_spot",
+      "name": "Butchering spot",
+      "kind": "station",
+      "provides": [
+        "core:butcher_table"
+      ],
+      "layout": [
+        "B",
+        "."
+      ],
+      "legend": {
+        "B": {
+          "build": "core:butcher_table"
+        },
+        ".": {
+          "floor": true
+        }
+      }
+    }
+  ],
+  "recipe": [
+    {
+      "id": "core:butcher_deer",
+      "name": "Butcher a deer",
+      "station": "core:butcher_table",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "item": "core:deer_carcass",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:venison",
+          "qty": 6
+        },
+        {
+          "item": "core:hide",
+          "qty": 1
+        }
+      ],
+      "work": 120,
+      "skill": "core:cooking"
+    },
+    {
+      "id": "core:butcher_horse",
+      "name": "Butcher a horse",
+      "station": "core:butcher_table",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "item": "core:horse_carcass",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:horse_meat",
+          "qty": 10
+        },
+        {
+          "item": "core:hide",
+          "qty": 2
+        }
+      ],
+      "work": 160,
+      "skill": "core:cooking"
+    },
+    {
+      "id": "core:skin_wolf",
+      "name": "Skin a wolf",
+      "station": "core:butcher_table",
+      "workType": "core:cook",
+      "inputs": [
+        {
+          "item": "core:wolf_carcass",
+          "qty": 1
+        }
+      ],
+      "outputs": [
+        {
+          "item": "core:hide",
+          "qty": 1
+        }
+      ],
+      "work": 80,
+      "skill": "core:cooking"
     }
   ]
 }

@@ -2,6 +2,7 @@
 // content graph (stock -> in-flight production -> recipes/stations -> gatherable nodes -> crops), and
 // starts projects (homes, stations, fields, stockpile growth). It never moves a colonist itself; it
 // publishes `g.plan` (wants, bills, clear list, equipment needs, goal explanations) for job givers.
+import { huntableNear, meatOnHand, MEAT_PER_PERSON } from './animals.js';
 import { staffing, educationSummary } from './education.js';
 import { isAdult as isAdultP, BIRTH, mayDoWork } from './people.js';
 import { storageStatus, hubName } from './storage.js';
@@ -31,7 +32,7 @@ export function emptyPlan() {
   return {
     tick: -1, wants: {}, bills: [], clear: new Map(), equipNeeds: [], seedReserve: {}, goalInfo: {}, notes: [],
     blockers: {}, trace: {}, foodDays: 0, growingDays: 0, stock: {}, mealCount: 0, bedsBuilt: 0, anyFood: true, stockFull: false,
-    stations: {}, housingNote: '', mealNote: '', foodNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
+    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
   };
 }
 
@@ -283,6 +284,16 @@ function planSettlement(g, sid) {
     const pool = cols.slice().sort((a, b) => (b.equip.weapon?.item === ctx.guards.item) - (a.equip.weapon?.item === ctx.guards.item) || (a.id < b.id ? -1 : 1));
     for (const c of pool.slice(0, ctx.guards.count)) guardIds.add(c.id);
   }
+  // Hunting (Phase 8, animals.js / hunt.js): while a huntable herd is near the village and meat is short, its two
+  // best hunters (by skill, then id) get a weapon if they have none; the reason is shown (P.huntNote).
+  const ctr = s.settlements?.[sid]?.center || s.center, hunterIds = new Set();
+  const herdsNear = ctr && s.animals?.list ? huntableNear(g, ctr.x, ctr.y, 60) : [];
+  const meatShort = meatOnHand(g, P) < MEAT_PER_PERSON * Math.max(2, cols.length);
+  if (herdsNear.length && meatShort) {
+    const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
+    for (const c of pool.slice(0, 2)) hunterIds.add(c.id);
+  }
+  P.huntNote = !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
   for (const c of cols) {
     if (!isAdultP(g, c)) continue; // children get no tools or weapons
     const role = roleOf(g, c);
@@ -305,8 +316,19 @@ function planSettlement(g, sid) {
       const better = w && c.equip.weapon && weaponScore(w) > weaponScore(reg.get('item', c.equip.weapon.item)) * 1.15 && (P.stock[w.id] || 0) > 0;
       if (w && (!c.equip.weapon || better) && !fetching('weapon', w.id)) D.push({ item: w.id, qty: 1, urgency: ctx.armUrgency, why: ctx.armGoal ? 'Goal: arm every colonist' : 'Arm the colonists', goal: ctx.armGoal, equipFor: c.id, slot: 'weapon' });
     }
+    if (hunterIds.has(c.id) && !c.equip.weapon && !guardItem && !ctx.armAll) {
+      const wid = bestAvailableWeapon(g, sid, P.stock);
+      if (wid && !fetching('weapon', wid)) D.push({ item: wid, qty: 1, urgency: 0.5, why: `A ${iname(g, wid)} for ${c.name} to hunt with`, equipFor: c.id, slot: 'weapon' });
+    }
   }
   for (const sp of ctx.spares) D.push(sp);
+  // Carcasses spoil: their meat (or hide) is wanted at once, so they are butchered (Phase 8).
+  for (const [it, q] of Object.entries(P.stock)) {
+    if (q <= 0 || !reg.get('item', it)?.tags?.includes('core:carcass')) continue;
+    const r = reg.all('recipe').find((x) => x.inputs.some((e) => e.item === it));
+    const out = r?.outputs[0];
+    if (out) D.push({ item: out.item, qty: (P.stock[out.item] || 0) + q * out.qty, urgency: 0.9, why: `Butcher the ${reg.get('item', it).name.toLowerCase()} before it spoils` });
+  }
   for (const [it, q] of Object.entries(pol.stock || {})) if (reg.get('item', it)) D.push({ item: it, qty: q, urgency: 0.25, why: 'Keep a basic stockpile' });
   // Ammunition for everyone carrying a ranged weapon.
   const ammoNeed = {};

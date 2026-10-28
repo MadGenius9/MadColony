@@ -61,7 +61,7 @@ function findFoodIn(g, c) {
     const isMeal = d.tags?.includes('core:meal');
     if (!isMeal && (totals[st.item] - (reserve[st.item] || 0)) < 1) continue; // seed protection
     if (!g.canReach(c, st.x, st.y, 'on')) continue;
-    const score = octile(c.x, c.y, st.x, st.y) + (isMeal ? 0 : 40);
+    const score = octile(c.x, c.y, st.x, st.y) + (isMeal ? 0 : 40) - (d.spoilPerDay ? 30 : 0); // eat what spoils first (Phase 8)
     if (score < bestScore) { bestScore = score; best = st; }
   }
   return best;

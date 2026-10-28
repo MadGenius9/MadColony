@@ -164,3 +164,55 @@ test('review fixes: two packs on one deer kill it once; a removed species takes 
   h.tick();
   assert.doesNotThrow(() => loadGame(registry, serializeGame(h)));
 });
+
+// ---------------- slice 3: hunting, butchering, spoilage ----------------
+test('hunting: villagers arm, hunt deer, butcher the carcasses; counted through the ledger; herds kept at 3 or more', () => {
+  const g = newGame({ seed: 4242 });
+  let minHerd = Infinity;
+  for (let d = 0; d < 16; d++) {
+    runDays(g, 1);
+    for (const h of Object.values(g.s.animals.herds)) if (h.sp === 'core:deer' && h.near !== undefined) minHerd = Math.min(minHerd, h.n);
+  }
+  const L = g.s.ledger.byReason;
+  assert.ok((L['created:hunt']?.['core:deer_carcass'] || 0) > 0, 'deer were hunted');
+  assert.ok((L['created:craft']?.['core:venison'] || 0) > 0, 'carcasses were butchered into venison');
+  assert.ok((L['consumed:craft']?.['core:deer_carcass'] || 0) > 0);
+  assert.ok(Object.values(g.s.structures).some((b) => b.def === 'core:butcher_table' && b.built), 'a butcher\'s table was built');
+  assert.ok(g.colonists().some((c) => c.equip.weapon), 'a hunter took a weapon');
+  assert.ok(minHerd >= 3, `no herd hunted below 3 (lowest ${minHerd})`);
+  assert.ok(typeof g.plan.huntNote === 'string' && g.plan.huntNote.length > 0, 'the plan says why it hunts or not');
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('hunting: saved mid-hunt, the game continues identically', () => {
+  const run = (cut) => {
+    let g = newGame({ seed: 4242 });
+    for (let k = 0; k < 64; k++) {
+      g.step(300);
+      if (cut.includes(k)) g = reload(g);
+      if (g.colonists().some((c) => c.job?.type === 'hunt')) hunting.add(k);
+    }
+    return g;
+  };
+  const hunting = new Set();
+  const g = run([]);
+  assert.ok(Object.keys(g.s.ledger.byReason['created:hunt'] || {}).length > 0, 'a hunt happened in the run');
+  const cuts = [...hunting].slice(0, 3);
+  assert.ok(cuts.length > 0, 'someone was hunting at a save point');
+  assert.equal(stateText(run(cuts)), stateText(g));
+});
+
+test('spoilage: meat and carcasses lose a share a day through the ledger; other goods keep', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const c = g.s.settlements[g.s.playerSettlement].center;
+  g.createItems('core:venison', 40, c.x + 3, c.y + 3, 'start');
+  const woodBefore = Object.values(g.s.stacks).filter((s) => s.item === 'core:wood').reduce((a, s) => a + s.qty, 0);
+  const spoiledBefore = g.s.ledger.byReason['consumed:spoil']?.['core:venison'] || 0;
+  runDays(g, 1);
+  const spoiled = (g.s.ledger.byReason['consumed:spoil']?.['core:venison'] || 0) - spoiledBefore;
+  assert.ok(spoiled >= 2 && spoiled <= 6, `about a tenth of 40 spoiled in a day (${spoiled})`);
+  assert.equal(g.s.ledger.byReason['consumed:spoil']?.['core:wood'], undefined, 'wood does not spoil');
+  assert.ok(woodBefore >= 0);
+  assert.deepEqual(conservationErrors(g), []);
+});
