@@ -1,0 +1,162 @@
+# Phase 8b: god powers, part 3 (animals)
+
+Status: **design** (2026-10-28). Waiting for the owner's "go" and answers to the open questions; the proposals
+below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md).
+
+## Goal (from the roadmap and the owner)
+- **Roadmap, Phase 8b:** spawn animals (deer, wolves, horses, later livestock) as herds or single animals, using
+  the animal system's real needs and behaviour.
+- **2026-10-24 direction, item 3:** animals (Phase 8), spawning animals with god powers (Phase 8b), then original
+  wild monsters that attack villages.
+- **The god-power rules (Phase 2c):**
+  - powers are validated, deterministic world commands, stored with their tick and replayed identically after a
+    load;
+  - each shows what it will do before the player confirms, and destructive ones warn first;
+  - anything a power creates is counted through a ledger (items: `created:divine`; people: `s.god.spawned`).
+- **Rules for every phase:**
+  - determinism across save and load;
+  - conservation;
+  - sim and UI kept apart, with UI notes in `docs/ui-todo.md`;
+  - old saves load;
+  - content as data;
+  - works for 30+ villages;
+  - visible reasons.
+
+## What exists today
+- **God framework** (`god.js`):
+  - `registerPower(type, { validate, cost, preview, apply, destructive? })`.
+  - `previewCommand` is read-only; `issueCommand` queues the command for the next tick; `applyCommands` applies
+    it at the start of that tick (validating again; refusals are logged).
+  - Favour: 30 at the start, at most 100, +5 a day. Sandbox powers are free.
+  - `destructive` powers are refused without `confirm: true`, and their preview ends "This cannot be undone."
+  - Draws are hashes of the seed and the command id (no `g.rng`).
+- **Kind and nature powers:**
+  - `spawn` settlers (`godspawn.js`): found a village or join one, people counted in `s.god.spawned`;
+  - bless and inspire (`godboons.js`);
+  - rain (`godwrath.js`);
+  - costs in `mods/core/content/god.json` (`costs`).
+- **Animals** (`animals.js`, Phase 8):
+  - Herds (`s.animals.herds`: `{ id, sp, x, y, n, day, year, next, fed, ... }`) with ids `h<next>`.
+  - Far from people a herd is a count moved between chunks; within 28 tiles of a full-detail village it becomes
+    animals (`s.animals.list`), built by `expand` round its centre.
+  - Spring births are limited by the chunk's room (`cap` animals per 1,000 tiles of its ground); winter losses
+    (three times as many on poor winter ground); drought losses; packs starve without prey.
+  - Herds of one species in a chunk merge while they fit (`herd[1]`), split above it, and fade below 2.
+  - A hunt brings a far herd near.
+- **Gaps the powers would expose:**
+  - A herd placed off its ground (horses in a forest, deer on snow) never dies of it and never leaves: every
+    chunk round it scores -1 in `move()`, and births are 0.
+  - A chunk over its capacity stops births but loses nothing, so spawning 100 deer into one meadow would keep
+    them there for good.
+  - Herds have no origin: nothing says the gods sent them.
+
+## Design
+
+### The power `animals`
+- **Arguments:** `{ x, y, species, count, mode }`.
+  - `species` is an animal id from data, among the species this game has (`animalSpecies`: a scenario with animals
+    off refuses it).
+  - `count` is a whole number from 1 up to the species' `herd[1]` (deer 12, wolves 6, horses 15).
+  - `mode` is `'herd'` (default: a new herd of `count`) or `'join'` (single animals: they join the nearest herd
+    of that species within 12 tiles; refused if there is none).
+- **Validation:**
+  - the tile is on the map, passable and not water;
+  - a new herd needs `count >= 2`, since herds below 2 fade; one animal joins a herd.
+- **Cost:** favour per animal from the species' data (`godCost`: deer 2, horse 3, wolf 4).
+  - Herds of 12 deer (24) and 6 wolves (24) both cost about one lightning bolt and a half.
+  - Sandbox is free.
+- **Preview:**
+  - what comes: "8 deer appear at (x, y) as a new herd", or "3 deer join the herd of 9 nearby (12)";
+  - whether the ground suits them: "They live on forest floor, taiga, grass, savanna and soil; this is snow:
+    they will wander off to find their ground and some will die on the way";
+  - how crowded it is ("the land here feeds about N deer; M live here already");
+  - for wolves, the villages within 30 tiles, nearest first: "Wolves will hunt near Pinecroft (14 tiles away)
+    and may attack its people".
+- **Destructive:** only wolves within 30 tiles of a standing village (a function, as for the drought power). Then
+  the preview warns and the power needs `confirm: true`. Wolves far from everyone, and grazers anywhere, need
+  no confirm.
+- **Apply:**
+  - A new herd: `id h<next>`, the centre on the tile, `n = count`, `fed` today and `next` now, plus
+    `origin: 'divine'` and `sent: tick`.
+  - A join: the herd's `n` grows; if it is near, new animals are placed round its centre by hash, as births are.
+  - Within 28 tiles of a full-detail village the herd becomes animals at once (`expand`), so the player sees them
+    arrive; otherwise it stays a count, and a distant village meets it in aggregate (hunting, raids).
+  - The log reads "The gods sent 8 deer near Pinecroft."
+
+### Real needs (so god-made animals obey the land)
+- **Off its ground:**
+  - A herd in a chunk with none of its ground loses `lostLoss` a day (data, default 0.05).
+  - It moves every `moveHours` to the neighbour chunk with the most of its ground. Its score is ground, else
+    "any ground within 2 chunks", so it can find its way back.
+  - It fades below 2 as usual.
+- **Overcrowded:** a chunk holding more than 1.5 times its capacity of a species makes that species' herds there
+  lose `crowdLoss` a day (default 0.03) and move on (the score already prefers room).
+- These rules apply to every herd, god-made or not, but wild herds are placed on their ground under capacity, so
+  normal games change little. This is measured: classic hashes and the World run.
+
+### Accounting and saves
+- Animals are not items, so the item ledger is untouched.
+- A new count `s.god.animals` (`{ species: n }`) records animals made by powers, and herds carry `origin`.
+- An animal census for tests (`animalLedger`: placed at the start + born + sent − died = living, per species) would
+  need every death counted. Proposal: count only what the gods sent, in `s.god.animals`, and test "living ≤ start
+  + born + sent" through the herd counts. A full animal ledger is open question 3.
+- Save format 28: optional herd `origin` (`'divine'`) and `sent` (tick), and optional `s.god.animals`, all
+  validated. Old saves load unchanged (no migration step beyond the no-op version bump).
+
+### Scale
+- A command is O(herds in the chunks round the tile) to validate, preview and apply, plus `expand` (count
+  animals).
+- The new daily rules are O(1) per herd (a chunk lookup that already exists in `daily`). Nothing new runs per
+  tick.
+
+## Slices
+1. **The power:**
+   - `animals` with herd and join modes: validate, cost, preview, apply;
+   - the species' `godCost` data;
+   - herd `origin` and `s.god.animals`; save format 28;
+   - the log line and UI notes.
+   - Tests:
+     - refused cases: water, off the map, an unknown species, a count out of range, join with no herd near,
+       animals off;
+     - favour is charged;
+     - preview equals apply;
+     - a herd appears near the village as animals;
+     - a save and load mid-queue replays identically;
+     - old saves load.
+2. **Real needs:**
+   - off-ground and crowding losses and moves (data `lostLoss`, `crowdLoss`).
+   - Tests:
+     - horses sent into a forest leave it and some die;
+     - 60 deer sent into one meadow thin and spread;
+     - classic and Vast numbers stay close to Phase 8's.
+3. **Wolves sent near villages:** the destructive rule, warnings and confirm.
+   - Tests:
+     - a pack sent beside a village needs confirm;
+     - it attacks a lone person or the village fends it off;
+     - a fed pack leaves people alone.
+4. **Acceptance:**
+   - a powers run on the Vast world (deer sent to a hungry village, then hunted; horses on snow; wolves beside a
+     village);
+   - save and load after each power;
+   - the classic runs and the bench;
+   - README and roadmap.
+
+## Targets
+- Each send is deterministic: preview shows what apply does, and replay after a load is identical.
+- Sent animals live by the same rules as wild ones (they eat, breed in spring, starve, are hunted and hunt), and
+  never last off their ground.
+- No measurable cost when nobody uses the power (classic hashes unchanged unless slice 2's rules touch wild
+  herds; then explained).
+
+## Open questions for the owner
+1. **Wild monsters** (direction item 3, "original wild monsters that attack villages"): proposal: their own
+   phase, 8c, with its own design note after 8b (new creatures, their look and lairs need their own decisions).
+2. **Costs:** deer 2, horse 3, wolf 4 favour an animal (a full herd of deer or wolves costs 24, two-fifths of a meteor).
+   Change them?
+3. **A full animal ledger** (every birth, death and kill counted, so living = start + born + sent − died is checked
+   like people): proposal: not now. Count only what the gods sent, since animals are not goods. Add the ledger
+   later if animals become items (Phase 9 livestock).
+4. **Single animals:** proposal: "join" adds them to the nearest herd of that species; a lone animal with no herd
+   near is refused (herds below 2 fade). Should a single animal be allowed to live alone instead?
+5. **Peaceful wolves:** should a "peaceful animals" switch come now, or with World laws (direction item 6, where
+   it is listed)? Proposal: with World laws.
