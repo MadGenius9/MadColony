@@ -1,7 +1,17 @@
 # Phase 8b: god powers, part 3 (animals)
 
-Status: **design** (2026-10-28). Waiting for the owner's "go" and answers to the open questions; the proposals
-below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md).
+Status: **in progress** ("go" from the owner on 2026-10-28, with the answers below). Branch `cloud-work` (cloud
+rescue copy; see CLAUDE.md).
+
+## The owner's answers (2026-10-28)
+1. **Wild monsters:** yes, their own phase (8c) with its own design note after 8b.
+2. **Costs:** deer 2, horse 3, wolf 4 favour an animal, to be revisited later.
+3. **A full animal ledger:** yes. Every birth and death is counted by cause, and living = start + born + sent −
+   died is checked per species, as for people.
+4. **A single animal living alone:** no. Single animals join the nearest herd of their species; with no herd
+   near, the send is refused.
+5. **Peaceful animals:** yes, now. A switch (a god command, saved and replayed) under which predators leave
+   people alone (they still hunt deer and horses); the World laws phase can later add it to its list.
 
 ## Goal (from the roadmap and the owner)
 - **Roadmap, Phase 8b:** spawn animals (deer, wolves, horses, later livestock) as herds or single animals, using
@@ -96,12 +106,27 @@ below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAU
 
 ### Accounting and saves
 - Animals are not items, so the item ledger is untouched.
-- A new count `s.god.animals` (`{ species: n }`) records animals made by powers, and herds carry `origin`.
-- An animal census for tests (`animalLedger`: placed at the start + born + sent − died = living, per species) would
-  need every death counted. Proposal: count only what the gods sent, in `s.god.animals`, and test "living ≤ start
-  + born + sent" through the herd counts. A full animal ledger is open question 3.
-- Save format 28: optional herd `origin` (`'divine'`) and `sent` (tick), and optional `s.god.animals`, all
-  validated. Old saves load unchanged (no migration step beyond the no-op version bump).
+- **The animal ledger** (the owner's answer 3): `s.animals.ledger` holds, per species,
+  `{ start, born, sent, died: { cause: n } }`.
+  - **Causes:** `winter`, `drought`, `starved` (a pack without prey), `prey` (eaten by a pack, far or near),
+    `hunted` (killed by people, far or near), `lost` (off its ground), `crowded`, `faded` (the last animal of a
+    herd below 2) and `gone` (a species removed from the data, dropped on load).
+  - **Neutral changes:** merges, splits, expanding and folding change no total.
+  - **The check:** `animalCensus(g)` compares, per species, living (the sum of herd counts) with start + born +
+    sent − died, and lists the problems. Tests and the run tools check it like `peopleCensus`.
+- A herd carries `origin: 'divine'` and `sent` (tick).
+- **Save format 28:** the optional ledger and the herd fields are validated.
+  - A format-27 save with herds gets a ledger at load, taking its living animals as the start (migrate.js).
+  - Older saves place herds at the next tick, which records the start.
+
+### Peaceful animals (the owner's answer 5)
+- A god command `peaceful` (`{ on: true | false }`) sets `s.animals.peaceful`.
+  - While it is on, packs never pick a person, an angry pack calms down, and raids on distant villages stop.
+  - Wolves still hunt deer and horses, so they eat and breed as before.
+  - People still run from a wolf in sight (they do not know) unless the pack is peaceful. Proposal: they do not
+    run.
+- It costs no favour, is not destructive, and its preview says what changes.
+- It is saved and replayed like any command and logged ("The gods calmed the wild: animals leave people alone").
 
 ### Scale
 - A command is O(herds in the chunks round the tile) to validate, preview and apply, plus `expand` (count
@@ -110,6 +135,12 @@ below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAU
   tick.
 
 ## Slices
+0. **The animal ledger:**
+   - every count change in `animals.js` and `lod.js` goes through `bornAnimals` or `diedAnimals` (by cause);
+   - `animalCensus`; save format 28 and migration;
+   - the run tools check the census.
+   - Tests: a year on classic and Vast with the census exact every day, across a save and load mid-year; an old
+     save gets a ledger.
 1. **The power:**
    - `animals` with herd and join modes: validate, cost, preview, apply;
    - the species' `godCost` data;
@@ -129,11 +160,14 @@ below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAU
      - horses sent into a forest leave it and some die;
      - 60 deer sent into one meadow thin and spread;
      - classic and Vast numbers stay close to Phase 8's.
-3. **Wolves sent near villages:** the destructive rule, warnings and confirm.
+3. **Wolves sent near villages, and peaceful animals:** the destructive rule, warnings and confirm; the
+   `peaceful` command.
    - Tests:
      - a pack sent beside a village needs confirm;
      - it attacks a lone person or the village fends it off;
-     - a fed pack leaves people alone.
+     - with peaceful on, a hungry pack beside a lone person leaves them alone but still kills deer;
+     - switching it off restores attacks;
+     - save and load identical.
 4. **Acceptance:**
    - a powers run on the Vast world (deer sent to a hungry village, then hunted; horses on snow; wolves beside a
      village);
@@ -148,15 +182,8 @@ below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAU
 - No measurable cost when nobody uses the power (classic hashes unchanged unless slice 2's rules touch wild
   herds; then explained).
 
-## Open questions for the owner
-1. **Wild monsters** (direction item 3, "original wild monsters that attack villages"): proposal: their own
-   phase, 8c, with its own design note after 8b (new creatures, their look and lairs need their own decisions).
-2. **Costs:** deer 2, horse 3, wolf 4 favour an animal (a full herd of deer or wolves costs 24, two-fifths of a meteor).
-   Change them?
-3. **A full animal ledger** (every birth, death and kill counted, so living = start + born + sent − died is checked
-   like people): proposal: not now. Count only what the gods sent, since animals are not goods. Add the ledger
-   later if animals become items (Phase 9 livestock).
-4. **Single animals:** proposal: "join" adds them to the nearest herd of that species; a lone animal with no herd
-   near is refused (herds below 2 fade). Should a single animal be allowed to live alone instead?
-5. **Peaceful wolves:** should a "peaceful animals" switch come now, or with World laws (direction item 6, where
-   it is listed)? Proposal: with World laws.
+## Open questions
+All answered (see "The owner's answers"). Still to settle while building: whether people should run from wolves
+while peaceful is on (proposal: no).
+
+## Results
