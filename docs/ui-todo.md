@@ -221,3 +221,14 @@ where, and which sim function or state field provides it. The UI is built at hom
   carcasses and venison like any village; the village card's food line can read "Hunting deer (a herd of 7, 17
   tiles away)" (`plans[sid].huntNote`).
 - **Letters:** "Wolves attacked <name> near <village>." (info) for distant villages.
+- **Raid note:** for a pack that attacked the village the card reads "Hunting down the wolves that attacked the
+  village (12 tiles away)".
+
+## Phase 8, slice 6: seasons
+- **Zoomed out:** herd dots drift with the seasons: in winter deer gather in forest and taiga and horses on open
+  grass and savanna (`animal.winterTerrains`), and they spread out again in spring. No extra drawing is needed;
+  a herd's tooltip could add "Wintering in the forest" in winter.
+- **Drought:** deer and horse dots move away from a drought area and thin out (`animal.droughtLoss` a day). The
+  drought power's preview could add "Grazing herds will thin and move away".
+- **Encyclopedia or species card:** per species: herd size, where it lives and where it winters, what it eats,
+  births in spring, losses in winter (three times as many on poor winter ground) and in droughts.

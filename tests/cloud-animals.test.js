@@ -8,6 +8,7 @@ import { planNow } from '../src/sim/planner.js';
 import { endJob } from '../src/sim/ai/ai.js';
 import { newJob } from '../src/sim/ai/jobs.js';
 import { causeText } from '../src/sim/death.js';
+import { seasonOf } from '../src/sim/heat.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 
@@ -67,6 +68,18 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
   runDays(g, 1);
   const start = herdCensus(g);
   assert.ok(start['core:wolf']?.herds > 0 && start['core:deer']?.herds > 0 && start['core:wild_horse']?.herds > 0, JSON.stringify(start));
+  // Slice 6: the share of far deer on chunks that are at least half winter ground (forest floor, taiga).
+  const winterShare = (sp) => {
+    const Hb = g._anHab, si = Hb.index.get(sp);
+    let all = 0, w = 0;
+    for (const h of Object.values(g.s.animals.herds)) {
+      if (h.sp !== sp || h.near !== undefined) continue;
+      const c = Math.floor(h.y / 32) * g.CW + Math.floor(h.x / 32);
+      all += h.n; if (Hb.winter[si][c] >= 0.5 * Hb.counts[si][c]) w += h.n;
+    }
+    return w / all;
+  };
+  const spring = winterShare('core:deer');
   let farHunts = 0; // carcasses made while a distant village lives its hour (lod.js)
   const create = g.createItems.bind(g);
   g.createItems = (item, qty, ...rest) => {
@@ -80,6 +93,9 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
     assert.ok(now[sp]?.animals > 0, `${sp} survive`);
     assert.ok(now[sp].animals < start[sp].animals * 2.5, `${sp} do not explode`);
   }
+  assert.equal(seasonOf(g), 'Winter');
+  const winter = winterShare('core:deer');
+  assert.ok(winter > spring + 0.05, `deer move onto winter ground (${spring.toFixed(2)} in spring, ${winter.toFixed(2)} in winter)`);
   // Slice 5: distant villages hunt too.
   assert.ok(farHunts > 0, `distant villages hunted (${farHunts} carcasses)`);
   // A hungry far pack beside a distant village mauls someone there (a chance a day).
@@ -362,4 +378,19 @@ test('review fixes: a pack that has eaten today leaves people alone; a load mid-
   const a = run([]), b = run([1, 2, 3]);
   assert.ok(a.angrySeen, 'the pack was angry while someone fought it (fending it off or hunting it down)');
   assert.equal(stateText(b.h), stateText(a.h));
+});
+
+test('slice 6: grazers in a drought lose some of their number and the game saves identically', () => {
+  const make = () => { const g = newGame({ seed: 3 }); runDays(g, 1); return g; };
+  const g = make(), ctl = make();
+  const herd = Object.values(g.s.animals.herds).filter((h) => h.sp === 'core:deer').sort((a, b) => b.n - a.n || (a.id < b.id ? -1 : 1))[0];
+  assert.ok(herd, 'a deer herd');
+  assert.equal(issueCommand(g, 'drought', { x: herd.x, y: herd.y, confirm: true }).ok, true);
+  const b = reload(g);
+  runDays(g, 2); runDays(b, 2);
+  assert.equal(stateText(b), stateText(g), 'a save and load mid-drought plays on identically');
+  runDays(g, 2); runDays(ctl, 4);
+  const n = (x) => x.s.animals.herds[herd.id]?.n || 0;
+  assert.ok(n(g) < n(ctl), `the herd in the drought is smaller (${n(g)} against ${n(ctl)})`);
+  assert.deepEqual(conservationErrors(g), []);
 });

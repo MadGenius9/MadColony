@@ -28,7 +28,7 @@
       "births": 0.45,
       "winterLoss": 0.006,
       "winterTerrains": ["core:forest_floor", "core:taiga"],
-      "droughtLoss": 0.02,
+      "droughtLoss": 0.05,
       "moveHours": 6,
       "color": "#a0703c",
       "carcass": "core:deer_carcass"
@@ -93,7 +93,7 @@
       "births": 0.3,
       "winterLoss": 0.005,
       "winterTerrains": ["core:grass", "core:savanna"],
-      "droughtLoss": 0.02,
+      "droughtLoss": 0.04,
       "moveHours": 8,
       "color": "#8a5a3a",
       "carcass": "core:horse_carcass"
