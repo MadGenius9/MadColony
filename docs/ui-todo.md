@@ -325,3 +325,5 @@ where, and which sim function or state field provides it. The UI is built at hom
   - "N tiles kept for buildings / fields and stockpiles / people / the way round villages";
   - near a village, Confirm.
 - **Map:** the terrain redraws after a stroke (the map revision changes).
+- **More brushes (slice 2):** forest (young pines), stone (boulders) and ore (ore-bearing rocks, drawn as a
+  reddish rock).

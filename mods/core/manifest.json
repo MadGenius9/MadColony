@@ -34,6 +34,7 @@
     "content/vast-world.json",
     "content/animals.json",
     "content/monsters.json",
+    "content/shaping.json",
     "content/god.json"
   ]
 }

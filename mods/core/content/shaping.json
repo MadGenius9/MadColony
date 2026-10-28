@@ -1,0 +1,27 @@
+{
+  "$comment": "World shaping (src/sim/godshape.js): what the ore brush places. Iron is smelted from ore-bearing stone, so an ore rock is a rich boulder.",
+  "node": [
+    {
+      "id": "core:ore_rock",
+      "name": "Ore-bearing rock",
+      "workType": "core:mine",
+      "work": 180,
+      "yields": [
+        {
+          "item": "core:stone",
+          "qty": 10
+        }
+      ],
+      "chunks": 5,
+      "passable": false,
+      "tags": [
+        "core:rock"
+      ],
+      "render": {
+        "shape": "rock",
+        "color": "#8a6a5a",
+        "color2": "#5e4638"
+      }
+    }
+  ]
+}

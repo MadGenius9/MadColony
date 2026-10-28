@@ -7,6 +7,7 @@
 //   mountain mountains (impassable)
 //   flatten  hills, gravel, marsh and sand -> grass; brush and rocks on it are cleared
 //   desert, snow, marsh  paint the surface sand, snow or marsh (the owner's answer 1)
+//   forest, stone, ore   plant young pines, place boulders or ore-bearing rocks (slice 2; NODE_BRUSHES)
 // Safety: tiles under buildings, building sites, fields and stockpiles, and tiles with someone on them, are left out
 // (the preview counts them). A brush that makes ground impassable (mountain, water, lowering to shallows or water)
 // also leaves out tiles within SAFE tiles of people, buildings, fields and stockpiles, so nobody is shut in (an
@@ -17,9 +18,15 @@
 // applied row by row and preview reports exactly what apply changes.
 import { registerPower } from './god.js';
 import { destroyNode, destroyCrop } from './ruin.js';
+import { sprout } from './regrow.js';
 
 const MAX_R = 8, MAX_POINTS = 16, SAFE = 3, NEAR_R = 40;
-const BRUSHES = ['raise', 'lower', 'water', 'mountain', 'flatten', 'desert', 'snow', 'marsh'];
+const TERRAIN_BRUSHES = ['raise', 'lower', 'water', 'mountain', 'flatten', 'desert', 'snow', 'marsh'];
+// Node brushes (slice 2): forest plants young pines (they grow up as regrowth does), stone and ore place boulders
+// and ore-bearing rocks; about one tile in EVERY, chosen by a hash of the tile (no random draws), on free dry land.
+const NODE_BRUSHES = { forest: { def: 'core:pine', young: true, every: 3, salt: 1 }, stone: { def: 'core:boulder', every: 4, salt: 2 }, ore: { def: 'core:ore_rock', every: 4, salt: 3 } };
+const BRUSHES = [...TERRAIN_BRUSHES, ...Object.keys(NODE_BRUSHES)];
+const tileHash = (x, y) => { let h = Math.imul(x + 0x9e37, 0x85ebca6b) ^ Math.imul(y + 0x7f4a, 0xc2b2ae35); h ^= h >>> 13; h = Math.imul(h, 0x27d4eb2f); h ^= h >>> 16; return h >>> 0; };
 const WET = ['core:deep_water', 'core:water', 'core:shallows'];
 const extraKey = (args, allowed) => Object.keys(args).find((k) => !allowed.includes(k));
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -70,6 +77,19 @@ function plan(g, a) {
     seen.add(i); tiles.push({ i, x, y, dist });
   }
   tiles.sort((p, q) => p.i - q.i);
+  const N = NODE_BRUSHES[a.brush];
+  if (N) { // a node brush: the tiles it plants on
+    if (!g.reg.has('node', N.def)) return { changes, kept };
+    for (const t of tiles) {
+      if (tileHash(t.x + N.salt * 7919, t.y) % N.every) continue; // each brush its own pattern
+      const ter = g.terrainAt(t.x, t.y);
+      if (!ter.passable || ter.drinkable || g.nodeIdAt(t.i) || g.cropIdAt(t.i) || g.stackIdAt(t.i)) continue;
+      if (g.structIdAt(t.i) || g.footIdAt(t.i) || g.zoneAt(t.i)) { keep('buildings, fields and stockpiles'); continue; }
+      if (nearSettled(g, t.x, t.y, people)) { keep('the way round villages'); continue; }
+      changes.push({ i: t.i, node: N.def });
+    }
+    return { changes, kept };
+  }
   for (const t of tiles) {
     const from = g.terrainAt(t.x, t.y).id, to = next(g, a.brush, from, t.dist, r);
     if (!to || to === from) continue;
@@ -119,7 +139,7 @@ registerPower('shape', {
   preview(g, a) {
     const P = plan(g, a), warnings = [];
     for (const v of villagesNear(g, a)) warnings.push(`It reshapes land ${v.dist} tiles from ${v.mine ? 'your village' : v.name}.`);
-    const lost = P.changes.filter((c) => { const to = g.reg.get('terrain', c.to); return (!to.passable || to.drinkable) && (g.nodeIdAt(c.i) || g.cropIdAt(c.i)); }).length;
+    const lost = P.changes.filter((c) => { const to = c.to && g.reg.get('terrain', c.to); return to && (!to.passable || to.drinkable) && (g.nodeIdAt(c.i) || g.cropIdAt(c.i)); }).length;
     if (lost) warnings.push(`${lost} plants, rocks or crops on it are lost (plants leave seeds).`);
     const kept = Object.entries(P.kept).map(([why, n]) => `${n} tiles kept for ${why}`);
     return { brush: a.brush, tiles: P.changes.length, kept: P.kept, effect: `${P.changes.length} tiles change (${a.brush})${kept.length ? `; ${kept.join(', ')}` : ''}.`, warnings };
@@ -127,6 +147,7 @@ registerPower('shape', {
   apply(g, cmd) {
     const P = plan(g, cmd.args), people = Object.values(g.s.colonists).sort((p, q) => byId(p.id, q.id));
     for (const c of P.changes) {
+      if (c.node) { const N = NODE_BRUSHES[cmd.args.brush]; if (N.young) sprout(g, c.node, c.i); else g.addNode(c.node, c.i % g.W, (c.i - (c.i % g.W)) / g.W); continue; }
       const to = g.reg.get('terrain', c.to);
       if (!to.passable || to.drinkable) {
         const nid = g.nodeIdAt(c.i);

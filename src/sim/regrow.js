@@ -70,8 +70,8 @@ function villageNear(g, x, y) {
   return false;
 }
 
-/** A young node of `def` on tile i. */
-function sprout(g, def, i) {
+/** A young node of `def` on tile i (also the forest brush, godshape.js). */
+export function sprout(g, def, i) {
   const n = g.addNode(def, i % g.W, (i - (i % g.W)) / g.W);
   n.young = true; n.chunks = 0;
   g.nodeEmptied(n);

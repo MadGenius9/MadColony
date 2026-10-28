@@ -92,3 +92,34 @@ test('shape: painting desert, snow and marsh changes the surface; flatten levels
   g.tick();
   assert.ok((counts(g)['core:hills'] || 0) > before, 'a drag of three discs raised hills');
 });
+
+// ---------------- slice 2: forest, stone and ore ----------------
+test('shape: forest plants young pines that grow up; stone and ore place rocks; never next to the village; replays', () => {
+  const g = sandbox();
+  const at = find(g, (t, x, y) => t === 'core:grass' && g.isPassable(x, y), 28);
+  const nodes = (def) => Object.values(g.s.nodes).filter((n) => n.def === def && Math.hypot(n.x - at.x, n.y - at.y) <= 4);
+  const p = previewCommand(g, 'shape', { brush: 'forest', ...at, r: 4, confirm: true });
+  assert.equal(p.ok, true, p.reason);
+  const before = nodes('core:pine').length;
+  issueCommand(g, 'shape', { brush: 'forest', ...at, r: 4, confirm: true });
+  const b = reload(g);
+  g.tick(); b.tick();
+  assert.equal(stateText(b), stateText(g), 'replays after a load');
+  const young = nodes('core:pine').filter((n) => n.young);
+  assert.equal(young.length, p.preview.tiles, 'one young pine for each tile the preview named');
+  assert.ok(young.length >= 3 && nodes('core:pine').length > before);
+  const s2 = { x: at.x, y: at.y + 9 };
+  for (const brush of ['stone', 'ore']) {
+    const q = previewCommand(g, 'shape', { brush, ...s2, r: 3, confirm: true });
+    if (!q.ok) continue; // all taken already
+    issueCommand(g, 'shape', { brush, ...s2, r: 3, confirm: true });
+    g.tick();
+  }
+  assert.ok(Object.values(g.s.nodes).some((n) => n.def === 'core:ore_rock'), 'ore-bearing rocks placed');
+  const c = g.s.settlements[g.s.playerSettlement].center;
+  const near = previewCommand(g, 'shape', { brush: 'forest', x: c.x, y: c.y, r: 2, confirm: true });
+  assert.ok(!near.ok || (near.preview.kept['the way round villages'] || 0) > 0, 'nothing planted in the village itself');
+  runDays(g, 45); // a pine takes about 20 days, longer in winter
+  assert.ok(young.some((n) => g.s.nodes[n.id] && !g.s.nodes[n.id].young), 'some planted pines grew up');
+  assert.deepEqual(conservationErrors(g), []);
+});

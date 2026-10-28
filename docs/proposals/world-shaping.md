@@ -137,3 +137,14 @@ CLAUDE.md).
   - preview equals apply, and a load replays the stroke;
   - buildings and people are untouched and nobody is harmed;
   - the paints, flatten, a lake with a shore, and a drag.
+### Slice 2 (2026-10-28): forest, stone and ore
+- **Built:**
+  - `forest` plants young pines on about one free tile in 3; they grow up as regrowth does (`regrow.js sprout`,
+    now exported).
+  - `stone` places boulders and `ore` places ore-bearing rocks (new node `core:ore_rock`, 10 stone, in
+    `mods/core/content/shaping.json`: iron is smelted from ore-bearing stone, so an ore rock is a rich boulder),
+    each on about one tile in 4.
+  - Each brush has its own tile pattern (a hash of the tile, no random draws), on free dry land, with the same
+    3-tile clearance round villages and people.
+- **Test:** pines planted as previewed, replayed after a load and grown up within 45 days; ore rocks placed;
+  nothing planted in the village.
