@@ -362,3 +362,10 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   far herds and the runs have no drought.
 - **Tests:** 153 pass. The Vast test checks the winter move. A new test checks that a deer herd in a drought ends
   up smaller than in the same game without one, and that a save and load mid-drought plays on identically.
+- **Review fixes:**
+  - The drought check in a herd's chunk scores now uses the herd's own spot for its chunk and, for the other
+    chunks, whether the drought reaches the chunk at all. Before, only the chunk's middle tile was checked, so a
+    drought near a chunk corner thinned herds without driving them off.
+  - Whether a species moves away from droughts now comes from the data (`droughtLoss`), not from its diet.
+  - The Vast test now also casts a drought on a far deer herd and checks that the herd leaves it within two days.
+  - After the fixes: 153 tests pass; the classic hashes are unchanged.
