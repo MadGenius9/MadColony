@@ -10,6 +10,15 @@ import { workSpeed, practice } from '../src/sim/ai/jobs.js';
 import { decayNeed } from '../src/sim/ai/needs.js';
 import { coldUnder } from '../src/sim/life.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
+import { fitHpOf, fightersOf } from '../src/sim/combat.js';
+import { wolfDanger } from '../src/sim/hunt.js';
+import { greedOf, evaluateOffer } from '../src/sim/villages.js';
+import { findFood } from '../src/sim/ai/needs.js';
+import { endJob } from '../src/sim/ai/ai.js';
+import { tickRivalry } from '../src/sim/war.js';
+import { relationOf } from '../src/sim/villages.js';
+import { readAllMods } from '../tools/fsmods.js';
+import { buildRegistry } from '../src/sim/content/modloader.js';
 
 /** No colonist has more than two traits, a trait twice or a trait with its opposite. */
 function traitsOk(g, c) {
@@ -194,4 +203,96 @@ test('peoples: a Vast world with every people mixed in plays, saves and loads th
   const pc = peopleCensus(g);
   assert.ok(pc.ok, JSON.stringify(pc.problems));
   assert.equal(Object.keys(pc.byPeople).length, 4, JSON.stringify(pc.byPeople));
+});
+
+// ---- slice 3: courage, greed, favourite food, feuds between peoples
+/** A classic game with one hungry wolf pack near the village (as tests/cloud-animals.test.js). */
+function wolfGame() {
+  const g = newGame({ seed: 4242 });
+  g.tick();
+  const c = g.s.settlements[g.s.playerSettlement].center, A = g.s.animals;
+  for (const id of Object.keys(A.herds)) delete A.herds[id];
+  const day = Math.floor(g.s.tick / 2400);
+  A.herds.h901 = { id: 'h901', sp: 'core:wolf', x: c.x - 18, y: c.y + 6, n: 4, day, year: 0, next: g.s.tick, fed: day - 1 };
+  A.next = 902; g._anIdx = null;
+  while (g.s.tick % 600 !== 451) g.tick();
+  return g;
+}
+const hurt = (c, hp) => { c.health = { injuries: hp < 100 ? [{ id: `t${c.id}`, kind: 'bruise', severity: 100 - hp, cause: 'test', tick: 0 }] : [] }; };
+/** wolfDanger for c on the next tick that checks c (staggered every 5 ticks), without running the game. */
+function danger(g, c) {
+  const t0 = g.s.tick;
+  try { for (let k = 0; k < 5; k++) { g.s.tick = t0 + k; const j = wolfDanger(g, c); if (j) return j; } return null; } finally { g.s.tick = t0; }
+}
+
+test('peoples: brave people fight and stand against wolves while hurt; timid ones flee and never count as fighters', () => {
+  const g = wolfGame();
+  const w = Object.values(g.s.animals.list)[0], [a, b, c] = g.colonists();
+  for (const p of [a, b, c]) {
+    g.createItems('core:spear', 1, Math.round(p.x), Math.round(p.y), 'start');
+    const st = Object.values(g.s.stacks).find((x) => x.item === 'core:spear');
+    const t = g.takeFromStack(st.id, 1);
+    p.equip.weapon = { item: t.item, dur: 1500 };
+    p.x = w.x + 3; p.y = w.y; p.mv = null; p.path = null; if (p.job) endJob(g, p, null, 'test');
+  }
+  a.traits = ['core:brave']; b.traits = []; c.traits = ['core:timid'];
+  assert.equal(fitHpOf(g, a), 30); assert.equal(fitHpOf(g, b), 50); assert.ok(fitHpOf(g, c) > 100);
+  hurt(a, 35); hurt(b, 35); hurt(c, 100);
+  assert.equal(danger(g, a)?.type, 'fend', 'brave: stands against the wolf at 35% health');
+  assert.equal(danger(g, b)?.type, 'flee', 'others run when hurt');
+  const tj = danger(g, c);
+  assert.equal(tj?.type, 'flee', 'timid: runs even when well and armed');
+  assert.match(JSON.stringify(tj), /Timid: running from wolves/);
+  const sid = g.s.playerSettlement;
+  hurt(a, 100); hurt(b, 100);
+  const f = fightersOf(g, sid).map((x) => x.id);
+  assert.ok(f.includes(a.id) && f.includes(b.id) && !f.includes(c.id), 'timid people are not fighters');
+});
+
+test('peoples: greedy adults raise a village\'s price; people eat their favourite food first', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  const ai = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].ai);
+  for (const c of g.owned('colonists', ai)) c.traits = [];
+  relationOf(g, g.s.playerSettlement, ai).contact = true; // they have met
+  assert.equal(greedOf(g, ai), 0);
+  const offer = { give: [{ item: 'core:wood', qty: 20 }], want: [{ item: 'core:potato', qty: 10 }] };
+  const plain = evaluateOffer(g, ai, offer);
+  const [x, y] = g.owned('colonists', ai);
+  x.traits = ['core:greedy']; y.traits = ['core:greedy'];
+  assert.equal(greedOf(g, ai), 0.06);
+  const greedy = evaluateOffer(g, ai, offer);
+  assert.ok(greedy.lines.some((l) => /Greedy folk there: they ask 6% more/.test(l)), greedy.lines.join(' | '));
+  const want = (r) => Number(/want at least (\d+)/.exec(r.verdict)?.[1]);
+  if (want(plain)) assert.ok(want(greedy) > want(plain), `${plain.verdict} / ${greedy.verdict}`);
+  for (const c of g.owned('colonists', ai)) c.traits = ['core:greedy'];
+  assert.ok(greedOf(g, ai) <= 0.15);
+  // Favourite food: with beans and potatoes the same distance away and no meals, Reedkin take beans.
+  const h = newGame({ seed: 7 });
+  for (const st of Object.values(h.s.stacks)) if (h.reg.get('item', st.item)?.nutrition) delete h.s.stacks[st.id];
+  h._stackIdx = null;
+  const c = h.colonists()[0];
+  h.createItems('core:bean', 10, c.x + 3, c.y, 'start');
+  h.createItems('core:potato', 10, c.x - 3, c.y, 'start');
+  c.people = 'core:reedkin';
+  assert.equal(findFood(h, c)?.item, 'core:bean');
+});
+
+test('peoples: rivalry grows faster between villages of different peoples', () => {
+  const mods = readAllMods();
+  mods.find((m) => m.manifest.id === 'core').files['content/setup.json'].scenario.find((x) => x.id === 'core:neighbours').war = { rivalry: { perDay: 1, floor: -70, near: 500, nearPerDay: 0.6 }, declareBelow: -50, stronger: 1.5, minStrength: 0.5, warnDays: 1 };
+  const REG = buildRegistry(mods, ['core']).registry;
+  const drop = (other) => {
+    const g = newGame({ seed: 7, registry: REG, scenario: 'core:neighbours', size: 'medium', villages: 2 });
+    const [x, y] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+    const r = relationOf(g, x, y);
+    r.contact = true;
+    if (other) { g.s.settlements[y].people = 'core:reedkin'; for (const c of g.owned('colonists', y)) c.people = 'core:reedkin'; }
+    const before = r.value;
+    tickRivalry(g);
+    return { d: before - relationOf(g, x, y).value, why: r.history?.at(-1)?.reason || '' };
+  };
+  const same = drop(false), other = drop(true);
+  assert.ok(same.d > 0, `rivalry between neighbours (${same.d})`);
+  // Reedkin temperament 1, Hearthfolk 1: only the 1.5 for different peoples changes the fall.
+  assert.ok(Math.abs(other.d - 1.5 * same.d) < 0.02, `${other.d} against ${same.d}`);
 });

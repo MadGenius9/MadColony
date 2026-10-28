@@ -8,7 +8,8 @@ import { makeLook } from './appearance.js';
 import { namePoolOf, uniqueName, firstByKey } from './names.js';
 import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.js';
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
-import { knownPeople, settleFolk } from './peoples.js';
+import { knownPeople, settleFolk, modsOf } from './peoples.js';
+import { isAdult } from './people.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
 export const RELATION_LABEL = { unknown: 'Not met', neutral: 'Neutral', friendly: 'Friendly', hostile: 'Hostile' };
@@ -773,7 +774,9 @@ export function evaluateOffer(g, ai, offer) {
   } else { // a trade: eager traders accept a thinner margin
     const pact = hasPact(g, me, ai);
     if (pact) res.lines.push('Trade pact: they accept a thinner margin.');
-    const need = Math.ceil(res.worthOut * ((pact ? 1 : 1.15) - 0.25 * willing));
+    const greed = greedOf(g, ai);
+    if (greed > 0) res.lines.push(`Greedy folk there: they ask ${Math.round(greed * 100)}% more.`);
+    const need = Math.ceil(res.worthOut * ((pact ? 1 : 1.15) - 0.25 * willing + greed));
     res.accept = res.worthIn >= need;
     res.relOnAgree = res.accept ? 2 : 0;
     res.relOnDone = res.accept ? 6 : 0;
@@ -781,6 +784,14 @@ export function evaluateOffer(g, ai, offer) {
       : `${name} refuses: your offer is worth ${res.worthIn} to them; they want at least ${need}.`;
   }
   return res;
+}
+
+/** The extra share a village asks in trade for its greedy adults (peoples.js: each adult's trait `trade`, at most GREED_MAX). */
+export const GREED_MAX = 0.15;
+export function greedOf(g, sid) {
+  let x = 0;
+  for (const c of g.owned('colonists', sid)) if (isAdult(g, c)) x += modsOf(g, c).trade;
+  return Math.min(GREED_MAX, Math.round(x * 1000) / 1000);
 }
 
 /** Send an offer. If the neighbour accepts it becomes an active trade (one leg per item); returns { ok, message, tradeId }. */

@@ -129,3 +129,7 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Bench (the slice-1 code against now, same machine, two rounds, ms/tick summed over the six sizes): 3.33 → 3.69
   (+11%) and 3.63 → 3.77 (+4%), about +7% on average. Part of it is that the games play differently now
   (traits change work and walking), not only the cost of reading the effects.
+
+## Peoples and traits, slice 3 (2026-10-28)
+- 200 tests pass. Classic runs unchanged from slice 2 (`forty` ee55506a781cb766, `modern` 479f5857575304ab):
+  classic games have no fights and only Hearthfolk.

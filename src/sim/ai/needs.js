@@ -54,6 +54,7 @@ function findFoodIn(g, c) {
   const totals = {};
   for (const st of g.mineList('stacks', c)) if (g.mine(st, c)) totals[st.item] = (totals[st.item] || 0) + g.availQty(st.id);
   let best = null, bestScore = Infinity;
+  const fav = c.people ? reg.get('people', c.people)?.food : null; // the people's favourite food (peoples.js)
   for (const st of g.mineList('stacks', c)) {
     if (!g.mine(st, c)) continue; // never eat another settlement's food
     const d = reg.get('item', st.item);
@@ -62,7 +63,7 @@ function findFoodIn(g, c) {
     const isMeal = d.tags?.includes('core:meal');
     if (!isMeal && (totals[st.item] - (reserve[st.item] || 0)) < 1) continue; // seed protection
     if (!g.canReach(c, st.x, st.y, 'on')) continue;
-    const score = octile(c.x, c.y, st.x, st.y) + (isMeal ? 0 : 40) - (d.spoilPerDay ? 30 : 0); // eat what spoils first (Phase 8)
+    const score = octile(c.x, c.y, st.x, st.y) + (isMeal ? 0 : 40) - (d.spoilPerDay ? 30 : 0) - (st.item === fav ? 25 : 0); // eat what spoils first (Phase 8), then the favourite
     if (score < bestScore) { bestScore = score; best = st; }
   }
   return best;

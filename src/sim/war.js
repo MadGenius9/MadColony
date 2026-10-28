@@ -28,11 +28,12 @@ import { sameKingdom, kingdomOf, membersOf, formKingdom, joinKingdom, leaveKingd
 import { availableToTrade, spareOf } from './villages.js';
 
 const TRIBUTE_MAX = 200; // per item, as for ordinary offers
-import { declareWar, makePeace, weaponOf, COMBAT } from './combat.js';
+import { declareWar, makePeace, weaponOf, COMBAT, fitHpOf } from './combat.js';
 import { isDown, hpOf, injure } from './health.js';
 import { spreadContact } from './illness.js';
 import { mayFight } from './people.js';
 import { settlementOf } from './research.js';
+import { peopleOfSettlement } from './peoples.js';
 
 /** The scenario's war rules, or null. */
 export function warRules(g) {
@@ -51,8 +52,11 @@ const hash = (str) => {
   return h >>> 0;
 };
 const draw = (key) => hash(key) / 4294967296;
-const isFit = (g, c) => !isDown(c) && hpOf(c) >= COMBAT.fitHp && mayFight(g, c);
-const temperOf = (g, sid) => { const p = g.s.settlements?.[sid]?.profile; return (p && g.reg.get('villageProfile', p)?.temperament) ?? 1; };
+const isFit = (g, c) => !isDown(c) && hpOf(c) >= fitHpOf(g, c) && mayFight(g, c); // brave and timid (peoples.js)
+// Temperament: the village profile's, else its people's (peoples.js), else 1.
+const temperOf = (g, sid) => { const p = g.s.settlements?.[sid]?.profile; return (p && g.reg.get('villageProfile', p)?.temperament) ?? g.reg.get('people', peopleOfSettlement(g, sid))?.temperament ?? 1; };
+/** Rivalry grows this much faster between villages of different peoples (the owner's answer 5). */
+export const OTHER_PEOPLE_RIVALRY = 1.5;
 
 /** Fighting strength of a village: fit adults, armed ones counted by weapon damage (fists: COMBAT.unarmed). */
 export function warStrength(g, sid) {
@@ -87,6 +91,8 @@ export function tickRivalry(g) {
       if (ca && cb && Math.hypot(ca.x - cb.x, ca.y - cb.y) <= rv.near) { per = rv.nearPerDay ?? rv.perDay / 2; why = 'They compete for the same land'; }
     }
     if (!per) continue;
+    const pa = peopleOfSettlement(g, rel.a), pb = peopleOfSettlement(g, rel.b);
+    if (pa && pb && pa !== pb) { per *= OTHER_PEOPLE_RIVALRY; why += ` (${g.reg.get('people', pa)?.name} and ${g.reg.get('people', pb)?.name})`; }
     const d = per * (temperOf(g, rel.a) + temperOf(g, rel.b)) / 2;
     const value = Math.max(rv.floor, Math.round((rel.value - d) * 100) / 100);
     if (relationStatus({ contact: true, value }) !== relationStatus(rel)) changeRelation(g, rel.a, rel.b, value - rel.value, why);

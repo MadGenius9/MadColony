@@ -17,6 +17,7 @@ import { hpOf } from './health.js';
 import { roomAt } from './heat.js';
 import { killMonster, woundMonster, standing, homeOf } from './monsters.js';
 import { isAdult } from './people.js';
+import { modsOf } from './peoples.js';
 
 const SEE = 10, THREAT = 40, HOLD = 7, PARTY = 8, GIVE_UP = 1500, CLEAR_R = 60, CLEAR_WORK = 300;
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -40,7 +41,8 @@ export function monsterThreats(g, sid) {
   const ctr = centreOf(g, sid);
   return nearMonsters(g).filter((m) => threatens(g, m, sid)).sort((a, b) => Math.hypot(a.x - ctr.x, a.y - ctr.y) - Math.hypot(b.x - ctr.x, b.y - ctr.y) || byId(a.id, b.id));
 }
-const armedFit = (g, c) => !!huntWeapon(g, c) && hpOf(c) > 50 && !c.health?.down;
+// Timid people never join a hunt party (peoples.js; party 'never'); brave ones are first to (urgency below).
+const armedFit = (g, c) => !!huntWeapon(g, c) && hpOf(c) > 50 && !c.health?.down && modsOf(g, c).party !== 'never';
 
 /** Is monster o a danger to c now (as monsters.js attacks): a Thornback near its den or angry at them, a
  *  Gloomstalker at night, a Barkmaw always. */
@@ -75,7 +77,7 @@ export function monsterDanger(g, c) {
   const d = g.reg.get('monster', m.sp), dx = c.x - m.x, dy = c.y - m.y, len = Math.hypot(dx, dy) || 1;
   let tx = Math.max(0, Math.min(g.W - 1, Math.round(c.x + (dx / len) * 12))), ty = Math.max(0, Math.min(g.H - 1, Math.round(c.y + (dy / len) * 12)));
   if (!g.isPassable(tx, ty)) { const h = centreOf(g, sidOf(g, c)); tx = h.x; ty = h.y; }
-  return newJob('flee', { x: tx, y: ty, why: `Running from the ${d.name}`, monster: m.id }, { why: `A ${d.name} came close`, label: `Run from the ${d.name}` });
+  return newJob('flee', { x: tx, y: ty, why: `${modsOf(g, c).party === 'never' && huntWeapon(g, c) ? 'Timid: running' : 'Running'} from the ${d.name}`, monster: m.id }, { why: modsOf(g, c).party === 'never' && huntWeapon(g, c) ? `Timid: running from the ${d.name}` : `A ${d.name} came close`, label: `Run from the ${d.name}` });
 }
 
 /** A free slot of monster m's hunt party for c (fightGroup + 1 slots), or -1. */
@@ -104,7 +106,7 @@ export const SLAY_GIVERS = {
       for (const m of monsterThreats(g, sid)) {
         const d = g.reg.get('monster', m.sp);
         if (!enoughArmed(g, sid, d) || g.isBlocked(`slay:${sid}:${m.id}`) || freeSlot(g, c, m, d) < 0) continue;
-        out.push({ x: m.x, y: m.y, urgency: 1.6, label: `Hunt the ${d.name}`, far: { x: m.x, y: m.y }, make: () => partyJob(g, c, m, wt) });
+        out.push({ x: m.x, y: m.y, urgency: modsOf(g, c).party === 'first' ? 1.9 : 1.6, label: `Hunt the ${d.name}`, far: { x: m.x, y: m.y }, make: () => partyJob(g, c, m, wt) });
       }
       return out;
     },

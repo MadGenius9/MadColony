@@ -15,6 +15,7 @@ import { travel, newJob, practice } from './ai/jobs.js';
 import { huntableNear, bringNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, packThreat, nearHerdIds, HUNT_LIMIT, MEAT_PER_PERSON } from './animals.js';
 import { roomAt } from './heat.js';
 import { hpOf } from './health.js';
+import { modsOf } from './peoples.js';
 
 export const HUNT_REACH = 60, GIVE_UP = 1500;
 
@@ -74,12 +75,14 @@ export function wolfDanger(g, c) {
   const w = wolfNear(g, c.x, c.y, WOLF_SEE);
   if (!w || !packThreat(g, w) || g.regionOf(w.x, w.y) !== g.regionOf(Math.round(c.x), Math.round(c.y))) return null; // a fed pack, or across water: no danger
   if (c.job?.need && Math.hypot(w.x - c.x, w.y - c.y) > 3) return null; // eating or drinking goes on unless it is right there
-  if (huntWeapon(g, c) && hpOf(c) > 40 && !g.isBlocked(`fend:${c.id}`)) return newJob('fend', { wolf: w.id, gx: null, gy: null, cd: 0, started: g.s.tick }, { why: 'A wolf came close', label: 'Fend off the wolf', targetKey: `fend:${c.id}` });
+  const wolfHp = modsOf(g, c).wolfHp ?? 40; // brave people stand while hurt; timid ones run (peoples.js)
+  if (huntWeapon(g, c) && hpOf(c) > wolfHp && !g.isBlocked(`fend:${c.id}`)) return newJob('fend', { wolf: w.id, gx: null, gy: null, cd: 0, started: g.s.tick }, { why: wolfHp < 40 && hpOf(c) <= 40 ? 'A wolf came close (brave: standing while hurt)' : 'A wolf came close', label: 'Fend off the wolf', targetKey: `fend:${c.id}` });
   const dx = c.x - w.x, dy = c.y - w.y, len = Math.hypot(dx, dy) || 1;
   let tx = Math.round(c.x + (dx / len) * 10), ty = Math.round(c.y + (dy / len) * 10);
   tx = Math.max(0, Math.min(g.W - 1, tx)); ty = Math.max(0, Math.min(g.H - 1, ty));
   if (!g.isPassable(tx, ty)) { const h = g.s.settlements?.[c.settlementId]?.center || g.s.center; tx = h.x; ty = h.y; }
-  return newJob('flee', { x: tx, y: ty, why: 'Running from wolves', wolf: true }, { why: 'Wolves nearby', label: 'Run from the wolves' });
+  const timid = wolfHp >= 100 && huntWeapon(g, c);
+  return newJob('flee', { x: tx, y: ty, why: timid ? 'Timid: running from wolves' : 'Running from wolves', wolf: true }, { why: timid ? 'Timid: running from wolves' : 'Wolves nearby', label: 'Run from the wolves' });
 }
 
 /** Strike or shoot at animal t (hunt and fend): true when it died (the caller handles the kill). */

@@ -80,7 +80,7 @@ Each people is matched to land the brushes can paint (grass, marsh, hills and sn
 
 | People | Home land | Looks | Needs and body | Work | Temperament (war rivalry 0–5) | Building style |
 |---|---|---|---|---|---|---|
-| **Hearthfolk** | grass, farmland | today's palette, average height | as today | as today | 2 (as today) | today's cabins and longhouse |
+| **Hearthfolk** | grass, farmland | today's palette, average height | as today | as today | 1 (as today's default) | today's cabins and longhouse |
 | **Reedkin** | marsh, rivers, coast | small and slight; green-brown skin tones, reed-dark hair | thirst ×1.3, hunger ×0.85; marsh walks at full speed for them | farming and cooking ×1.15, mining ×0.8 | 1 (slow to anger) | a raised reed house (thatch and wood, cheaper in wood, needs straw) |
 | **Cragborn** | hills, mountains, snow | tall and broad; grey and ruddy skin, pale hair, more beards | hunger ×1.2; cold sets in 6 °C later | mining and construction ×1.15, farming ×0.9 | 4 (proud, quick to feud) | a stone roundhouse (stone walls preferred in every slot) |
 | **Duneshade** | sand and desert | lean; deep bronze skin, dark hair, wrapped style | thirst ×0.6; cold sets in 4 °C sooner; rest outdoors lasts longer | crafting and trading; hauling walks ×1.1 | 3 | a low clay-and-wood courtyard house (fewer windows, a shared hearth) |
@@ -257,3 +257,28 @@ Each person has 0 to 2 traits. Opposite traits never go together.
   - classic `forty` reaches the workshops era on day 6.10 (was 5.94), `modern` the modern era on day 46.12 (was
     45.5);
   - bench about +7% against slice 1 (two rounds: +11% and +4%).
+### Slice 3 (2026-10-28): courage, greed, favourite food, feuds between peoples
+- **Built:**
+  - **Fighting** (`combat.js`): the health needed to fight is the trait's `fightHp` (Brave 30, Timid above
+    100: never), else 50, through `fitHpOf`. It also decides who counts as a fighter (`fightersOf`, war
+    strength). Timid people flee from 8 tiles (others 5).
+  - **Wolves** (`hunt.js`): an armed Brave person stands at over 25% health (others 40%). A Timid one always
+    runs.
+  - **Hunt parties** (`slay.js`): Timid people never join; Brave ones take the job first (urgency 1.9 against
+    1.6).
+  - **Statuses:**
+    - "Fighting X (brave: fighting on while hurt)";
+    - "Timid: fleeing from the fight";
+    - "A wolf came close (brave: standing while hurt)";
+    - "Timid: running from wolves" and "Timid: running from the Thornback".
+  - **Greed** (`villages.js greedOf`): a village asks 3% more per greedy adult, at most 15%. The offer screen
+    says "Greedy folk there: they ask 6% more."
+  - **Favourite food** (`needs.js findFood`): a stack of the people's favourite counts 25 tiles nearer. Meals
+    still come first.
+  - **Temperament:** a village without a profile temperament uses its people's (Hearthfolk 1, as today's
+    default).
+  - **Feuds:** rivalry grows ×1.5 between villages of different peoples, and the reason names both peoples
+    (the owner's answer 5).
+- **Not built:**
+  - favourite food in distant villages (their food is picked for the whole village);
+  - greed in trades between two AI villages (only offers to and from the player use it).

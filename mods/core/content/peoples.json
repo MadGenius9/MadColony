@@ -5,7 +5,7 @@
       "id": "core:hearthfolk", "name": "Hearthfolk", "plural": "Hearthfolk", "default": true,
       "about": "Settled farming folk of the open grasslands: the people of every classic village.",
       "terrains": ["core:grass", "core:soil"],
-      "temperament": 2, "food": "core:stew", "traitOdds": [40, 45, 15], "color": "#c9a46a"
+      "temperament": 1, "food": "core:stew", "traitOdds": [40, 45, 15], "color": "#c9a46a"
     },
     {
       "id": "core:reedkin", "name": "Reedkin", "plural": "Reedkin",
@@ -34,7 +34,7 @@
   ],
   "trait": [
     { "id": "core:brave", "name": "Brave", "opposite": "core:timid", "weight": 10, "inherit": 0.4, "about": "Fights on while badly hurt, fends off wolves when wounded and is first to join a hunt party.", "effects": { "fightHp": 30, "wolfHp": 25, "party": "first" } },
-    { "id": "core:timid", "name": "Timid", "opposite": "core:brave", "weight": 10, "inherit": 0.4, "about": "Never joins a fight or a hunt party unless cornered, and flees danger from farther away.", "effects": { "fightHp": 101, "flee": 8, "party": "never" } },
+    { "id": "core:timid", "name": "Timid", "opposite": "core:brave", "weight": 10, "inherit": 0.4, "about": "Never joins a fight or a hunt party unless cornered, and flees danger from farther away.", "effects": { "fightHp": 101, "wolfHp": 100, "flee": 8, "party": "never" } },
     { "id": "core:hardy", "name": "Hardy", "opposite": "core:sickly", "weight": 10, "inherit": 0.4, "about": "Illness takes a lighter hold, wounds heal faster and the cold comes later.", "effects": { "illnessStrength": 0.6, "heal": 1.25, "cold": 2 } },
     { "id": "core:sickly", "name": "Sickly", "opposite": "core:hardy", "weight": 8, "inherit": 0.4, "about": "Catches illness more easily, suffers it worse and heals slowly.", "effects": { "illnessChance": 1.5, "illnessStrength": 1.4, "heal": 0.8 } },
     { "id": "core:wise", "name": "Wise", "weight": 8, "inherit": 0.4, "about": "Learns every skill half again as fast.", "effects": { "learn": 1.5 } },

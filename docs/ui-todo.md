@@ -351,3 +351,10 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Inspector card:** under the traits, one line per effect that differs from 1 (from `modsOf`, peoples.js),
   e.g. "Mining ×1.27 (Cragborn, Strong)", "Thirst ×0.6 (Duneshade)", "Cold sets in 8 °C later". Illness lines
   in the log already say "(sickly)".
+
+## Peoples and traits, slice 3: courage, greed, food, feuds
+- **Statuses** already carry the reason ("Timid: running from wolves", "Fighting X (brave: fighting on while
+  hurt)"); the UI shows them as usual.
+- **Trade window:** the offer's lines include "Greedy folk there: they ask N% more."
+- **Relations panel:** a rivalry reason ending "(Hearthfolk and Reedkin)" means the feud is faster because
+  they are different peoples.

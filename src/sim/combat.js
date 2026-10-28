@@ -12,6 +12,7 @@ import { relationOf, relationPeek, relationStatus, changeRelation, noteRelation,
 import { settlementOf } from './research.js';
 import { kingdomOf, membersOf, sameKingdom, theKingdom } from './kingdoms.js';
 import { octile } from './util.js';
+import { modsOf } from './peoples.js';
 
 export const COMBAT = {
   scanEvery: 5, // ticks between a colonist's threat checks
@@ -281,13 +282,15 @@ export function combatDecision(g, c) {
     if (enemy || g.territoryAt(c.x, c.y) !== sid) return fleeJob('Falling back home (retreat order)');
     return null;
   }
-  const fit = hpOf(c) >= COMBAT.fitHp;
+  const m = modsOf(g, c), hp = hpOf(c);
+  const fit = hp >= fitHpOf(g, c); // brave people fight on while hurt; timid ones never join (peoples.js)
   if (enemy) {
     if (w.armed && fit) {
       if (w.outOfAmmo && Math.hypot(enemy.x - c.x, enemy.y - c.y) > 4) { const aj = armJob(g, c); if (aj) return aj; }
-      return newJob('fight', { targetId: enemy.id, stage: 'fight' }, { why: `Fighting ${enemy.name}`, label: `Fight ${enemy.name}` });
+      const brave = hp < COMBAT.fitHp ? ' (brave: fighting on while hurt)' : '';
+      return newJob('fight', { targetId: enemy.id, stage: 'fight' }, { why: `Fighting ${enemy.name}${brave}`, label: `Fight ${enemy.name}` });
     }
-    if (octile(c.x, c.y, enemy.x, enemy.y) <= COMBAT.fleeRange) return fleeJob(w.armed ? 'Wounded: avoiding the fight' : 'Unarmed: fleeing from enemies');
+    if (octile(c.x, c.y, enemy.x, enemy.y) <= (m.flee ?? COMBAT.fleeRange)) return fleeJob(!w.armed ? 'Unarmed: fleeing from enemies' : m.fightHp > 100 ? 'Timid: fleeing from the fight' : 'Wounded: avoiding the fight');
     return null;
   }
   if (ord.order === 'attack' && ord.target && w.armed && fit && isEnemy(g, sid, ord.target)) {
@@ -299,9 +302,12 @@ export function combatDecision(g, c) {
   return null;
 }
 
+/** The health colonist c needs to fight: COMBAT.fitHp, or their trait's (brave: lower; timid: above 100, never). */
+export function fitHpOf(g, c) { return modsOf(g, c).fightHp ?? COMBAT.fitHp; }
+
 /** Fit, armed fighters a settlement has right now. */
 export function fightersOf(g, sid, bySid = null) {
-  return (bySid ? bySid.get(sid) || [] : Object.values(g.s.colonists)).filter((c) => sidOf(g, c) === sid && !isDown(c) && hpOf(c) >= COMBAT.fitHp && !!c.equip?.weapon && mayFight(g, c));
+  return (bySid ? bySid.get(sid) || [] : Object.values(g.s.colonists)).filter((c) => sidOf(g, c) === sid && !isDown(c) && hpOf(c) >= fitHpOf(g, c) && !!c.equip?.weapon && mayFight(g, c));
 }
 
 /** AI villages decide their own orders every 100 ticks: raid a hostile neighbour they clearly outnumber,
