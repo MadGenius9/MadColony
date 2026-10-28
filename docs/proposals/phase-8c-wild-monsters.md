@@ -64,7 +64,7 @@ Each is a single creature (not a herd), much stronger than any animal, living in
 | Speed | 1.6 (charges) | 2.0 | 0.6 |
 | Weak to | spears (reach) | light and fire (runs from lit buildings; a torch or fire hurts it) | fire (burns: `ignite` on its tile hurts it a lot) |
 | When slain | 40 meat, 4 hides (`core:thornback_carcass`) | 2 hides; a "gloom eye" trophy (sold or kept) | 30 wood, 1 "heartwood" (a rare wood) |
-| Per map | 1 per ~150,000 tiles of its ground | 1 per ~200,000 tiles of hills and mountains | 1 per ~200,000 tiles of forest |
+| Per map | 1 per ~60,000 tiles of its ground | 1 per ~80,000 tiles of hills, gravel, tundra and snow | 1 per ~80,000 tiles of forest floor, taiga and jungle |
 
 All the names and looks are new to this game.
 

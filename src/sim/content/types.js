@@ -425,6 +425,7 @@ export const CONTENT_TYPES = {
         } }),
       }),
       animals: obj({ species: req(arr(ref('animal'))), scale: num(0, 100) }), // Phase 8 (animals.js): wild herds (default: every species; [] turns them off)
+      monsters: obj({ species: req(arr(ref('monster'))), scale: num(0, 100) }), // Phase 8c (monsters.js): lairs (default: every species; [] turns them off)
       nature: obj({ spread: arr(obj({ node: req(ref('node')), perDay: req(num(0, 1)), radius: req(int(1, 10)), minNear: int(0, 24), maxNear: req(int(1, 24)) })) }), // Phase 5b (regrow.js): forests spread
       travel: TRAVEL, // trip budgets for colonists (ai/trips.js); absent: off unless the AI profile sets it
       eraDrive: obj({ urgency: num(0, 2), afterDays: num(0, 3650) }), // afterDays: from this many days after the village's founding (default 0)
@@ -608,6 +609,17 @@ export const CONTENT_TYPES = {
   namePool: {
     doc: 'Colonist names.',
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
+  },
+  monster: {
+    doc: 'A wild monster (monsters.js, Phase 8c): a single strong creature living at a lair on its terrains, about one lair per perTiles tiles of them, at least 80 tiles from any village (every game has at least minWorld of the species with the most ground, as far from villages as the map allows). It roams up to roam chunks from its lair; a slain one is replaced after respawnDays unless the lair is cleared. health, speed (tiles a step), damage [lo, hi] a blow, fightGroup: armed people it takes to fight it; night: it hunts only at night. carcass (an item) or drops (items) when slain. godCost: favour to send one. about: what it is (shown).',
+    schema: obj({
+      id, name, plural: str(40), about: str(300),
+      terrains: req(arr(ref('terrain'), { minItems: 1 })), perTiles: req(num(1000, 1e9)), minWorld: int(0, 10),
+      health: req(num(1, 100000)), speed: req(num(0.1, 10)), damage: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })), fightGroup: req(int(1, 20)),
+      roam: req(int(0, 20)), respawnDays: req(num(0, 10000)), night: bool(), godCost: num(0, 1000),
+      carcass: ref('item'), drops: arr(obj({ item: req(ref('item')), qty: req(int(1, 1000)) })),
+      color, render,
+    }),
   },
   animal: {
     doc: 'A wild animal species (animals.js, Phase 8). Herds of herd [lo, hi] live on its terrains: density herds per 1,000 tiles of them when the world starts, cap animals per 1,000 tiles the land feeds. Far from people a herd is a count, moved one chunk at most every moveHours and grown once a year in spring by births (less as its land fills); winterLoss a day in winter (three times that on poor winter ground: under a fifth of its ground is winterTerrains, which it moves toward in winter); droughtLoss a day in a drought (grazers also move away from one). godCost: favour a head when the gods send it (the animals power, godanimals.js; default 3). lostLoss (default 0.05) a day in a chunk with none of its ground, crowdLoss (default 0.03) in a chunk holding over 1.5 times what its ground feeds; such herds also move on. diet graze or hunt (prey: species it eats; a pack with no prey for starveDays loses one). fear: the distance at which it runs from people and from predators.',

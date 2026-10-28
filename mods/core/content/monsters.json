@@ -1,0 +1,156 @@
+{
+  "$comment": "Phase 8c: wild monsters (src/sim/monsters.js). Each species lives alone at lairs on its terrains: about one lair per perTiles tiles of them, at least 80 tiles from any village; every game has at least one lair (minWorld). A slain monster's lair grows a new one after respawnDays unless villagers clear it. Original creatures of this game.",
+  "monster": [
+    {
+      "id": "core:thornback",
+      "name": "Thornback",
+      "plural": "thornbacks",
+      "terrains": [
+        "core:grass",
+        "core:soil",
+        "core:forest_floor",
+        "core:savanna"
+      ],
+      "perTiles": 60000,
+      "minWorld": 1,
+      "health": 400,
+      "speed": 1.6,
+      "damage": [
+        15,
+        30
+      ],
+      "fightGroup": 3,
+      "roam": 3,
+      "respawnDays": 60,
+      "godCost": 40,
+      "carcass": "core:thornback_carcass",
+      "color": "#5d4a2e",
+      "render": {
+        "shape": "circle",
+        "sprite": "thornback"
+      },
+      "about": "A boar-like beast the size of a cart, its back a mat of thorns. It tramples fields and charges whoever comes near its den."
+    },
+    {
+      "id": "core:gloomstalker",
+      "name": "Gloomstalker",
+      "plural": "gloomstalkers",
+      "terrains": [
+        "core:hills",
+        "core:gravel",
+        "core:tundra",
+        "core:snow"
+      ],
+      "perTiles": 80000,
+      "health": 250,
+      "speed": 2.0,
+      "damage": [
+        20,
+        40
+      ],
+      "fightGroup": 3,
+      "roam": 4,
+      "respawnDays": 60,
+      "night": true,
+      "godCost": 50,
+      "carcass": "core:gloomstalker_carcass",
+      "color": "#2b2d3a",
+      "render": {
+        "shape": "circle",
+        "sprite": "gloomstalker"
+      },
+      "about": "A long-limbed, eyeless hunter from the caves. It comes out at night for lone people and never enters a lit room."
+    },
+    {
+      "id": "core:barkmaw",
+      "name": "Barkmaw",
+      "plural": "barkmaws",
+      "terrains": [
+        "core:forest_floor",
+        "core:taiga",
+        "core:jungle"
+      ],
+      "perTiles": 80000,
+      "health": 600,
+      "speed": 0.6,
+      "damage": [
+        10,
+        20
+      ],
+      "fightGroup": 4,
+      "roam": 2,
+      "respawnDays": 60,
+      "godCost": 60,
+      "drops": [
+        {
+          "item": "core:wood",
+          "qty": 30
+        },
+        {
+          "item": "core:heartwood",
+          "qty": 1
+        }
+      ],
+      "color": "#4a3b2a",
+      "render": {
+        "shape": "circle",
+        "sprite": "barkmaw"
+      },
+      "about": "An old dead tree that walks on its roots, a split trunk for a mouth. It tears down wooden buildings; stone stops it, and fire burns it."
+    }
+  ],
+  "item": [
+    {
+      "id": "core:thornback_carcass",
+      "name": "Thornback carcass",
+      "color": "#5d4a2e",
+      "stackLimit": 1,
+      "spoilPerDay": 0.1,
+      "tags": [
+        "core:carcass"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "sack"
+      },
+      "value": 40
+    },
+    {
+      "id": "core:gloomstalker_carcass",
+      "name": "Gloomstalker carcass",
+      "color": "#2b2d3a",
+      "stackLimit": 1,
+      "spoilPerDay": 0.1,
+      "tags": [
+        "core:carcass"
+      ],
+      "render": {
+        "shape": "sack",
+        "icon": "sack"
+      },
+      "value": 30
+    },
+    {
+      "id": "core:gloom_eye",
+      "name": "Gloom eye",
+      "color": "#9fb6c9",
+      "stackLimit": 10,
+      "render": {
+        "shape": "pots",
+        "icon": "pot"
+      },
+      "value": 60
+    },
+    {
+      "id": "core:heartwood",
+      "name": "Heartwood",
+      "color": "#a86b2c",
+      "stackLimit": 10,
+      "render": {
+        "shape": "logs",
+        "icon": "logs"
+      },
+      "value": 50
+    }
+  ]
+}

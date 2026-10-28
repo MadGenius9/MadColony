@@ -106,6 +106,8 @@ export const MIGRATIONS = {
     A.ledger = {};
     for (const h of Object.values(A.herds)) (A.ledger[h.sp] ||= { start: 0, born: 0, sent: 0, died: {} }).start += Number(h.n) || 0;
   },
+  // 28 -> 29: wild monsters (Phase 8c). `s.monsters` is optional: absent, the lairs are placed at the next tick.
+  28() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

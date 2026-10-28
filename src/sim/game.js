@@ -36,6 +36,7 @@ import { tickStorms } from './storm.js';
 import { tickWeather } from './weather.js';
 import { tickRegrowth, natureRules } from './regrow.js';
 import { tickAnimals, animalSpecies } from './animals.js';
+import { tickMonsters, monsterSpecies } from './monsters.js';
 import { tickSpoil } from './spoil.js';
 import './godwrath.js'; // registers the destructive powers (Phase 5b)
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
@@ -1462,6 +1463,7 @@ export class Game {
     tickHeat(this);
     tickLOD(this); // big worlds: level of detail, abstract villages' hours, caravans
     if (s.animals || animalSpecies(this).length) tickAnimals(this); // wild herds (animals.js, Phase 8)
+    if (s.monsters || monsterSpecies(this).length) tickMonsters(this); // wild monsters (monsters.js, Phase 8c)
     if (s.bodies) tickBurial(this); // bodies nobody buried in time, or of distant villages (burial.js)
     if (s.contact) tickContact(this); // contact over distance: explorers and traders (scenarios with a contact block)
     const big = this.big;

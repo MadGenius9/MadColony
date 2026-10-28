@@ -261,3 +261,10 @@ where, and which sim function or state field provides it. The UI is built at hom
   alone".
 - **Letters:** "The gods calmed the wild: animals leave people alone." and "The wild is wild again: beware of
   wolves."
+
+## Phase 8c, slice 1: monster lairs
+- **Map:** lairs (`s.monsters.lairs`) as small landmarks: a thorn den, a cave mouth, a ring of fallen trunks.
+  A cleared lair is shown as cleared, an empty one as empty.
+- **Monsters far away:** a monster (`s.monsters.list`) can be drawn zoomed out as a single dark mark near its lair.
+- **Encyclopedia:** each species' `about` text, where it lives and what it leaves when slain.
+- **Letters:** "A new Thornback has come to an old lair." (info).
