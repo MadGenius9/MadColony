@@ -437,3 +437,24 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   - **Hunting:** distant villages do not spend arrows or wear weapons on hunts; `LOD.share.hunt` is not measured
     against full detail.
   - **Phase 5b:** the forest-spread cost on World (+35%).
+
+### After the acceptance: fewer full-detail animals (the owner's answer, 2026-10-28)
+- **Changed:**
+  - Herds become animals within 28 tiles of a full-detail village (was 48).
+  - A hunt can go for a far herd within its 60-tile reach. That herd becomes animals when the hunt starts and
+    stays near while anyone hunts it.
+  - Animal distances use a plain square root instead of `Math.hypot`.
+  - Tried and undone: grazers acting every other turn (no gain).
+- **Bench** (code before Phase 8 `b77cbfc` against now, same machine, one run each in turn):
+  - small 0.301 / 0.288 and 0.371 / 0.404;
+  - medium 0.425 / 0.515 and 0.564 / 0.588;
+  - large 0.759 / 0.794 and 1.082 / 1.065 ms/tick.
+  - That is −4% to +21%, about +5% on average.
+  - Medium games timed alone, three runs: 0.48–0.52 before, 0.53–0.58 now (+12%); small +6%.
+- **Classic:** `forty` ac37a8f860cb8e30 (workshops era on day 5.94, 66 built), `modern` 26aff18c94590ae1 (the
+  modern era on day 41.24); 153 tests pass.
+- **World, 300 days:**
+  - Herds: wolves 288, deer 2,305, horses 1,019 on day 300.
+  - 641 carcasses hunted; meat 1.7–5.7% of raw food.
+  - The save at day 150 continued identically; items and people were exact.
+  - Its times are not comparable: other test runs overlapped it.

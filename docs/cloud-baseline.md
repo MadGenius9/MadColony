@@ -90,3 +90,4 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   64 villages; save 12.7 MB; 21.4 min. Table in `docs/proposals/phase-8-animals.md`, "Slice 7".
 - Phase 5 code (`529b86f`) on the same machine, World, day 50: 0.359 ms/tick (0.186 recorded on 2026-10-26: the
   machine is slower now).
+- After the near distance went to 28 tiles: `forty` ac37a8f860cb8e30, `modern` 26aff18c94590ae1.
