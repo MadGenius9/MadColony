@@ -59,13 +59,14 @@ for (let r = 0; r < 20 && !found; r++) for (let dy = -r; dy <= r && !found; dy++
   const a = { x: sea.x + dx, y: sea.y + dy, count: 5, mode: 'found' };
   if (previewCommand(g, 'spawn', a).ok) found = a;
 }
-if (!found) fail('no spot on the island to found a village');
+if (!found) fail(`no spot on the island to found a village: ${previewCommand(g, 'spawn', { x: sea.x, y: sea.y, count: 5, mode: 'found' }).reason}`);
 else { issueCommand(g, 'spawn', found); tick(); }
 const start = Object.keys(g.s.colonists).length - (g.s.god?.spawned || 0);
 // 4. Live.
 worst = 0;
 for (let d = 1; d <= days; d++) {
-  while (g.s.tick < (Math.floor(g.s.tick / TICKS_PER_DAY) + 1) * TICKS_PER_DAY) { tick(); if (Date.now() - last > 10000) { last = Date.now(); console.error(`[run] day ${(g.s.tick / TICKS_PER_DAY).toFixed(1)}, ${Object.keys(g.s.colonists).length} people`); } }
+  const end = (Math.floor(g.s.tick / TICKS_PER_DAY) + 1) * TICKS_PER_DAY;
+  while (g.s.tick < end) { tick(); if (Date.now() - last > 10000) { last = Date.now(); console.error(`[run] day ${(g.s.tick / TICKS_PER_DAY).toFixed(1)}, ${Object.keys(g.s.colonists).length} people`); } }
   const ce = conservationErrors(g), pc = peopleCensus(g, start), ac = animalCensus(g), mc = monsterCensus(g);
   if (ce.length) fail(`day ${d}: items not conserved: ${ce.slice(0, 3).join('; ')}`);
   if (!pc.ok) fail(`day ${d}: people not counted: ${JSON.stringify(pc.problems)}`);
