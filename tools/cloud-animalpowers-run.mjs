@@ -9,6 +9,7 @@ import { issueCommand } from '../src/sim/god.js';
 import { peopleCensus } from '../src/sim/godspawn.js';
 import { animalCensus, herdCensus } from '../src/sim/animals.js';
 import { TICKS_PER_DAY, CHUNK } from '../src/sim/constants.js';
+import { firstDifference } from '../tests/cloud-helpers.js';
 
 const [days = 30, size = 'vast', seed = 7] = process.argv.slice(2).map((v, i) => (i === 1 ? v : Number(v)));
 const g = newGame({ seed, scenario: 'core:vast_world', size, sandbox: true });
@@ -46,9 +47,9 @@ function offGround(sp) {
 let deerAt = null, crowdAt = null;
 const PLAN = [
   [2, 'animals', () => { const c = centreOf(g.s.playerSettlement); deerAt = ringTile(c.x, c.y, 14, 26, groundOf('core:deer')); return { ...deerAt, species: 'core:deer', count: 12 }; }],
-  [3, 'animals', () => ({ ...deerAt, species: 'core:deer', count: 3, mode: 'join' })],
+  [3, 'animals', () => { const h = Object.values(g.s.animals.herds).filter((e) => e.origin === 'divine' && e.sp === 'core:deer').sort((a, b) => (a.id < b.id ? -1 : 1))[0]; return { x: h.x, y: h.y, species: 'core:deer', count: 3, mode: 'join' }; }], // where the sent herd grazes now
   [4, 'animals', () => ({ ...offGround('core:wild_horse'), species: 'core:wild_horse', count: 15 })],
-  [6, 'animals', () => { const c = centreOf(other()); return { ...ringTile(c.x, c.y, 10, 20, groundOf('core:wolf')), species: 'core:wolf', count: 6, confirm: true }; }],
+  [6, 'animals', () => { const c = centreOf(other()); return { ...ringTile(c.x, c.y, 8, 29, (t) => t.passable && !t.drinkable), species: 'core:wolf', count: 6, confirm: true }; }], // any dry land near it
   [8, 'peaceful', () => ({ on: true })],
   [14, 'peaceful', () => ({ on: false })],
   [16, 'animals', () => { const c = centreOf(g.s.playerSettlement); crowdAt = ringTile(c.x + 60, c.y, 0, 40, groundOf('core:deer')); return { ...crowdAt, species: 'core:deer', count: 12 }; }],
@@ -76,7 +77,7 @@ for (let d = 1; d <= days; d++) {
     console.error(`[power] day ${d} ${type}: ${res.msg}`);
     const copy = loadGame(g.reg, serializeGame(g));
     for (let t = 0; t < 300; t++) { timedTick(d); copy.tick(); }
-    if (state(g) !== state(copy)) fail(`${type} on day ${d}: the loaded copy differs after 300 ticks`);
+    if (state(g) !== state(copy)) fail(`${type} on day ${d}: the loaded copy differs after 300 ticks: ${JSON.stringify(firstDifference(JSON.parse(state(g)), JSON.parse(state(copy)))).slice(0, 600)}`);
   }
   while (g.s.tick < d * TICKS_PER_DAY) {
     timedTick(d);
