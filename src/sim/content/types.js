@@ -200,6 +200,7 @@ export const CONTENT_TYPES = {
         clear: bool(),
       }))),
       weight: num(0, 100),
+      people: arr(ref('people')), // a home style only these peoples build (Peoples and traits; civic/sites.js)
     }),
   },
   recipe: {
@@ -369,6 +370,7 @@ export const CONTENT_TYPES = {
       god: ref('godRules'), // the god-power rules of this scenario (god.js; otherwise core:god, else the first godRules)
       size: { type: 'enum', values: ['small', 'medium', 'large', 'huge', 'colossal', 'vast', 'world'] }, // default world size preset
       placement: { type: 'enum', values: ['ring', 'spread', 'far'] }, // ring: around the player (default); spread: over the whole land; far: far apart on good sites (farPlacement)
+      peoplesByLand: obj({ radius: req(int(2, 40)), minShare: req(num(0, 1)) }), // Peoples and traits: an AI village without a profile people takes the people whose home terrains cover the largest share (at least minShare) of the land within radius of it (peoples.js)
       siteWaterWalk: int(4, 200), // spread placement on big worlds: prefer village sites with a lake shore within this walk (tiles); far: required
       // placement 'far' (villages.js farSites): sites on the player's land, at least
       // max(minSpacing, round(spacingFactor x sqrt(W x H))) tiles from every settlement, with water, open ground,
@@ -621,6 +623,7 @@ export const CONTENT_TYPES = {
       temperament: int(0, 5), food: ref('item'),
       traitOdds: arr(num(0, 100), { minItems: 3, maxItems: 3 }),
       namePool: ref('namePool'), // its own names (default: the scenario's)
+      prefer: map({ type: 'tag' }, ref('building')), // slot tag -> the building it builds there when unlocked and affordable (construction.js)
       look: obj({ // its own palette (default: today's, appearance.js)
         skin: arr(color, { minItems: 1 }), hair: arr(color, { minItems: 1 }), pants: arr(color, { minItems: 1 }),
         styles: arr({ type: 'enum', values: ['short', 'crop', 'long', 'bun', 'ponytail', 'curly', 'bald', 'braid', 'mohawk'] }, { minItems: 1 }),

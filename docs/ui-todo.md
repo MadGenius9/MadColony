@@ -364,3 +364,10 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Optional:** a "wrapped" head style for the Duneshade.
 - **Optional:** Cragborn are taller and broader (height 1.02–1.12, build 1.0–1.3); Reedkin are small (height
   0.86–0.96). Sprites should scale with `height` and `build` if they do not already.
+
+## Peoples and traits, slice 5: home styles
+- **New home templates:** `core:reed_house`, `core:roundhouse` and `core:courtyard_house`. They draw like the
+  other homes, from their walls, beds and furniture.
+- **Optional:** a roof tint per people (Reedkin thatch green-brown, Cragborn slate grey, Duneshade sand), from
+  the home's settlement people.
+- **New game screen** (Living and Vast worlds): the world summary lists villages by people.

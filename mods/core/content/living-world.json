@@ -71,6 +71,7 @@
   "scenario": [
     {
       "id": "core:living_world", "name": "Living world: your village among many on a continent",
+      "peoplesByLand": { "radius": 10, "minShare": 0.1 },
       "colonists": 5,
       "startItems": [{ "item": "core:wood", "qty": 60 }, { "item": "core:stone", "qty": 20 }, { "item": "core:stew", "qty": 20 }, { "item": "core:potato", "qty": 60 }, { "item": "core:bean", "qty": 40 }],
       "namePool": "core:names", "skillMin": 0, "skillMax": 6,

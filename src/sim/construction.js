@@ -3,6 +3,7 @@
 import { parseTemplate, rotateCell, rotateVec, rotatedSize, slotCandidates, templateCapacity } from './content/templates.js';
 import { octile } from './util.js';
 import { isUnlocked } from './research.js';
+import { peopleOfSettlement } from './peoples.js';
 
 const ORDER = { door: 0, furniture: 1, station: 1, wall: 2 };
 
@@ -147,7 +148,7 @@ function freeStock(g, owner, projectId) {
   return free;
 }
 
-function chooseSlot(g, tag, pool, owner, n = 1, spare = null) {
+export function chooseSlot(g, tag, pool, owner, n = 1, spare = null) {
   const cands = slotCandidates(g.reg, tag).filter((b) => isUnlocked(g, owner, 'building', b.id));
   if (!cands.length) return null;
   // A data alternative (stockedOnly, e.g. plank furniture) is used only when its whole cost for all `n`
@@ -162,6 +163,11 @@ function chooseSlot(g, tag, pool, owner, n = 1, spare = null) {
     if (!alt || (b.furnishing?.score || 0) > (alt.furnishing?.score || 0)) alt = b;
   }
   if (alt) { for (const c of alt.cost) free[c.item] -= c.qty * n; return alt; }
+  // The village's people may prefer a building for this slot (peoples.json prefer, e.g. Cragborn stone walls):
+  // taken when unlocked and the whole cost for all n pieces is in the pool.
+  const pref = g.reg.get('people', peopleOfSettlement(g, owner))?.prefer?.[tag];
+  const pb = pref && cands.find((b) => b.id === pref);
+  if (pb && pb.cost.every((c) => (pool[c.item] || 0) >= c.qty * n)) return pb;
   // Prefer what the colony can afford right now, then furnishing score, then load order.
   let best = null, bestScore = -Infinity;
   const regular = cands.some((b) => !b.stockedOnly);

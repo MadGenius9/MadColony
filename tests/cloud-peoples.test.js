@@ -23,6 +23,10 @@ import { makeLook, inheritLook, SKIN, HAIR } from '../src/sim/appearance.js';
 import { namePoolOf } from '../src/sim/names.js';
 import { foundVillage } from '../src/sim/villages.js';
 import { Rng } from '../src/sim/rng.js';
+import { candidateTemplates } from '../src/sim/civic/sites.js';
+import { chooseSlot } from '../src/sim/construction.js';
+import { requiredTechs } from '../src/sim/research.js';
+import { peopleByLand } from '../src/sim/peoples.js';
 
 /** No colonist has more than two traits, a trait twice or a trait with its opposite. */
 function traitsOk(g, c) {
@@ -335,4 +339,47 @@ test('peoples: Hearthfolk look as before; other peoples have their own names and
     assert.ok(pal.skin.includes(c.look.skin));
   }
   assert.ok(peopleCensus(g).ok, JSON.stringify(peopleCensus(g).problems));
+});
+
+// ---- slice 5: home styles, stone walls, peoples by land
+test('peoples: each people builds its own home style; Cragborn build stone walls once they can', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', size: 'large', villages: 2 });
+  const sid = g.s.playerSettlement;
+  const pick = (folk, need) => { g.s.settlements[sid].people = folk; return candidateTemplates(g, sid, { kind: 'home', need }, () => true, () => 0).map((t) => t.id); };
+  assert.deepEqual(pick('core:hearthfolk', 3), ['core:longhouse'], 'Hearthfolk: as before');
+  assert.deepEqual(pick('core:reedkin', 3), ['core:reed_house']);
+  assert.deepEqual(pick('core:cragborn', 3), ['core:roundhouse']);
+  assert.deepEqual(pick('core:duneshade', 5), ['core:courtyard_house']);
+  assert.deepEqual(pick('core:cragborn', 1), ['core:cabin_single'], 'a single bed: the plain cabin');
+  // Walls: wood until stone walls are researched, then stone when the stone is there.
+  g.s.settlements[sid].people = 'core:cragborn';
+  const pool = { 'core:wood': 300, 'core:stone': 300 };
+  assert.equal(chooseSlot(g, 'core:wall', pool, sid, 20)?.id, 'core:wood_wall', 'not yet researched');
+  g.s.settlements[sid].research.done.push(...requiredTechs(g, 'building', 'core:stone_wall'));
+  assert.equal(chooseSlot(g, 'core:wall', pool, sid, 20)?.id, 'core:stone_wall');
+  assert.equal(chooseSlot(g, 'core:wall', { 'core:wood': 300, 'core:stone': 10 }, sid, 20)?.id, 'core:wood_wall', 'not enough stone: wood');
+  g.s.settlements[sid].people = 'core:hearthfolk';
+  assert.notEqual(chooseSlot(g, 'core:wall', pool, sid, 20), undefined);
+  // Built and finished: a Cragborn village raises a roundhouse that counts as a home.
+  const g2 = newGame({ seed: 7, scenario: 'core:neighbours', size: 'large', villages: 2 });
+  const ai = Object.keys(g2.s.settlements).find((k) => g2.s.settlements[k].ai);
+  g2.s.settlements[ai].people = 'core:cragborn';
+  for (const c of g2.owned('colonists', ai)) c.people = 'core:cragborn';
+  runDays(g2, 8);
+  assert.ok(Object.values(g2.s.homes).some((h) => h.name === 'Stone roundhouse' && h.complete), JSON.stringify(Object.values(g2.s.homes).map((h) => [h.name, h.complete])));
+  assert.ok(peopleCensus(g2).ok);
+});
+
+test('peoples: Living and Vast worlds give AI villages the people of their land; the player stays Hearthfolk', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  const seen = new Set(Object.values(g.s.settlements).map((s) => s.people));
+  assert.equal(g.s.settlements[g.s.playerSettlement].people, 'core:hearthfolk');
+  assert.ok(seen.size >= 2, [...seen].join(', '));
+  for (const st of Object.values(g.s.settlements)) if (st.ai) assert.equal(st.people, peopleByLand(g, st.center.x, st.center.y, 10, 0.1));
+  assert.ok(peopleCensus(g).ok);
+  const again = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  assert.deepEqual(Object.values(again.s.settlements).map((s) => s.people), Object.values(g.s.settlements).map((s) => s.people));
+  // Classic neighbours: no rule, every village Hearthfolk.
+  const n = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  assert.ok(Object.values(n.s.settlements).every((s) => s.people === 'core:hearthfolk'));
 });

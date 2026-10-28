@@ -8,7 +8,7 @@ import { makeLook } from './appearance.js';
 import { namePoolOf, uniqueName, firstByKey } from './names.js';
 import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.js';
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
-import { knownPeople, settleFolk, modsOf, paletteOf } from './peoples.js';
+import { knownPeople, settleFolk, modsOf, paletteOf, peopleByLand } from './peoples.js';
 import { isAdult } from './people.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
@@ -272,7 +272,9 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
     id: sid, name, profile: profile.id, ai: true, color: chosenSite ? villageColor(g, profile.color || VILLAGE_COLORS[n % VILLAGE_COLORS.length], n) : (profile.color || VILLAGE_COLORS[n % VILLAGE_COLORS.length]),
     founded: s.tick, center: { x: site.x, y: site.y + 3 }, stockpile: pile, research, policy: profile.policy || {}, trade: profile.trade || {}, laws: { ...(profile.laws || {}) }, enforcement: profile.enforcement ?? 0.6,
   };
-  if (knownPeople(g, profile.people)) s.settlements[sid].people = knownPeople(g, profile.people);
+  const byLand = !profile.people && g.reg.get('scenario', s.scenarioId)?.peoplesByLand;
+  const folk0 = byLand ? peopleByLand(g, s.settlements[sid].center.x, s.settlements[sid].center.y, byLand.radius, byLand.minShare) : knownPeople(g, profile.people);
+  if (folk0) s.settlements[sid].people = folk0;
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryChanged();
   g.actor = sid;

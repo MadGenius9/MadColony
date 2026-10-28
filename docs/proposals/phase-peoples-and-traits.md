@@ -296,3 +296,25 @@ Each person has 0 to 2 traits. Opposite traits never go together.
   - **Already done in slice 1:** traits inherited at birth.
 - **Classic:** a child born now takes after the parents, so their look differs from before (play does not).
   The classic runs have no births, so their hashes are unchanged. 201 tests pass.
+### Slice 5 (2026-10-28): home styles, stone walls, peoples by land
+- **Built:**
+  - **Home styles** (templates with `people`, in `peoples.json`; `civic/sites.js candidateTemplates`):
+    - **Reed house** (Reedkin, 2 beds, long and narrow);
+    - **Stone roundhouse** (Cragborn, 3 beds, round);
+    - **Courtyard house** (Duneshade, 3 beds, wide and low).
+    - A people builds its own style whenever it fits the beds needed, else the plain cabins and longhouse.
+      Hearthfolk build as before.
+  - **Material preference** (`prefer` in data, `construction.js chooseSlot`): the Cragborn build stone walls
+    once stone walls are researched and the stone for the whole house is in stock.
+  - **Peoples by land** (scenario `peoplesByLand`, Living and Vast worlds; `peoples.js peopleByLand`): an AI
+    village without a profile people takes the people whose home terrains cover the largest share (at least
+    10%) of the land within 10 tiles.
+    - Seed 7: Vast world villages are Hearthfolk 3, Cragborn 3 and Reedkin 1; Living world villages are
+      Hearthfolk 6, Cragborn 3 and Duneshade 2.
+    - The player's village stays Hearthfolk, and classic and neighbours games are all Hearthfolk.
+- **Not built:**
+  - Daughter villages keep their founders' people, but their site is still the nearest good one, not the
+    people's land. The site search (nearest first, plus the outward search) would need a land score; left for
+    later.
+  - No new materials. Only wood and stone exist, so styles differ in shape and walls, not in reed or clay.
+- **Checks:** 203 tests pass; classic runs unchanged from slice 2.

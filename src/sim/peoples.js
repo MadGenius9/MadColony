@@ -39,6 +39,23 @@ export function peopleOfSettlement(g, sid) { return knownPeople(g, g.s.settlemen
 /** A people's look palette (appearance.js makeLook), or null for today's palette. */
 export function paletteOf(g, people) { return (people && g.reg.get('people', people)?.look) || null; }
 
+/** The people whose home terrains cover the largest share of the land within `radius` of (x, y), if that share
+ *  is at least `minShare`; else the default people. Ties go to the first by id. O(radius^2). */
+export function peopleByLand(g, x, y, radius, minShare) {
+  const { peoples, def } = lists(g.reg);
+  const cnt = new Map();
+  let n = 0;
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+    if (!g.inB(x + dx, y + dy)) continue;
+    n++;
+    const t = g.terrainAt(x + dx, y + dy).id;
+    for (const p of peoples) if (p.terrains?.includes(t)) cnt.set(p.id, (cnt.get(p.id) || 0) + 1);
+  }
+  let best = def, bestN = 0;
+  for (const p of peoples) { const k = cnt.get(p.id) || 0; if (p.id !== def && k > bestN && n && k / n >= minShare) { best = p.id; bestN = k; } }
+  return best;
+}
+
 /** Do traits a and b clash (the same, or opposites)? */
 function clash(reg, a, b) {
   if (a === b) return true;
