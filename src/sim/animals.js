@@ -299,10 +299,18 @@ function score(g, I, Hb, h, d, c, villages, winter = false) {
   return v;
 }
 
+/** Chunks holding a standing village's centre (derived, once a tick). */
+function villageChunks(g) {
+  if (g._anVil?.tick === g.s.tick) return g._anVil.set;
+  const set = new Set();
+  for (const v of Object.values(g.s.settlements || {})) if (v.center && !v.fallen) set.add(chunkOf(g, v.center.x, v.center.y));
+  g._anVil = { tick: g.s.tick, set };
+  return set;
+}
+
 function move(g, h, d) {
   const s = g.s, I = indexes(g), Hb = habitat(g), L = landChunks(g), c = chunkOf(g, h.x, h.y);
-  const villages = new Set();
-  for (const v of Object.values(s.settlements || {})) if (v.center && !v.fallen) villages.add(chunkOf(g, v.center.x, v.center.y));
+  const villages = villageChunks(g);
   const winter = seasonOf(g) === 'Winter' && !!d.winterTerrains; // winter moves (slice 6)
   const here = score(g, I, Hb, h, d, c, villages, winter);
   let best = c, bv = here;
@@ -634,11 +642,23 @@ export function alarmHerd(g, hid, fx, fy) {
   if (h) { h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); }
 }
 
+/** Herds whose centre may be within r of (x, y): those in the chunks the square round it touches (callers check
+ *  the distance and sort, so the order here does not matter). */
+function herdsWithin(g, x, y, r) {
+  const A = g.s.animals;
+  if (!A?.herds) return [];
+  const I = indexes(g), out = [];
+  const c0x = Math.max(0, Math.floor((x - r) / CHUNK)), c1x = Math.min(g.CW - 1, Math.floor((x + r) / CHUNK));
+  const c0y = Math.max(0, Math.floor((y - r) / CHUNK)), c1y = Math.min(g.CH - 1, Math.floor((y + r) / CHUNK));
+  for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) for (const id of I.byChunk.get(cy * g.CW + cx) || []) if (A.herds[id]) out.push(A.herds[id]);
+  return out;
+}
+
 /** Near herds a village may hunt: grazers with a carcass, above the hunting limit, within `r` of (x, y), nearest
  *  first (then by id). */
 export function huntableNear(g, x, y, r) {
   const out = [];
-  for (const h of Object.values(g.s.animals?.herds || {})) {
+  for (const h of herdsWithin(g, x, y, r)) {
     if (h.near === undefined || h.n <= HUNT_LIMIT) continue;
     const d = g.reg.get('animal', h.sp);
     if (!d?.carcass || d.diet !== 'graze') continue;
@@ -652,7 +672,7 @@ export function huntableNear(g, x, y, r) {
  *  with a carcass above the hunting limit, within r of (x, y), nearest first (then by id). */
 export function farHuntable(g, x, y, r, sid = null) {
   const out = [];
-  for (const h of Object.values(g.s.animals?.herds || {})) {
+  for (const h of herdsWithin(g, x, y, r)) {
     if (h.near !== undefined) continue;
     const d = g.reg.get('animal', h.sp);
     const raid = d?.diet === 'hunt' && sid && h.raids?.[sid] > g.s.tick;
