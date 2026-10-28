@@ -210,7 +210,7 @@ function waterNear(g, x, y, r) {
   return false;
 }
 
-const COMBAT = new Set(['fight', 'flee', 'arm']); // combat.js COMBAT_JOBS (not imported: an import cycle)
+const COMBAT = new Set(['fight', 'flee', 'arm', 'fend']); // combat.js COMBAT_JOBS (not imported: an import cycle)
 
 /** Can c fight a fire now? An awake adult of a full-detail village, on its feet, health above half, not fighting,
  *  not seeing to a need or carrying someone or something, and with no urgent need (below its urgent line: the needs

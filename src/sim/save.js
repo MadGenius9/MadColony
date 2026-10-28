@@ -227,7 +227,9 @@ function validateAnimals(s, bad) {
     const ok = isObj(h) && h.id === k && /^h\d{1,9}$/.test(k) && Number(k.slice(1)) < A.next && isStr(h.sp, 100)
       && isInt(h.x) && isInt(h.y) && h.x >= 0 && h.y >= 0 && h.x < W && h.y < H && isInt(h.n) && h.n >= 1 && h.n <= 100000
       && isInt(h.day) && isInt(h.year) && isInt(h.next) && isInt(h.fed);
-    if (!ok || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
+    const angryOk = h.angry === undefined || (isObj(h.angry) && isStr(h.angry.cid, 64) && isInt(h.angry.until) && h.angry.until <= s.tick + 1e6);
+    const raidsOk = h.raids === undefined || (isObj(h.raids) && Object.keys(h.raids).length <= 200 && Object.entries(h.raids).every(([k, v]) => isStr(k, 64) && isInt(v) && v <= s.tick + 1e6));
+    if (!ok || !angryOk || !raidsOk || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
   }
   if (A.na !== undefined && (!isInt(A.na) || A.na < 1)) { bad('state.animals.na is malformed'); return; }
   if (A.list === undefined) return; // near animals (slice 2)

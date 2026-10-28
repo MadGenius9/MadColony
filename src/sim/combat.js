@@ -267,7 +267,7 @@ export function armJob(g, c) {
 export function combatDecision(g, c) {
   if (isDown(c)) return null;
   if ((g.s.tick + c.id.length * 3) % COMBAT.scanEvery) return null;
-  if (c.job && COMBAT_JOBS.has(c.job.type)) return null;
+  if (c.job && COMBAT_JOBS.has(c.job.type) && c.job.type !== 'fend' && !(c.job.type === 'flee' && c.job.wolf)) return null; // raiders come before wolves
   const sid = sidOf(g, c);
   const ord = orderOf(g, sid);
   const st = settlementOf(g, sid);

@@ -297,5 +297,15 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   together were never bitten (the pack fled when they struck one).
 - **Classic runs:** `forty` a3f4673dd1c9392c, `modern` 3982dd57aa2eadad (the 40-day world has wolves on its
   grassland); same outcomes.
-- **Not changed:** 151 tests pass (3 more in `tests/cloud-animals.test.js`).
-
+- **Review fixes:** in winter a pack that had eaten kept hunting people (now a fed pack leaves people alone,
+  winter or not, unless angry). Fending and firefighting took turns forever (fire.js now counts `fend` as combat,
+  and nobody fighting a fire is sent to fend). People near a wolf they could not reach retried a failed walk every
+  5 ticks: fending now has a per-person cooldown after "no path", and nobody reacts to a wolf of a fed pack, across
+  water (another region), or while indoors; eating and drinking go on unless the wolf is within 3 tiles. The new
+  herd fields (`angry`, `raids`) are validated (a bad one crashed the first bite). An angry pack no longer goes
+  for the stand-in places of a distant village's people; a hunter below 30% health gives up a hunt; a bite wakes a
+  sleeper; raiders come before wolves (combat may replace a fend or a wolf flee); the raid check in the hunt giver
+  looks at near herds only, and the wolf check is staggered by the id's number.
+- **Merge note:** wolves can now kill classic colonists; the home project's fuller test suite (not in this copy)
+  may have tests assuming nobody dies in a classic game.
+- **Not changed:** 152 tests pass (4 more in `tests/cloud-animals.test.js`); classic hashes unchanged by the fixes.

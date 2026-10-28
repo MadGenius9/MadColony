@@ -314,3 +314,28 @@ test('wolves: killed by wolves is a death cause; a save and load mid-attack play
   };
   assert.equal(stateText(run([1, 3])), stateText(run([])));
 });
+
+test('review fixes: a pack that has eaten today leaves people alone; a load mid-fend, with the pack angry, plays on identically', () => {
+  const g = wolfGame();
+  g.s.animals.herds.h901.fed = Math.floor(g.s.tick / 2400); // fed today
+  const w = Object.values(g.s.animals.list)[0], c = g.colonists()[0];
+  place(g, c, w.x + 4, w.y);
+  for (let t = 0; t < 300; t++) g.tick();
+  assert.equal(bites(c), 0, 'a fed pack does not attack');
+  const run = (cut) => {
+    let h = wolfGame();
+    const ww = Object.values(h.s.animals.list)[0], p = h.colonists()[0];
+    arm(h, p); place(h, p, ww.x + 3, ww.y);
+    for (const id of Object.keys(p.needs)) p.needs[id] = 1; // fed, watered, rested: nothing calls them away
+    let angrySeen = false;
+    for (let k = 0; k < 8; k++) {
+      for (let t = 0; t < 30; t++) { h.tick(); if (h.s.animals.herds.h901?.angry && h.colonists().some((q) => q.job?.type === 'fend')) angrySeen = true; }
+      if (cut.includes(k)) h = reload(h);
+    }
+    h.step(300);
+    return { h, angrySeen };
+  };
+  const a = run([]), b = run([1, 2, 3]);
+  assert.ok(a.angrySeen, 'the pack was angry while someone fended it off');
+  assert.equal(stateText(b.h), stateText(a.h));
+});

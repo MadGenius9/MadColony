@@ -12,7 +12,8 @@
 //   GIVE_UP ticks.
 // Draws come from the game's random stream, like other colonist work.
 import { travel, newJob, practice } from './ai/jobs.js';
-import { huntableNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, HUNT_LIMIT, MEAT_PER_PERSON } from './animals.js';
+import { huntableNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, packThreat, nearHerdIds, HUNT_LIMIT, MEAT_PER_PERSON } from './animals.js';
+import { roomAt } from './heat.js';
 import { hpOf } from './health.js';
 
 export const HUNT_REACH = 60, GIVE_UP = 1500;
@@ -33,8 +34,9 @@ export const HUNT_GIVERS = {
       const people = g.owned('colonists', sid).length;
       const out = [];
       // A pack that attacked the village's people is hunted down whatever the meat (slice 4).
-      for (const h of Object.values(g.s.animals.herds).sort((a, b) => (a.id < b.id ? -1 : 1))) {
-        if (h.near === undefined || !(h.raids?.[sid] > g.s.tick) || g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;
+      for (const hid of nearHerdIds(g)) { // near herds only
+        const h = g.s.animals.herds[hid];
+        if (!h || !(h.raids?.[sid] > g.s.tick) || g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;
         const d = g.reg.get('animal', h.sp);
         if (!d || Math.hypot(h.x - ctr.x, h.y - ctr.y) > HUNT_REACH) continue;
         out.push({ x: h.x, y: h.y, urgency: 1.5, label: `Hunt down the ${d.plural || d.name}`, make() {
@@ -65,16 +67,18 @@ const WOLF_SEE = 7;
 export function wolfDanger(g, c) {
   if (!c || c.health?.down || c.carriedBy || c.sleeping) return null;
   const t = c.job?.type;
-  if (t === 'flee' || t === 'fend' || t === 'fight' || t === 'arm' || t === 'hunt') return null;
-  if ((g.s.tick + c.id.length * 3) % 5) return null;
+  if (t === 'flee' || t === 'fend' || t === 'fight' || t === 'arm' || t === 'hunt' || t === 'firefight') return null;
+  if ((g.s.tick + (Number(c.id.slice(1)) || 0)) % 5) return null; // staggered by the id's number
+  if (roomAt(g, Math.round(c.x), Math.round(c.y))) return null; // safe indoors
   const w = wolfNear(g, c.x, c.y, WOLF_SEE);
-  if (!w) return null;
-  if (huntWeapon(g, c) && hpOf(c) > 40) return newJob('fend', { wolf: w.id, gx: null, gy: null, cd: 0, started: g.s.tick }, { why: 'A wolf came close', label: 'Fend off the wolf' });
+  if (!w || !packThreat(g, w) || g.regionOf(w.x, w.y) !== g.regionOf(Math.round(c.x), Math.round(c.y))) return null; // a fed pack, or across water: no danger
+  if (c.job?.need && Math.hypot(w.x - c.x, w.y - c.y) > 3) return null; // eating or drinking goes on unless it is right there
+  if (huntWeapon(g, c) && hpOf(c) > 40 && !g.isBlocked(`fend:${c.id}`)) return newJob('fend', { wolf: w.id, gx: null, gy: null, cd: 0, started: g.s.tick }, { why: 'A wolf came close', label: 'Fend off the wolf', targetKey: `fend:${c.id}` });
   const dx = c.x - w.x, dy = c.y - w.y, len = Math.hypot(dx, dy) || 1;
   let tx = Math.round(c.x + (dx / len) * 10), ty = Math.round(c.y + (dy / len) * 10);
   tx = Math.max(0, Math.min(g.W - 1, tx)); ty = Math.max(0, Math.min(g.H - 1, ty));
   if (!g.isPassable(tx, ty)) { const h = g.s.settlements?.[c.settlementId]?.center || g.s.center; tx = h.x; ty = h.y; }
-  return newJob('flee', { x: tx, y: ty, why: 'Running from wolves' }, { why: 'Wolves nearby', label: 'Run from the wolves' });
+  return newJob('flee', { x: tx, y: ty, why: 'Running from wolves', wolf: true }, { why: 'Wolves nearby', label: 'Run from the wolves' });
 }
 
 /** Strike or shoot at animal t (hunt and fend): true when it died (the caller handles the kill). */
@@ -134,6 +138,7 @@ export const HUNT_DRIVERS = {
       if (g.s.tick - j.started > GIVE_UP) return { fail: 'The herd got away', cooldown: 600 };
       const w = huntWeapon(g, c);
       if (!w) return { fail: 'No weapon to hunt with' };
+      if (hpOf(c) <= 30) return { fail: 'Too hurt to hunt on', cooldown: 1200 };
       const d = g.reg.get('animal', h.sp);
       let t = j.target && g.s.animals.list?.[j.target];
       if (!t) {

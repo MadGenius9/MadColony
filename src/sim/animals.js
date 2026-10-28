@@ -20,6 +20,7 @@ import { landChunks } from './contact.js';
 import { injure, hpOf as hpOfP } from './health.js';
 import { roomAt } from './heat.js';
 import { stageOf as stageOfP } from './people.js';
+import { endJob } from './ai/ai.js';
 
 const HOUR = 100, NEAR_VILLAGE = 24, SMALL_GAME = 3, D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 const hash = (str) => {
@@ -399,17 +400,18 @@ function act(g, a) {
   }
   // A pack (slice 4: wolves are as dangerous as real ones). It turns on whoever hurt one of it; when it has not
   // eaten today it chases the nearest prey animal, or a person when no prey is near; in winter it takes whichever
-  // is the easier catch. People are picked weakest first (a child, someone alone, someone wounded), never inside a
+  // is the easier catch (a pack that has eaten today leaves people alone). People are picked weakest first (a child, someone alone, someone wounded), never inside a
   // room, and a pack holds back from anyone with 3 or more armed people within 6 tiles.
   const day = Math.floor(s.tick / TICKS_PER_DAY), winter = seasonOf(g) === 'Winter';
-  const angry = h.angry && h.angry.until > s.tick ? s.colonists[h.angry.cid] : null;
+  let angry = h.angry && h.angry.until > s.tick ? s.colonists[h.angry.cid] : null;
+  if (angry && s.settlements?.[angry.settlementId]?.detail === 'abstract') angry = null; // its place is a stand-in (lod.js)
   if (angry && !angry.health?.down && Math.hypot(angry.x - a.x, angry.y - a.y) <= CHASE * 2) {
     if (armedGroup(g, G, angry).group >= ARMED_GROUP) { delete h.angry; h.alarm = s.tick + ALARM; h.fx = Math.round(angry.x); h.fy = Math.round(angry.y); } // outmatched: the pack breaks off and runs
     else { chasePerson(g, a, h, d, angry, key); return; }
   }
   if (h.alarm > s.tick && h.fx !== undefined) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
-  if (h.fed !== day || winter) {
-    const prey = h.fed !== day ? nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); }) : null;
+  if (h.fed !== day) { // a pack that has eaten today leaves people alone (winter or not) unless angry
+    const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.list[o.id] && A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
     const person = pickPerson(g, G, a);
     const pd = person ? Math.hypot(person.c.x - a.x, person.c.y - a.y) - person.ease : Infinity, ad = prey ? Math.hypot(prey.x - a.x, prey.y - a.y) : Infinity;
     if (person && (!prey || (winter && pd < ad))) { chasePerson(g, a, h, d, person.c, key); return; }
@@ -458,6 +460,7 @@ function chasePerson(g, a, h, d, c, key) {
   if (Math.max(Math.abs(cx - a.x), Math.abs(cy - a.y)) > 1) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepToward(g, a, cx, cy); return; }
   const mine = (c.settlementId || s.playerSettlement) === s.playerSettlement;
   injure(g, c, 'bite', 6 + Math.floor(draw(`${key}:maul`) * 9), 'Bitten by a wolf', false, mine ? 'warn' : 'info');
+  if (c.sleeping) { c.sleeping = false; if (c.job?.type === 'sleep') endJob(g, c, null, 'Woken by wolves'); } // a bite wakes anyone
   const sid = c.settlementId || s.playerSettlement;
   (h.raids ||= {})[sid] = s.tick + 3 * TICKS_PER_DAY; // that village will hunt the pack
   g.log(`Wolves attacked ${c.name}!`, mine ? 'warn' : 'info', `wolves:${c.id}`, 600);
@@ -473,6 +476,15 @@ export function woundAnimal(g, id, dmg, c) {
   if (d?.diet === 'hunt' && c) h.angry = { cid: c.id, until: g.s.tick + 600 };
   return a.hp <= 0;
 }
+
+/** Is the pack of near animal a a danger to people now (hungry or angry)? */
+export function packThreat(g, a) {
+  const h = g.s.animals?.herds[a?.herd];
+  return !!h && (h.fed !== Math.floor(g.s.tick / TICKS_PER_DAY) || (h.angry && h.angry.until > g.s.tick));
+}
+
+/** Ids of the herds that are near (individual animals), in id order. */
+export const nearHerdIds = (g) => (g.s.animals?.list ? [...nearIndex(g).byHerd.keys()].sort(byId) : []);
 
 /** The nearest wolf (an animal of a hunting species) within r of (x, y), or null. */
 export function wolfNear(g, x, y, r) {
