@@ -192,3 +192,16 @@ where, and which sim function or state field provides it. The UI is built at hom
   hunting in slice 3).
 - **Hover card:** "Deer (herd of 8): grazing / running from Ada / running from wolves"; "Wolf (pack of 4):
   hunting / resting".
+
+## Phase 8, slice 3: hunting, butchering, spoilage
+- **Colonists:** job "Hunt deer" (status "Hunting deer"): the hunter walking after the herd with a spear or bow,
+  the throw or shot, a hit (the animal limps) or a miss (the herd bolts); "<name> killed a deer." in the log.
+- **Carcasses** (`core:deer_carcass` etc., tag `core:carcass`): drawn as the animal lying on its side; hauled one
+  at a time; the **butcher's table** (`core:butcher_table`, shape table) with a carcass on it while the cook works
+  ("Butcher a deer"); venison, horse meat (red cuts) and hides (folded skins) as goods.
+- **Spoilage:** goods with `spoilPerDay` show a freshness hint in the stockpile tooltip ("spoils: about 10% a
+  day; eat or cook it soon"); the log says "N Venison spoiled." at most once a day.
+- **Village food panel:** the plan's `huntNote` ("Hunting deer (a herd of 8, 30 tiles away)", "Enough meat for
+  now", "No herd near enough to hunt") beside the food note; a "Food from hunting" share from the ledger
+  (`created:hunt` carcasses butchered into meat).
+- **Work tab:** the new work type Hunting (skill Hunting) can be turned off per colonist like any work.

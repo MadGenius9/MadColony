@@ -643,7 +643,8 @@ export const DRIVERS = {
   },
 
   harvest: {
-    valid(g, c, j) { return j.cropIds.some((id) => g.s.crops[id]); },
+    // Finished its last crop: still valid (it ends as done on its next tick, after a load as without one).
+    valid(g, c, j) { return j.i >= j.cropIds.length || j.cropIds.some((id) => g.s.crops[id]); },
     tick(g, c, j) {
       while (j.i < j.cropIds.length && !g.s.crops[j.cropIds[j.i]]) j.i++;
       if (j.i >= j.cropIds.length) return 'done';

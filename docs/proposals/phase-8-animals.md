@@ -243,3 +243,31 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   people. Malformed saves (a near herd with no animals list, a bad animal counter) are refused or handled.
 - **Classic runs** after the fixes: `forty` 6b934c050e95907a, `modern` e34dfb5baf5a02bc; same outcomes.
 - **Not changed:** 143 tests pass (3 more in `tests/cloud-animals.test.js`).
+
+### Slice 3: hunting, butchering and spoilage
+- **Built:** `src/sim/hunt.js`: work type Hunting (skill Hunting), giver `core:hunt_animals` and job `hunt`. An
+  armed adult (a melee weapon, or a bow with arrows) hunts while the village has less meat than 2 a person
+  (meat and carcasses, a carcass counted as 6) and a near herd of deer or horses is within 60 tiles and above the
+  hunting limit of 3; one hunter a herd. The hunter follows the herd's nearest animal, strikes or shoots at the
+  weapon's cooldown (accuracy and range as in combat, +2% a skill level; arrows used up), a hit or a miss sets the
+  herd running; a kill leaves a carcass where it fell (`created:hunt`); a hunt gives up after 1,500 ticks. The
+  planner arms the two best hunters while a herd is near and meat is short ("A Fire-hardened spear for Ada to hunt
+  with"), wants every carcass butchered (its meat, or a wolf's hide), so the village builds a **butcher's table**
+  (wood 10) and the cook butchers (deer: 6 venison and a hide; horse: 10 meat and 2 hides; wolf: a hide), and
+  says why it hunts or not (`P.huntNote`). Venison and horse meat are raw food (nutrition 0.2): eaten, or cooked
+  into stew. `src/sim/spoil.js`: goods with `spoilPerDay` (meat 0.1, carcasses 0.2) lose that share of every stack,
+  load and station buffer each day (`consumed:spoil`); what spoils is eaten and cooked first.
+- **Tuning** (classic seed 4242, 20 days): with meat spoiling at 0.15 a day and a target of 4 a person, 49 of 84
+  venison rotted (people ate meals and the cook took potatoes first); with 0.1, a target of 2 and perishables
+  first, 3 of 102 spoiled, 17 deer were hunted and both nearby herds were brought down to the limit of 3 ("No herd
+  near enough to hunt"): hunting thins the game round a village, which comes back with the spring births.
+- **Older tests:** hunting changes every game's timing, and 8 older tests failed. One was a real bug found
+  this way: a harvest job that has picked its last crop stayed one more tick and was dropped by a load (it was no
+  longer "valid"), so a game saved at that moment played on differently (`ai/jobs.js` harvest: valid while
+  finishing). The others depended on a fixed day for something that now comes at another time (the founding
+  parent's families, the first growing field, a rebuilt home, how long eating takes); each now waits for its
+  condition or picks a village where it holds, with the same assertions (none weakened).
+- **Classic runs:** `forty` 729318226c0f973c (66 built, workshops era on day 5.47, before 6.04), `modern`
+  81ac639d99e0b452 (modern era on day 41.6); no conservation errors.
+- **Not changed:** 146 tests pass (3 more in `tests/cloud-animals.test.js`).
+

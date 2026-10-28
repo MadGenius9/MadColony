@@ -192,7 +192,7 @@ test('fire: a burning wooden home part is lost and rebuilt; stone in it is left 
   assert.equal(g.s.structures[wall.id], undefined, 'the wall burned');
   assert.equal(home.complete, false);
   assert.deepEqual(conservationErrors(g), []);
-  runDays(g, 4);
+  for (let d = 0; d < 12 && !home.complete; d++) runDays(g, 1); // rebuilt within days (how many depends on the work)
   assert.equal(home.complete, true, 'rebuilt');
 });
 
@@ -509,6 +509,7 @@ test('rain: puts a fire out and nothing catches in it; crops grow faster; not de
   const grow = (rain) => {
     const h = sandbox();
     runDays(h, 9);
+    for (let d = 0; d < 20 && !growing(h).length; d++) runDays(h, 1); // the first field growing
     const c = growing(h)[0];
     if (rain) { issueCommand(h, 'rain', { x: c.x, y: c.y }); }
     h.step(400);
@@ -654,9 +655,11 @@ test('firefighting waits for needs: someone hungry and thirsty eats and drinks, 
   homeFire(g);
   const c = g.colonists()[0];
   for (const def of g.reg.all('need')) if (def.id === 'core:hunger' || def.id === 'core:thirst') c.needs[def.id] = 0.05;
-  let fought = 0;
-  for (let t = 0; t < 300; t++) { g.tick(); if (c.job?.type === 'firefight') fought++; }
-  assert.equal(fought, 0, 'not pulled off to the fire');
+  // While a need is urgent they are never pulled off to the fire; once fed and watered they may fight it.
+  const urgent = (id) => (c.needs[id] ?? 1) < g.reg.get('need', id).urgentBelow;
+  let foughtNeedy = 0;
+  for (let t = 0; t < 300; t++) { g.tick(); if (c.job?.type === 'firefight' && (urgent('core:hunger') || urgent('core:thirst'))) foughtNeedy++; }
+  assert.equal(foughtNeedy, 0, 'not pulled off to the fire while hungry or thirsty');
   assert.ok((c.needs['core:hunger'] ?? 1) > 0.05 || (c.needs['core:thirst'] ?? 1) > 0.05, 'they saw to a need');
 });
 

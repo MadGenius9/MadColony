@@ -2,7 +2,7 @@
 import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, runDays, conservationErrors, reload, stateText } from './cloud-helpers.js';
-import { canFound, foundDaughter } from '../src/sim/founding.js';
+import { canFound, foundDaughter, chooseFounders } from '../src/sim/founding.js';
 import { kingdomOf, membersOf } from '../src/sim/kingdoms.js';
 import { bordersTouched, metPairs } from '../src/sim/contact.js';
 import { landInfo, claimOkOrganic } from '../src/sim/territory.js';
@@ -15,9 +15,13 @@ let g, parent, first, second;
 before(() => {
   g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
   runDays(g, 6);
-  // On day 6 most villages have 3 people of one family, who stay together; the player's village (5 people) can
-  // send settlers. canFound is still checked on an AI village below.
-  parent = g.s.playerSettlement;
+  // On day 6 most villages have 3 people of one family, who stay together. The parent is the first village (the
+  // player's first, then by id) with a family free to leave (not holding the village's only physician or teacher);
+  // which homes people share depends on the run (Phase 8: hunting changed the timing). canFound is still checked
+  // on an AI village below.
+  const order = [g.s.playerSettlement, ...Object.keys(g.s.settlements).sort().filter((k) => k !== g.s.playerSettlement)];
+  parent = order.find((sid) => chooseFounders(g, sid, 2).length > 0);
+  assert.ok(parent, 'some village can send settlers on day 6');
 });
 
 /** Settlers join `sid` by divine power (adults without family, so they may leave again), applied next tick. */
