@@ -225,3 +225,16 @@ test('8c fight: one armed person alone holds back from a Thornback; a save and l
   for (let t = 0; t < 600; t++) { g.tick(); b.tick(); }
   assert.equal(stateText(b), stateText(g), 'a load mid-fight plays on identically');
 });
+
+test('8c fight: a save and load while someone runs from a monster plays on identically', () => {
+  const g = quiet(6);
+  const ctr = g.s.settlements[g.s.playerSettlement].center;
+  const m = sendMonster(g, 'core:thornback', ctr.x + 12, ctr.y);
+  const lair = g.s.monsters.lairs[m.lair], c = g.colonists()[0];
+  let ran = false;
+  for (let t = 0; t < 100 && !ran; t++) { c.x = lair.x + 4; c.y = lair.y; c.mv = null; c.path = null; g.tick(); ran = c.job?.type === 'flee' && c.job.monster === m.id; }
+  assert.ok(ran, 'she runs from the Thornback by its den');
+  const b = reload(g);
+  for (let t = 0; t < 800; t++) { g.tick(); b.tick(); }
+  assert.equal(stateText(b), stateText(g), 'identical after a load mid-flight');
+});

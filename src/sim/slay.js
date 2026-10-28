@@ -37,6 +37,15 @@ export function monsterThreats(g, sid) {
 }
 const armedFit = (g, c) => !!huntWeapon(g, c) && hpOf(c) > 50 && !c.health?.down;
 
+/** Is monster o a danger to c now (as monsters.js attacks): a Thornback near its den or angry at them, a
+ *  Gloomstalker at night, a Barkmaw always. */
+function dangerTo(g, o, d, c, night) {
+  if (o.angry?.cid === c.id && o.angry.until > g.s.tick) return true;
+  if (d.behaviour === 'stalk') return night;
+  if (d.behaviour === 'trample') { const l = g.s.monsters.lairs[o.lair]; return !!l && Math.hypot(c.x - l.x, c.y - l.y) <= 10; }
+  return true;
+}
+
 /** ai.js tickColonist: run from a monster close by that is a danger to this person (every 5 ticks, staggered). */
 export function monsterDanger(g, c) {
   if (!c || c.health?.down || c.carriedBy || c.sleeping) return null;
@@ -49,10 +58,11 @@ export function monsterDanger(g, c) {
   let m = null, md = Infinity;
   for (const o of nearMonsters(g)) {
     const d = g.reg.get('monster', o.sp), dist = Math.hypot(o.x - c.x, o.y - c.y);
-    if (dist > SEE || dist >= md || (d.behaviour === 'stalk' && !night)) continue;
+    if (dist > SEE || dist >= md || !dangerTo(g, o, d, c, night)) continue;
     m = o; md = dist;
   }
   if (!m) return null;
+  if (c.job?.need && md > 3) return null; // eating or drinking goes on unless it is right there
   if (g.owned('colonists', sidOf(g, c)).length <= 3) return null; // monsters leave a village of 3 or fewer alone
   const join = partyJob(g, c, m); // armed and enough of them: join the hunt party instead of running
   if (join) return join;
