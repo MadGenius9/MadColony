@@ -227,7 +227,14 @@ function validateAnimals(s, bad) {
     const ok = isObj(h) && h.id === k && /^h\d{1,9}$/.test(k) && Number(k.slice(1)) < A.next && isStr(h.sp, 100)
       && isInt(h.x) && isInt(h.y) && h.x >= 0 && h.y >= 0 && h.x < W && h.y < H && isInt(h.n) && h.n >= 1 && h.n <= 100000
       && isInt(h.day) && isInt(h.year) && isInt(h.next) && isInt(h.fed);
-    if (!ok) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
+    if (!ok || (h.near !== undefined && !isInt(h.near)) || (h.alarm !== undefined && !isInt(h.alarm)) || ((h.fx !== undefined || h.fy !== undefined) && !(isInt(h.fx) && isInt(h.fy)))) { bad(`herd "${String(k).slice(0, 40)}" is malformed`); return; }
+  }
+  if (A.list === undefined) return; // near animals (slice 2)
+  if (!isObj(A.list) || !isInt(A.na) || A.na < 1) { bad('state.animals.list is malformed'); return; }
+  for (const [k, a] of Object.entries(A.list)) {
+    const ok = isObj(a) && a.id === k && /^a\d{1,9}$/.test(k) && Number(k.slice(1)) < A.na && isStr(a.herd, 20) && A.herds[a.herd]?.near !== undefined
+      && isInt(a.x) && isInt(a.y) && a.x >= 0 && a.y >= 0 && a.x < W && a.y < H && typeof a.hp === 'number' && a.hp > 0 && a.hp <= 100000;
+    if (!ok) { bad(`animal "${String(k).slice(0, 40)}" is malformed`); return; }
   }
 }
 

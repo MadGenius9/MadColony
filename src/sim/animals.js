@@ -78,6 +78,20 @@ function indexes(g) {
 }
 const dirty = (g) => { if (g._anIdx) g._anIdx.dirty = true; };
 
+/** Move herd h's centre to (x, y), keeping the chunk index current (its lists stay in id order). */
+function setCentre(g, h, x, y) {
+  const I = g._anIdx, from = chunkOf(g, h.x, h.y), to = chunkOf(g, x, y);
+  h.x = x; h.y = y;
+  if (!I || I.dirty || I.A !== g.s.animals || from === to) return;
+  const a = I.byChunk.get(from);
+  if (a) { const k = a.indexOf(h.id); if (k >= 0) a.splice(k, 1); if (!a.length) I.byChunk.delete(from); }
+  if (!I.byChunk.has(to)) I.byChunk.set(to, []);
+  const b = I.byChunk.get(to);
+  let k = 0;
+  while (k < b.length && b[k] < h.id) k++;
+  b.splice(k, 0, h.id);
+}
+
 /** A tile of the species' ground in chunk c, by hash (12 tries), or null. */
 function groundIn(g, d, c, key) {
   const CW = g.CW, cx = c % CW, cy = (c - cx) / CW;
@@ -105,7 +119,7 @@ function placeHerds(g) {
   if (!centres.length && s.center) centres.push(s.center);
   const n = g.CW * g.CH, L = landChunks(g);
   for (let c = 0; c < n; c++) {
-    if (L.comp[c] < 0) continue; // mostly water: a herd there could never move
+    if (g.big && L.comp[c] < 0) continue; // mostly water: a herd there could never move (a classic map has 6 chunks)
     sp.forEach((d, si) => {
       const e = (Hb.counts[si][c] / 1000) * d.density * g._anScale;
       if (e <= 0) return;
@@ -131,6 +145,7 @@ function inChunk(g, I, c, d) {
 /** Game.tick: place herds on the first tick, then the herds due this tick (one hour slot). */
 export function tickAnimals(g) {
   if (!g.s.animals) { if (!animalSpecies(g).length) return; placeHerds(g); }
+  tickNear(g);
   const A = g.s.animals, I = indexes(g);
   for (const id of I.slots[g.s.tick % HOUR]) {
     const h = A.herds[id];
@@ -143,8 +158,27 @@ export function tickAnimals(g) {
 
 function hourly(g, h, d) {
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
-  if (h.day !== day) { h.day = day; daily(g, h, d, day); if (!s.animals.herds[h.id]) return; }
-  if (s.tick >= h.next) { move(g, h, d); h.next = s.tick + Math.round(d.moveHours * HOUR); }
+  if (h.near !== undefined) { syncNear(g, h); if (h.n < 1) { delete h.near; removeHerd(g, h.id); return; } }
+  if (h.day !== day) { h.day = day; const before = h.n; daily(g, h, d, day); if (!s.animals.herds[h.id]) { dropAnimals(g, h.id); return; } if (h.near !== undefined && h.n !== before) nearCount(g, h, d, before); }
+  if (h.near === undefined && s.tick >= h.next) { move(g, h, d); h.next = s.tick + Math.round(d.moveHours * HOUR); }
+}
+
+/** A near herd's count changed in its day (births, losses, a split): animals come or go to match. */
+function nearCount(g, h, d, before) {
+  const A = g.s.animals, ids = (nearIndex(g).byHerd.get(h.id) || []).filter((id) => A.list?.[id]);
+  if (h.n > ids.length) {
+    for (let k = ids.length; k < h.n; k++) { const at = spotNear(g, h.x, h.y, 2, `${g.s.seed}:${h.id}:young:${g.s.tick}:${k}`), id = `a${A.na++}`; A.list[id] = { id, herd: h.id, x: at.x, y: at.y, hp: d.health }; }
+  } else for (const id of ids.slice(h.n)) delete A.list[id]; // the last ones (by id) go
+  nearDirty(g);
+  void before;
+}
+
+/** A near herd that is gone: its animals go too. */
+function dropAnimals(g, hid) {
+  const A = g.s.animals;
+  for (const id of nearIndex(g).byHerd.get(hid) || []) delete A.list?.[id];
+  nearDirty(g);
+  if (A.list && !Object.keys(A.list).length) delete A.list;
 }
 
 function daily(g, h, d, day) {
@@ -166,16 +200,16 @@ function daily(g, h, d, day) {
     let prey = null;
     for (const cc of around(g, c, 2)) for (const id of I.byChunk.get(cc) || []) {
       const p = A.herds[id];
-      if (p && p !== h && (d.prey || []).includes(p.sp) && p.n > 0 && (!prey || p.n > prey.n || (p.n === prey.n && p.id < prey.id))) prey = p;
+      if (p && p !== h && p.near === undefined && h.near === undefined && (d.prey || []).includes(p.sp) && p.n > 0 && (!prey || p.n > prey.n || (p.n === prey.n && p.id < prey.id))) prey = p;
     }
     const starve = Math.floor(d.starveDays ?? 10);
-    if (prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
+    if (h.near !== undefined) { /* near: it hunts for real (act) */ } else if (prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
     else if (day - h.fed >= starve && h.n > SMALL_GAME) { h.n--; h.fed = day; } // too many for small game alone
   }
   // Two herds of a species in one chunk that fit in one herd join (the lower id takes the other in).
   for (const id of I.byChunk.get(c) || []) {
     const o = A.herds[id];
-    if (!o || o === h || o.sp !== h.sp || o.n + h.n > d.herd[1] || !s.animals.herds[h.id]) continue;
+    if (!o || o === h || o.sp !== h.sp || o.near !== undefined || h.near !== undefined || o.n + h.n > d.herd[1] || !s.animals.herds[h.id]) continue;
     const [keep, gone] = o.id < h.id ? [o, h] : [h, o];
     keep.n += gone.n; removeHerd(g, gone.id);
     if (gone === h) return;
@@ -230,9 +264,191 @@ function move(g, h, d) {
   if (best === c || bv < here * 1.15 + 1) return;
   const at = groundIn(g, d, best, `${s.seed}:${h.id}:to:${s.tick}`);
   if (!at) return;
-  h.x = at.x; h.y = at.y;
-  dirty(g);
+  setCentre(g, h, at.x, at.y);
 }
+
+// ---------------- near animals (slice 2) ----------------
+// A herd whose centre comes within NEAR tiles of a full-detail village (all villages of a classic game) becomes
+// individual animals (`s.animals.list`: id -> { id, herd, x, y, hp }), made round its centre by hash; one that has
+// been near for NEAR_HOLD ticks and is NEAR + 16 away from all of them folds back into a count (the living ones,
+// centred on the one nearest their middle). Checked every NEAR_CHECK ticks. While near, the herd's count is its
+// animals and its centre follows them; it does not move by chunks, and births and losses come and go as animals.
+// Each animal acts every STEP ticks (staggered by id): grazers flee (the whole herd, for a while) from people and
+// predators within their fear ranges, stepping to the free neighbour tile farthest from the danger (their speed in
+// tiles), else graze a step now and then near the centre; a pack that has not eaten today chases the nearest prey
+// animal within CHASE tiles and bites it (health); a kill feeds the pack. Animals never block tiles; they step only
+// onto passable tiles of the region they stand in.
+const NEAR = 48, NEAR_CHECK = 600, NEAR_HOLD = 2400, STEP = 10, CELL = 8, CHASE = 20, GRAZE = 5, ALARM = 300;
+
+/** Near animals by herd and by step slot (derived; rebuilt when animals come or go). */
+function nearIndex(g) {
+  const A = g.s.animals;
+  if (g._anNear?.A === A && !g._anNear.dirty) return g._anNear;
+  const byHerd = new Map(), slots = Array.from({ length: STEP }, () => []);
+  for (const id of Object.keys(A.list || {}).sort(byId)) {
+    const a = A.list[id];
+    if (!byHerd.has(a.herd)) byHerd.set(a.herd, []);
+    byHerd.get(a.herd).push(id);
+    slots[hash(id) % STEP].push(id);
+  }
+  return (g._anNear = { A, byHerd, slots, dirty: false });
+}
+const nearDirty = (g) => { if (g._anNear) g._anNear.dirty = true; };
+
+/** People and near animals by cell of CELL tiles (derived, once a tick). */
+function grids(g) {
+  if (g._anGrid?.tick === g.s.tick) return g._anGrid;
+  const people = new Map(), beasts = new Map(), key = (x, y) => ((y / CELL) | 0) * 100000 + ((x / CELL) | 0);
+  for (const c of Object.values(g.s.colonists)) { const k = key(c.x, c.y); if (!people.has(k)) people.set(k, []); people.get(k).push(c); }
+  for (const a of Object.values(g.s.animals?.list || {})) { const k = key(a.x, a.y); if (!beasts.has(k)) beasts.set(k, []); beasts.get(k).push(a); }
+  return (g._anGrid = { tick: g.s.tick, people, beasts, key });
+}
+
+/** The nearest thing within r of (x, y) in a grid (people or animals) passing `ok`, by distance then id; or null. */
+function nearestIn(G, map, x, y, r, ok) {
+  let best = null, bd = Infinity;
+  const c0x = ((x - r) / CELL) | 0, c1x = ((x + r) / CELL) | 0, c0y = ((y - r) / CELL) | 0, c1y = ((y + r) / CELL) | 0;
+  for (let cy = c0y; cy <= c1y; cy++) for (let cx = c0x; cx <= c1x; cx++) for (const o of map.get(cy * 100000 + cx) || []) {
+    if (!ok(o)) continue;
+    const d = Math.hypot(o.x - x, o.y - y);
+    if (d <= r && (d < bd || (d === bd && o.id < best.id))) { bd = d; best = o; }
+  }
+  return best;
+}
+
+/** Full-detail village centres (the places that make herds near). */
+function anchors(g) {
+  const out = [];
+  for (const id of Object.keys(g.s.settlements || {}).sort(byId)) { const v = g.s.settlements[id]; if (v.center && !v.fallen && v.detail !== 'abstract') out.push(v.center); }
+  if (!out.length && g.s.center) out.push(g.s.center);
+  return out;
+}
+
+/** A free tile near (x, y) in its region, by hash (8 tries), else (x, y). */
+function spotNear(g, x, y, r, key) {
+  const reg = g.regionOf(x, y);
+  for (let k = 0; k < 8; k++) {
+    const nx = x + Math.round((draw(`${key}:${k}x`) * 2 - 1) * r), ny = y + Math.round((draw(`${key}:${k}y`) * 2 - 1) * r);
+    if (g.isPassable(nx, ny) && g.regionOf(nx, ny) === reg) return { x: nx, y: ny };
+  }
+  return { x, y };
+}
+
+function expand(g, h, d) {
+  const A = g.s.animals;
+  A.list ||= {}; A.na ||= 1;
+  for (let k = 0; k < h.n; k++) {
+    const at = spotNear(g, h.x, h.y, 3, `${g.s.seed}:${h.id}:born:${g.s.tick}:${k}`), id = `a${A.na++}`;
+    A.list[id] = { id, herd: h.id, x: at.x, y: at.y, hp: d.health };
+  }
+  h.near = g.s.tick;
+  nearDirty(g);
+}
+
+function fold(g, h) {
+  const A = g.s.animals, ids = nearIndex(g).byHerd.get(h.id) || [];
+  const live = ids.map((id) => A.list[id]).filter(Boolean);
+  for (const a of live) delete A.list[a.id];
+  delete h.near;
+  nearDirty(g);
+  h.n = live.length;
+  if (live.length) recentre(g, h, live);
+  if (h.n < 2) removeHerd(g, h.id);
+  if (!Object.keys(A.list).length) delete A.list;
+}
+
+/** The herd's centre: the animal nearest the middle of them (a real tile; by id on ties). */
+function recentre(g, h, live) {
+  const mx = live.reduce((s, a) => s + a.x, 0) / live.length, my = live.reduce((s, a) => s + a.y, 0) / live.length;
+  let best = live[0];
+  for (const a of live) { const d = Math.hypot(a.x - mx, a.y - my), bd = Math.hypot(best.x - mx, best.y - my); if (d < bd || (d === bd && a.id < best.id)) best = a; }
+  setCentre(g, h, best.x, best.y);
+}
+
+/** Every NEAR_CHECK ticks: herds come near (become animals) or go far (fold back). */
+function checkNear(g) {
+  const A = g.s.animals, P = anchors(g);
+  for (const id of Object.keys(A.herds).sort(byId)) {
+    const h = A.herds[id], d = g.reg.get('animal', h.sp);
+    if (!d) continue;
+    const dist = Math.min(...P.map((p) => Math.hypot(p.x - h.x, p.y - h.y)));
+    if (h.near === undefined && dist <= NEAR) expand(g, h, d);
+    else if (h.near !== undefined && dist > NEAR + 16 && g.s.tick - h.near >= NEAR_HOLD) fold(g, h);
+  }
+}
+
+/** A step of one animal. */
+function act(g, a) {
+  const s = g.s, A = s.animals, h = A.herds[a.herd], d = h && g.reg.get('animal', h.sp);
+  if (!d) return;
+  const G = grids(g), key = `${s.seed}:${a.id}:${s.tick}`;
+  if (d.diet === 'graze') {
+    const fp = d.fear?.people || 0, fw = d.fear?.predators || 0;
+    const who = (fp && nearestIn(G, G.people, a.x, a.y, fp, () => true))
+      || (fw && nearestIn(G, G.beasts, a.x, a.y, fw, (o) => { const oh = A.herds[o.herd]; return !!oh && (g.reg.get('animal', oh.sp)?.prey || []).includes(h.sp); }));
+    if (who) { h.alarm = s.tick + ALARM; h.fx = Math.round(who.x); h.fy = Math.round(who.y); }
+    if (h.alarm > s.tick) { for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepAway(g, a, h.fx, h.fy); return; }
+    if (draw(key) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, key);
+    return;
+  }
+  // A pack: chase and bite the nearest prey when it has not eaten today.
+  const day = Math.floor(s.tick / TICKS_PER_DAY);
+  if (h.fed !== day) {
+    const prey = nearestIn(G, G.beasts, a.x, a.y, CHASE, (o) => { const oh = A.herds[o.herd]; return !!oh && (d.prey || []).includes(oh.sp); });
+    if (prey) {
+      if (Math.max(Math.abs(prey.x - a.x), Math.abs(prey.y - a.y)) <= 1) bite(g, a, h, prey, key);
+      else for (let k = 0; k < Math.max(1, Math.round(d.speed)); k++) stepToward(g, a, prey.x, prey.y);
+      return;
+    }
+  }
+  if (draw(key) < 0.3) stepNear(g, a, h.x, h.y, GRAZE, key);
+}
+
+function bite(g, a, pack, prey, key) {
+  const A = g.s.animals, ph = A.herds[prey.herd];
+  prey.hp -= 10 + Math.floor(draw(`${key}:bite`) * 10);
+  if (ph) { ph.alarm = g.s.tick + ALARM; ph.fx = a.x; ph.fy = a.y; }
+  if (prey.hp > 0) return;
+  delete A.list[prey.id];
+  nearDirty(g);
+  if (ph) { ph.n--; if (ph.n < 1) { delete ph.near; removeHerd(g, ph.id); } }
+  pack.fed = Math.floor(g.s.tick / TICKS_PER_DAY);
+}
+
+const free = (g, a, x, y) => g.isPassable(x, y) && g.regionOf(x, y) === g.regionOf(a.x, a.y);
+function stepAway(g, a, fx, fy) {
+  let best = null, bd = Math.hypot(a.x - fx, a.y - fy);
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - fx, y - fy); if (dd > bd && free(g, a, x, y)) { bd = dd; best = [x, y]; } }
+  if (best) { a.x = best[0]; a.y = best[1]; }
+}
+function stepToward(g, a, tx, ty) {
+  let best = null, bd = Math.hypot(a.x - tx, a.y - ty);
+  for (const [dx, dy] of D8) { const x = a.x + dx, y = a.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, a, x, y)) { bd = dd; best = [x, y]; } }
+  if (best) { a.x = best[0]; a.y = best[1]; }
+}
+function stepNear(g, a, cx, cy, r, key) {
+  const [dx, dy] = D8[Math.floor(draw(`${key}:dir`) * 8) % 8], x = a.x + dx, y = a.y + dy;
+  if (Math.hypot(x - cx, y - cy) <= r && free(g, a, x, y)) { a.x = x; a.y = y; }
+}
+
+/** Game.tick (from tickAnimals): the near check and the animals due this tick. */
+function tickNear(g) {
+  if (g.s.tick % NEAR_CHECK === 450) checkNear(g);
+  const A = g.s.animals;
+  if (!A.list) return;
+  const N = nearIndex(g);
+  for (const id of N.slots[g.s.tick % STEP]) if (A.list?.[id]) act(g, A.list[id]);
+}
+
+/** Near herds: their count and centre from their animals (hourly, before the herd's own hour). */
+function syncNear(g, h) {
+  const ids = nearIndex(g).byHerd.get(h.id) || [], live = ids.map((id) => g.s.animals.list?.[id]).filter(Boolean);
+  h.n = live.length;
+  if (live.length) recentre(g, h, live);
+}
+
+/** For tests: fold a near herd back into a count now. */
+export const foldHerdForTest = (g, id) => fold(g, g.s.animals.herds[id]);
 
 /** Herd totals by species (for reports and tests). */
 export function herdCensus(g) {

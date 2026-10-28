@@ -182,3 +182,13 @@ where, and which sim function or state field provides it. The UI is built at hom
   tooltip "Deer: a herd of 8".
 - **Map legend:** the three species; wolves marked as dangerous.
 - **Close up:** nothing yet (individual animals come in slice 2).
+
+## Phase 8, slice 2: near animals
+- **Close up:** each animal in `g.s.animals.list` (x, y, hp; its herd's species from `herds[a.herd].sp`) drawn as a
+  procedural sprite (deer: slim, light belly, antlers on some; wolf: grey, long tail; horse: chestnut, mane),
+  walking between tiles (they step one tile at a time, two when fleeing); a herd whose `alarm` is ahead of the
+  tick is running (tails up, faster animation); a wounded animal (hp below its species' health) limps.
+- **Wolves hunting:** a pack chasing a deer, a bite flash, the deer falling (it disappears; carcasses come with
+  hunting in slice 3).
+- **Hover card:** "Deer (herd of 8): grazing / running from Ada / running from wolves"; "Wolf (pack of 4):
+  hunting / resting".

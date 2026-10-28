@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservationErrors } from './cloud-helpers.js';
-import { herdCensus, animalSpecies } from '../src/sim/animals.js';
+import { herdCensus, animalSpecies, foldHerdForTest } from '../src/sim/animals.js';
 import { issueCommand } from '../src/sim/god.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
@@ -82,4 +82,58 @@ test('review fix: meteors near herds, then a save and load: the game continues i
     return g;
   };
   assert.equal(stateText(run(true)), stateText(run(false)));
+});
+
+// ---------------- slice 2: near animals ----------------
+/** A classic game with a deer herd and a wolf pack placed by hand beside the village (both become near). */
+function wildGame() {
+  const g = newGame({ seed: 4242 });
+  g.tick();
+  const c = g.s.settlements[g.s.playerSettlement].center, A = g.s.animals;
+  for (const id of Object.keys(A.herds)) delete A.herds[id];
+  const spot = (dx, dy) => { for (let r = 0; r < 10; r++) for (let k = -r; k <= r; k++) { const x = c.x + dx + k, y = c.y + dy + r; if (g.isPassable(x, y)) return { x, y }; } return { x: c.x, y: c.y }; };
+  const day = Math.floor(g.s.tick / 2400);
+  const deer = spot(-14, 8), wolf = spot(-20, 8);
+  A.herds.h900 = { id: 'h900', sp: 'core:deer', x: deer.x, y: deer.y, n: 8, day, year: 0, next: g.s.tick, fed: day };
+  A.herds.h901 = { id: 'h901', sp: 'core:wolf', x: wolf.x, y: wolf.y, n: 4, day, year: 0, next: g.s.tick, fed: day - 1 };
+  A.next = 902;
+  g._anIdx = null;
+  return g;
+}
+
+test('near herds become animals and fold back with the same count; animals never block tiles', () => {
+  const g = wildGame();
+  while (g.s.tick % 600 !== 451) g.tick();
+  const A = g.s.animals;
+  assert.ok(A.herds.h900.near !== undefined, 'the deer are near');
+  assert.equal(Object.values(A.list).filter((a) => a.herd === 'h900').length, 8);
+  g.step(200);
+  for (const a of Object.values(A.list)) assert.ok(g.isPassable(a.x, a.y), 'on walkable ground');
+  assert.equal(stateText(reload(g)), stateText(g));
+  // Folded back (as when people are far): the count is the living animals, the centre one of them.
+  const live = Object.values(A.list).filter((a) => a.herd === 'h900');
+  foldHerdForTest(g, 'h900');
+  assert.equal(A.herds.h900.n, live.length);
+  assert.ok(live.some((a) => a.x === A.herds.h900.x && a.y === A.herds.h900.y));
+  assert.equal(Object.values(A.list || {}).filter((a) => a.herd === 'h900').length, 0);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+test('grazers flee from people; wolves chase and kill deer near the village; all saved identically', () => {
+  const run = (cut) => {
+    let g = wildGame();
+    while (g.s.tick % 600 !== 451) g.tick();
+    const c = g.colonists()[0], deer = Object.values(g.s.animals.list).find((a) => a.herd === 'h900');
+    c.x = deer.x + 2; c.y = deer.y; c.mv = null;
+    let fled = false;
+    for (let t = 0; t < 30; t++) { g.tick(); if (g.s.animals.herds.h900?.alarm > g.s.tick) fled = true; }
+    assert.ok(fled, 'the herd ran from a person close by');
+    for (let d = 0; d < 3; d++) { g.step(800); if (cut) g = reload(g); }
+    return g;
+  };
+  const g = run(false);
+  const deer = g.s.animals.herds.h900, pack = g.s.animals.herds.h901;
+  assert.ok(!deer || deer.n < 8, 'the pack killed deer');
+  assert.ok(pack && pack.fed >= Math.floor(g.s.tick / 2400) - 2, 'the pack ate in the last days');
+  assert.equal(stateText(run(true)), stateText(g));
 });
