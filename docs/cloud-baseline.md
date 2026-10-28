@@ -133,3 +133,16 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 ## Peoples and traits, slice 3 (2026-10-28)
 - 200 tests pass. Classic runs unchanged from slice 2 (`forty` ee55506a781cb766, `modern` 479f5857575304ab):
   classic games have no fights and only Hearthfolk.
+
+## Peoples and traits acceptance (2026-10-28)
+- 205 tests pass. Classic `forty` ee55506a781cb766 (workshops era on day 6.10), `modern` 479f5857575304ab (modern
+  era on day 46.12).
+- Bench (the code before the phase, `9053c0f`, against now, two rounds, summed): +2% and −1%.
+- **World seed 7**, 300 days:
+  - 2.326 ms/tick at day 300;
+  - 302 people (Hearthfolk 131, Reedkin 107, Cragborn 64) in 62 standing villages of 65;
+  - save 12.9 MB; 20.9 min.
+- **World seed 11**, 300 days:
+  - 2.453 ms/tick at day 300;
+  - 289 people (Hearthfolk 158, Cragborn 50, Reedkin 48, Duneshade 33) in 56 standing villages of 65;
+  - save 13.3 MB; 20.4 min.

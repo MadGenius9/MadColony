@@ -354,15 +354,17 @@ test('8c forays: far monsters now and then go near a village for a while and com
   const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
   runDays(g, 15); // forays begin on day 15
   let seen = 0, onForay = 0;
+  const seenAt = new Set(); // counted every day: the log keeps only its last 500 lines
   for (let d = 0; d < 25; d++) {
     runDays(g, 1);
+    for (const e of g.s.log) if (/ was seen near /.test(e.msg)) seenAt.add(`${e.t}:${e.msg}`);
     for (const m of Object.values(g.s.monsters.list)) if (m.foray && m.foray.until > g.s.tick) {
       onForay++;
       const v = g.s.settlements[m.foray.sid];
       assert.ok(Math.hypot(m.foray.x - v.center.x, m.foray.y - v.center.y) <= 40, 'the spot is near the village');
     }
   }
-  seen = g.s.log.filter((e) => / was seen near /.test(e.msg)).length;
+  seen = seenAt.size;
   assert.ok(seen >= 1 && onForay >= 1, `forays happened (${seen} seen, ${onForay} monster-days on a foray)`);
   const b = reload(g);
   runDays(g, 2); runDays(b, 2);

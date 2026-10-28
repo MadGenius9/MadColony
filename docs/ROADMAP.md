@@ -676,6 +676,36 @@ Terrain brushes and the Blank world (2026-10-24 direction, item 4), with their o
   in a running game; the owner's answer 5 accepted about 0.5 s); an exact trap check instead of the 3-tile
   clearance; "Start life" was dropped (generated maps keep their animals and monsters).
 
+### Peoples and traits (Done in the cloud copy, 2026-10-28)
+Original peoples and personal traits (2026-10-24 direction, item 5), with their own design note.
+
+- **Done:**
+  - four peoples (the owner's answer 1): Hearthfolk (every classic village), Reedkin, Cragborn and Duneshade;
+  - each with its own needs, body, work, temperament, favourite food, names, looks and home style (reed
+    house, stone roundhouse with stone walls, courtyard house);
+  - Living and Vast worlds give each AI village the people of its land;
+  - villages keep to one people (answer 4), and feuds between peoples grow ×1.5 (answer 5);
+  - eleven traits (answer 3 added Quick, Strong and Kind) in every game, classic too (answer 2): they change
+    work, learning, walking, tending, needs, illness, healing, cold, fighting, wolves, hunt parties and trade,
+    with reasons in the statuses;
+  - children inherit people, traits and looks;
+  - `spawn` takes a people; the `trait` power (answer 6);
+  - save format 30, with old saves filled on load from hashes.
+  - Design and results: `docs/proposals/phase-peoples-and-traits.md`.
+- **Acceptance:**
+  - 205 tests pass;
+  - World 300 days on seeds 7 and 11: every people lives on, everything is counted, save and load are
+    identical, 2.33 and 2.45 ms/tick at day 300;
+  - classic eras a little later (workshops on day 6.10, modern on day 46.12);
+  - bench within 2% of the code before the phase.
+- **Carried over** (not done):
+  - a per-people ledger;
+  - Reedkin on marsh;
+  - daughter sites by land;
+  - favourite food and greed in distant and AI-to-AI trade;
+  - new materials;
+  - mixed worlds see about twice the wars: tune after play.
+
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
 (reserved road corridors, plots, farmland, expansion space) replacing nearest-good-spot site choice, with

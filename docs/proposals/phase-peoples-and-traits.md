@@ -1,6 +1,6 @@
 # Peoples and traits (2026-10-24 direction, item 5)
 
-Status: **building** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
+Status: **done** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
 
 ## The owner's answers (2026-10-28)
@@ -334,3 +334,31 @@ Each person has 0 to 2 traits. Opposite traits never go together.
 - **Tests:** a Duneshade village founded by the gods; join refused across peoples; the trait power's gives,
   replacements, removals and refusals, replayed after a load.
 - **Checks:** 205 tests pass; classic runs unchanged.
+### Slice 7 (2026-10-28): acceptance
+- **Content:** the planet's terrains joined the peoples' home land (Reedkin jungle, Cragborn tundra, Duneshade
+  savanna). Without them a World map had no Duneshade.
+- **World runs** (`tools/cloud-world-run.mjs 300 world <seed>`, which now counts people and standing villages
+  by people). Both runs passed: items, people, animals and monsters were counted every 25 days, and a save and
+  load on day 150 played on identically.
+
+  | Seed | Peoples at the start | Peoples on day 300 | Villages on day 300 | Wars declared | Day 300 speed | Time |
+  |---|---|---|---|---|---|---|
+  | 7 | three | Hearthfolk 131, Reedkin 107, Cragborn 64 (302 people) | 62 standing of 65 | 45 | 2.33 ms/tick (Phase 8c, same seed: 2.30) | 20.9 min |
+  | 11 | all four | Hearthfolk 158, Cragborn 50, Reedkin 48, Duneshade 33 (289 people) | 56 standing of 65 | 85 | 2.45 ms/tick | 20.4 min |
+
+  Every people grew through day 100 and none died out.
+- **Suite:** 205 tests pass.
+  - The 8c forays test now counts "was seen near" lines every day: the log keeps only its last 500 lines, and
+    in this busier world they had scrolled out by the end. Its assertions are kept.
+- **Classic:** `forty` reaches the workshops era on day 6.10 (5.94 before the phase), `modern` the modern era
+  on day 46.12 (45.5): the traits' effects.
+- **Bench** (the code before the phase, `9053c0f`, against now; ms/tick summed over the six sizes): 3.43 →
+  3.50 (+2%) and 3.58 → 3.56 (−1%).
+- **Carried over** (not done):
+  - a per-people ledger (needs a start count per people);
+  - Reedkin walking marsh at full speed;
+  - daughter sites chosen by the people's land;
+  - favourite food and greed in distant villages and between AI villages;
+  - trip estimates with each person's need rates;
+  - new materials (reed, clay) for the home styles;
+  - many more wars in mixed worlds (85 against 45 on these seeds): tune once the owner has played it.
