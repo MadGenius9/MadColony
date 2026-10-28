@@ -8,7 +8,7 @@
 //   village; positions and sizes are hash draws, so the world and the game's random stream are as before.
 // - Every herd once an hour (staggered by id): once a day, births (once a year in spring, fewer as its chunk
 //   fills: cap animals per 1,000 tiles of its ground), winter losses, packs eating deer or horses within 2 chunks
-//   (a pack that has not eaten for starveDays loses one: they live on small game a while), a herd above 1.5 x its
+//   (in winter a pack that has not eaten for starveDays loses one; the rest of the year small game keeps it), a herd above 1.5 x its
 //   largest size splits, two of a species in one chunk that fit in one herd merge, one below 2 fades; at most every moveHours it moves one chunk toward better ground (more of its ground, less
 //   crowded, away from villages; packs toward prey), never off its landmass.
 // Draws are hashes of (seed, herd, day or tick). Cost: one pass over the map when herds are placed or the map
@@ -165,7 +165,8 @@ function daily(g, h, d, day) {
       if (p && p !== h && (d.prey || []).includes(p.sp) && p.n > 0 && (!prey || p.n > prey.n || (p.n === prey.n && p.id < prey.id))) prey = p;
     }
     if (prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
-    else if (day - (h.fed ?? day) >= (d.starveDays ?? 10)) { h.n--; h.fed = day; }
+    else if (season === 'Winter' && day - (h.fed ?? day) >= (d.starveDays ?? 10)) { h.n--; h.fed = day; }
+    else if (season !== 'Winter' && day - (h.fed ?? day) >= (d.starveDays ?? 10)) h.fed = day - (d.starveDays ?? 10); // small game: not starving
   }
   // Two herds of a species in one chunk that fit in one herd join (the lower id takes the other in).
   for (const id of I.byChunk.get(c) || []) {
@@ -207,7 +208,7 @@ function score(g, I, Hb, h, d, c, villages) {
   const cap = (ground / 1000) * d.cap * g._anScale, others = inChunk(g, I, c, d) - (chunkOf(g, h.x, h.y) === c ? h.n : 0);
   let v = ground * Math.max(0.05, 1 - others / Math.max(1, cap));
   if (villages.has(c)) v *= d.diet === 'hunt' ? 0.5 : 0.2;
-  if (d.diet === 'hunt') for (const id of I.byChunk.get(c) || []) { const p = g.s.animals.herds[id]; if (p && (d.prey || []).includes(p.sp)) v += 50 * p.n; }
+  if (d.diet === 'hunt') for (const cc of around(g, c, 2)) for (const id of I.byChunk.get(cc) || []) { const p = g.s.animals.herds[id]; if (p && (d.prey || []).includes(p.sp)) v += (cc === c ? 50 : 15) * p.n; }
   return v;
 }
 

@@ -13,7 +13,7 @@
       "herd": [3, 6], "terrains": ["core:forest_floor", "core:taiga", "core:tundra", "core:snow", "core:grass"],
       "density": 0.3, "cap": 12, "health": 40, "speed": 1.4, "diet": "hunt", "prey": ["core:deer", "core:wild_horse"],
       "fear": { "people": 0, "predators": 0 },
-      "births": 0.35, "winterLoss": 0.004, "moveHours": 4, "starveDays": 10, "color": "#6b6b70"
+      "births": 0.6, "winterLoss": 0.004, "moveHours": 4, "starveDays": 10, "color": "#6b6b70"
     },
     {
       "id": "core:wild_horse", "name": "Wild horse", "plural": "wild horses",
