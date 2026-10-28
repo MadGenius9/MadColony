@@ -377,3 +377,10 @@ where, and which sim function or state field provides it. The UI is built at hom
   village of another people shows the refusal reason.
 - **Trait tool** (new power `trait`): pick a person, then a trait to give or remove. The preview shows the
   trait's description and, when giving, the opposite it replaces. It costs 15 favour.
+
+## World laws, slice 1: the frame
+- **World laws panel** (god tools): one row per `worldLaw` (data `laws.json`) with its values as buttons; the
+  current one (`lawOf`) is highlighted. Clicking issues the `law` power (free). The preview's `effect` is the
+  tooltip.
+- **Top bar:** a small badge per law in force (`activeLaws(g)`: name, value, since), e.g. "Peace", "Endless
+  winter".

@@ -1,0 +1,151 @@
+{
+  "$comment": "World laws (docs/proposals/world-laws.md): switches the gods set during play. The first value of each is its default (no law). Read through src/sim/worldlaws.js.",
+  "worldLaw": [
+    {
+      "id": "core:peace",
+      "name": "Peace",
+      "about": "No new wars.",
+      "values": [
+        {
+          "id": "off",
+          "name": "Off",
+          "about": "Villages may go to war."
+        },
+        {
+          "id": "on",
+          "name": "On",
+          "about": "No new war may start: no declarations and no attacks on villages not already at war. Wars already running go on to their end, and rivalry no longer sinks below neutral."
+        }
+      ]
+    },
+    {
+      "id": "core:ageless",
+      "name": "Ageless",
+      "about": "Adults stop aging.",
+      "values": [
+        {
+          "id": "off",
+          "name": "Off",
+          "about": "People age and the old may die of old age."
+        },
+        {
+          "id": "on",
+          "name": "On",
+          "about": "Adults do not age and nobody dies of old age; children still grow up."
+        }
+      ]
+    },
+    {
+      "id": "core:fast_growth",
+      "name": "Fast growth",
+      "about": "Life comes twice as fast.",
+      "values": [
+        {
+          "id": "off",
+          "name": "Off",
+          "about": "Births, crops and forests come at their usual pace."
+        },
+        {
+          "id": "on",
+          "name": "On",
+          "about": "Births, crops, spreading forests and new daughter villages come twice as fast."
+        }
+      ]
+    },
+    {
+      "id": "core:plague",
+      "name": "Plague",
+      "about": "Illness in the world.",
+      "values": [
+        {
+          "id": "normal",
+          "name": "Normal",
+          "about": "Illness comes and goes as usual."
+        },
+        {
+          "id": "none",
+          "name": "None",
+          "about": "Nobody falls ill; those already ill get over it."
+        },
+        {
+          "id": "endless",
+          "name": "Endless",
+          "about": "The plague keeps breaking out, in each village about every 10 days, though a village of 3 or fewer standing is spared."
+        }
+      ]
+    },
+    {
+      "id": "core:peaceful_animals",
+      "name": "Peaceful animals",
+      "about": "Wolves leave people alone.",
+      "values": [
+        {
+          "id": "off",
+          "name": "Off",
+          "about": "Hungry wolves may attack people."
+        },
+        {
+          "id": "on",
+          "name": "On",
+          "about": "Wolves still hunt deer and horses, but never people, and people need not run from them."
+        }
+      ]
+    },
+    {
+      "id": "core:tame_monsters",
+      "name": "Tame monsters",
+      "about": "Monsters keep to their lairs.",
+      "values": [
+        {
+          "id": "off",
+          "name": "Off",
+          "about": "Monsters roam and sometimes come near villages."
+        },
+        {
+          "id": "on",
+          "name": "On",
+          "about": "Monsters stay near their lairs: no forays, no raids, and they never strike people or crops."
+        }
+      ]
+    },
+    {
+      "id": "core:no_fire_spread",
+      "name": "No spreading fire",
+      "about": "Fire stays where it starts.",
+      "values": [
+        {
+          "id": "off",
+          "name": "Off",
+          "about": "Fire spreads through forest and wooden buildings."
+        },
+        {
+          "id": "on",
+          "name": "On",
+          "about": "Fire burns only what it was set on: nothing catches from a neighbour."
+        }
+      ]
+    },
+    {
+      "id": "core:season",
+      "name": "Endless season",
+      "about": "The year stands still.",
+      "values": [
+        {
+          "id": "normal",
+          "name": "Normal",
+          "about": "The seasons turn."
+        },
+        {
+          "id": "summer",
+          "name": "Endless summer",
+          "about": "It is midsummer all year: crops grow, nobody freezes."
+        },
+        {
+          "id": "winter",
+          "name": "Endless winter",
+          "about": "It is midwinter all year: crops wither and the cold bites."
+        }
+      ]
+    }
+  ]
+}

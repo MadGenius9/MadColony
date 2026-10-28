@@ -36,6 +36,7 @@
     "content/monsters.json",
     "content/shaping.json",
     "content/peoples.json",
+    "content/laws.json",
     "content/god.json"
   ]
 }

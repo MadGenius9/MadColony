@@ -111,6 +111,8 @@ export const MIGRATIONS = {
   // 29 -> 30: peoples and traits (colonist people and traits, settlement and dead people). Absent: filled on load
   // (save.js) with the default people and traits drawn by the colonist's hash, as a new colonist of that id gets.
   29() {},
+  // 30 -> 31: world laws (worldlaws.js). `s.worldLaws` is optional: absent means no laws.
+  30() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

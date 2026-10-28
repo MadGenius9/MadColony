@@ -126,3 +126,16 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
    - the bench, README and roadmap.
 
 ## Open questions (answered; see "The owner's answers")
+
+## Results
+### Slice 1 (2026-10-28): the frame
+- **Built:**
+  - the `worldLaw` type, with eight laws as data (`mods/core/content/laws.json`);
+  - `src/sim/worldlaws.js`: `lawOf`, `lawIs` (O(1)), `lawSince`, `activeLaws`, change hooks, and the free
+    `law` power (validated, previewed, applied at the next tick, logged "World law: Peace is now on");
+  - `s.worldLaws { set, since }`, present only while a law is in force, so games without laws save as before;
+  - save format 31, validated; laws a removed mod defined are dropped on load;
+  - peaceful animals keeps its flag (`s.animals.peaceful`), and the law reads and writes it, so the old
+    `peaceful` power and old saves need nothing.
+- **Tests** (`tests/cloud-laws.test.js`): set, shown, refused, saved and cleared; free; mended and refused
+  on load. 206 tests pass.

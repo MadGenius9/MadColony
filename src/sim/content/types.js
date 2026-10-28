@@ -677,6 +677,13 @@ export const CONTENT_TYPES = {
       plague: { type: 'bool' }, // Phase 5b: sent by the plague power; spreads even where a scenario has no illness rules
     }),
   },
+  worldLaw: {
+    doc: 'A world law the gods switch during play (worldlaws.js, World laws): values, the first being the default (no law), each with a name and what it does (about, shown in the preview). Free; saved in s.worldLaws only while not at its default.',
+    schema: obj({
+      id, name, about: str(300),
+      values: req(arr(obj({ id: req(str(40)), name: req(str(60)), about: str(300) }), { minItems: 2, maxItems: 8 })),
+    }),
+  },
   godRules: {
     doc: 'The numbers behind the god powers (god.js, Phase 2c): favour (start, max, regeneration perDay), the cost of each power (costs.settler is per settler; omen is the harmless test power, default 0), blessing length and multipliers, the inspire fraction, and the spawn limits and supplies. A scenario picks one with its optional `god` id; otherwise core:god applies. In a Sandbox game every power is free.',
     schema: obj({

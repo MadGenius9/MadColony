@@ -12,6 +12,7 @@ import { encodeState, decodeState } from './savecodec.js';
 import { claimsForSave, decodeClaimGrid } from './territory.js';
 import { validDisc } from './contact.js';
 import { drawTraits, defaultPeople, withTrait, MAX_TRAITS } from './peoples.js';
+import { mendLaws } from './worldlaws.js';
 
 export class SaveError extends Error {
   constructor(message, problems = []) { super(message); this.problems = problems; }
@@ -104,6 +105,7 @@ export function validateSave(save) {
   if (s.disasters !== undefined) validateDisasters(s, bad); // format 23
   if (s.animals !== undefined) validateAnimals(s, bad, save.saveFormat); // format 27
   if (s.monsters !== undefined) validateMonsters(s, bad); // format 29
+  if (s.worldLaws !== undefined) validateWorldLaws(s, bad); // format 31
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -309,6 +311,15 @@ function validateDead(s, bad) {
     if (d.parents !== undefined && (!Array.isArray(d.parents) || d.parents.length > 4 || d.parents.some((p) => !isStr(p, 64)))) { bad(`the record of the dead "${k}" has invalid parents`); return; }
     if ((d.people !== undefined && !isStr(d.people, 100)) || (d.traits !== undefined && (!Array.isArray(d.traits) || d.traits.length > MAX_TRAITS || d.traits.some((t) => !isStr(t, 100))))) { bad(`the record of the dead "${k}" has an invalid people or traits`); return; } // format 30
   }
+}
+
+/** World laws (format 31, worldlaws.js): { set: { law: value }, since: { law: tick } }, ids and values short
+ *  strings, ticks not in the future. Laws a removed mod defined are dropped on load. */
+function validateWorldLaws(s, bad) {
+  const W = s.worldLaws;
+  if (!isObj(W) || (W.set !== undefined && !isObj(W.set)) || (W.since !== undefined && !isObj(W.since))) { bad('state.worldLaws is malformed'); return; }
+  for (const [k, v] of Object.entries(W.set || {})) if (!SAFE_ID.test(k) || !isStr(v, 40)) { bad(`the world law "${String(k).slice(0, 40)}" is malformed`); return; }
+  for (const [k, t] of Object.entries(W.since || {})) if (!SAFE_ID.test(k) || !isInt(t) || t < 0 || t > s.tick) { bad(`the world law "${String(k).slice(0, 40)}" has an invalid start`); return; }
 }
 
 function validateGod(s, bad) {
@@ -615,6 +626,7 @@ export function loadGame(reg, saveOrText) {
     for (const sk of reg.all('skill')) if (c.skills[sk.id] === undefined) c.skills[sk.id] = 0;
     for (const nd of reg.all('need')) if (c.needs[nd.id] === undefined) c.needs[nd.id] = 0.8;
   }
+  mendLaws(reg, s); // World laws (format 31): laws a removed mod defined are dropped
   // Peoples and traits (format 30). Old saves get the village's people (else the default) and the traits the same
   // hash gives a new colonist of that id (peoples.js). A people a removed mod defined, or one other than the
   // village's (villages keep to one), becomes the village's; unknown traits and a trait beside its opposite are
