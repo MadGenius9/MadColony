@@ -286,8 +286,8 @@ test('review fixes: spoilage keeps reserved units, so a save and load mid-haul p
     let g = newGame({ seed: 4242 });
     runDays(g, 1);
     const c = g.s.settlements[g.s.playerSettlement].center;
-    g.createItems('core:venison', 30, c.x + 6, c.y + 6, 'start');
     while (g.s.tick % 2400 !== 2399) g.tick();
+    g.createItems('core:venison', 30, c.x + 6, c.y + 6, 'start'); // placed at the last tick, so nobody has hauled any yet
     // A hauler reserves the whole stack just before the day start (spoilage runs then).
     const st = Object.values(g.s.stacks).find((x) => x.item === 'core:venison' && x.qty === 30);
     const h = g.colonists()[0];

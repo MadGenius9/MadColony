@@ -6,6 +6,10 @@ import { modsOf, inheritTraits, drawTraits, defaultPeople, MAX_TRAITS } from '..
 import { peopleCensus } from '../src/sim/godspawn.js';
 import { issueCommand, previewCommand } from '../src/sim/god.js';
 import { foundDaughter } from '../src/sim/founding.js';
+import { workSpeed, practice } from '../src/sim/ai/jobs.js';
+import { decayNeed } from '../src/sim/ai/needs.js';
+import { coldUnder } from '../src/sim/life.js';
+import { TICKS_PER_DAY } from '../src/sim/constants.js';
 
 /** No colonist has more than two traits, a trait twice or a trait with its opposite. */
 function traitsOk(g, c) {
@@ -129,4 +133,65 @@ test('peoples: a village of another people keeps it in its daughters; a stray pe
   assert.equal(b.s.colonists[one.id].people, 'core:reedkin');
   assert.deepEqual(b.s.colonists[two.id].traits, ['core:brave']);
   assert.ok(peopleCensus(b).ok, JSON.stringify(peopleCensus(b).problems));
+});
+
+// ---- slice 2: effects
+
+/** A copy of colonist c with another people and traits (a twin for comparisons). */
+const twin = (c, people, traits) => ({ ...JSON.parse(JSON.stringify(c)), people, traits });
+
+test('peoples: work, learning, walking, tending and need decay follow people and traits', () => {
+  const g = newGame({ seed: 4 });
+  const base = twin(Object.values(g.s.colonists)[0], 'core:hearthfolk', []);
+  base.equip = { tool: null, weapon: null };
+  const ws = (c, wt, sk) => workSpeed(g, c, wt, sk);
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  assert.ok(near(ws(twin(base, 'core:hearthfolk', ['core:strong']), 'core:chop', 'core:woodcutting') / ws(base, 'core:chop', 'core:woodcutting'), 1.1), 'strong');
+  assert.ok(near(ws(twin(base, 'core:cragborn', []), 'core:mine', 'core:mining') / ws(base, 'core:mine', 'core:mining'), 1.15), 'Cragborn miners');
+  assert.ok(near(ws(twin(base, 'core:reedkin', ['core:lazy']), 'core:mine', 'core:mining') / ws(base, 'core:mine', 'core:mining'), 0.8 * 0.9), 'Reedkin, lazy');
+  assert.ok(near(ws(twin(base, 'core:hearthfolk', ['core:kind']), 'core:doctor', 'core:medicine') / ws(base, 'core:doctor', 'core:medicine'), 1.3), 'kind doctors');
+  // Learning.
+  const w = twin(base, 'core:hearthfolk', ['core:wise']), p = twin(base, 'core:hearthfolk', []);
+  w.xp = {}; p.xp = {};
+  for (let i = 0; i < 10; i++) { practice(g, w, 'core:chop', 'core:woodcutting'); practice(g, p, 'core:chop', 'core:woodcutting'); }
+  assert.ok(near(w.xp['core:woodcutting'], 1.5 * p.xp['core:woodcutting']), 'wise');
+  // Need decay (thirst: Duneshade 0.6, Reedkin 1.3).
+  const thirst = g.reg.get('need', 'core:thirst');
+  const drop = (c) => { const x = twin(c, c.people, c.traits); x.sleeping = false; x.job = null; x.needs['core:thirst'] = 1; for (let i = 0; i < 100; i++) decayNeed(x, thirst, g); return 1 - x.needs['core:thirst']; };
+  assert.ok(near(drop(twin(base, 'core:duneshade', [])) / drop(base), 0.6));
+  assert.ok(near(drop(twin(base, 'core:reedkin', [])) / drop(base), 1.3));
+  // Walking: a quick Duneshade steps in 1/(1.1 x 1.1) the ticks (rounded per step).
+  const q = g.s.colonists[base.id];
+  q.people = 'core:duneshade'; q.traits = ['core:quick'];
+  let ticks = 0, steps = 0;
+  for (let t = 0; t < 400; t++) { g.tick(); if (q.mv && q.mv.t === 0) { ticks += q.mv.dur; steps++; } }
+  if (steps) assert.ok(ticks / steps < 4 * 1.2 / 1.15, `steps take ${ticks / steps} ticks`);
+});
+
+test('peoples: the cold sets in later for the Cragborn and hardy, sooner for the Duneshade', () => {
+  const g = newGame({ seed: 6, scenario: 'core:living_world' });
+  g.s.tick = Math.round(22.5 * TICKS_PER_DAY); // midwinter (a 30-day year, coldest on day 22.5)
+  g._outT = null;
+  const c0 = twin(Object.values(g.s.colonists)[0], 'core:hearthfolk', []);
+  c0.homeId = null; c0.sleeping = true;
+  const base = coldUnder(g, c0);
+  assert.ok(base > 0, `midwinter is cold out (${base})`);
+  assert.equal(coldUnder(g, twin(c0, 'core:duneshade', [])), base + 4);
+  assert.equal(coldUnder(g, twin(c0, 'core:cragborn', ['core:hardy'])), Math.max(0, base - 8));
+});
+
+test('peoples: a Vast world with every people mixed in plays, saves and loads the same, everyone counted', () => {
+  const g = newGame({ seed: 9, scenario: 'core:vast_world', size: 'vast' });
+  const folk = ['core:hearthfolk', 'core:reedkin', 'core:cragborn', 'core:duneshade'];
+  Object.keys(g.s.settlements).forEach((sid, i) => {
+    g.s.settlements[sid].people = folk[i % 4];
+    for (const c of g.owned('colonists', sid)) c.people = folk[i % 4];
+  });
+  runDays(g, 4);
+  const b = reload(g);
+  runDays(g, 2); runDays(b, 2);
+  assert.equal(stateText(b), stateText(g));
+  const pc = peopleCensus(g);
+  assert.ok(pc.ok, JSON.stringify(pc.problems));
+  assert.equal(Object.keys(pc.byPeople).length, 4, JSON.stringify(pc.byPeople));
 });

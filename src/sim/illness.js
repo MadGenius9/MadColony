@@ -20,6 +20,7 @@
 //   O(1); the spread then uses PLAGUE_SPREAD (no outbreaks).
 import { TICKS_PER_DAY } from './constants.js';
 import { cared } from './health.js';
+import { modsOf } from './peoples.js';
 
 const CARE_GROWTH = 0.8; // an illness grows this much slower while the sick are cared for
 const PLAGUE_SPREAD = Object.freeze({ outbreakPerDay: 0, villageShare: 0.3, kinds: [] });
@@ -85,7 +86,7 @@ export function tickSickness(g, c, frac) {
     }
     // Each case has its own strength (0.75-1.25 by hash: some are hardier), and care (tending, a bed, a medical bed;
     // in a distant village others on their feet) slows it to CARE_GROWTH.
-    const hardy = 0.75 + 0.5 * draw(`${g.s.seed}:hardy:${i.id}`);
+    const hardy = (0.75 + 0.5 * draw(`${g.s.seed}:hardy:${i.id}`)) * modsOf(g, c).illnessStrength; // hardy and sickly people (peoples.js)
     const care = cared(g, c) || (c.sleeping && !!c.job?.bedId) ? CARE_GROWTH : 1;
     const grow = ill.growPerHour * frac * hardy * care * (i.treated ? ill.treatedGrowth : 1);
     i.severity = Math.min(100, Math.round((i.severity + grow) * 10000) / 10000);
@@ -135,8 +136,8 @@ export function tickIllness(g) {
       for (const o of people) {
         if (o === p || !susceptible(g, o, ill)) continue;
         const home = p.homeId && o.homeId === p.homeId;
-        const chance = ill.contagion * (home ? 1 : (R.villageShare ?? 0.3));
-        if (draw(`${s.seed}:spread:${p.id}:${o.id}:${day}`) < chance) infect(g, o, ill, `caught it from ${p.name}`);
+        const chance = ill.contagion * (home ? 1 : (R.villageShare ?? 0.3)) * modsOf(g, o).illnessChance; // sickly people catch it more (peoples.js)
+        if (draw(`${s.seed}:spread:${p.id}:${o.id}:${day}`) < chance) infect(g, o, ill, `caught it from ${p.name}${modsOf(g, o).illnessChance > 1 ? ' (sickly)' : ''}`);
       }
     }
   }

@@ -21,6 +21,7 @@ import { NEED_BEHAVIORS, GROUND_REST_RATE, bedTooFar } from './needs.js';
 import { energyLastsWalkHome } from './trips.js';
 import { blessingOf } from '../god.js';
 import { droughtAt } from '../weatherat.js';
+import { modsOf } from '../peoples.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -48,12 +49,15 @@ export function workSpeed(g, c, workType, skill) {
   sp *= lastingFactor(c, workType); // lasting injuries (medical.js)
   sp *= elderFactor(g, c); // the old work more slowly (scenarios with aging rules, life.js)
   if (g.s.god) { const b = blessingOf(g, c.settlementId || g.s.playerSettlement); if (b) sp *= b.work; } // a divine blessing (godboons.js); skipped at once without s.god
+  const m = modsOf(g, c); // the person's people and traits (peoples.js)
+  sp *= m.work * (skill ? m.workBy[skill] ?? 1 : 1);
+  if (workType === 'core:doctor') sp *= m.tend; // treating patients (medical.js); kind people are quicker
   return sp;
 }
 
 export function practice(g, c, workType, skill) {
   if (skill) {
-    c.xp[skill] = (c.xp[skill] || 0) + 1;
+    c.xp[skill] = (c.xp[skill] || 0) + modsOf(g, c).learn; // wise people learn faster (peoples.js)
     const lv = c.skills[skill] || 0;
     if (lv < 10 && c.xp[skill] >= 600 + lv * 300) {
       c.xp[skill] = 0; c.skills[skill] = lv + 1;
@@ -108,7 +112,7 @@ export function travel(g, c, job, tx, ty, mode, what) {
   }
   c.path.shift();
   const diag = n.x !== c.x && n.y !== c.y;
-  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round(MOVE_TICKS * (diag ? 1.41 : 1) * g.moveCost(n.x, n.y))) };
+  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round((MOVE_TICKS * (diag ? 1.41 : 1) * g.moveCost(n.x, n.y)) / modsOf(g, c).walk)) }; // quick people and walkers (peoples.js)
   c.x = n.x; c.y = n.y;
   return false;
 }
@@ -519,7 +523,7 @@ export const DRIVERS = {
       }
       const r = go(g, c, j, p.x, p.y, 'adj', p.name);
       if (r !== 'arrived') return r === 'moving' ? 'running' : r;
-      j.prog = (j.prog || 0) + 1;
+      j.prog = (j.prog || 0) + modsOf(g, c).tend; // kind people tend faster (peoples.js)
       c.status.action = (c.carry ? 'Feeding ' : 'Tending ') + p.name;
       if (j.prog < 60) return 'running';
       if (c.carry) {

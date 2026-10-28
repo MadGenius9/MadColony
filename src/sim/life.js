@@ -14,6 +14,7 @@
 //   numbers from the game's stream. New adults of no known age are `aging.startAges` [lo, hi] years old (by id).
 import { TICKS_PER_DAY } from './constants.js';
 import { tempAt, roomAt, outdoorTemp, climateOf, coldestAhead } from './heat.js';
+import { modsOf } from './peoples.js';
 
 /** The scenario's life rules, or null. */
 export function lifeRules(g) {
@@ -37,10 +38,11 @@ const hash = (str) => {
 export function coldUnder(g, c) {
   const R = lifeRules(g)?.cold;
   if (!R) return 0;
+  const below = R.below - modsOf(g, c).cold; // the cold sets in later for the Cragborn and the hardy (peoples.js)
   // Not freezing outdoors: nobody is cold (rooms drift toward the outdoors, so they are warmer or close to it).
   // The outdoor temperature once per tick (derived).
   if (g._outT?.tick !== g.s.tick) g._outT = { tick: g.s.tick, t: outdoorTemp(g) };
-  if (g._outT.t >= R.below) return 0;
+  if (g._outT.t >= below) return 0;
   const s = g.s, home = c.homeId ? s.homes[c.homeId] : null;
   let t;
   const sid = c.settlementId || s.playerSettlement, abstract = s.settlements?.[sid]?.detail === 'abstract';
@@ -48,14 +50,14 @@ export function coldUnder(g, c) {
   if (abstract) {
     if (home?.complete) return 0;
     t = g._outT.t;
-    if (t < R.below && byFire(g, sid, R, null)) t += R.shelter ?? 0;
+    if (t < below && byFire(g, sid, R, null)) t += R.shelter ?? 0;
   } else if (roomAt(g, x, y)) t = tempAt(g, x, y) + (R.shelter ?? 0);
   else if (home && !c.sleeping && !c.health?.down) return 0; // up and about: they keep warm
   else {
     t = g._outT.t;
-    if (t < R.below && byFire(g, sid, R, { x, y })) t += R.shelter ?? 0; // anyone exposed by a fire is sheltered
+    if (t < below && byFire(g, sid, R, { x, y })) t += R.shelter ?? 0; // anyone exposed by a fire is sheltered
   }
-  return t < R.below ? R.below - t : 0;
+  return t < below ? below - t : 0;
 }
 
 /** Is there a built fire of `sid` (cold.fires) within cold.fireRadius of `at` (any, when at is null)? O(its buildings). */

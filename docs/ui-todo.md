@@ -346,3 +346,8 @@ where, and which sim function or state field provides it. The UI is built at hom
   chips (`c.traits`). Hovering a chip shows the trait's `about`; hovering the people shows its `about`.
 - **Village panel:** the village's people (`settlement.people`).
 - **Dead records** keep people and traits (`s.dead[id].people`, `.traits`) for the graves and family lists.
+
+## Peoples and traits, slice 2: effects
+- **Inspector card:** under the traits, one line per effect that differs from 1 (from `modsOf`, peoples.js),
+  e.g. "Mining ×1.27 (Cragborn, Strong)", "Thirst ×0.6 (Duneshade)", "Cold sets in 8 °C later". Illness lines
+  in the log already say "(sickly)".

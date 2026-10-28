@@ -33,6 +33,7 @@ import { planNow } from './planner.js';
 import { droughtAt } from './weatherat.js';
 import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
 import { huntWeapon } from './hunt.js';
+import { modsOf } from './peoples.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -341,7 +342,7 @@ function hourNeeds(g, sid, cols, store, structs) {
     // out again cut abstract production in tests/lod-rates.test.js, seed 7, from -21% to -26%).
     const asleep = night || (!!energyDef && (c.needs[energyDef.id] ?? 1) < energyDef.seekBelow);
     for (const def of reg.all('need')) {
-      const drop = (def.decayPerDay / 24) * (asleep && (def.behavior === 'core:eat' || def.behavior === 'core:drink') ? (def.sleepDecayMult ?? 1) : 1);
+      const drop = (def.decayPerDay / 24) * (asleep && (def.behavior === 'core:eat' || def.behavior === 'core:drink') ? (def.sleepDecayMult ?? 1) : 1) * (def.behavior === 'core:shelter' ? 1 : modsOf(g, c).needs[def.id] ?? 1); // people and traits (peoples.js)
       const v = c.needs[def.id] ?? 1;
       if (def.behavior === 'core:drink') c.needs[def.id] = water ? 1 : Math.max(0, v - drop);
       else if (def.behavior === 'core:shelter') {

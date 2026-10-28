@@ -3,13 +3,14 @@ import { tapHasWater, isWaterNode } from '../water.js';
 import { TICKS_PER_DAY, MOVE_TICKS } from '../constants.js';
 import { octile } from '../util.js';
 import { newJob } from './jobs.js';
+import { modsOf } from '../peoples.js';
 
 export const GROUND_REST_RATE = 2.4;
 
 /** One tick of decay for a core:eat or core:drink need. While really asleep (a sleep job; not collapsed, cared
  *  for or carried to a medical bed) it decays at `sleepDecayMult` times its rate (default 1). */
-export function decayNeed(c, def) {
-  const mult = c.sleeping && c.job?.type === 'sleep' ? (def.sleepDecayMult ?? 1) : 1;
+export function decayNeed(c, def, g = null) {
+  const mult = (c.sleeping && c.job?.type === 'sleep' ? (def.sleepDecayMult ?? 1) : 1) * (g ? modsOf(g, c).needs[def.id] ?? 1 : 1); // people and traits (peoples.js)
   c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - (def.decayPerDay * mult) / TICKS_PER_DAY);
 }
 
@@ -71,7 +72,7 @@ export const NEED_BEHAVIORS = {
   'core:eat': {
     tick(g, c, def) {
       if (c.job?.type === 'eat' && c.job.stage === 'eat') return;
-      decayNeed(c, def);
+      decayNeed(c, def, g);
     },
     wants(g, c, def) { return c.needs[def.id] < def.seekBelow; },
     urgent(g, c, def) { return c.needs[def.id] < def.urgentBelow; },
@@ -87,7 +88,7 @@ export const NEED_BEHAVIORS = {
   'core:sleep': {
     tick(g, c, def) {
       if (c.sleeping) return; // the sleep job restores energy
-      c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - def.decayPerDay / TICKS_PER_DAY);
+      c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - (def.decayPerDay * (modsOf(g, c).needs[def.id] ?? 1)) / TICKS_PER_DAY);
     },
     wants(g, c, def) {
       const v = c.needs[def.id];
@@ -126,7 +127,7 @@ export const NEED_BEHAVIORS = {
     },
   },
   'core:drink': {
-    tick(g, c, def) { decayNeed(c, def); },
+    tick(g, c, def) { decayNeed(c, def, g); },
     wants(g, c, def) { return (c.needs[def.id] ?? 1) < def.seekBelow; },
     urgent(g, c, def) { return (c.needs[def.id] ?? 1) < def.urgentBelow; },
     makeJob(g, c, def, quiet = false) {

@@ -119,3 +119,13 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - The records only (people and traits saved; no effect yet): 194 tests pass; era days and buildings unchanged.
 - `forty` 517c43bfd1770f87 (workshops era on day 5.94, 66 built), `modern` 9a9001ab3f13385b (modern era on day
   45.5, 90 built).
+
+## Peoples and traits, slice 2 (2026-10-28): effects
+- 197 tests pass. The animal test "spoilage keeps reserved units" now places its venison on the last tick before
+  the day starts: a quicker hauler had moved part of it first, so the test found no stack of 30. All its
+  assertions are kept.
+- Classic: `forty` ee55506a781cb766 (workshops era on day 6.10, was 5.94; 66 built); `modern` 479f5857575304ab
+  (modern era on day 46.12, was 45.5; 90 built).
+- Bench (the slice-1 code against now, same machine, two rounds, ms/tick summed over the six sizes): 3.33 → 3.69
+  (+11%) and 3.63 → 3.77 (+4%), about +7% on average. Part of it is that the games play differently now
+  (traits change work and walking), not only the cost of reading the effects.

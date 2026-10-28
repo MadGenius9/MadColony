@@ -235,3 +235,25 @@ Each person has 0 to 2 traits. Opposite traits never go together.
   - AI villages, births and divine settlers;
   - a Reedkin village and its daughter.
 
+### Slice 2 (2026-10-28): effects on work, learning, walking, tending, needs, illness, healing and cold
+- **Built** (each reads `modsOf`, one cached object per colonist):
+  - **work** (`jobs.js workSpeed`): all work, by skill (people and Strong), and treating patients (Kind);
+  - **learning** (`practice`): Wise;
+  - **walking** (each step's ticks): Quick, Duneshade;
+  - **tending:** Kind;
+  - **need decay**, at full detail (`needs.js`) and in distant villages (`lod.js` hourly needs);
+  - **illness:** the chance to catch it from someone (Sickly) and each case's strength (Hardy, Sickly);
+  - **healing** (`health.js`): Hardy, Sickly;
+  - **the cold** (`life.js coldUnder`): the line moves by the people's and traits' `cold`.
+- **Visible reasons:** catching an illness says "(sickly)". The other effects show as the traits on the
+  inspector card (UI note).
+- **Not built:**
+  - "marsh walks at full speed for the Reedkin" (no per-people ground cost yet);
+  - trip estimates (`trips.js`) still use the plain decay rates.
+- **Tests:** each effect against a twin without it; the cold line at midwinter; a Vast world with all four
+  peoples mixed in plays, saves and loads the same, everyone counted.
+- **Checks:**
+  - 197 tests pass;
+  - classic `forty` reaches the workshops era on day 6.10 (was 5.94), `modern` the modern era on day 46.12 (was
+    45.5);
+  - bench about +7% against slice 1 (two rounds: +11% and +4%).

@@ -9,6 +9,7 @@ import { tickInfection, healFactor, bedFactor, scarFrom, MED } from './medical.j
 import { TICKS_PER_HOUR } from './constants.js';
 import { coldUnder, lifeRules } from './life.js';
 import { tickSickness } from './illness.js';
+import { modsOf } from './peoples.js';
 
 export const HEALTH = {
   restBelow: 60, // rest in bed below this
@@ -84,7 +85,7 @@ export function tickHealth(g, c, force = false) {
   const inBed = (c.sleeping && c.job?.bedId) || (c.health.down && c.medBedId);
   let rate = inBed ? HEALTH.healBed : (c.sleeping || c.health.down) ? HEALTH.healGround : HEALTH.healAwake;
   if ((c.health.tendedUntil || 0) > g.s.tick) rate *= HEALTH.tendedFactor;
-  rate *= bedFactor(g, c);
+  rate *= bedFactor(g, c) * modsOf(g, c).heal; // hardy and sickly people (peoples.js)
   if (c.health.down && hpOf(c) === 0 && !cared(g, c)) rate = 0; // bleeding out: at 0% only care lets them heal
   for (const i of c.health.injuries) {
     if (i.kind === 'malnutrition' && !fed) continue; // only food cures hunger
