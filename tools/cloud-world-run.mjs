@@ -1,4 +1,4 @@
-// A long world run for the Phase 5 acceptance (cloud copy). Prints a progress line about every 10 s and a JSON
+// A long world run for the Phase 5 acceptance (cloud copy; Phase 8 adds herd numbers, hunting and the meat share of raw food). Prints a progress line about every 10 s and a JSON
 // summary every `every` days; checks conservation (items and people) at each summary, and at `saveAt` saves, loads
 // a copy and checks that the copy runs 1 day identically. Exit code 1 on any failed check.
 //   node tools/cloud-world-run.mjs [days=300] [size=world] [seed=7] [every=25] [saveAt=150]
@@ -7,6 +7,22 @@ import { serializeGame, loadGame } from '../src/sim/save.js';
 import { peopleCensus } from '../src/sim/godspawn.js';
 import { metPairs } from '../src/sim/contact.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
+import { herdCensus } from '../src/sim/animals.js';
+
+/** Phase 8: raw food made so far (nutrition, from the ledger) and the share that is meat (hunting, butchering). */
+function foodShare(g) {
+  let all = 0, meat = 0;
+  for (const [reason, items] of Object.entries(g.s.ledger?.byReason || {})) {
+    if (!reason.startsWith('created:')) continue;
+    for (const [it, q] of Object.entries(items)) {
+      const d = g.reg.get('item', it);
+      if (!d?.nutrition || !d.tags?.includes('core:raw_food')) continue;
+      all += q * d.nutrition;
+      if (d.tags.includes('core:meat')) meat += q * d.nutrition;
+    }
+  }
+  return all ? +(meat / all).toFixed(3) : 0;
+}
 
 const [days = 300, size = 'world', seed = 7, every = 25, saveAt = 150] = process.argv.slice(2).map((v, i) => (i === 1 ? v : Number(v)));
 const t0 = performance.now();
@@ -67,6 +83,8 @@ for (let d = 1; d <= days; d++) {
       villages: st.length, standing: st.filter((x) => !x.fallen).length, kingdoms: Object.keys(g.s.kingdoms || {}).length,
       people: Object.keys(g.s.colonists).length, born: pc.born, died: pc.died, deaths: g.s.stats.deaths || {}, illness: g.s.stats.illness || {},
       wars: Object.values(g.s.relations || {}).filter((r) => r.aggressor).length, ...ev, pairsMet: m?.pairs,
+      herds: g.s.animals ? Object.fromEntries(Object.entries(herdCensus(g)).map(([k, v]) => [k.replace('core:', ''), v.animals])) : undefined,
+      hunted: g.s.ledger?.byReason?.['created:hunt'], meatShare: foodShare(g),
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok,
     }));
     windowMs = 0; windowTicks = 0; worst = 0;
