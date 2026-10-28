@@ -1,7 +1,19 @@
 # Phase 8c: wild monsters
 
-Status: **design** (2026-10-28). Waiting for the owner's "go" and answers to the open questions; the proposals
-below are the working defaults. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md).
+Status: **in progress** (the owner's answers on 2026-10-28, below). Branch `cloud-work` (cloud rescue copy; see
+CLAUDE.md).
+
+## The owner's answers (2026-10-28)
+1. **Which games:** some monsters in every game, classic too.
+   - Every game gets at least one lair, so a classic map has one.
+   - On maps too small for the 80-tile distance, a lair goes on the fitting tile farthest from every village
+     (at least 20 tiles away).
+2. **The three monsters:** keep Thornback, Gloomstalker and Barkmaw for now.
+3. **Danger:** monsters must never wipe a village out completely. A village with 3 or fewer people is left
+   alone: monsters do not hurt its people or tear down its homes, though they may still trample its fields.
+4. **Peaceful animals:** does not cover monsters.
+5. **Rewards:** as proposed: meat, hides, wood, a gloom eye and heartwood, with no use yet beyond trade.
+6. **God powers:** `monster` and `banish`, as proposed.
 
 ## Goal (from the owner and the roadmap)
 - **2026-10-24 direction, item 3:** animals (Phase 8), spawning animals with god powers (Phase 8b), then
@@ -57,8 +69,11 @@ Each is a single creature (not a herd), much stronger than any animal, living in
 All the names and looks are new to this game.
 
 ### Lairs and life far from people
-- **Placement:** lairs are placed at the start of a game (or the next tick of an older save) on fitting ground,
-  far from villages (at least 80 tiles), by hash. `s.monsters = { lairs, list, next, ledger }`.
+- **Placement:**
+  - Lairs are placed at the start of a game (or the next tick of an older save) on fitting ground, far from
+    villages (at least 80 tiles), by hash. `s.monsters = { lairs, list, next, ledger }`.
+  - Every game has at least one (answer 1): the species with the most fitting ground gets a lair on the tile
+    farthest from the villages, at least 20 tiles away.
 - **Far monsters:** while no full-detail village is within 40 tiles, a monster is a record that rests at its lair
   and roams once a day, a few chunks from it, by hash.
 - **Raids on distant villages** (`lod.js`, aggregate like wolf raids): a roaming monster within 30 tiles of a
@@ -156,7 +171,7 @@ All the names and looks are new to this game.
 - A slain monster's lair comes back after 60 days unless cleared.
 - No cost when no monster is near (far monsters are a few records).
 
-## Open questions for the owner
+## Open questions (answered; see "The owner's answers")
 1. **Which games have monsters:** proposal: the Vast, World and Living worlds have them; classic games do not (a
    scenario setting, like animals).
 2. **The three monsters:** Thornback, Gloomstalker and Barkmaw (looks and powers above). Keep, rename or replace
