@@ -519,6 +519,7 @@ export function loadGame(reg, saveOrText) {
   // Set aside anything referring to unknown definitions (kept verbatim, with its position).
   const q = (kind, data, extra = {}) => s.orphans.push({ kind, data, ...extra, since: s.tick });
   for (const [id, n] of Object.entries(s.nodes)) if (!reg.has('node', n.def)) { q('node', n); delete s.nodes[id]; }
+  for (const [id, h] of Object.entries(s.animals?.herds || {})) if (!reg.has('animal', h.sp)) delete s.animals.herds[id]; // a species whose mod is gone: its herds go (animals hold no items)
   for (const [id, b] of Object.entries(s.structures)) {
     if (!reg.has('building', b.def)) { q('structure', b); delete s.structures[id]; continue; }
     // Battery charge (format 14) never exceeds the store of the loaded definition: a mod may have lowered it, so the

@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservationErrors } from './cloud-helpers.js';
 import { herdCensus, animalSpecies } from '../src/sim/animals.js';
+import { issueCommand } from '../src/sim/god.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 
@@ -68,4 +69,17 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
     assert.ok(now[sp]?.animals > 0, `${sp} survive`);
     assert.ok(now[sp].animals < start[sp].animals * 2.5, `${sp} do not explode`);
   }
+});
+
+test('review fix: meteors near herds, then a save and load: the game continues identically', () => {
+  const run = (cut) => {
+    let g = newGame({ seed: 4242, sandbox: true });
+    runDays(g, 2);
+    for (const h of Object.values(g.s.animals.herds).slice(0, 4)) issueCommand(g, 'meteor', { x: h.x, y: h.y, confirm: true });
+    g.tick();
+    if (cut) g = reload(g);
+    runDays(g, 30);
+    return g;
+  };
+  assert.equal(stateText(run(true)), stateText(run(false)));
 });

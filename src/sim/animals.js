@@ -7,8 +7,9 @@
 //   of its tiles that are the species' ground (density: herds per 1,000 such tiles), never within 24 tiles of a
 //   village; positions and sizes are hash draws, so the world and the game's random stream are as before.
 // - Every herd once an hour (staggered by id): once a day, births (once a year in spring, fewer as its chunk
-//   fills: cap animals per 1,000 tiles of its ground), winter losses, packs eating deer or horses within 2 chunks
-//   (in winter a pack that has not eaten for starveDays loses one; the rest of the year small game keeps it), a herd above 1.5 x its
+//   fills: cap animals per 1,000 tiles of its ground; a pack only when it has eaten big prey lately), winter
+//   losses, packs eating deer or horses within 2 chunks (a pack of more than 3 that has not eaten for starveDays
+//   loses one: small game feeds 3), a herd above 1.5 x its
 //   largest size splits, two of a species in one chunk that fit in one herd merge, one below 2 fades; at most every moveHours it moves one chunk toward better ground (more of its ground, less
 //   crowded, away from villages; packs toward prey), never off its landmass.
 // Draws are hashes of (seed, herd, day or tick). Cost: one pass over the map when herds are placed or the map
@@ -17,7 +18,7 @@ import { TICKS_PER_DAY, CHUNK } from './constants.js';
 import { seasonOf, climateOf } from './heat.js';
 import { landChunks } from './contact.js';
 
-const HOUR = 100, NEAR_VILLAGE = 24, D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+const HOUR = 100, NEAR_VILLAGE = 24, SMALL_GAME = 3, D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 const hash = (str) => {
   let h = 2166136261;
   for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
@@ -41,7 +42,8 @@ export function animalSpecies(g) {
 
 /** Per species, how many tiles of its ground each chunk has (derived per map revision, never saved). */
 function habitat(g) {
-  const key = `${g.s.map.rev || 0}:${g.W}x${g.H}`;
+  // Craters change terrain without the map revision (Game.setTerrainKeepRev): terrainDrawRev counts those too.
+  const key = `${g.s.map.rev || 0}:${g.terrainDrawRev || 0}:${g.W}x${g.H}`;
   if (g._anHab?.key === key) return g._anHab;
   const sp = animalSpecies(g), pal = g.terrainPalette, ts = g._ts.idx, W = g.W, H = g.H, CW = g.CW, n = CW * g.CH;
   const masks = new Uint32Array(pal.length);
@@ -101,8 +103,9 @@ function placeHerds(g) {
   s.animals = { herds: {}, next: 1 };
   const centres = Object.values(s.settlements || {}).map((v) => v.center).filter(Boolean);
   if (!centres.length && s.center) centres.push(s.center);
-  const n = g.CW * g.CH;
+  const n = g.CW * g.CH, L = landChunks(g);
   for (let c = 0; c < n; c++) {
+    if (L.comp[c] < 0) continue; // mostly water: a herd there could never move
     sp.forEach((d, si) => {
       const e = (Hb.counts[si][c] / 1000) * d.density * g._anScale;
       if (e <= 0) return;
@@ -147,10 +150,11 @@ function hourly(g, h, d) {
 function daily(g, h, d, day) {
   const s = g.s, A = s.animals, key = `${s.seed}:${h.id}:${day}`, season = seasonOf(g), year = Math.floor(day / climateOf(g).yearDays);
   const Hb = habitat(g), si = Hb.index.get(d.id), c = chunkOf(g, h.x, h.y), I = indexes(g);
-  if (season === 'Spring' && h.year !== year) { // births, fewer as the chunk fills
+  if (season === 'Spring' && h.year !== year) { // births, fewer as the chunk fills; a pack breeds only when fed
     h.year = year;
+    const hungry = d.diet === 'hunt' && day - h.fed >= Math.floor(d.starveDays ?? 10); // no big prey lately: no cubs
     const cap = ((si === undefined ? 0 : Hb.counts[si][c]) / 1000) * d.cap * g._anScale;
-    const room = cap > 0 ? Math.max(0, 1 - inChunk(g, I, c, d) / cap) : 0;
+    const room = cap > 0 && !hungry ? Math.max(0, 1 - inChunk(g, I, c, d) / cap) : 0;
     const e = h.n * d.births * room;
     h.n += Math.floor(e) + (draw(`${key}:born`) < e - Math.floor(e) ? 1 : 0);
   }
@@ -164,9 +168,9 @@ function daily(g, h, d, day) {
       const p = A.herds[id];
       if (p && p !== h && (d.prey || []).includes(p.sp) && p.n > 0 && (!prey || p.n > prey.n || (p.n === prey.n && p.id < prey.id))) prey = p;
     }
+    const starve = Math.floor(d.starveDays ?? 10);
     if (prey && draw(`${key}:kill`) < Math.min(0.9, 0.15 * h.n)) { prey.n--; h.fed = day; if (prey.n < 2) removeHerd(g, prey.id); }
-    else if (season === 'Winter' && day - (h.fed ?? day) >= (d.starveDays ?? 10)) { h.n--; h.fed = day; }
-    else if (season !== 'Winter' && day - (h.fed ?? day) >= (d.starveDays ?? 10)) h.fed = day - (d.starveDays ?? 10); // small game: not starving
+    else if (day - h.fed >= starve && h.n > SMALL_GAME) { h.n--; h.fed = day; } // too many for small game alone
   }
   // Two herds of a species in one chunk that fit in one herd join (the lower id takes the other in).
   for (const id of I.byChunk.get(c) || []) {

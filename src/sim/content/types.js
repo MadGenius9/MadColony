@@ -615,7 +615,7 @@ export const CONTENT_TYPES = {
       density: req(num(0, 100)), cap: req(num(0, 1000)), health: req(num(1, 1000)), speed: req(num(0.1, 10)),
       diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
       fear: obj({ people: num(0, 50), predators: num(0, 50) }),
-      births: req(num(0, 10)), winterLoss: req(num(0, 1)), moveHours: req(num(1, 1000)), starveDays: num(1, 1000),
+      births: req(num(0, 10)), winterLoss: req(num(0, 1)), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
       color, render,
     }),
   },
