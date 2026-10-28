@@ -187,3 +187,49 @@ All answered (see "The owner's answers"). Still to settle while building: whethe
 while peaceful is on (proposal: no).
 
 ## Results
+### Slices 0–3 (2026-10-28)
+- **Slice 0, the animal ledger** (`animals.js` `ledgerOf`, `born`, `died`, `recount`, `animalCensus`):
+  - every count change is recorded;
+  - `removeHerd` records what is left of a herd as `faded`, except in a merge;
+  - near herds recounted from their animals record any difference;
+  - save format 28 validates the ledger, and migrate.js gives a format-27 save one, with its living animals as the
+    start;
+  - the World run tool checks the census.
+- **Slice 1, the power** (`godanimals.js`; `animals.js` `sendHerd`, `joinHerd`, `herdToJoin`, `landFor`; data
+  `godCost`):
+  - **herd** (2 to `herd[1]`) or **join** (1 to `herd[1]`, the nearest herd of the species within 12 tiles);
+  - a send near a full-detail village arrives as animals;
+  - herds carry `origin: 'divine'` and `sent`;
+  - wolves within 30 tiles of a standing village are destructive (confirm), with the villages named in the warnings.
+- **Slice 2, real needs** (data `lostLoss` 0.05, `crowdLoss` 0.03; `CROWDED` 1.5):
+  - in a chunk with none of its ground, a herd scores the chunks round it by how much ground lies within 2 chunks
+    and takes any better step;
+  - in tests sent horses and crowded deer move off within hours, so the losses show only for herds held in place.
+- **Slice 3, peaceful** (`peaceful` command, `s.animals.peaceful`):
+  - packs never pick a person, an angry pack calms down, raids on distant villages stop, and `packThreat` is false
+    (nobody runs or fends);
+  - wolves still kill deer.
+- **Found on the way:** plans held live injuries (`plan.medical.needs[].inj`, listed in plancodec.js as a harmless
+  copy). In a loaded save the copy stopped changing while the original healed, so the saved plans differed after 300
+  ticks (the game state did not). Plans now take a snapshot when they plan.
+
+### Acceptance (`tools/cloud-animalpowers-run.mjs 30 vast 7`, Sandbox)
+- **Powers used:**
+  - day 2: 12 deer by the player's village;
+  - day 3: 3 more joining them where they grazed;
+  - day 4: 15 wild horses on a chunk with no horse ground, 100+ tiles from every village;
+  - day 6: 6 wolves beside Frostholm (confirmed);
+  - day 8: peaceful on;
+  - day 14: peaceful off;
+  - day 16: 3 × 12 deer on one patch.
+- **Checks:**
+  - after each power, a save and load ran 300 ticks identically;
+  - items, people and animals were exact every day for 30 days;
+  - worst tick 33 ms after day 1 (148 ms on day 1, the world starting).
+- **Animal ledger at day 30:**
+  - wolves: start 302, sent 6, born 3, died 17 (8 winter, 3 crowded, 3 lost, 2 hunted, 1 faded);
+  - deer: start 3,393, sent 51, born 3, died 1,379 (1,099 eaten by wolves, 255 winter, 16 hunted, 9 lost);
+  - horses: start 968, sent 15, born 3, died 252 (206 eaten, 33 winter, 13 hunted).
+  - The 15 horses sent off their ground found it and were all alive on day 30.
+  - Of the 36 deer sent on day 16, two herds remained (10 and 8) after the crowd thinned and spread.
+- **People:** 24 → 48; no one died (wolves near Frostholm were hunted down: 2 wolves killed by people).
