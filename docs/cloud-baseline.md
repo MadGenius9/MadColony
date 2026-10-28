@@ -61,3 +61,6 @@ Animals are in every game (the owner's answer), so the herds are part of the sav
 b6c75f52735d338a, `modern` 8d4917d8556d4f55. With `s.animals` removed `forty` still hashes to 9426646c1190c148
 (nothing else changed). Later slices compare against the new hashes.
 
+## Phase 8, slice 2 (2026-10-28): classic hashes
+Near animals are saved: `forty` 58a33fd49d1db4de, `modern` a6dc12f1df32b2a4 (same outcomes as before).
+

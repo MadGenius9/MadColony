@@ -217,3 +217,21 @@ bite, a warning letter "Wolves attacked Ada near the woods"); village card: "Foo
   placed in mostly-water chunks (they could never move); herds of a species whose mod is gone are dropped on load;
   `starveDays` is a whole number (else the game refused its own save).
 
+### Slice 2: near animals
+- **Built** (`animals.js`, "near animals"): every 600 ticks a herd whose centre is within 48 tiles of a
+  full-detail village (every village of a classic game) becomes individual animals (`s.animals.list`: id, herd,
+  x, y, hp; made round the centre by hash); one near for 2,400 ticks and 64 tiles from all of them folds back into
+  a count (the living ones, centred on the one nearest their middle). While near, a herd's count and centre follow
+  its animals; it does not move by chunks; births and losses add or remove animals; it neither merges nor is
+  eaten in the aggregate. Each animal acts every 10 ticks (by id): deer and horses flee, the whole herd for 300
+  ticks, from people (8 and 10 tiles) and predators (10), one or two tiles a step to the neighbour farthest from
+  the danger, else graze a step now and then within 5 tiles of the centre; a pack that has not eaten today chases
+  the nearest prey animal within 20 tiles and bites it (10–19 health a bite); a kill feeds the pack. Animals never
+  block tiles and step only onto walkable tiles of their region.
+- **Cost:** Vast seed 7, days 2–15: 3 herds near villages (28–29 animals); 0.308 ms a tick, worst 20 ms. The
+  herd index was rebuilt whenever a herd moved (every near herd every hour); it is now updated in place
+  (`setCentre`, lists kept in id order). The per-tick grid of people and near animals is about 0.01 ms.
+- **Classic runs:** new hashes `forty` 58a33fd49d1db4de, `modern` a6dc12f1df32b2a4 (near animals are saved); same
+  outcomes (5 colonists, 65 and 89 built).
+- **Not changed:** 142 tests pass (2 more in `tests/cloud-animals.test.js`).
+
