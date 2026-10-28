@@ -71,8 +71,18 @@ function habitat(g) {
 }
 
 const chunkOf = (g, x, y) => ((y / CHUNK) | 0) * g.CW + ((x / CHUNK) | 0);
-/** The middle tile of chunk c on axis 'x' or 'y' (clamped to the map). */
-const chunkMid = (g, c, axis) => axis === 'x' ? Math.min(g.W - 1, (c % g.CW) * CHUNK + (CHUNK >> 1)) : Math.min(g.H - 1, ((c / g.CW) | 0) * CHUNK + (CHUNK >> 1));
+/** Does a drought area overlap chunk c (the circle reaches the chunk's rectangle)? O(weather areas). */
+function droughtInChunk(g, c) {
+  const W = g.s.disasters?.weather;
+  if (!W) return false;
+  const x0 = (c % g.CW) * CHUNK, y0 = ((c / g.CW) | 0) * CHUNK, x1 = Math.min(g.W, x0 + CHUNK) - 1, y1 = Math.min(g.H, y0 + CHUNK) - 1;
+  for (const a of Object.values(W)) {
+    if (a.kind !== 'drought') continue;
+    const dx = a.x - Math.max(x0, Math.min(x1, a.x)), dy = a.y - Math.max(y0, Math.min(y1, a.y));
+    if (dx * dx + dy * dy <= a.r * a.r) return true;
+  }
+  return false;
+}
 
 /** Herds by chunk, and herds by hour slot (derived, rebuilt when herds come or go; never saved). */
 function indexes(g) {
@@ -277,13 +287,13 @@ function neighbours(g, c) {
 }
 
 /** How good chunk c is for herd h: its ground (in winter mostly its winter ground), less the crowding, much less
- *  with a village there or, for grazers, a drought; packs like prey. */
+ *  with a village there or, for a species that suffers in droughts (droughtLoss), a drought; packs like prey. */
 function score(g, I, Hb, h, d, c, villages, winter = false) {
   const si = Hb.index.get(d.id), ground = si === undefined ? 0 : Hb.counts[si][c];
   if (!ground) return -1;
   const cap = (ground / 1000) * d.cap * g._anScale, others = inChunk(g, I, c, d) - (chunkOf(g, h.x, h.y) === c ? h.n : 0);
   let v = (winter ? Hb.winter[si][c] + 0.1 * ground : ground) * Math.max(0.05, 1 - others / Math.max(1, cap));
-  if (d.diet === 'graze' && droughtAt(g, chunkMid(g, c, 'x'), chunkMid(g, c, 'y'))) v *= 0.3;
+  if (d.droughtLoss && (c === chunkOf(g, h.x, h.y) ? droughtAt(g, h.x, h.y) : droughtInChunk(g, c))) v *= 0.3; // its own spot, or any of the chunk
   if (villages.has(c)) v *= d.diet === 'hunt' ? 0.5 : 0.2;
   if (d.diet === 'hunt') for (const cc of around(g, c, 2)) for (const id of I.byChunk.get(cc) || []) { const p = g.s.animals.herds[id]; if (p && (d.prey || []).includes(p.sp)) v += (cc === c ? 50 : 15) * p.n; }
   return v;

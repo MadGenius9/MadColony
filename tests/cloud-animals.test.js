@@ -79,7 +79,7 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
     }
     return w / all;
   };
-  const spring = winterShare('core:deer');
+  const autumn = winterShare('core:deer'); // day 1 is late in autumn's run-up (seasons centre on mid-winter)
   let farHunts = 0; // carcasses made while a distant village lives its hour (lod.js)
   const create = g.createItems.bind(g);
   g.createItems = (item, qty, ...rest) => {
@@ -95,7 +95,15 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
   }
   assert.equal(seasonOf(g), 'Winter');
   const winter = winterShare('core:deer');
-  assert.ok(winter > spring + 0.05, `deer move onto winter ground (${spring.toFixed(2)} in spring, ${winter.toFixed(2)} in winter)`);
+  assert.ok(winter > autumn + 0.05, `deer move onto winter ground (${autumn.toFixed(2)} before, ${winter.toFixed(2)} in winter)`);
+  // A drought on a far deer herd: it moves out of the dry area within two days.
+  const dry = Object.values(g.s.animals.herds).filter((h) => h.sp === 'core:deer' && h.near === undefined && h.n >= 4).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const at = { x: dry.x, y: dry.y };
+  assert.equal(issueCommand(g, 'drought', { ...at, confirm: true }).ok, true);
+  const r = Object.values(g.s.disasters.weather).find((a) => a.kind === 'drought' && a.x === at.x && a.y === at.y).r;
+  runDays(g, 2);
+  const herdNow = g.s.animals.herds[dry.id];
+  assert.ok(herdNow && Math.hypot(herdNow.x - at.x, herdNow.y - at.y) > r, `the deer left the drought (${herdNow ? Math.round(Math.hypot(herdNow.x - at.x, herdNow.y - at.y)) : 'gone'} tiles from its middle, radius ${r})`);
   // Slice 5: distant villages hunt too.
   assert.ok(farHunts > 0, `distant villages hunted (${farHunts} carcasses)`);
   // A hungry far pack beside a distant village mauls someone there (a chance a day).
