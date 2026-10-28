@@ -314,3 +314,14 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Letters:** "A Thornback was seen near Pinecroft." (warn for the player's village, info for others), when a
   monster sets out for a village (it stays near it for 2 days, `monster.foray`).
 - **Map:** a monster on a foray can be marked near the village it is visiting.
+
+## World shaping, slice 1: terrain brushes
+- **God powers panel:** a "Shape the land" tool:
+  - pick a brush: raise, lower, water, mountain, flatten, desert, snow or marsh;
+  - pick a size (radius 1–8);
+  - click to paint one disc, or drag (up to 16 discs in one stroke: `points`).
+- **Preview while hovering** (`previewCommand(g, 'shape', …)`):
+  - the number of tiles that change and the cost (0.2 favour a tile; free in Sandbox);
+  - "N tiles kept for buildings / fields and stockpiles / people / the way round villages";
+  - near a village, Confirm.
+- **Map:** the terrain redraws after a stroke (the map revision changes).

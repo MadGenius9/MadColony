@@ -117,3 +117,23 @@ CLAUDE.md).
 4. **Cost:** 0.2 favour a tile in normal games, free in Sandbox and the Blank world?
 5. **Slow strokes:** about 0.5 s a stroke on Vast. Proposal: accept it now and make the caches incremental later
    if it feels slow.
+
+## Results
+### Slice 1 (2026-10-28): the terrain brushes
+- **Built** (`godshape.js`, power `shape`):
+  - **Brushes:** raise, lower, water, mountain, flatten, and painting desert, snow and marsh. Slice 2's terrain
+    brushes are in this slice already, since they are terrain too.
+  - **A stroke:** one disc, or a drag of up to 16 discs, radius 1–8.
+  - **Kept as they are:** tiles under buildings, sites, fields, stockpiles and people. Brushes that block the way
+    keep 3 tiles clear of them (instead of an exact trap check).
+  - **Under new water or mountain:** plants (with seeds) and crops are lost.
+  - **Cost:** 0.2 favour a tile; destructive near villages.
+  - The preview counts exactly what apply changes.
+- **Not yet:** the forest, stone and ore brushes (nodes, slice 2); the Blank world scenarios (slice 3); stroke
+  timing on Vast (slice 4).
+- **Tests:** `tests/cloud-shape.test.js`, 4 tests:
+  - refusals;
+  - lowering twice gives water, then raising it back;
+  - preview equals apply, and a load replays the stroke;
+  - buildings and people are untouched and nobody is harmed;
+  - the paints, flatten, a lake with a shore, and a drag.

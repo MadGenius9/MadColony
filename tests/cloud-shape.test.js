@@ -21,8 +21,9 @@ test('shape: refused for a bad brush, radius, tile or extra key, or where nothin
   assert.match(r({ brush: 'raise', x: -3, y: 5 }), /pick tiles on the map/);
   assert.match(r({ brush: 'raise', x: 5, y: 5, colour: 1 }), /only brush, x, y, r, points and confirm/);
   assert.match(r({ brush: 'raise', points: [[1, 1], [999, 1]] }), /pick tiles on the map/);
-  const w = find(g, (t) => t === 'core:water', 0);
-  assert.match(r({ brush: 'water', x: w.x, y: w.y, r: 1 }), /nothing here would change/);
+  const w = find(g, (t, x, y) => [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => g.inB(x + dx, y + dy) && g.terrainAt(x + dx, y + dy).id === 'core:water')), 0);
+  assert.ok(w, 'open water');
+  assert.match(r({ brush: 'water', x: w.x, y: w.y, r: 1, confirm: true }), /nothing here would change/);
 });
 
 test('shape: lowering land makes water there, raising it back makes land; preview equals apply; a load replays it', () => {
@@ -39,9 +40,12 @@ test('shape: lowering land makes water there, raising it back makes land; previe
   assert.equal(stateText(b), stateText(g), 'the stroke replays after a load');
   const res = g.s.god.log.at(-1).result;
   assert.equal(res.tiles, n, 'apply changed what the preview said');
+  assert.equal(g.terrainAt(at.x, at.y).id, 'core:shallows', 'lowered once: shallows');
+  issueCommand(g, 'shape', { brush: 'lower', ...at, r: 2, confirm: true });
+  g.tick();
   const t = g.terrainAt(at.x, at.y);
-  assert.ok(t.drinkable || t.id === 'core:water' || t.id === 'core:shallows', `the centre is water now (${t.id})`);
-  assert.equal(g.isPassable(at.x, at.y), false, 'and cannot be walked');
+  assert.equal(t.id, 'core:water', 'lowered twice: water');
+  assert.equal(g.isPassable(at.x, at.y), false, 'which cannot be walked');
   issueCommand(g, 'shape', { brush: 'raise', ...at, r: 2, confirm: true });
   g.tick();
   assert.ok(g.isPassable(at.x, at.y) || g.terrainAt(at.x, at.y).id === 'core:sand', 'raised back toward land');
@@ -54,11 +58,11 @@ test('shape: buildings, fields, stockpiles and people are left untouched; mounta
   runDays(g, 5);
   const c = g.s.settlements[g.s.playerSettlement].center;
   const before = Object.values(g.s.structures).map((st) => [st.id, g.terrainAt(st.x, st.y).id]);
-  const p = previewCommand(g, 'shape', { brush: 'mountain', x: c.x, y: c.y, r: 8, confirm: true });
+  const p = previewCommand(g, 'shape', { brush: 'mountain', x: c.x + 8, y: c.y, r: 8, confirm: true });
   assert.equal(p.ok, true, p.reason);
   assert.ok((p.preview.kept['the way round villages'] || 0) > 0, `tiles near the village are kept (${JSON.stringify(p.preview.kept)})`);
   assert.ok(p.preview.warnings.some((w) => /tiles from your village/.test(w)));
-  issueCommand(g, 'shape', { brush: 'mountain', x: c.x, y: c.y, r: 8, confirm: true });
+  issueCommand(g, 'shape', { brush: 'mountain', x: c.x + 8, y: c.y, r: 8, confirm: true });
   g.tick();
   for (const [id, t] of before) if (g.s.structures[id]) assert.equal(g.terrainAt(g.s.structures[id].x, g.s.structures[id].y).id, t, `${id} keeps its ground`);
   for (const p2 of g.colonists()) assert.ok(g.isPassable(Math.round(p2.x), Math.round(p2.y)), `${p2.name} still stands on open ground`);
@@ -84,7 +88,7 @@ test('shape: painting desert, snow and marsh changes the surface; flatten levels
   assert.ok(g.terrainAt(lake.x, lake.y).drinkable, 'drinkable water in the middle');
   assert.equal(g.terrainAt(lake.x + 4, lake.y).id, 'core:shallows', 'shallows at the edge');
   const before = counts(g)['core:hills'] || 0;
-  issueCommand(g, 'shape', { brush: 'raise', points: [[at.x, at.y + 12], [at.x + 3, at.y + 12], [at.x + 6, at.y + 12]], r: 2 });
+  assert.equal(issueCommand(g, 'shape', { brush: 'raise', points: [[at.x, at.y], [at.x + 2, at.y], [at.x + 4, at.y]], r: 1 }).ok, true); // the flattened grass
   g.tick();
   assert.ok((counts(g)['core:hills'] || 0) > before, 'a drag of three discs raised hills');
 });
