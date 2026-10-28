@@ -21,6 +21,7 @@ import { injure, hpOf as hpOfP } from './health.js';
 import { roomAt } from './heat.js';
 import { stageOf as stageOfP } from './people.js';
 import { endJob } from './ai/ai.js';
+import { droughtAt } from './weatherat.js';
 
 const HOUR = 100, NEAR_VILLAGE = 24, SMALL_GAME = 3, D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 const hash = (str) => {
@@ -51,21 +52,27 @@ function habitat(g) {
   if (g._anHab?.key === key) return g._anHab;
   const sp = animalSpecies(g), pal = g.terrainPalette, ts = g._ts.idx, W = g.W, H = g.H, CW = g.CW, n = CW * g.CH;
   const masks = new Uint32Array(pal.length);
-  for (let k = 0; k < pal.length; k++) sp.forEach((d, s) => { if (d.terrains.includes(pal[k])) masks[k] |= 1 << s; });
-  const counts = sp.map(() => new Int32Array(n));
+  const wmasks = new Uint32Array(pal.length); // winter ground (slice 6): winterTerrains, else all its terrains
+  for (let k = 0; k < pal.length; k++) sp.forEach((d, s) => {
+    if (d.terrains.includes(pal[k])) masks[k] |= 1 << s;
+    if ((d.winterTerrains || d.terrains).includes(pal[k])) wmasks[k] |= 1 << s;
+  });
+  const counts = sp.map(() => new Int32Array(n)), winter = sp.map(() => new Int32Array(n));
   for (let y = 0; y < H; y++) {
     const cy = (y / CHUNK) | 0;
     for (let x = 0; x < W; x++) {
-      const m = masks[ts[y * W + x]];
-      if (!m) continue;
+      const m = masks[ts[y * W + x]], wm = wmasks[ts[y * W + x]];
+      if (!m && !wm) continue;
       const c = cy * CW + ((x / CHUNK) | 0);
-      for (let s = 0; s < sp.length; s++) if (m & (1 << s)) counts[s][c]++;
+      for (let s = 0; s < sp.length; s++) { if (m & (1 << s)) counts[s][c]++; if (wm & (1 << s)) winter[s][c]++; }
     }
   }
-  return (g._anHab = { key, counts, index: new Map(sp.map((d, s) => [d.id, s])) });
+  return (g._anHab = { key, counts, winter, index: new Map(sp.map((d, s) => [d.id, s])) });
 }
 
 const chunkOf = (g, x, y) => ((y / CHUNK) | 0) * g.CW + ((x / CHUNK) | 0);
+/** The middle tile of chunk c on axis 'x' or 'y' (clamped to the map). */
+const chunkMid = (g, c, axis) => axis === 'x' ? Math.min(g.W - 1, (c % g.CW) * CHUNK + (CHUNK >> 1)) : Math.min(g.H - 1, ((c / g.CW) | 0) * CHUNK + (CHUNK >> 1));
 
 /** Herds by chunk, and herds by hour slot (derived, rebuilt when herds come or go; never saved). */
 function indexes(g) {
@@ -196,9 +203,14 @@ function daily(g, h, d, day) {
     const e = h.n * d.births * room;
     h.n += Math.floor(e) + (draw(`${key}:born`) < e - Math.floor(e) ? 1 : 0);
   }
-  if (season === 'Winter') {
-    const e = h.n * d.winterLoss;
+  if (season === 'Winter') { // three times the loss on poor winter ground (under a fifth of its ground)
+    const poor = si !== undefined && Hb.winter[si][c] < 0.2 * Hb.counts[si][c];
+    const e = h.n * d.winterLoss * (poor ? 3 : 1);
     h.n -= Math.floor(e) + (draw(`${key}:winter`) < e - Math.floor(e) ? 1 : 0);
+  }
+  if (d.droughtLoss && droughtAt(g, h.x, h.y)) { // grazers in a drought go thin (and move away: score)
+    const e = h.n * d.droughtLoss;
+    h.n -= Math.floor(e) + (draw(`${key}:drought`) < e - Math.floor(e) ? 1 : 0);
   }
   if (d.diet === 'hunt') { // a pack eats from a prey herd in its chunk or the next ones
     let prey = null;
@@ -264,12 +276,14 @@ function neighbours(g, c) {
   return out;
 }
 
-/** How good chunk c is for herd h: its ground, less the crowding, much less with a village there; packs like prey. */
-function score(g, I, Hb, h, d, c, villages) {
+/** How good chunk c is for herd h: its ground (in winter mostly its winter ground), less the crowding, much less
+ *  with a village there or, for grazers, a drought; packs like prey. */
+function score(g, I, Hb, h, d, c, villages, winter = false) {
   const si = Hb.index.get(d.id), ground = si === undefined ? 0 : Hb.counts[si][c];
   if (!ground) return -1;
   const cap = (ground / 1000) * d.cap * g._anScale, others = inChunk(g, I, c, d) - (chunkOf(g, h.x, h.y) === c ? h.n : 0);
-  let v = ground * Math.max(0.05, 1 - others / Math.max(1, cap));
+  let v = (winter ? Hb.winter[si][c] + 0.1 * ground : ground) * Math.max(0.05, 1 - others / Math.max(1, cap));
+  if (d.diet === 'graze' && droughtAt(g, chunkMid(g, c, 'x'), chunkMid(g, c, 'y'))) v *= 0.3;
   if (villages.has(c)) v *= d.diet === 'hunt' ? 0.5 : 0.2;
   if (d.diet === 'hunt') for (const cc of around(g, c, 2)) for (const id of I.byChunk.get(cc) || []) { const p = g.s.animals.herds[id]; if (p && (d.prey || []).includes(p.sp)) v += (cc === c ? 50 : 15) * p.n; }
   return v;
@@ -279,11 +293,12 @@ function move(g, h, d) {
   const s = g.s, I = indexes(g), Hb = habitat(g), L = landChunks(g), c = chunkOf(g, h.x, h.y);
   const villages = new Set();
   for (const v of Object.values(s.settlements || {})) if (v.center && !v.fallen) villages.add(chunkOf(g, v.center.x, v.center.y));
-  const here = score(g, I, Hb, h, d, c, villages);
+  const winter = seasonOf(g) === 'Winter' && !!d.winterTerrains; // winter moves (slice 6)
+  const here = score(g, I, Hb, h, d, c, villages, winter);
   let best = c, bv = here;
   for (const n of neighbours(g, c)) {
     if (L.comp[n] < 0 || L.comp[n] !== L.comp[c]) continue; // its landmass only
-    const v = score(g, I, Hb, h, d, n, villages) * (0.95 + 0.1 * draw(`${s.seed}:${h.id}:mv:${s.tick}:${n}`));
+    const v = score(g, I, Hb, h, d, n, villages, winter) * (0.95 + 0.1 * draw(`${s.seed}:${h.id}:mv:${s.tick}:${n}`));
     if (v > bv) { bv = v; best = n; }
   }
   if (best === c || bv < here * 1.15 + 1) return;
