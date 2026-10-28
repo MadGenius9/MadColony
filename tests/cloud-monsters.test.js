@@ -210,17 +210,25 @@ test('8c fight: a lone person runs from a Barkmaw; an armed party slays it and i
   assert.deepEqual(conservationErrors(g), []);
 });
 
-test('8c fight: one armed person alone holds back from a Thornback; a save and load mid-fight plays on identically', () => {
+test('8c fight: a hunt party member waits until enough of the party are there; then they fight; a load mid-fight is identical', () => {
   const g = quiet(6);
   const ctr = g.s.settlements[g.s.playerSettlement].center;
   const m = sendMonster(g, 'core:thornback', ctr.x + 12, ctr.y + 4);
-  m.raids = { [g.s.playerSettlement]: g.s.tick + 5000 }; // it trampled the fields
-  const [a] = g.colonists();
-  arm(g, a);
-  for (let t = 0; t < 600; t++) g.tick();
-  assert.equal(g.s.monsters.list[m.id].hp, g.reg.get('monster', 'core:thornback').health, 'nobody struck it: one is not a party');
-  for (const p of g.colonists()) if (p !== a) arm(g, p);
-  for (let t = 0; t < 300; t++) g.tick();
+  m.raids = { [g.s.playerSettlement]: g.s.tick + 9000 }; // it trampled the fields
+  const people = g.colonists().sort((x, y) => (x.id < y.id ? -1 : 1));
+  for (const p of people) arm(g, p);
+  const [a, ...rest] = people, full = g.reg.get('monster', 'core:thornback').health;
+  let waited = false;
+  for (let t = 0; t < 900; t++) {
+    for (const p of rest) { p.x = ctr.x - 15; p.y = ctr.y - 10; p.mv = null; p.path = null; } for (const p of people) if (p.job?.type === "slay") p.job.started = g.s.tick; // the others kept away (and nobody gives up)
+    g.tick();
+    if (a.job?.type === 'slay' && /Waiting for the hunt party/.test(a.status.action || '')) waited = true;
+  }
+  assert.ok(waited, 'she joined the party and waited for the others');
+  assert.equal(g.s.monsters.list[m.id].hp, full, 'alone, she did not strike');
+  let fought = false;
+  for (let t = 0; t < 3 * 2400 && !fought; t++) { g.tick(); fought = !g.s.monsters.list[m.id] || g.s.monsters.list[m.id].hp < full; }
+  assert.ok(fought, 'together, they fought it');
   const b = reload(g);
   for (let t = 0; t < 600; t++) { g.tick(); b.tick(); }
   assert.equal(stateText(b), stateText(g), 'a load mid-fight plays on identically');
@@ -241,11 +249,12 @@ test('8c fight: a save and load while someone runs from a monster plays on ident
 
 // ---------------- slice 4: distant villages and god powers ----------------
 import { issueCommand, previewCommand } from '../src/sim/god.js';
+import { roomAt } from '../src/sim/heat.js';
 
 test('8c far: a Barkmaw near a distant village tears down its wooden parts; armed, the village slays it', () => {
   const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
   runDays(g, 2);
-  const v = Object.entries(g.s.settlements).filter(([, x]) => x.detail === 'abstract' && !x.fallen && g.owned('colonists', x.id || '').length !== -1).map(([id, x]) => ({ id, ...x }))
+  const v = Object.entries(g.s.settlements).filter(([, x]) => x.detail === 'abstract' && !x.fallen).map(([id, x]) => ({ id, ...x }))
     .filter((x) => g.owned('colonists', x.id).length > 3).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
   assert.ok(v, 'a distant village of more than 3');
   let at = null;
@@ -293,4 +302,49 @@ test('8c powers: a monster sent near a village needs confirm and names it; banis
   assert.equal(g.s.monsters.ledger['core:thornback'].died.banished, 1);
   assert.ok(g.s.log.some((e) => /The gods banished the Thornback/.test(e.msg)));
   assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
+});
+
+// ---------------- review fixes ----------------
+test('8c review: nobody who is down is struck; a village of 4 with one down is left alone (never wiped out)', () => {
+  const g = quiet(6);
+  const people = g.colonists().sort((x, y) => (x.id < y.id ? -1 : 1));
+  delete g.s.colonists[people[4].id]; g._own = null; // a village of 4
+  const ctr = g.s.settlements[g.s.playerSettlement].center;
+  const m = sendMonster(g, 'core:thornback', ctr.x + 12, ctr.y);
+  const lair = g.s.monsters.lairs[m.lair], [a, b] = people;
+  let downedAt = null, gores = 0, struckDown = 0;
+  for (let t = 0; t < 3000; t++) {
+    for (const p of [a, b]) if (!p.health?.down && !(p === a && downedAt !== null)) { p.x = lair.x + 2; p.y = lair.y + (p === b ? 1 : 0); p.mv = null; p.path = null; if (p.job) p.job = null; }
+    const before = woundsOf(a, 'gore'), wasDown = !!a.health?.down;
+    g.tick();
+    if (wasDown && a.health?.down && woundsOf(a, 'gore') > before) struckDown++;
+    if (downedAt === null && a.health?.down) { downedAt = g.s.tick; gores = woundsOf(a, 'gore'); }
+  }
+  assert.ok(downedAt !== null && gores > 0, 'she was gored and downed');
+  assert.equal(struckDown, 0, 'never struck while down');
+  assert.ok(!b.health?.down || woundsOf(b, 'gore') >= 0);
+  assert.ok(g.colonists().filter((c) => !c.health?.down).length >= 3, 'three still stand');
+});
+
+test('8c review: a monster sent on the first tick does not stop the world placing its own lairs', () => {
+  const g = newGame({ seed: 4242, sandbox: true });
+  const at = { x: g.s.center.x + 10, y: g.s.center.y };
+  for (let r = 0; r < 10 && !(g.isPassable(at.x, at.y) && !g.terrainAt(at.x, at.y).drinkable); r++) at.x++;
+  assert.equal(issueCommand(g, 'monster', { ...at, species: 'core:gloomstalker', confirm: true }).ok, true);
+  for (let t = 0; t < 200; t++) g.tick();
+  const sp = Object.values(g.s.monsters.lairs).map((l) => l.sp).sort();
+  assert.deepEqual(sp, ['core:gloomstalker', 'core:thornback'], 'the sent one and the world\'s Thornback');
+  assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
+});
+
+test('8c review: a person inside a room is safe from a Gloomstalker at night', () => {
+  const g = quiet(10);
+  let room = null;
+  for (let y = 0; y < g.H && !room; y++) for (let x = 0; x < g.W && !room; x++) if (roomAt(g, x, y) && g.isPassable(x, y)) room = { x, y };
+  assert.ok(room, 'a room is built');
+  untilHour(g, 22);
+  const c = g.colonists()[0], m = sendMonster(g, 'core:gloomstalker', room.x + 3, room.y);
+  for (let t = 0; t < 600; t++) { c.x = room.x; c.y = room.y; c.mv = null; c.path = null; for (const o of g.colonists()) if (o !== c) { o.x = room.x + 25; o.y = room.y + 25; o.mv = null; } g.tick(); }
+  assert.equal(woundsOf(c, 'maul'), 0, 'not mauled indoors');
+  assert.ok(g.s.monsters.list[m.id]);
 });

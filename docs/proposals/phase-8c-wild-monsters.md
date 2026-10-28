@@ -183,3 +183,47 @@ All the names and looks are new to this game.
 5. **Rewards:** proposal: meat, hides, wood and two rare items (gloom eye, heartwood) now, with no use yet beyond
    trade value. Uses (armour, charms, worship) come later with Peoples and traits.
 6. **God powers:** proposal: `monster` (send one, confirm near villages) and `banish` (remove one) now. Yes?
+
+## Results
+### Slices 1–4 (2026-10-28)
+- **Slice 1, lairs** (`monsters.js`, data `monsters.json`, save format 29):
+  - A classic map gets 1 Thornback lair, on its fitting tile farthest from the village (46 tiles).
+  - Vast gets 10 lairs (5 Thornback, 2 Gloomstalker, 3 Barkmaw) and World 15 (8, 2, 5), at least 89 tiles from
+    villages.
+  - Placement costs 40–60 ms on the first tick.
+  - The monster ledger is checked by `monsterCensus`; the World run tool checks it too.
+- **Slice 2, near villages:** trampling at dawn, goring by the den, night stalking of lone people outdoors,
+  tearing down wooden parts, burning in fire.
+  - Wound kinds gore, maul and crush; death causes for each.
+  - Villages of 3 or fewer are left alone.
+- **Slice 3, fighting back** (`slay.js`):
+  - fleeing;
+  - hunt parties (armed people join one instead of running) that close in only together and fight on while two
+    remain;
+  - carcasses butchered (venison, hides, a gloom eye); a slain Barkmaw leaves 30 wood and heartwood;
+  - clearing lairs;
+  - the planner arms `fightGroup` fighters.
+  - **Balance:** first tests showed a 5-person village with spears losing to a Barkmaw of 600 health. Health is
+    now 180 / 120 / 240, blows every 60 ticks, and a Barkmaw takes a party of 3.
+  - **Found on the way:** a Thornback grazing by a classic village's water made everyone within 10 tiles run, even
+    mid-drink, and two people died of thirst. Now people fear a monster only when it is a danger to them, and keep
+    eating and drinking unless it is within 3 tiles.
+- **Slice 4:**
+  - aggregate raids on distant villages (a field, a wounded adult, a wooden part), and armed distant villages slay
+    raiders;
+  - the `monster` and `banish` powers.
+- **Review fixes:**
+  - The "3 or fewer" rule counts only people standing, and nobody down is ever struck. Before, a collapsed person
+    was gored until dead, and a village of 4 could lose two fighters in one fight.
+  - A monster sent on the first tick no longer stops the world's own lairs being placed.
+  - A monster that cannot get closer for 30 steps goes home (monsters do not find paths), and far roaming never
+    lands inside a village's reach.
+  - Thornbacks no longer strike through walls.
+  - Distant raids wound only adults.
+  - The dawn trample cap holds (3 crops a day).
+  - Saves check that a monster matches its lair's species; dropping an unknown species frees its lair.
+  - The fire check looks at nearby tiles only.
+  - Tests:
+    - the hold-back test now checks that the fighter waits, then that the party fights;
+    - new: the downed are never struck; a send on the first tick still gets the world's lairs; a person in a room
+      is safe at night.

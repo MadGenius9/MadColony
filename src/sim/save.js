@@ -266,7 +266,7 @@ function validateMonsters(s, bad) {
   for (const [k, m] of Object.entries(M.list)) {
     const ok = isObj(m) && m.id === k && /^m\d{1,9}$/.test(k) && Number(k.slice(1)) < M.next && isStr(m.sp, 100) && onMap(m)
       && typeof m.hp === 'number' && m.hp > 0 && m.hp <= 1e6 && isStr(m.lair, 20) && M.lairs[m.lair]?.monster === k && isInt(m.day)
-      && ['near', 'cd', 'fed', 'work', 'trampled', 'tday'].every((f) => m[f] === undefined || isInt(m[f]))
+      && M.lairs[m.lair].sp === m.sp && ['near', 'cd', 'fed', 'work', 'trampled', 'tday', 'stuck'].every((f) => m[f] === undefined || isInt(m[f]))
       && (m.angry === undefined || (isObj(m.angry) && isStr(m.angry.cid, 64) && isInt(m.angry.until)))
       && (m.raids === undefined || (isObj(m.raids) && Object.keys(m.raids).length <= 200 && Object.entries(m.raids).every(([k2, v]) => isStr(k2, 64) && isInt(v))));
     if (!ok) { bad(`monster "${String(k).slice(0, 40)}" is malformed`); return; }
@@ -568,7 +568,7 @@ export function loadGame(reg, saveOrText) {
   for (const [id, h] of Object.entries(s.animals?.herds || {})) if (!reg.has('animal', h.sp)) delete s.animals.herds[id]; // a species whose mod is gone: its herds go (animals hold no items)
   for (const sp of Object.keys(s.animals?.ledger || {})) if (!reg.has('animal', sp)) delete s.animals.ledger[sp]; // and its ledger
   if (s.monsters) { // a monster species whose mod is gone: its monsters, lairs and ledger go
-    for (const [id, m] of Object.entries(s.monsters.list)) if (!reg.has('monster', m.sp)) delete s.monsters.list[id];
+    for (const [id, m] of Object.entries(s.monsters.list)) if (!reg.has('monster', m.sp)) { delete s.monsters.list[id]; if (s.monsters.lairs[m.lair]?.monster === id) s.monsters.lairs[m.lair].monster = null; }
     for (const [id, l] of Object.entries(s.monsters.lairs)) if (!reg.has('monster', l.sp)) delete s.monsters.lairs[id];
     for (const sp of Object.keys(s.monsters.ledger)) if (!reg.has('monster', sp)) delete s.monsters.ledger[sp];
   }

@@ -15,7 +15,7 @@ import { newJob, travel, practice } from './ai/jobs.js';
 import { huntWeapon } from './hunt.js';
 import { hpOf } from './health.js';
 import { roomAt } from './heat.js';
-import { killMonster, woundMonster } from './monsters.js';
+import { killMonster, woundMonster, standing } from './monsters.js';
 import { isAdult } from './people.js';
 
 const SEE = 10, THREAT = 40, HOLD = 7, PARTY = 8, GIVE_UP = 1500, CLEAR_R = 60, CLEAR_WORK = 300;
@@ -63,7 +63,7 @@ export function monsterDanger(g, c) {
   }
   if (!m) return null;
   if (c.job?.need && md > 3) return null; // eating or drinking goes on unless it is right there
-  if (g.owned('colonists', sidOf(g, c)).length <= 3) return null; // monsters leave a village of 3 or fewer alone
+  if (standing(g, g.owned('colonists', sidOf(g, c))) <= 3) return null; // monsters leave a village of 3 or fewer standing alone
   const join = partyJob(g, c, m); // armed and enough of them: join the hunt party instead of running
   if (join) return join;
   const d = g.reg.get('monster', m.sp), dx = c.x - m.x, dy = c.y - m.y, len = Math.hypot(dx, dy) || 1;

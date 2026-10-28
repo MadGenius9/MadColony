@@ -14,7 +14,8 @@
 // No g.rng draws: all choices are hashes of the seed, ids and days. Cost: placement once (one pass over the map
 // per species); then each monster once an hour (staggered by id), its daily roam O(1).
 import { TICKS_PER_DAY, CHUNK } from './constants.js';
-import { injure } from './health.js';
+import { injure, hpOf } from './health.js';
+import { isAdult } from './people.js';
 import { roomAt } from './heat.js';
 import { destroyCrop, destroyStructures } from './ruin.js';
 import { buildingFlammable } from './fire.js';
@@ -165,9 +166,9 @@ function raidDistant(g, m, d, day) {
         if (!cr) continue;
         destroyCrop(g, cr.id);
         g.log(`A ${d.name} trampled a field of ${v.name}.`, 'info', `monster-far:${m.id}`, 2400);
-      } else if (people.length <= SMALL) continue;
+      } else if (standing(g, people) <= SMALL) continue;
       else if (d.behaviour === 'stalk') {
-        const adults = people.filter((c) => !c.health?.down);
+        const adults = people.filter((c) => !c.health?.down && isAdult(g, c));
         if (!adults.length) continue;
         const c = adults[hash(`${key}:who`) % adults.length], [lo, hi] = d.damage;
         injure(g, c, WOUND.stalk[0], lo + Math.floor(draw(`${key}:hit`) * (hi - lo + 1)), WOUND.stalk[1], false, 'info');
@@ -232,15 +233,23 @@ function prey(g) {
   const list = [];
   for (const [sid, m] of g.ownIndex('colonists')) {
     const v = g.s.settlements?.[sid];
-    if (v?.detail === 'abstract' || m.size <= SMALL) continue;
-    for (const c of m.values()) if (!c.carriedBy) list.push(c);
+    if (v?.detail === 'abstract' || standing(g, [...m.values()]) <= SMALL) continue;
+    for (const c of m.values()) if (!c.carriedBy && !c.health?.down) list.push(c); // nobody who is down is struck
   }
   list.sort((a, b) => byId(a.id, b.id));
   return (g._mnPrey = { tick: g.s.tick, list }).list;
 }
-const smallVillage = (g, sid) => g.owned('colonists', sid || g.s.playerSettlement).length <= SMALL;
+/** People on their feet (not down) among `people`: the owner's rule counts only them, so a village never loses its
+ *  last standing people to a fight that downs several at once. */
+export const standing = (g, people) => people.filter((c) => !c.health?.down && hpOf(c) > 0).length;
+const smallVillage = (g, sid) => standing(g, g.owned('colonists', sid || g.s.playerSettlement)) <= SMALL;
 const burning = (g, x, y) => !!g.s.disasters?.fires && Object.hasOwn(g.s.disasters.fires, g.i(x, y));
-const nearFire = (g, x, y, r) => { const F = g.s.disasters?.fires; if (!F) return false; for (const k of Object.keys(F)) { const i = Number(k), fx = i % g.W, fy = (i - fx) / g.W; if (Math.abs(fx - x) <= r && Math.abs(fy - y) <= r) return true; } return false; };
+const nearFire = (g, x, y, r) => {
+  const F = g.s.disasters?.fires;
+  if (!F) return false;
+  for (let yy = y - r; yy <= y + r; yy++) for (let xx = x - r; xx <= x + r; xx++) if (g.inB(xx, yy) && Object.hasOwn(F, g.i(xx, yy))) return true;
+  return false;
+};
 const free = (g, m, x, y) => g.isPassable(x, y) && (x === m.x || y === m.y || g.isPassable(x, m.y) || g.isPassable(m.x, y));
 
 /** Steps toward (tx, ty) at the monster's speed (below 1: a step with that chance). */
@@ -249,14 +258,22 @@ function walk(g, m, d, tx, ty, key) {
   for (let k = 0; k < n; k++) {
     let best = null, bd = Math.hypot(m.x - tx, m.y - ty);
     for (const [dx, dy] of D8) { const x = m.x + dx, y = m.y + dy, dd = Math.hypot(x - tx, y - ty); if (dd < bd && free(g, m, x, y)) { bd = dd; best = [x, y]; } }
-    if (!best) return;
+    if (!best) { m.stuck = (m.stuck || 0) + 1; if (m.stuck >= STUCK) unstick(g, m); return; }
+    delete m.stuck;
     m.x = best[0]; m.y = best[1];
     if (d.behaviour === 'trample') trample(g, m, d);
   }
 }
+/** A monster that could not get closer for STUCK steps (walls in the way: it does not find paths) goes home. */
+const STUCK = 30;
+function unstick(g, m) {
+  const l = g.s.monsters.lairs[m.lair];
+  delete m.stuck;
+  if (l) { m.x = l.x; m.y = l.y; }
+}
 function trample(g, m, d) {
   const cr = g.cropAt(m.x, m.y);
-  if (!cr) return;
+  if (!cr || (m.trampled || 0) >= FEAST) return; // at most FEAST crops a day
   destroyCrop(g, cr.id);
   m.trampled = (m.trampled || 0) + 1;
   raided(g, m, cropOwner(g, cr));
@@ -291,10 +308,10 @@ function act(g, m) {
     m.hp -= BURN * (d.behaviour === 'tear' ? 2 : 1);
     if (m.hp <= 0) { killMonster(g, m.id, 'burned'); g.log(`The ${d.name} burned to death.`, 'info', `monster-dead:${m.id}`); return; }
   }
-  if (m.trampled && m.tday !== day) { m.trampled = 0; m.tday = day; }
+  if (m.tday !== day) { m.trampled = 0; m.tday = day; }
   const angry = m.angry && m.angry.until > s.tick ? s.colonists[m.angry.cid] : null;
   if (d.behaviour === 'trample') {
-    const near = angry && !smallVillage(g, angry.settlementId) ? angry : prey(g).find((c) => !roomAt(g, Math.round(c.x), Math.round(c.y)) && Math.hypot(c.x - lair.x, c.y - lair.y) <= DEN);
+    const near = angry && !angry.health?.down && !roomAt(g, Math.round(angry.x), Math.round(angry.y)) && !smallVillage(g, angry.settlementId) ? angry : prey(g).find((c) => !roomAt(g, Math.round(c.x), Math.round(c.y)) && Math.hypot(c.x - lair.x, c.y - lair.y) <= DEN);
     if (near) { chase(g, m, d, near, key); return; }
     if (hour >= 5 && hour < 9 && (m.trampled || 0) < FEAST) { // dawn: the fields
       const f = nearestCrop(g, lair, FIELD);
@@ -306,7 +323,7 @@ function act(g, m) {
   if (d.behaviour === 'stalk') {
     const night = hour >= 21 || hour < 5;
     if (night && m.fed !== day) {
-      const c = angry && !smallVillage(g, angry.settlementId) ? angry : weakest(g, m);
+      const c = angry && !angry.health?.down && !roomAt(g, Math.round(angry.x), Math.round(angry.y)) && !smallVillage(g, angry.settlementId) ? angry : weakest(g, m);
       if (c) { chase(g, m, d, c, key); return; }
     }
     if (!night) { walk(g, m, d, lair.x, lair.y, key); return; } // back to its cave by day
@@ -354,7 +371,7 @@ function weakest(g, m) {
     const others = prey(g).filter((o) => o !== c && Math.hypot(o.x - c.x, o.y - c.y) <= 4).length;
     if (others > 0) continue; // only the lone
     const hp = 100 - (c.health?.injuries || []).reduce((a, i) => a + i.severity, 0);
-    const sc = dist + hp / 10 - (c.health?.down ? 20 : 0); // near, hurt or down first
+    const sc = dist + hp / 10; // near and hurt first (the downed are never struck: prey)
     if (sc < bs || (sc === bs && c.id < best.id)) { bs = sc; best = c; }
   }
   return best;
@@ -385,10 +402,10 @@ function roam(g, m, d, day) {
   const lair = g.s.monsters.lairs[m.lair];
   if (!lair) return;
   if (day % 2 === 0 || !d.roam) { m.x = lair.x; m.y = lair.y; return; }
-  const R = d.roam * CHUNK, key = `${g.s.seed}:${m.id}:roam:${day}`;
+  const R = d.roam * CHUNK, key = `${g.s.seed}:${m.id}:roam:${day}`, A = anchors(g);
   for (let k = 0; k < 12; k++) {
     const x = lair.x + Math.round((draw(`${key}:x${k}`) * 2 - 1) * R), y = lair.y + Math.round((draw(`${key}:y${k}`) * 2 - 1) * R);
-    if (g.inB(x, y) && fits(g, d, x, y)) { m.x = x; m.y = y; return; }
+    if (g.inB(x, y) && fits(g, d, x, y) && A.every((p) => Math.hypot(p.x - x, p.y - y) > NEAR)) { m.x = x; m.y = y; return; } // never into a village's reach: it walks there
   }
 }
 
@@ -407,7 +424,7 @@ function regrow(g, lair) {
 /** A monster of species sp sent to (x, y) (the god power, slice 4; tests): it makes its lair there and is counted
  *  as sent. It is near at once when a full-detail village is within NEAR. Returns it. */
 export function sendMonster(g, sp, x, y) {
-  if (!g.s.monsters) g.s.monsters = { lairs: {}, list: {}, next: 1, ledger: {} };
+  if (!g.s.monsters) placeLairs(g); // the world's own lairs first (the owner's answer 1)
   const d = g.reg.get('monster', sp), lair = newLair(g, d, x, y), m = newMonster(g, d, lair);
   ledgerOf(g, sp).sent++;
   if (anchors(g).some((p) => Math.hypot(p.x - x, p.y - y) <= NEAR)) m.near = g.s.tick;
