@@ -92,8 +92,8 @@ import { sendMonster } from '../src/sim/monsters.js';
 import { causeText } from '../src/sim/death.js';
 
 /** A classic game a few days old with its own lair gone (so only the monsters a test sends are about). */
-function quiet(days = 1) {
-  const g = newGame({ seed: 4242 });
+function quiet(days = 1, sandbox = false) {
+  const g = newGame({ seed: 4242, sandbox });
   runDays(g, days);
   const M = g.s.monsters;
   for (const m of Object.values(M.list)) killMonster(g, m.id, 'test');
@@ -237,4 +237,60 @@ test('8c fight: a save and load while someone runs from a monster plays on ident
   const b = reload(g);
   for (let t = 0; t < 800; t++) { g.tick(); b.tick(); }
   assert.equal(stateText(b), stateText(g), 'identical after a load mid-flight');
+});
+
+// ---------------- slice 4: distant villages and god powers ----------------
+import { issueCommand, previewCommand } from '../src/sim/god.js';
+
+test('8c far: a Barkmaw near a distant village tears down its wooden parts; armed, the village slays it', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(g, 2);
+  const v = Object.entries(g.s.settlements).filter(([, x]) => x.detail === 'abstract' && !x.fallen && g.owned('colonists', x.id || '').length !== -1).map(([id, x]) => ({ id, ...x }))
+    .filter((x) => g.owned('colonists', x.id).length > 3).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  assert.ok(v, 'a distant village of more than 3');
+  let at = null;
+  for (let r = 6; r < 25 && !at; r++) for (let dx = -r; dx <= r && !at; dx++) { const x = v.center.x + dx, y = v.center.y + r; if (g.inB(x, y) && g.isPassable(x, y) && !g.terrainAt(x, y).drinkable) at = { x, y }; }
+  const m = sendMonster(g, 'core:barkmaw', at.x, at.y);
+  assert.equal(m.near, undefined, 'far from every full-detail village');
+  g.s.monsters.lairs[m.lair].x = at.x; // it roams round here
+  let torn = false;
+  for (let d = 0; d < 20 && !torn; d++) { runDays(g, 1); torn = g.s.log.some((e) => e.msg.startsWith('A Barkmaw tore down') && e.msg.endsWith(`in ${v.name}.`)); }
+  assert.ok(torn, `it tore down a part in ${v.name}`);
+  // Give the village spears (through the ledger), then it fights back.
+  const prev = g.actor; g.actor = v.id;
+  try { g.createItems('core:spear', 4, v.center.x, v.center.y, 'start', undefined, true); } finally { g.actor = prev; }
+  let slain = false;
+  for (let d = 0; d < 25 && !slain; d++) { if (g.s.monsters.list[m.id]) g.s.monsters.list[m.id].raids = { [v.id]: g.s.tick + 5000 }; runDays(g, 1); slain = !g.s.monsters.list[m.id]; }
+  assert.ok(slain, 'the armed village slew it');
+  assert.ok(g.s.log.some((e) => e.msg === `The people of ${v.name} slew the Barkmaw that troubled them.`));
+  assert.ok((g.s.ledger.byReason['created:hunt']?.['core:heartwood'] || 0) >= 1, 'its heartwood went to the village');
+  assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('8c powers: a monster sent near a village needs confirm and names it; banish removes one; both replay after a load', () => {
+  const g = quiet(1, true); // Sandbox: the powers are free
+  const ctr = g.s.settlements[g.s.playerSettlement].center;
+  let at = null;
+  for (let r = 8; r < 20 && !at; r++) { const x = ctr.x + r, y = ctr.y; if (g.isPassable(x, y) && !g.terrainAt(x, y).drinkable) at = { x, y }; }
+  assert.match(previewCommand(g, 'monster', { ...at, species: 'core:dragon' }).reason, /no such monster/);
+  assert.match(previewCommand(g, 'monster', { x: -1, y: 0, species: 'core:thornback' }).reason, /tile on the map/);
+  const p = previewCommand(g, 'monster', { ...at, species: 'core:thornback' });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => /make its lair \d+ tiles from your village/.test(w)), p.preview.warnings.join(' | '));
+  const r = issueCommand(g, 'monster', { ...at, species: 'core:thornback', confirm: true });
+  assert.equal(r.ok, true, r.reason);
+  const b = reload(g);
+  g.tick(); b.tick();
+  assert.equal(stateText(b), stateText(g), 'the queued power replays after a load');
+  const m = Object.values(g.s.monsters.list)[0];
+  assert.deepEqual([m.sp, g.s.monsters.lairs[m.lair].x, g.s.monsters.lairs[m.lair].y], ['core:thornback', at.x, at.y]);
+  assert.equal(g.s.monsters.ledger['core:thornback'].sent, 1);
+  assert.match(previewCommand(g, 'banish', { x: 0, y: 0 }).reason, /no monster within 20/);
+  assert.equal(issueCommand(g, 'banish', { x: m.x, y: m.y }).ok, true);
+  g.tick();
+  assert.equal(g.s.monsters.list[m.id], undefined, 'banished');
+  assert.equal(g.s.monsters.ledger['core:thornback'].died.banished, 1);
+  assert.ok(g.s.log.some((e) => /The gods banished the Thornback/.test(e.msg)));
+  assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
 });

@@ -296,3 +296,16 @@ where, and which sim function or state field provides it. The UI is built at hom
   - "Ada cleared the Thornback's lair: nothing will live there again." (good).
 - **Items:** Thornback and Gloomstalker carcasses are butchered at the butcher's table (venison and hides; hides
   and a gloom eye). A slain Barkmaw leaves 30 wood and a piece of heartwood.
+
+## Phase 8c, slice 4: distant villages and the monster powers
+- **Letters** (info) for distant villages:
+  - "A Thornback trampled a field of Pinecroft."
+  - "A Gloomstalker attacked Ada of Pinecroft in the night."
+  - "A Barkmaw tore down log wall in Pinecroft."
+  - "The people of Pinecroft slew the Barkmaw that troubled them."
+- **God powers panel:**
+  - "Send a monster": choose a species, then click a tile. Near a village it needs Confirm; the warnings name the
+    villages.
+  - "Banish": click near a monster; it removes the nearest one within 20 tiles (favour 30).
+  - Both show the cost, the preview `effect` and the `warnings`.
+- **Letters:** "The gods sent a Barkmaw near your village." and "The gods banished the Thornback."

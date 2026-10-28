@@ -139,6 +139,67 @@ function hourly(g, m) {
   if (m.near !== undefined || m.day === day) return;
   m.day = day;
   roam(g, m, d, day);
+  raidDistant(g, m, d, day);
+}
+
+// ---------------- distant villages (slice 4) ----------------
+// Once a day a far monster within RAID_R tiles of a distant village (lod.js runs it in aggregate) strikes it with
+// chance RAID_P: a Thornback ruins the field nearest it, a Gloomstalker wounds an adult (by hash), a Barkmaw tears
+// down the wooden part nearest it. A village of SMALL or fewer is left alone (the owner's answer 3). A village with
+// the monster's fightGroup weapons (carried or in its stock) slays a monster that struck it, with chance SLAY_P a
+// day; its carcass or drops go to the village centre (created:hunt).
+const RAID_R = 30, RAID_P = 0.3, SLAY_P = 0.25;
+function raidDistant(g, m, d, day) {
+  const s = g.s;
+  for (const sid of Object.keys(s.settlements || {}).sort(byId)) {
+    const v = s.settlements[sid];
+    if (v.fallen || v.detail !== 'abstract' || !v.center || Math.hypot(v.center.x - m.x, v.center.y - m.y) > RAID_R) continue;
+    const key = `${s.seed}:${m.id}:raid:${sid}:${day}`, people = g.owned('colonists', sid).sort((a, b) => byId(a.id, b.id));
+    if ((m.raids?.[sid] || 0) > s.tick && armedCount(g, sid, people) >= d.fightGroup && draw(`${key}:slay`) < SLAY_P) { slainFar(g, m, d, sid, v); return; }
+    if (draw(key) >= RAID_P) continue;
+    const prev = g.actor;
+    g.actor = sid;
+    try {
+      if (d.behaviour === 'trample') {
+        const cr = Object.values(s.crops).filter((c) => cropOwner(g, c) === sid).sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y) || byId(a.id, b.id))[0];
+        if (!cr) continue;
+        destroyCrop(g, cr.id);
+        g.log(`A ${d.name} trampled a field of ${v.name}.`, 'info', `monster-far:${m.id}`, 2400);
+      } else if (people.length <= SMALL) continue;
+      else if (d.behaviour === 'stalk') {
+        const adults = people.filter((c) => !c.health?.down);
+        if (!adults.length) continue;
+        const c = adults[hash(`${key}:who`) % adults.length], [lo, hi] = d.damage;
+        injure(g, c, WOUND.stalk[0], lo + Math.floor(draw(`${key}:hit`) * (hi - lo + 1)), WOUND.stalk[1], false, 'info');
+        g.log(`A ${d.name} attacked ${c.name} of ${v.name} in the night.`, 'info', `monster-far:${m.id}`, 2400);
+      } else if (d.behaviour === 'tear') {
+        const st = Object.values(s.structures).filter((x) => x.built && (x.settlement || s.playerSettlement) === sid && buildingFlammable(g, g.bDef(x)) >= 0.5)
+          .sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y) || byId(a.id, b.id))[0];
+        if (!st) continue;
+        const name = g.bDef(st)?.name?.toLowerCase() || 'a building';
+        destroyStructures(g, [st.id], { reason: null, why: `A ${d.name} tore it down` });
+        g.log(`A ${d.name} tore down ${name} in ${v.name}.`, 'info', `monster-far:${m.id}`, 2400);
+      }
+      raided(g, m, sid);
+    } finally { g.actor = prev; }
+    return; // one village a day
+  }
+}
+/** Weapons a village could fight with: carried by its people, or in its stock (a distant village equips nobody). */
+function armedCount(g, sid, people) {
+  let n = people.filter((c) => c.equip?.weapon).length;
+  for (const st of Object.values(g.s.stacks)) if ((st.settlement || g.s.playerSettlement) === sid && g.reg.get('item', st.item)?.equipment?.damage) n += st.qty;
+  return n;
+}
+function slainFar(g, m, d, sid, v) {
+  killMonster(g, m.id, 'slain');
+  const prev = g.actor;
+  g.actor = sid;
+  try {
+    if (d.carcass && g.reg.has('item', d.carcass)) g.createItems(d.carcass, 1, v.center.x, v.center.y, 'hunt', undefined, true);
+    for (const e of d.drops || []) if (g.reg.has('item', e.item)) g.createItems(e.item, e.qty, v.center.x, v.center.y, 'hunt', undefined, true);
+  } finally { g.actor = prev; }
+  g.log(`The people of ${v.name} slew the ${d.name} that troubled them.`, 'info', `monster-dead:${m.id}`);
 }
 
 // ---------------- near monsters (slice 2) ----------------
@@ -198,12 +259,14 @@ function trample(g, m, d) {
   if (!cr) return;
   destroyCrop(g, cr.id);
   m.trampled = (m.trampled || 0) + 1;
-  raided(g, m, cr.settlement);
+  raided(g, m, cropOwner(g, cr));
   g.log(`A ${d.name} trampled crops in the fields!`, 'warn', `monster-trample:${m.id}`, 1200);
 }
 
 /** The village sid (or the player's) will hunt monster m for RAID ticks (slay.js). */
 const RAID = 3 * TICKS_PER_DAY;
+/** The village a crop belongs to (through its field). */
+const cropOwner = (g, cr) => g.s.fields?.[cr.fieldId]?.settlement || g.s.playerSettlement;
 function raided(g, m, sid) { (m.raids ||= {})[sid || g.s.playerSettlement] = g.s.tick + RAID; }
 
 /** Strike person c (adjacent): a wound by kind, wakes them, a letter. */
