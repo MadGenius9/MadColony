@@ -383,3 +383,65 @@ test('peoples: Living and Vast worlds give AI villages the people of their land;
   const n = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
   assert.ok(Object.values(n.s.settlements).every((s) => s.people === 'core:hearthfolk'));
 });
+
+// ---- slice 6: god powers
+/** The first spot (rings round `from`, every other tile) where `count` settlers may found a village. */
+function foundSpotNear(g, from, count = 3, extra = {}) {
+  for (let r = 0; r < 120; r += 2) for (let dy = -r; dy <= r; dy += 2) for (let dx = -r; dx <= r; dx += 2) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const a = { x: from.x + dx, y: from.y + dy, count, mode: 'found', ...extra };
+    if (g.inB(a.x, a.y) && previewCommand(g, 'spawn', a).ok) return a;
+  }
+  return null;
+}
+
+test('peoples: the gods found a village of a chosen people; settlers never join a village of another people', () => {
+  const g = newGame({ seed: 2, scenario: 'core:living_world', sandbox: true });
+  const a = foundSpotNear(g, g.s.center, 3, { people: 'core:duneshade' });
+  assert.ok(a, 'a spot');
+  const p = previewCommand(g, 'spawn', a);
+  assert.match(p.preview.effect, /3 Duneshade settlers found/);
+  assert.equal(p.preview.village.people, 'core:duneshade');
+  issueCommand(g, 'spawn', a); g.tick();
+  const sid = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].origin === 'divine');
+  assert.equal(g.s.settlements[sid].people, 'core:duneshade');
+  assert.ok(g.owned('colonists', sid).every((c) => c.people === 'core:duneshade'));
+  assert.equal(previewCommand(g, 'spawn', { ...a, people: 'gone:folk' }).ok, false);
+  // Join: their own people only.
+  const c = g.s.settlements[sid].center;
+  const join = { x: c.x, y: c.y - 3, count: 1, mode: 'join' };
+  const other = previewCommand(g, 'spawn', { ...join, people: 'core:cragborn' });
+  assert.equal(other.ok, false);
+  assert.match(other.reason, /Cragborn will not settle among the Duneshade/);
+  const own = previewCommand(g, 'spawn', join);
+  if (own.ok) { issueCommand(g, 'spawn', join); g.tick(); assert.ok(g.owned('colonists', sid).every((x) => x.people === 'core:duneshade')); }
+  else assert.doesNotMatch(own.reason, /will not settle/);
+  assert.ok(peopleCensus(g, null).ok, JSON.stringify(peopleCensus(g).problems));
+  const b = reload(g);
+  runDays(g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(g));
+});
+
+test('peoples: the trait power gives a trait (replacing its opposite), takes one away and refuses what cannot be', () => {
+  const g = newGame({ seed: 3, sandbox: true });
+  const [c, d] = Object.values(g.s.colonists);
+  c.traits = ['core:timid']; d.traits = ['core:wise', 'core:quick'];
+  const give = (who, trait) => previewCommand(g, 'trait', { colonistId: who.id, trait, mode: 'give' });
+  assert.equal(give(c, 'core:brave').preview.replaced, 'core:timid');
+  assert.match(give(d, 'core:kind').reason, /already has 2 traits/);
+  assert.match(give(d, 'core:wise').reason, /wise already/);
+  assert.match(previewCommand(g, 'trait', { colonistId: c.id, trait: 'core:wise', mode: 'remove' }).reason, /not wise/);
+  assert.match(previewCommand(g, 'trait', { colonistId: 'c999999', trait: 'core:wise', mode: 'give' }).reason, /no such person/);
+  assert.match(previewCommand(g, 'trait', { colonistId: c.id, trait: 'core:wise', mode: 'give', extra: 1 }).reason, /takes only/);
+  const s = newGame({ seed: 3, sandbox: true });
+  const sc = Object.values(s.s.colonists)[0];
+  sc.traits = ['core:timid'];
+  issueCommand(s, 'trait', { colonistId: sc.id, trait: 'core:brave', mode: 'give' }); s.tick();
+  assert.deepEqual(s.s.colonists[sc.id].traits, ['core:brave']);
+  assert.equal(modsOf(s, s.s.colonists[sc.id]).fightHp, 30, 'the effect follows at once');
+  issueCommand(s, 'trait', { colonistId: sc.id, trait: 'core:brave', mode: 'remove' }); s.tick();
+  assert.deepEqual(s.s.colonists[sc.id].traits, []);
+  const b = reload(s);
+  runDays(s, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(s));
+});

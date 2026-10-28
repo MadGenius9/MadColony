@@ -30,7 +30,7 @@ import { LOD, wantDetail, setDetail, isAbstract } from './lod.js';
 import { rings, octile } from './util.js';
 import { claimRadius } from './territory.js';
 import { livingCount } from './fallen.js';
-import { defaultPeople, peopleOfSettlement, settleFolk, paletteOf } from './peoples.js';
+import { defaultPeople, peopleOfSettlement, settleFolk, paletteOf, peopleByLand } from './peoples.js';
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -95,8 +95,9 @@ function wouldBeAbstract(g, x, y) {
 }
 
 function validate(g, a, r) {
-  const k = Object.keys(a).find((x) => !['x', 'y', 'count', 'mode', 'profile', 'name'].includes(x));
-  if (k) return `settlers take only x, y, count, mode, profile and name (not "${String(k).slice(0, 40)}")`;
+  const k = Object.keys(a).find((x) => !['x', 'y', 'count', 'mode', 'profile', 'name', 'people'].includes(x));
+  if (k) return `settlers take only x, y, count, mode, profile, name and people (not "${String(k).slice(0, 40)}")`;
+  if (has(a.people) && (typeof a.people !== 'string' || !g.reg.get('people', a.people))) return `there is no people "${String(a.people).slice(0, 40)}"`;
   if (!Number.isInteger(a.x) || !Number.isInteger(a.y)) return 'pick a tile (whole x and y)';
   if (!g.inB(a.x, a.y)) return 'that spot is outside the map';
   const max = r.spawn.maxCount;
@@ -139,6 +140,9 @@ function joinProblem(g, a, r) {
     const d = octile(a.x, a.y, c.x, c.y);
     if (d > lim) return { sid, h, reason: `too far from ${st.name} to join (${Math.round(d)} tiles)` };
   }
+  // Peoples keep apart (the owner's answer 4): settlers join only a village of their own people.
+  const folk = has(a.people) ? a.people : peopleOfSettlement(g, sid);
+  if (folk && folk !== peopleOfSettlement(g, sid)) return { sid, h, reason: `${g.reg.get('people', folk).plural || g.reg.get('people', folk).name} will not settle among the ${g.reg.get('people', peopleOfSettlement(g, sid))?.plural || 'others'} of ${st.name}` };
   const room = h.beds + r.spawn.joinOverHousing - h.people;
   if (a.count > room) return { sid, h, reason: `no room: ${plural(h.beds, 'bed')}, ${peopleN(h.people)} (+${r.spawn.joinOverHousing} allowed over housing)` };
   return { sid, h, reason: null };
@@ -155,15 +159,26 @@ function preview(g, a, r) {
       effect: `${plural(a.count, 'settler')} join ${st.name} (it has ${peopleN(h.people)} and ${plural(h.beds, 'bed')}; ${peopleN(h.people + a.count)} after they join), bringing ${listText(sup) || 'nothing'}.`,
     };
   }
-  const key = keyOf(g, null), prof = profileFor(g, a, key), name = villageName(g, a, prof, key);
+  const key = keyOf(g, null), prof = profileFor(g, a, key), name = villageName(g, a, prof, key), folk = foundPeople(g, a, prof);
   const color = villageColor(g, prof?.color || '#a0c0e0', Object.keys(g.s.settlements).length);
   const sup = supplies(g, r.spawn.suppliesPerSettler, a.count), far = wouldBeAbstract(g, a.x, a.y);
+  const fname = folk ? `${g.reg.get('people', folk).name} ` : '';
   return {
-    mode: 'found', site: { x: a.x, y: a.y, ok: true }, village: { name, profile: prof?.id || null, profileName: prof?.name || '', color, detail: far ? 'abstract' : 'full' },
+    mode: 'found', site: { x: a.x, y: a.y, ok: true }, village: { name, profile: prof?.id || null, profileName: prof?.name || '', color, detail: far ? 'abstract' : 'full', people: folk },
     people: a.count, supplies: sup, costPer: cost.per,
-    effect: g.s.playerSettlement === null ? `${plural(a.count, 'settler')} found ${name} here: your village, bringing ${listText(sup) || 'nothing'}.`
-      : `${plural(a.count, 'settler')} found ${name} here (${prof?.name || 'their own'} ways), bringing ${listText(sup) || 'nothing'}${far ? '; it is far from your village, so it is simulated at a distance' : ''}.`,
+    effect: g.s.playerSettlement === null ? `${plural(a.count, `${fname}settler`)} found ${name} here: your village, bringing ${listText(sup) || 'nothing'}.`
+      : `${plural(a.count, `${fname}settler`)} found ${name} here (${prof?.name || 'their own'} ways), bringing ${listText(sup) || 'nothing'}${far ? '; it is far from your village, so it is simulated at a distance' : ''}.`,
   };
+}
+
+/** The people of a village the gods found: the one asked for, else the profile's, else the people whose land is
+ *  under the spot (peoples.js peopleByLand, by the scenario's peoplesByLand rule or 10 tiles and 10%). */
+function foundPeople(g, a, prof) {
+  if (!defaultPeople(g)) return null;
+  if (has(a.people)) return a.people;
+  if (prof?.people && g.reg.get('people', prof.people)) return prof.people;
+  const L = g.reg.get('scenario', g.s.scenarioId)?.peoplesByLand || { radius: 10, minShare: 0.1 };
+  return peopleByLand(g, a.x, a.y, L.radius, L.minShare);
 }
 
 /** Free standing places for n people round (x0, y0) in region `region` (spiral order; never on another colonist,
@@ -239,7 +254,8 @@ function applyFound(g, cmd, r) {
       center: { x: a.x, y: a.y }, stockpile: pile, research,
       policy: clone(prof?.policy), trade: clone(prof?.trade), laws: { ...(prof?.laws || {}) }, enforcement: prof?.enforcement ?? 0.6,
     };
-  if (defaultPeople(g)) rec.people = defaultPeople(g);
+  const folk = foundPeople(g, a, prof);
+  if (folk) rec.people = folk;
   s.settlements[sid] = rec;
   if (first) { s.playerSettlement = sid; s.center = { x: a.x, y: a.y }; g._own = null; } // the player's village from now on
   ensureSettlement(g.reg, s, rec);

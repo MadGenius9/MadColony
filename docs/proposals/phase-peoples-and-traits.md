@@ -318,3 +318,19 @@ Each person has 0 to 2 traits. Opposite traits never go together.
     later.
   - No new materials. Only wood and stone exist, so styles differ in shape and walls, not in reed or clay.
 - **Checks:** 203 tests pass; classic runs unchanged from slice 2.
+### Slice 6 (2026-10-28): god powers
+- **Built:**
+  - **`spawn` takes `people`** (`godspawn.js`).
+    - **Found:** without `people`, the profile's people, else the people of the land under the spot (as AI
+      villages in Living and Vast worlds). This holds for the first village of a Blank world too. The preview
+      names them: "3 Duneshade settlers found Oakmere here".
+    - **Join:** refused for settlers of another people: "Cragborn will not settle among the Duneshade of X"
+      (the owner's answer 4).
+  - **The `trait` power** (`godtraits.js`; args colonistId, trait, mode give or remove; 15 favour, free in
+    Sandbox; the owner's answer 6):
+    - giving a trait replaces its opposite;
+    - a person with two traits must lose one first;
+    - the preview gives the trait's description, and the effect follows at once.
+- **Tests:** a Duneshade village founded by the gods; join refused across peoples; the trait power's gives,
+  replacements, removals and refusals, replayed after a load.
+- **Checks:** 205 tests pass; classic runs unchanged.

@@ -371,3 +371,9 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Optional:** a roof tint per people (Reedkin thatch green-brown, Cragborn slate grey, Duneshade sand), from
   the home's settlement people.
 - **New game screen** (Living and Vast worlds): the world summary lists villages by people.
+
+## Peoples and traits, slice 6: god powers
+- **Spawn tool:** a people picker (default "by the land": `preview.village.people` shows which). Joining a
+  village of another people shows the refusal reason.
+- **Trait tool** (new power `trait`): pick a person, then a trait to give or remove. The preview shows the
+  trait's description and, when giving, the opposite it replaces. It costs 15 favour.

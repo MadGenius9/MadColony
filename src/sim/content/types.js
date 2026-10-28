@@ -685,7 +685,7 @@ export const CONTENT_TYPES = {
         if (v.start > v.max) err('start must not be above max');
       } })),
       costs: req(obj({ settler: req(num(0, 1e6)), bless: req(num(0, 1e6)), inspire: req(num(0, 1e6)), omen: num(0, 1e6),
-        lightning: num(0, 1e6), smite: num(0, 1e6), fire: num(0, 1e6), meteor: num(0, 1e6), quake: num(0, 1e6), tornado: num(0, 1e6), plague: num(0, 1e6), rain: num(0, 1e6), drought: num(0, 1e6), banish: num(0, 1e6), shapeTile: num(0, 1e6) })), // Phase 5b; banish: Phase 8c; shapeTile: world shaping (a tile)
+        lightning: num(0, 1e6), smite: num(0, 1e6), fire: num(0, 1e6), meteor: num(0, 1e6), quake: num(0, 1e6), tornado: num(0, 1e6), plague: num(0, 1e6), rain: num(0, 1e6), drought: num(0, 1e6), banish: num(0, 1e6), shapeTile: num(0, 1e6), trait: num(0, 1e6) })), // Phase 5b; banish: Phase 8c; shapeTile: world shaping (a tile); trait: Peoples and traits
       bless: req(obj({ days: req(num(0.1, 1000)), maxDays: req(num(0.1, 1000)), work: req(num(1, 10)), growth: req(num(1, 10)) }, { check: (v, err) => {
         if (v.days > v.maxDays) err('days must not be above maxDays');
       } })),

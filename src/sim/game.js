@@ -44,6 +44,7 @@ import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase
 import './godanimals.js'; // registers the god power 'animals' (Phase 8b)
 import './godmonsters.js'; // registers the god powers 'monster' and 'banish' (Phase 8c)
 import './godshape.js'; // registers the god power 'shape' (world shaping)
+import './godtraits.js'; // registers the god power 'trait' (Peoples and traits)
 import { defaultPeople, settleFolk } from './peoples.js';
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
