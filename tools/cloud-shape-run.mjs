@@ -23,7 +23,7 @@ const tick = () => { const a = performance.now(); g.tick(); const dt = performan
 let sea = null;
 for (let y = 60; y < g.H - 60 && !sea; y += 24) for (let x = 60; x < g.W - 60 && !sea; x += 24) {
   let wet = true;
-  for (let dy = -24; dy <= 24 && wet; dy += 6) for (let dx = -24; dx <= 24 && wet; dx += 6) if (!g.terrainAt(x + dx, y + dy).drinkable && g.terrainAt(x + dx, y + dy).id !== 'core:deep_water') wet = false;
+  for (let dy = -32; dy <= 32 && wet; dy += 8) for (let dx = -32; dx <= 32 && wet; dx += 8) if (!g.terrainAt(x + dx, y + dy).drinkable && g.terrainAt(x + dx, y + dy).id !== 'core:deep_water') wet = false;
   if (wet) sea = { x, y };
 }
 if (!sea) { console.error('no open sea'); process.exit(1); }
@@ -43,11 +43,13 @@ function stroke(args) {
   console.error(`[stroke] ${args.brush} (${args.x}, ${args.y}) r${args.r}: ${p.preview.tiles} tiles, worst tick ${w.toFixed(0)} ms`);
   return true;
 }
-// 1. An island: raise a 3x3 block of discs until the middle of each is dry land.
+// 1. An island: raise a 3x3 block of discs (16 apart, so they hardly overlap) until the middle of each is dry
+// land (sand), then flatten each one to grass, which can be farmed.
 for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
-  const at = { x: sea.x + i * 12, y: sea.y + j * 12 };
+  const at = { x: sea.x + i * 16, y: sea.y + j * 16 };
   for (let k = 0; k < 6 && !dry(at.x, at.y); k++) stroke({ brush: 'raise', ...at, r: 8 });
 }
+for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) stroke({ brush: 'flatten', x: sea.x + i * 16, y: sea.y + j * 16, r: 8 });
 // 2. A lake, forest, stone and ore on it.
 stroke({ brush: 'water', x: sea.x - 8, y: sea.y - 8, r: 3 });
 stroke({ brush: 'forest', x: sea.x + 10, y: sea.y - 10, r: 6 });
@@ -75,7 +77,8 @@ for (let d = 1; d <= days; d++) {
 const v = g.s.settlements[g.s.playerSettlement];
 console.log(JSON.stringify({
   days, size, seed, ok: !failed, strokes, worstStrokeTickMs: +worstStroke.toFixed(1), worstLivingTickMs: +worst.toFixed(1),
-  village: v ? { name: v.name, people: g.owned('colonists', g.s.playerSettlement).length, built: Object.values(g.s.structures).filter((s) => s.built).length } : null,
+  village: v ? { name: v.name, people: g.owned('colonists', g.s.playerSettlement).length, built: Object.values(g.s.structures).filter((s) => s.built).length, fields: g.owned('fields', g.s.playerSettlement).length } : null,
   deaths: g.s.stats?.deaths || {}, born: peopleCensus(g, start).born,
 }, null, 1));
+if (!v || g.owned('colonists', g.s.playerSettlement).length === 0) { console.error('FAILED: the village on the island died out'); process.exit(1); }
 process.exit(failed ? 1 : 0);
