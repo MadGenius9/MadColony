@@ -83,7 +83,7 @@ for (let d = 1; d <= days; d++) {
     console.error(`[power] day ${d} ${type}: ${res.msg}`);
     const copy = loadGame(g.reg, serializeGame(g));
     for (let t = 0; t < 300; t++) { timedTick(d); copy.tick(); }
-    if (state(g) !== state(copy)) fail(`${type} on day ${d}: the loaded copy differs after 300 ticks: ${diffPath(JSON.parse(state(g)).state, JSON.parse(state(copy)).state)}`);
+    if (state(g) !== state(copy)) fail(`${type} on day ${d}: the loaded copy differs after 300 ticks: ${diffPath(JSON.parse(state(g)), JSON.parse(state(copy)))}`);
   }
   while (g.s.tick < d * TICKS_PER_DAY) {
     timedTick(d);
