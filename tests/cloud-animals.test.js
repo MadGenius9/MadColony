@@ -67,16 +67,21 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
   runDays(g, 1);
   const start = herdCensus(g);
   assert.ok(start['core:wolf']?.herds > 0 && start['core:deer']?.herds > 0 && start['core:wild_horse']?.herds > 0, JSON.stringify(start));
+  let farHunts = 0; // carcasses made while a distant village lives its hour (lod.js)
+  const create = g.createItems.bind(g);
+  g.createItems = (item, qty, ...rest) => {
+    if (rest[2] === 'hunt' && g.s.settlements?.[g.actor]?.detail === 'abstract') farHunts += qty;
+    return create(item, qty, ...rest);
+  };
   runDays(g, 20);
+  delete g.createItems;
   const now = herdCensus(g);
   for (const sp of Object.keys(start)) {
     assert.ok(now[sp]?.animals > 0, `${sp} survive`);
     assert.ok(now[sp].animals < start[sp].animals * 2.5, `${sp} do not explode`);
   }
-  // Slice 5: distant villages hunt too (their kills are not logged, so the ledger counts more than the log).
-  const hunted = g.s.ledger.byReason['created:hunt']?.['core:deer_carcass'] || 0;
-  const logged = g.s.log.filter((e) => / killed a deer\./.test(e.msg)).length;
-  assert.ok(hunted > logged, `distant villages hunted (${hunted} carcasses, ${logged} kills seen close up)`);
+  // Slice 5: distant villages hunt too.
+  assert.ok(farHunts > 0, `distant villages hunted (${farHunts} carcasses)`);
   // A hungry far pack beside a distant village mauls someone there (a chance a day).
   const v = Object.values(g.s.settlements).filter((x) => x.detail === 'abstract' && !x.fallen).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
   const A = g.s.animals;

@@ -203,7 +203,7 @@
       "id": "core:hunt",
       "name": "Hunting",
       "skill": "core:hunting",
-      "priority": 1,
+      "priority": 0.8,
       "givers": [
         {
           "giver": "core:hunt_animals"

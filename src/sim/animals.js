@@ -633,9 +633,9 @@ export function farHuntable(g, x, y, r, sid = null) {
     const raid = d?.diet === 'hunt' && sid && h.raids?.[sid] > g.s.tick;
     if (!d?.carcass || (!raid && (d.diet !== 'graze' || h.n <= HUNT_LIMIT))) continue;
     const dist = Math.hypot(h.x - x, h.y - y);
-    if (dist <= r) out.push({ h, d, dist: raid ? dist - 1000 : dist, raid });
+    if (dist <= r) out.push({ h, d, dist, raid });
   }
-  return out.sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
+  return out.sort((a, b) => b.raid - a.raid || a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1)); // packs that raided first
 }
 
 /** One animal of far herd hid is killed (a distant village's hunt). */

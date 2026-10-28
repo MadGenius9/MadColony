@@ -31,7 +31,7 @@ import { tapHasWater, isWaterNode } from './water.js';
 import { fieldCells } from './game.js';
 import { planNow } from './planner.js';
 import { droughtAt } from './weatherat.js';
-import { farHuntable, killFar, meatOnHand, MEAT_PER_PERSON } from './animals.js';
+import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
 import { huntWeapon } from './hunt.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
@@ -400,6 +400,7 @@ function hourLabour(g, sid, cols, store, structs, own) {
   const A = settlementOf(g, sid).abs.gather;
   for (const id of Object.keys(A)) if (!g.s.nodes[id]) delete A[id]; // work on a node that is gone is lost, as for a job
   const ctx = makeContext(g, sid, store, structs, own, P);
+  ctx.cols = cols;
   const tasks = [taskResearch, taskConstruct, taskBills, taskHunt, taskFarm, taskGather];
   for (const c of workers) {
     let time = LOD.hour;
@@ -701,18 +702,32 @@ function taskGather(g, ctx, c, time) {
 // (settlement.abs.hunt). At the end a hash draw decides it (HUNT_HIT): a kill takes one animal from the herd and
 // makes its carcass at the centre (`created:hunt`), to be butchered by the village's bills; a miss starts again.
 const HUNT_REACH = 40, HUNT_WORK = 400, HUNT_HIT = 0.7;
-/** Can c hunt in a distant village: their own weapon, or a weapon in the village's stock (nobody equips there). */
+/** Can c hunt in a distant village: their own weapon, or a weapon in the village's stock (nobody equips there);
+ *  a bow counts only with its arrows in stock too. Weapons and arrows are not worn or spent here (an aggregate). */
 function huntArmed(g, ctx, c) {
   if (huntWeapon(g, c)) return true;
-  if (ctx.huntGear === undefined) ctx.huntGear = ctx.store.stacks().some((st) => ctx.store.avail(st) >= 1 && g.reg.get('item', st.item)?.equipment?.damage && !g.reg.get('item', st.item).equipment.ammo); // weapons carry wear (dur)
+  if (ctx.huntGear === undefined) {
+    const have = new Set();
+    for (const st of ctx.store.stacks()) if (ctx.store.avail(st) >= 1) have.add(st.item); // weapons carry wear (dur)
+    ctx.huntGear = [...have].some((it) => { const eq = g.reg.get('item', it)?.equipment; return eq?.damage && (!eq.ammo || have.has(eq.ammo)); });
+  }
   return ctx.huntGear;
+}
+/** Meat on hand now (carcasses count 6), from the live stacks rather than the plan's older snapshot. */
+function storeMeat(g, ctx) {
+  let n = 0;
+  for (const st of ctx.store.stacks()) {
+    const tags = g.reg.get('item', st.item)?.tags;
+    if (tags?.includes('core:meat')) n += st.qty; else if (tags?.includes('core:carcass')) n += 6 * st.qty;
+  }
+  return n;
 }
 function taskHunt(g, ctx, c, time) {
   if (!can(g, c, 'core:hunt') || !g.s.animals || (ctx.hunter && ctx.hunter !== c.id) || !huntArmed(g, ctx, c)) return 0; // one hunter a village an hour
-  const people = g.owned('colonists', ctx.sid).length;
-  ctx.huntMeat ??= meatOnHand(g, ctx.P);
-  const targets = farHuntable(g, ctx.center.x, ctx.center.y, HUNT_REACH, ctx.sid);
-  const target = targets.find((t) => t.raid) || (ctx.huntMeat < MEAT_PER_PERSON * Math.max(2, people) ? targets[0] : null);
+  ctx.huntMeat ??= storeMeat(g, ctx);
+  ctx.huntTargets ??= farHuntable(g, ctx.center.x, ctx.center.y, HUNT_REACH, ctx.sid); // once a village an hour
+  const targets = ctx.huntTargets.filter((t) => g.s.animals.herds[t.h.id] === t.h);
+  const target = targets.find((t) => t.raid) || (ctx.huntMeat < MEAT_PER_PERSON * Math.max(2, ctx.cols.length) ? targets[0] : null);
   if (!target) return 0;
   ctx.hunter = c.id;
   const { h, d } = target, abs = (settlementOf(g, ctx.sid).abs.hunt ||= {});
