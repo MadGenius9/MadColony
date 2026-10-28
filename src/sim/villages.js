@@ -10,6 +10,7 @@ import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.j
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
 import { knownPeople, settleFolk, modsOf, paletteOf, peopleByLand } from './peoples.js';
 import { isAdult } from './people.js';
+import { lawIs } from './worldlaws.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
 export const RELATION_LABEL = { unknown: 'Not met', neutral: 'Neutral', friendly: 'Friendly', hostile: 'Hostile' };
@@ -350,11 +351,16 @@ export function relationStatus(rel) {
   if (!rel?.contact) return 'unknown';
   return rel.value >= 25 ? 'friendly' : rel.value <= -25 ? 'hostile' : 'neutral';
 }
+/** Under the Peace law relations of villages not at war stop here, just above hostile (-25). */
+export const PEACE_FLOOR = -24;
 /** Every change has a visible cause. */
 export function changeRelation(g, a, b, delta, reason) {
   const rel = relationOf(g, a, b);
   const before = relationStatus(rel);
   rel.value = Math.max(-100, Math.min(100, rel.value + delta));
+  // The Peace law (worldlaws.js): villages not already hostile cannot become so (no new wars); the drop stops
+  // just above the hostile line, and the reason says why.
+  if (before !== 'hostile' && rel.contact && rel.value <= -25 && lawIs(g, 'core:peace', 'on')) { delta += PEACE_FLOOR - rel.value; rel.value = PEACE_FLOOR; reason = `${reason} (held at neutral by the Peace law)`; }
   rel.history.push({ tick: g.s.tick, delta, reason });
   if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16);
   const after = relationStatus(rel);

@@ -13,6 +13,7 @@ import { settlementOf } from './research.js';
 import { kingdomOf, membersOf, sameKingdom, theKingdom } from './kingdoms.js';
 import { octile } from './util.js';
 import { modsOf } from './peoples.js';
+import { lawIs } from './worldlaws.js';
 
 export const COMBAT = {
   scanEvery: 5, // ticks between a colonist's threat checks
@@ -360,6 +361,7 @@ export function evaluateAttack(g, sid, target) {
   if (!rel.contact) { res.valid = false; res.problems.push(`You have not met ${name} yet.`); }
   if (allianceOf(g, sid, target)) { res.valid = false; res.problems.push(`${name} is your ally. End the alliance first.`); }
   if (sameKingdom(g, sid, target)) { res.valid = false; res.problems.push(`${name} is in your kingdom (${kingdomOf(g, sid).name}).`); }
+  if (lawIs(g, 'core:peace', 'on') && !isEnemy(g, sid, target)) { res.valid = false; res.problems.push(`The Peace law holds: no new war may start (you are not at war with ${name}).`); }
   if (!ours.length) { res.valid = false; res.problems.push('Nobody fit is armed. Make weapons first (spears, bows).'); }
   const ranged = ours.filter((c) => g.reg.get('item', c.equip.weapon.item)?.equipment?.ammo);
   res.lines.push(`Your fighters: ${ours.length} armed and fit (${ranged.length} with ranged weapons). Theirs: about ${theirs.length}.`);
@@ -393,6 +395,7 @@ export function evaluateAttack(g, sid, target) {
 /** An AI village declares war (war.js, Phase 5): relations go to WAR.declareTo at most, a trade pact ends, it
  *  orders an attack, and the attacked village's allies and kingdom are called in (strikeFirst). */
 export function declareWar(g, sid, target, reason) {
+  if (lawIs(g, 'core:peace', 'on') && !isEnemy(g, sid, target)) return false; // the Peace law: no new wars
   const rel = relationOf(g, sid, target);
   if (rel.value > WAR.declareTo) changeRelation(g, sid, target, WAR.declareTo - rel.value, reason);
   else { rel.history.push({ tick: g.s.tick, delta: 0, reason }); if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16); }

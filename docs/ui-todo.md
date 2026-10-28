@@ -384,3 +384,5 @@ where, and which sim function or state field provides it. The UI is built at hom
   tooltip.
 - **Top bar:** a small badge per law in force (`activeLaws(g)`: name, value, since), e.g. "Peace", "Endless
   winter".
+- **Peace:** the attack button shows the refusal "The Peace law holds: no new war may start" for villages not
+  at war. The relations history shows "(held at neutral by the Peace law)".

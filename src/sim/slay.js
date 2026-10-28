@@ -18,6 +18,7 @@ import { roomAt } from './heat.js';
 import { killMonster, woundMonster, standing, homeOf } from './monsters.js';
 import { isAdult } from './people.js';
 import { modsOf } from './peoples.js';
+import { lawIs } from './worldlaws.js';
 
 const SEE = 10, THREAT = 40, HOLD = 7, PARTY = 8, GIVE_UP = 1500, CLEAR_R = 60, CLEAR_WORK = 300;
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -47,6 +48,7 @@ const armedFit = (g, c) => !!huntWeapon(g, c) && hpOf(c) > 50 && !c.health?.down
 /** Is monster o a danger to c now (as monsters.js attacks): a Thornback near its den or angry at them, a
  *  Gloomstalker at night, a Barkmaw always. */
 function dangerTo(g, o, d, c, night) {
+  if (lawIs(g, 'core:tame_monsters', 'on')) return false; // tame monsters strike nobody
   if (o.angry?.cid === c.id && o.angry.until > g.s.tick) return true;
   if (d.behaviour === 'stalk') return night;
   if (d.behaviour === 'trample') { const l = homeOf(g, o); return !!l && Math.hypot(c.x - l.x, c.y - l.y) <= 10; } // its den, or its foray spot

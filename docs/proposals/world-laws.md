@@ -139,3 +139,20 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
     `peaceful` power and old saves need nothing.
 - **Tests** (`tests/cloud-laws.test.js`): set, shown, refused, saved and cleared; free; mended and refused
   on load. 206 tests pass.
+### Slice 2 (2026-10-28): peace and tame monsters
+- **Peace** (the owner's answer 3: running wars go on):
+  - no declarations (`war.js declarations`);
+  - no new war from `declareWar`;
+  - the player's attack order on a village they are not at war with is refused, with "The Peace law holds: no
+    new war may start";
+  - relations of villages not already hostile stop at −24, just above hostile, with "(held at neutral by the
+    Peace law)" in the reason.
+  - Wars already running (enemies when the law came) go on: their raids, battles and truces as usual.
+- **Tame monsters:**
+  - no forays, no raids on distant villages, no trampling, strikes or tearing;
+  - a tame monster only wanders by its lair, and nobody runs from it;
+  - turning the law on ends every foray at once.
+- **Peaceful animals:** as before (slice 1).
+- **Tests:** a running war goes on while new ones are refused, relations are held, and a save and load
+  match; a Thornback gores and tramples when wild but not when tame; a foray ends when the law comes.
+  208 tests pass; classic unchanged.

@@ -20,6 +20,7 @@ import { roomAt } from './heat.js';
 import { destroyCrop, destroyStructures } from './ruin.js';
 import { buildingFlammable } from './fire.js';
 import { endJob } from './ai/ai.js';
+import { lawIs, onLawChange } from './worldlaws.js';
 
 const HOUR = 100, FAR = 80, MIN_FAR = 20, LAIR_GAP = 2 * CHUNK;
 const hash = (str) => {
@@ -159,6 +160,7 @@ function hourly(g, m) {
 // day; its carcass or drops go to the village centre (created:hunt).
 const RAID_R = 30, RAID_P = 0.3, SLAY_P = 0.25;
 function raidDistant(g, m, d, day) {
+  if (lawIs(g, 'core:tame_monsters', 'on')) return; // the Tame monsters law
   const s = g.s;
   for (const sid of Object.keys(s.settlements || {}).sort(byId)) {
     const v = s.settlements[sid];
@@ -280,6 +282,7 @@ function unstick(g, m) {
   if (l) { m.x = l.x; m.y = l.y; }
 }
 function trample(g, m, d) {
+  if (lawIs(g, 'core:tame_monsters', 'on')) return; // tame: it walks round the crops
   const cr = g.cropAt(m.x, m.y);
   if (!cr || (m.trampled || 0) >= FEAST) return; // at most FEAST crops a day
   destroyCrop(g, cr.id);
@@ -318,6 +321,7 @@ function act(g, m) {
     if (m.hp <= 0) { killMonster(g, m.id, 'burned'); g.log(`The ${d.name} burned to death.`, 'info', `monster-dead:${m.id}`); return; }
   }
   if (m.tday !== day) { m.trampled = 0; m.tday = day; }
+  if (lawIs(g, 'core:tame_monsters', 'on')) { wander(g, m, d, lair, 4, key); return; } // tame: it only roams by its lair
   const angry = m.angry && m.angry.until > s.tick ? s.colonists[m.angry.cid] : null;
   if (d.behaviour === 'trample') {
     const near = angry && !angry.health?.down && !roomAt(g, Math.round(angry.x), Math.round(angry.y)) && !smallVillage(g, angry.settlementId) ? angry : prey(g).find((c) => !roomAt(g, Math.round(c.x), Math.round(c.y)) && Math.hypot(c.x - lair.x, c.y - lair.y) <= DEN);
@@ -418,6 +422,7 @@ export function homeOf(g, m) {
   return m.foray && m.foray.until > g.s.tick ? m.foray : g.s.monsters.lairs[m.lair];
 }
 function foray(g, m, d, lair, day) {
+  if (lawIs(g, 'core:tame_monsters', 'on')) return false; // the Tame monsters law: they keep to their lairs
   const s = g.s, key = `${s.seed}:${m.id}:foray:${day}`, V = (s.monsters.visits ||= {});
   if (day < FORAY_FROM || draw(key) >= FORAY_P) return false;
   let best = null, bd = Infinity;
@@ -507,3 +512,9 @@ export function monsterSummary(g) {
   for (const m of Object.values(g.s.monsters?.list || {})) { out[m.sp] ||= { lairs: 0, living: 0 }; out[m.sp].living++; }
   return out;
 }
+
+// The Tame monsters law (worldlaws.js): turning it on sends every monster on a foray home at once.
+onLawChange('core:tame_monsters', (g, from, to) => {
+  if (to !== 'on' || !g.s.monsters) return;
+  for (const id of Object.keys(g.s.monsters.list || {}).sort()) { const m = g.s.monsters.list[id]; if (m.foray) m.foray.until = g.s.tick; }
+});

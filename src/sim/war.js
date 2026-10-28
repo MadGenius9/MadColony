@@ -34,6 +34,7 @@ import { spreadContact } from './illness.js';
 import { mayFight } from './people.js';
 import { settlementOf } from './research.js';
 import { peopleOfSettlement } from './peoples.js';
+import { lawIs } from './worldlaws.js';
 
 /** The scenario's war rules, or null. */
 export function warRules(g) {
@@ -233,6 +234,7 @@ function truces(g, R) {
 }
 
 function declarations(g, R) {
+  if (lawIs(g, 'core:peace', 'on')) return; // the Peace law: no new wars (running ones go on)
   const s = g.s, ids = Object.keys(s.settlements || {}).sort();
   const strength = new Map();
   const str = (sid) => { if (!strength.has(sid)) strength.set(sid, warStrength(g, sid)); return strength.get(sid); };
