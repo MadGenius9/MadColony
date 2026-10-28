@@ -9,6 +9,7 @@ import { endJob } from '../src/sim/ai/ai.js';
 import { newJob } from '../src/sim/ai/jobs.js';
 import { causeText } from '../src/sim/death.js';
 import { seasonOf } from '../src/sim/heat.js';
+import { weatherRules } from '../src/sim/weather.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 
@@ -100,7 +101,9 @@ test('far herds on the Vast world: packs eat deer, herds stay on their landmass,
   const dry = Object.values(g.s.animals.herds).filter((h) => h.sp === 'core:deer' && h.near === undefined && h.n >= 4).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
   const at = { x: dry.x, y: dry.y };
   assert.equal(issueCommand(g, 'drought', { ...at, confirm: true }).ok, true);
-  const r = Object.values(g.s.disasters.weather).find((a) => a.kind === 'drought' && a.x === at.x && a.y === at.y).r;
+  const r = weatherRules(g).drought.radius;
+  g.tick();
+  assert.ok(Object.values(g.s.disasters.weather || {}).some((a) => a.kind === 'drought'), 'the drought began');
   runDays(g, 2);
   const herdNow = g.s.animals.herds[dry.id];
   assert.ok(herdNow && Math.hypot(herdNow.x - at.x, herdNow.y - at.y) > r, `the deer left the drought (${herdNow ? Math.round(Math.hypot(herdNow.x - at.x, herdNow.y - at.y)) : 'gone'} tiles from its middle, radius ${r})`);
