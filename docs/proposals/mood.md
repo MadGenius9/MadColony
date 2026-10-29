@@ -197,3 +197,4 @@ A person's mood is the sum of their current thoughts, each a named value with a 
   - The hunt-party test wakes everyone first.
   - The lasting-injury test's wound is marked as not festering, since infection is a game-rng draw that any
     earlier change moves.
+- **Checks:** 234 tests pass. Classic: `forty` 8345afce244873af (workshops on day 6.46), `modern` 3db6905a9e1dc4d5 (modern on day 46.31; mood's work speed moves both a little).

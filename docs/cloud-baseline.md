@@ -166,3 +166,7 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 ## Mood, slice 1 (2026-10-29): new classic hashes
 - Moods saved, and two new traits (Cheerful, Gloomy) change trait draws: `forty` 00d13c824c43dec4 (workshops era on
   day 5.94, 66 built), `modern` 33e51d33d37f815e (modern era on day 46.12, 90 built). 232 tests pass.
+
+## Mood, slice 2 (2026-10-29): classic hashes
+- 234 tests pass. `forty` 8345afce244873af (workshops era on day 6.46, 66 built), `modern` 3db6905a9e1dc4d5 (modern
+  era on day 46.31, 90 built).
