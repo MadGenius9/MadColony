@@ -224,3 +224,4 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
   - the Endless plague is harsh: 37 dead in 45 days on this map (worth tuning after play);
   - herds have no spring under an endless season;
   - Civilization laws, the next phase.
+- **Bench:** against the code before the phase, −0.5% and −1.7% (two rounds).

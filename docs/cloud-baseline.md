@@ -146,3 +146,10 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   - 2.453 ms/tick at day 300;
   - 289 people (Hearthfolk 158, Cragborn 50, Reedkin 48, Duneshade 33) in 56 standing villages of 65;
   - save 13.3 MB; 20.4 min.
+
+## World laws acceptance (2026-10-29)
+- 215 tests pass. Classic unchanged: `forty` ee55506a781cb766, `modern` 479f5857575304ab (no laws set).
+- Bench (the code before the phase, `9c1b3a2`, against now, two rounds, ms/tick summed over the six sizes): 4.32 →
+  4.30 (−0.5%) and 4.25 → 4.18 (−1.7%).
+- Laws run (`tools/cloud-laws-run.mjs 200 vast 7`): ok; 129 people on day 200, 34 of 35 villages standing,
+  1.39 ms/tick; 6.9 min.
