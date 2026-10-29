@@ -18,6 +18,9 @@ import { namePoolOf, surnameOf, uniqueName, usedNames } from './names.js';
 import { startAge, ageNow } from './life.js';
 import { blessingOf } from './god.js';
 import { peopleOfSettlement, inheritTraits, paletteOf } from './peoples.js';
+import { civLawOf, hoursOf, CHILD_WORK } from './civlaws.js';
+/** School hours (education.js EDU.school, 8-15), here to keep people.js free of education.js. */
+const inSchoolHours = (g) => { const h = (g.s.tick % TICKS_PER_DAY) / (TICKS_PER_DAY / 24); return h >= 8 && h < 15; };
 import { growthOf } from './worldlaws.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
@@ -36,7 +39,15 @@ export const needsCare = (g, c) => !!stageOf(g, c)?.needsCare;
 export const mayFight = (g, c) => stageOf(g, c)?.fights !== false;
 /** May this colonist do this kind of work at their stage? */
 export function mayDoWork(g, c, workTypeId) {
-  const st = stageOf(g, c);
+  const st = stageOf(g, c), sid = c.settlementId || g.s.playerSettlement;
+  // Civilization laws (civlaws.js): a curfew stops outdoor work at night; compulsory schooling keeps children
+  // at their studies in school hours; child labour lets children haul and farm too.
+  if (g.isNight() && hoursOf(g, sid) === 'curfew' && g.reg.get('workType', workTypeId)?.outdoor) return false;
+  if (st?.workTypes && st.attendsSchool) {
+    const law = civLawOf(g, sid, 'core:schooling');
+    if (law === 'compulsory' && inSchoolHours(g) && workTypeId !== 'core:study') return false;
+    if (law === 'child_labour' && CHILD_WORK.includes(workTypeId)) return true;
+  }
   return !st?.workTypes || st.workTypes.includes(workTypeId);
 }
 /** Age in game days since birth (children), or null for adults without a recorded birth. */

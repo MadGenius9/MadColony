@@ -54,3 +54,71 @@ test('civ laws: a kingdom\'s capital sets its kingdom laws for every member; mem
   assert.equal(setCivLaw(g, mem, 'core:rationing', 'rationed', '', { force: true }).ok, true, 'its own laws stay its own');
   assert.ok(codeOf(g, mem).some((x) => x.id === 'core:borders' && x.byKingdom === cap));
 });
+
+// ---- slice 2: daily life
+import { mayDoWork } from '../src/sim/people.js';
+import { NEED_BEHAVIORS, decayNeed } from '../src/sim/ai/needs.js';
+import { workSpeed } from '../src/sim/ai/jobs.js';
+import { RATION } from '../src/sim/civlaws.js';
+
+const atHour = (g, h) => { while (Math.floor(g.hour) !== h) g.tick(); };
+
+test('civ laws: a curfew stops outdoor work at night; long hours keep people up later', () => {
+  const g = newGame({ seed: 4242 });
+  const me = g.s.playerSettlement, c = g.colonists()[0];
+  setCivLaw(g, me, 'core:work_hours', 'curfew', '', { force: true });
+  atHour(g, 23);
+  assert.equal(mayDoWork(g, c, 'core:chop'), false, 'no felling at night');
+  assert.equal(mayDoWork(g, c, 'core:craft'), true, 'indoor work goes on');
+  atHour(g, 10);
+  assert.equal(mayDoWork(g, c, 'core:chop'), true, 'by day as usual');
+  const energy = g.reg.all('need').find((n) => n.behavior === 'core:sleep');
+  atHour(g, 23);
+  c.needs[energy.id] = 0.5;
+  assert.equal(NEED_BEHAVIORS['core:sleep'].wants(g, c, energy), true, 'normally a 0.5-energy person goes to bed at night');
+  setCivLaw(g, me, 'core:work_hours', 'long', '', { force: true });
+  assert.equal(NEED_BEHAVIORS['core:sleep'].wants(g, c, energy), false, 'under long hours they stay up');
+  c.needs[energy.id] = 0.3;
+  assert.equal(NEED_BEHAVIORS['core:sleep'].wants(g, c, energy), true, 'until they are tired');
+  const b = reload(g);
+  runDays(g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(g));
+});
+
+test('civ laws: rationing slows hunger and work; schooling laws decide what children do', () => {
+  const g = newGame({ seed: 4242 });
+  const me = g.s.playerSettlement, c = g.colonists()[0];
+  const hunger = g.reg.all('need').find((n) => n.behavior === 'core:eat');
+  const drop = () => { const x = { ...c, needs: { ...c.needs, [hunger.id]: 1 }, sleeping: false, job: null }; for (let i = 0; i < 100; i++) decayNeed(x, hunger, g); return 1 - x.needs[hunger.id]; };
+  const d0 = drop(), w0 = workSpeed(g, c, 'core:chop', 'core:woodcutting');
+  setCivLaw(g, me, 'core:rationing', 'rationed', '', { force: true });
+  assert.ok(Math.abs(drop() / d0 - RATION.hunger) < 1e-9);
+  assert.ok(Math.abs(workSpeed(g, c, 'core:chop', 'core:woodcutting') / w0 - RATION.work) < 1e-9);
+  // A child.
+  const kid = g.colonists()[1];
+  kid.stage = g.reg.all('lifeStage').find((s) => s.attendsSchool).id;
+  atHour(g, 10);
+  assert.equal(mayDoWork(g, kid, 'core:forage'), true, 'free: children forage in school hours too');
+  assert.equal(mayDoWork(g, kid, 'core:haul'), false);
+  setCivLaw(g, me, 'core:schooling', 'compulsory', '', { force: true });
+  assert.equal(mayDoWork(g, kid, 'core:forage'), false, 'compulsory: not in school hours');
+  assert.equal(mayDoWork(g, kid, 'core:study'), true);
+  atHour(g, 17);
+  assert.equal(mayDoWork(g, kid, 'core:forage'), true, 'after school');
+  setCivLaw(g, me, 'core:schooling', 'child_labour', '', { force: true });
+  assert.equal(mayDoWork(g, kid, 'core:haul'), true, 'child labour: hauling');
+  assert.equal(mayDoWork(g, kid, 'core:farm'), true);
+  assert.equal(mayDoWork(g, kid, 'core:mine'), false, 'not everything');
+});
+
+test('civ laws: distant villages under laws play, save and load the same', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(g, 1); // detail is settled in the first ticks
+  const far = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].detail === 'abstract');
+  assert.ok(far.length > 0);
+  far.forEach((sid, i) => { setCivLaw(g, sid, 'core:rationing', 'rationed', '', { force: true }); setCivLaw(g, sid, 'core:work_hours', i % 2 ? 'long' : 'curfew', '', { force: true }); });
+  runDays(g, 2);
+  const b = reload(g);
+  runDays(g, 2); runDays(b, 2);
+  assert.equal(stateText(b), stateText(g));
+});

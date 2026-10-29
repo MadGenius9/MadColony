@@ -17,6 +17,7 @@ import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { interactionSpot } from './construction.js';
 import { octile } from './util.js';
 import { isDown } from './health.js';
+import { civLawIs } from './civlaws.js';
 
 export const EDU = {
   school: [8, 15], college: [8, 17], // hours
@@ -160,6 +161,7 @@ export const EDUCATION_GIVERS = {
   'core:attend': {
     find(g, c, params, wt) {
       if (!stageOf(g, c)?.attendsSchool || hasQual(c, 'core:schooled') || !inHours(g, EDU.school)) return [];
+      if (civLawIs(g, sidOf(g, c), 'core:schooling', 'child_labour')) return []; // child labour: no school (civlaws.js)
       return deskCandidates(g, c, wt, 'desk', 'study', 'Go to school', 1.6);
     },
   },

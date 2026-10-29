@@ -34,6 +34,7 @@ import { droughtAt } from './weatherat.js';
 import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
 import { huntWeapon } from './hunt.js';
 import { modsOf } from './peoples.js';
+import { rationOf, hoursOf } from './civlaws.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -342,7 +343,7 @@ function hourNeeds(g, sid, cols, store, structs) {
     // out again cut abstract production in tests/lod-rates.test.js, seed 7, from -21% to -26%).
     const asleep = night || (!!energyDef && (c.needs[energyDef.id] ?? 1) < energyDef.seekBelow);
     for (const def of reg.all('need')) {
-      const drop = (def.decayPerDay / 24) * (asleep && (def.behavior === 'core:eat' || def.behavior === 'core:drink') ? (def.sleepDecayMult ?? 1) : 1) * (def.behavior === 'core:shelter' ? 1 : modsOf(g, c).needs[def.id] ?? 1); // people and traits (peoples.js)
+      const drop = (def.decayPerDay / 24) * (asleep && (def.behavior === 'core:eat' || def.behavior === 'core:drink') ? (def.sleepDecayMult ?? 1) : 1) * (def.behavior === 'core:shelter' ? 1 : modsOf(g, c).needs[def.id] ?? 1) * (def.behavior === 'core:eat' ? rationOf(g, c) : 1); // people and traits (peoples.js); rationing (civlaws.js)
       const v = c.needs[def.id] ?? 1;
       if (def.behavior === 'core:drink') c.needs[def.id] = water ? 1 : Math.max(0, v - drop);
       else if (def.behavior === 'core:shelter') {
@@ -393,7 +394,7 @@ function pickFood(g, store, reserve) {
 // ---------------------------------------------------------------- labour
 function hourLabour(g, sid, cols, store, structs, own) {
   const hour = Math.floor(g.hour);
-  if (hour < 6 || hour >= 21) return;
+  if (hour < 6 || hour >= (hoursOf(g, sid) === 'long' ? 23 : 21)) return; // long hours (civlaws.js): two more
   const P = g.plans?.[sid];
   if (!P) return;
   const workers = cols.filter((c) => isAdult(g, c) && !isDown(c));

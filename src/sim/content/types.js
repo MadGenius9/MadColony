@@ -230,6 +230,7 @@ export const CONTENT_TYPES = {
       givers: req(arr(obj({ giver: req(str(60)), params: { type: 'any' } }), { minItems: 1 })),
       // Chance per finished job of a work accident (an injury of min..max severity), and how it is described.
       hazard: obj({ chance: req(num(0, 1)), min: req(num(0, 100)), max: req(num(0, 100)), text: str(120) }),
+      outdoor: bool(), // work done outdoors (a curfew stops it at night; civlaws.js)
       color,
     }),
   },

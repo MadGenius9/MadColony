@@ -208,6 +208,7 @@
   "workType": [
     {
       "id": "core:hunt",
+      "outdoor": true,
       "name": "Hunting",
       "skill": "core:hunting",
       "priority": 0.8,

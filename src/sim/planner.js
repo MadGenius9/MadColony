@@ -16,6 +16,7 @@ import { PLAN_INTERVAL } from './constants.js';
 import { TICKS_PER_DAY, TICKS_PER_HOUR, NEAR_RADIUS } from './constants.js';
 import { canRipen } from './farming.js';
 import { heatSeason, seasonLawKey } from './heat.js';
+import { civLawIs, RATION } from './civlaws.js';
 import { isWaterNode, waterNetworks } from './water.js';
 import { GOAL_TYPES, goalIsOngoing, describeGoal } from './goals.js';
 import { createProject, findSite, assignHome, addSlotPart, partsOf, homeFurnished, tileUsable } from './construction.js';
@@ -210,7 +211,7 @@ function planSettlement(g, sid) {
 
   // ---- Food accounting ----
   const hunger = reg.all('need').find((x) => x.behavior === 'core:eat');
-  const needPerDay = n * (hunger?.decayPerDay ?? 1);
+  const needPerDay = n * (hunger?.decayPerDay ?? 1) * (civLawIs(g, sid, 'core:rationing', 'rationed') ? RATION.hunger : 1); // rationing (civlaws.js)
   let foodNutr = 0;
   for (const [it, q] of Object.entries(P.stock)) {
     const nu = reg.get('item', it)?.nutrition || 0;

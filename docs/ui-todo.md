@@ -401,3 +401,5 @@ where, and which sim function or state field provides it. The UI is built at hom
   `civLawProblem` gives a reason ("wait 3 more days"), the option is greyed out with it as the tooltip. Each
   option's `about` is the tooltip, and its `mood` shows as a small face (for the Mood phase).
 - **Other villages' panels** show their laws read-only, and the log shows "X passed a law: ...".
+- **Work hours, rationing and schooling:** the idle reason "Curfew: no outdoor work at night" shows in the
+  colonist card. Children's cards say "At school (compulsory schooling)" or "Working (child labour)".

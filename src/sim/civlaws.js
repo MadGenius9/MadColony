@@ -43,6 +43,19 @@ export function codeOf(g, sid) {
   return out;
 }
 
+// ---- effects (slice 2: daily life)
+/** Long hours: the energy at which people seek their beds at night (instead of the need's nightSeekBelow). */
+export const LONG_NIGHT_SEEK = 0.4;
+/** Rationing: hunger falls this much as fast, and work goes this much as fast. */
+export const RATION = Object.freeze({ hunger: 0.8, work: 0.9 });
+/** Child labour: the work children may also do. */
+export const CHILD_WORK = Object.freeze(['core:haul', 'core:farm']);
+const sidOfC = (g, c) => c.settlementId || g.s.playerSettlement;
+/** The hunger multiplier of colonist c's village (rationing), 1 without it. */
+export const rationOf = (g, c) => (civLawIs(g, sidOfC(g, c), 'core:rationing', 'rationed') ? RATION.hunger : 1);
+/** Village sid's work-hours law: 'normal', 'long' or 'curfew'. */
+export const hoursOf = (g, sid) => civLawOf(g, sid, 'core:work_hours') || 'normal';
+
 /** The mood of an option (data; for the Mood phase), 0 when unknown. */
 export function optionMood(g, id, option) { return g.reg.get('civLaw', id)?.options?.find((x) => x.id === option)?.mood ?? 0; }
 

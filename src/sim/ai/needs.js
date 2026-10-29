@@ -4,13 +4,14 @@ import { TICKS_PER_DAY, MOVE_TICKS } from '../constants.js';
 import { octile } from '../util.js';
 import { newJob } from './jobs.js';
 import { modsOf } from '../peoples.js';
+import { rationOf, hoursOf, LONG_NIGHT_SEEK } from '../civlaws.js';
 
 export const GROUND_REST_RATE = 2.4;
 
 /** One tick of decay for a core:eat or core:drink need. While really asleep (a sleep job; not collapsed, cared
  *  for or carried to a medical bed) it decays at `sleepDecayMult` times its rate (default 1). */
 export function decayNeed(c, def, g = null) {
-  const mult = (c.sleeping && c.job?.type === 'sleep' ? (def.sleepDecayMult ?? 1) : 1) * (g ? modsOf(g, c).needs[def.id] ?? 1 : 1); // people and traits (peoples.js)
+  const mult = (c.sleeping && c.job?.type === 'sleep' ? (def.sleepDecayMult ?? 1) : 1) * (g ? (modsOf(g, c).needs[def.id] ?? 1) * (def.behavior === 'core:eat' ? rationOf(g, c) : 1) : 1); // people and traits (peoples.js); rationing (civlaws.js)
   c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - (def.decayPerDay * mult) / TICKS_PER_DAY);
 }
 
@@ -93,7 +94,10 @@ export const NEED_BEHAVIORS = {
     },
     wants(g, c, def) {
       const v = c.needs[def.id];
-      return v < def.seekBelow || (g.isNight() && v < (def.nightSeekBelow ?? def.seekBelow));
+      if (v < def.seekBelow) return true;
+      if (!g.isNight()) return false;
+      const night = hoursOf(g, c.settlementId || g.s.playerSettlement) === 'long' ? Math.min(LONG_NIGHT_SEEK, def.nightSeekBelow ?? def.seekBelow) : (def.nightSeekBelow ?? def.seekBelow); // long hours: up later (civlaws.js)
+      return v < night;
     },
     urgent(g, c, def) { return c.needs[def.id] < def.urgentBelow; },
     makeJob(g, c, def) {

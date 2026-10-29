@@ -22,6 +22,7 @@ import { energyLastsWalkHome } from './trips.js';
 import { blessingOf } from '../god.js';
 import { droughtAt } from '../weatherat.js';
 import { modsOf } from '../peoples.js';
+import { rationOf, RATION } from '../civlaws.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -50,6 +51,7 @@ export function workSpeed(g, c, workType, skill) {
   sp *= elderFactor(g, c); // the old work more slowly (scenarios with aging rules, life.js)
   if (g.s.god) { const b = blessingOf(g, c.settlementId || g.s.playerSettlement); if (b) sp *= b.work; } // a divine blessing (godboons.js); skipped at once without s.god
   const m = modsOf(g, c); // the person's people and traits (peoples.js)
+  if (rationOf(g, c) !== 1) sp *= RATION.work; // rationing: smaller meals, slower work (civlaws.js)
   sp *= m.work * (skill ? m.workBy[skill] ?? 1 : 1);
   if (workType === 'core:doctor') sp *= m.tend; // treating patients (medical.js); kind people are quicker
   return sp;

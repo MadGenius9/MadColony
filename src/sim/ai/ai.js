@@ -15,6 +15,7 @@ import { fireDanger } from '../fire.js';
 import { FIRE_DRIVERS } from '../firefight.js';
 import { HUNT_DRIVERS, wolfDanger } from '../hunt.js';
 import { SLAY_DRIVERS, monsterDanger } from '../slay.js';
+import { hoursOf } from '../civlaws.js';
 
 Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS, SLAY_DRIVERS);
 
@@ -270,6 +271,7 @@ function decideInner(g, c, tried) {
     : c.lastScan?.found
       ? `All ${c.lastScan.found} open task(s) are already taken by others or could not be reserved${work?.tooFar ? ` (${work.tooFar} more too far from home for now)` : ''}`
       : `The colony has no open task this colonist can reach${off.length ? ` (forbidden work: ${off.join(', ')})` : ''}`;
+  if (g.isNight() && hoursOf(g, c.settlementId || g.s.playerSettlement) === 'curfew') c.status.idleReason = `Curfew: no outdoor work at night. ${c.status.idleReason}`; // civlaws.js
   // Big worlds: nothing to do out here, far from home (trips.js), so walk back rather than idle about.
   if (farFromHome(g, c) && headHome(g, c)) return;
   if (!wanderOff(g, c, 'Idle')) c.status.action = 'Idle';

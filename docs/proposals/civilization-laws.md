@@ -163,3 +163,19 @@ and temperaments lean to it.
 - **Tests** (`tests/cloud-civlaws.test.js`): leanings by people, while classic villages keep the defaults;
   set, wait, end, save, load, mend and refuse; kingdom laws from the capital.
 - **Checks:** 218 tests pass; classic unchanged.
+### Slice 2 (2026-10-29): daily life
+- **Work hours:**
+  - **Long hours:** people go to bed at night only below 0.4 energy (not 0.62) (`needs.js`); distant
+    villages work until 23:00, not 21:00 (`lod.js hourLabour`).
+  - **Curfew:** no outdoor work at night (22:00–06:00). Work types now carry `outdoor` in data: farm, chop,
+    mine, forage, haul, hunt. An idle person's reason begins "Curfew: no outdoor work at night".
+- **Rationing:** hunger falls at 0.8 the rate, everywhere, distant villages included, and the planner's food
+  sums follow; work goes at 0.9.
+- **Schooling** (`people.js mayDoWork`):
+  - **compulsory:** children do nothing but study in school hours (8–15);
+  - **child labour:** children may also haul and farm, and get no school (`education.js` attend giver).
+- **Seen in a 5-day classic run:** a curfew built 54 parts against 61; rationing keeps a smaller food stock,
+  as the planner needs less for the same days.
+- **Tests:** the curfew by night and day; long hours and bedtime; rationing ×0.8 hunger and ×0.9 work;
+  schooling in and after school hours and child labour; distant villages under laws save and load the same.
+- **Checks:** 221 tests pass (the distant test was fixed after a full run that had it failing for a setup reason: no village is distant before the first day); classic unchanged.
