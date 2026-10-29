@@ -23,7 +23,7 @@ import { blessingOf } from '../god.js';
 import { droughtAt } from '../weatherat.js';
 import { modsOf } from '../peoples.js';
 import { rationOf, RATION } from '../civlaws.js';
-import { noteMeal } from '../mood.js';
+import { noteMeal, moodWork } from '../mood.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -53,6 +53,7 @@ export function workSpeed(g, c, workType, skill) {
   if (g.s.god) { const b = blessingOf(g, c.settlementId || g.s.playerSettlement); if (b) sp *= b.work; } // a divine blessing (godboons.js); skipped at once without s.god
   const m = modsOf(g, c); // the person's people and traits (peoples.js)
   if (rationOf(g, c) !== 1) sp *= RATION.work; // rationing: smaller meals, slower work (civlaws.js)
+  if (c.mood) sp *= moodWork(c.mood); // mood (mood.js): happy people work a little faster, miserable ones slower
   sp *= m.work * (skill ? m.workBy[skill] ?? 1 : 1);
   if (workType === 'core:doctor') sp *= m.tend; // treating patients (medical.js); kind people are quicker
   return sp;

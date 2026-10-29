@@ -15,9 +15,10 @@ import { sicknessOf } from './illness.js';
 import { coldUnder } from './life.js';
 import { isEnemy } from './combat.js';
 
-export const MOOD = Object.freeze({ min: -100, max: 100, rate: 0.1, content: 20, unhappy: -20, miserable: -50, memoryDays: 1, deathDays: 3, homeless: 0.3, hurtHp: 70, maxScars: 2 });
+export const MOOD = Object.freeze({ breakChance: 0.3, breakHours: 3, breakHour: 9, happyWork: 0.05, sadWork: 0.15, min: -100, max: 100, rate: 0.1, content: 20, unhappy: -20, miserable: -50, memoryDays: 1, deathDays: 3, homeless: 0.3, hurtHp: 70, maxScars: 2 });
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
+const draw = (key) => { let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
 const val = (g, id) => g.reg.get('thought', id)?.value ?? 0;
 
 /** Record what colonist c just ate (the three eating places: the eat job, being fed, distant villages). */
@@ -117,6 +118,17 @@ export function moodTarget(g, c, V = null) {
 /** Colonist c's mood now (their saved mood, or their target before the first pass). */
 export function moodOf(g, c) { return c.mood ?? 0; }
 
+/** The work-speed factor of mood m: 1 + 0.05 at +50 and above, 1 - 0.15 at -50 and below, a straight line between. */
+export function moodWork(m) {
+  if (!m) return 1;
+  const k = Math.max(-1, Math.min(1, m / 50));
+  return 1 + (k > 0 ? MOOD.happyWork : MOOD.sadWork) * k;
+}
+/** The birth chance's factor for two parents (0.75..1.25 by their mean mood). */
+export function moodBirth(a, b) { return 1 + Math.max(-0.25, Math.min(0.25, (((a?.mood ?? 0) + (b?.mood ?? 0)) / 2) / 400)); }
+/** Is colonist c on a break (miserable, sulking) now? */
+export const onBreak = (g, c) => (c.breakUntil ?? -1) > g.s.tick;
+
 /** content | fine | unhappy | miserable. */
 export function moodLevel(m) { return m >= MOOD.content ? 'content' : m <= MOOD.miserable ? 'miserable' : m <= MOOD.unhappy ? 'unhappy' : 'fine'; }
 
@@ -136,6 +148,12 @@ export function tickMood(g) {
     if (night && (c.job?.type === 'sleep' ? !c.job.bedId : s.settlements?.[sid]?.detail === 'abstract' && !(c.bedId && s.structures[c.bedId]?.built))) c.rough = s.tick;
     const target = moodTarget(g, c, V[sid]);
     c.mood = c.mood === undefined ? target : stepToward(c.mood, target);
+    // Breaks: at BREAK_HOUR a miserable adult may stop work for a few hours (a hash draw: no g.rng).
+    if (Math.floor(g.hour) === MOOD.breakHour && c.mood <= MOOD.miserable && !onBreak(g, c) && draw(`${s.seed}:break:${id}:${Math.floor(s.tick / TICKS_PER_DAY)}`) < MOOD.breakChance) {
+      c.breakUntil = s.tick + MOOD.breakHours * (TICKS_PER_DAY / 24);
+      g.log(`${c.name} is miserable and stops work for a while.`, sid === s.playerSettlement ? 'warn' : 'info', `break:${id}`, 2400);
+    }
+    if (c.breakUntil !== undefined && c.breakUntil <= s.tick) delete c.breakUntil;
   }
 }
 

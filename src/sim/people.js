@@ -22,6 +22,7 @@ import { civLawOf, hoursOf, CHILD_WORK } from './civlaws.js';
 /** School hours (education.js EDU.school, 8-15), here to keep people.js free of education.js. */
 const inSchoolHours = (g) => { const h = (g.s.tick % TICKS_PER_DAY) / (TICKS_PER_DAY / 24); return h >= 8 && h < 15; };
 import { growthOf } from './worldlaws.js';
+import { moodBirth } from './mood.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
 
@@ -119,7 +120,7 @@ function considerBirths(g, sid) {
     if (!bed) continue;
     // A divine blessing (godboons.js) multiplies the chance; the same single draw either way.
     const bl = g.s.god ? blessingOf(g, sid) : null;
-    if (!g.rng.chance(Math.min(1, BIRTH.chancePerDay * (bl ? bl.growth : 1) * growthOf(g)))) continue; // the Fast growth law doubles it (worldlaws.js)
+    if (!g.rng.chance(Math.min(1, BIRTH.chancePerDay * (bl ? bl.growth : 1) * growthOf(g) * moodBirth(adults[0], adults[1])))) continue; // the Fast growth law doubles it (worldlaws.js); the parents' mood (mood.js)
     birth(g, sid, where, bed, adults.slice(0, 2));
     home.lastBirth = s.tick;
     return; // one birth per settlement per day at most

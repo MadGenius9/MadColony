@@ -35,7 +35,7 @@ import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
 import { huntWeapon } from './hunt.js';
 import { modsOf } from './peoples.js';
 import { rationOf, hoursOf, huntAllowed, treeProtected } from './civlaws.js';
-import { noteMeal } from './mood.js';
+import { noteMeal, onBreak } from './mood.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -399,7 +399,7 @@ function hourLabour(g, sid, cols, store, structs, own) {
   if (hour < 6 || hour >= (hoursOf(g, sid) === 'long' ? 23 : 21)) return; // long hours (civlaws.js): two more
   const P = g.plans?.[sid];
   if (!P) return;
-  const workers = cols.filter((c) => isAdult(g, c) && !isDown(c));
+  const workers = cols.filter((c) => isAdult(g, c) && !isDown(c) && !onBreak(g, c)); // mood.js: not those on a break
   if (!workers.length) return;
   const A = settlementOf(g, sid).abs.gather;
   for (const id of Object.keys(A)) if (!g.s.nodes[id]) delete A[id]; // work on a node that is gone is lost, as for a job

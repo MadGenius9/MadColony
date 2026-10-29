@@ -78,3 +78,42 @@ test('mood: saves, loads and mends; an old save starts at the thoughts; distant 
   const far = Object.keys(w.s.settlements).find((k) => w.s.settlements[k].detail === 'abstract');
   assert.ok(w.owned('colonists', far).every((c) => Number.isInteger(c.mood) && c.mood >= MOOD.min && c.mood <= MOOD.max));
 });
+
+// ---- slice 2: effects
+import { moodWork, moodBirth, onBreak } from '../src/sim/mood.js';
+import { workSpeed } from '../src/sim/ai/jobs.js';
+import { TICKS_PER_DAY } from '../src/sim/constants.js';
+
+test('mood: happy people work a little faster, miserable ones slower; happier couples have children more often', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 2);
+  const c = g.colonists()[0];
+  const at = (m) => { c.mood = m; return workSpeed(g, c, 'core:chop', 'core:woodcutting'); };
+  const base = at(0);
+  assert.ok(Math.abs(at(50) / base - 1.05) < 1e-9);
+  assert.ok(Math.abs(at(-50) / base - 0.85) < 1e-9);
+  assert.ok(Math.abs(at(-100) / base - 0.85) < 1e-9, 'no worse than at -50');
+  assert.equal(moodWork(0), 1);
+  assert.equal(moodBirth({ mood: 100 }, { mood: 100 }), 1.25);
+  assert.equal(moodBirth({ mood: -100 }, { mood: -100 }), 0.75);
+  assert.equal(moodBirth({ mood: 0 }, {}), 1);
+});
+
+test('mood: a miserable person sometimes stops work for 3 hours, sulking; the break saves and loads', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 2);
+  const c = g.colonists()[0];
+  let day = Math.floor(g.s.tick / TICKS_PER_DAY) + 1;
+  for (let k = 0; k < 30 && !onBreak(g, c); k++, day++) {
+    while (g.s.tick < day * TICKS_PER_DAY + 9 * (TICKS_PER_DAY / 24) - 1) g.tick();
+    c.mood = -90;
+    g.tick(); // this tick reaches 09:00, where the hourly mood pass may start a break
+  }
+  assert.ok(onBreak(g, c), 'a break came within 30 days of misery');
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), new RegExp(`${c.name} is miserable and stops work`));
+  for (let t = 0; t < 60; t++) { g.tick(); if (onBreak(g, c)) assert.ok(!(c.job?.workType && !c.job.need && c.job.type !== 'slay'), `no work while on a break (${c.job?.type})`); }
+  const b = reload(g);
+  runDays(g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(g));
+  assert.equal(onBreak(g, c), false, 'over within the day');
+});

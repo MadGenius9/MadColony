@@ -415,3 +415,5 @@ where, and which sim function or state field provides it. The UI is built at hom
   thoughts as a list with their values ("A good meal +4", "The village's laws −9").
 - **Village panel:** the plan's `moodNote` ("Mood: fine (8); 2 of 7 unhappy: homeless, hungry").
 - **New traits** Cheerful and Gloomy show as trait chips like the others.
+- **Mood, slice 2:** a person on a break shows "Miserable: sulking" with a small cloud icon; the inspector's
+  work line adds "×0.9 (mood)".

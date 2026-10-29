@@ -16,12 +16,14 @@ import { FIRE_DRIVERS } from '../firefight.js';
 import { HUNT_DRIVERS, wolfDanger } from '../hunt.js';
 import { SLAY_DRIVERS, monsterDanger } from '../slay.js';
 import { hoursOf } from '../civlaws.js';
+import { onBreak } from '../mood.js';
 
 Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS, SLAY_DRIVERS);
 
 export function tickColonist(g, c) {
   for (const def of g.reg.all('need')) NEED_BEHAVIORS[def.behavior]?.tick(g, c, def);
   tickHealth(g, c);
+  if (c.job?.workType && !c.job.need && !COMBAT_JOBS.has(c.job.type) && onBreak(g, c)) endJob(g, c, null, 'Miserable: stopped work for a while'); // a break (mood.js) stops work; needs, fights and flight go on
   if (isDown(c)) { // collapsed: lies where they fell until health returns; others bring food and tend them
     if (c.job) endJob(g, c, null, 'Collapsed');
     c.mv = null;
@@ -260,7 +262,8 @@ function decideInner(g, c, tried) {
   // 3. Equipment the planner wants us to carry
   const eq = equipCandidate(g, c);
   if (eq) { startJob(g, c, eq); return; }
-  // 4. Work
+  // 4. Work (not while on a break: miserable, sulking; mood.js)
+  if (onBreak(g, c)) { c.status.goal = 'On a break'; c.status.action = 'Miserable: sulking'; c.status.idleReason = 'Miserable: stopped work for a while'; c.idle = 40; return; }
   const work = tryWork(g, c);
   if (work === true) return;
   // 5. Nothing to do

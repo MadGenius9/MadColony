@@ -98,6 +98,7 @@ function quiet(days = 1, sandbox = false) {
   const M = g.s.monsters;
   for (const m of Object.values(M.list)) killMonster(g, m.id, 'test');
   for (const l of Object.values(M.lairs)) l.cleared = true;
+  for (const c of g.colonists()) c.traits = []; // no personal traits (brave, timid, ...): these tests are about the monsters
   return g;
 }
 const untilHour = (g, h) => { while (Math.floor(g.hour) !== h) g.tick(); };
@@ -218,6 +219,9 @@ test('8c fight: a hunt party member waits until enough of the party are there; t
   m.raids = { [g.s.playerSettlement]: g.s.tick + 9000 }; // it trampled the fields
   const people = g.colonists().sort((x, y) => (x.id < y.id ? -1 : 1));
   for (const p of people) arm(g, p);
+  // Everyone awake and rested (who happens to be in bed at this hour depends on the whole game so far).
+  const energy = g.reg.all('need').find((n) => n.behavior === 'core:sleep');
+  for (const p of people) { p.needs[energy.id] = 1; p.sleeping = false; if (p.job?.type === 'sleep') { g.release(p.job); p.job = null; } }
   const [a, ...rest] = people, full = g.reg.get('monster', 'core:thornback').health;
   let waited = false;
   for (let t = 0; t < 900; t++) {

@@ -19,7 +19,9 @@ test('a deep wound that heals without surgery leaves a lasting injury that slows
   const g = newGame({ seed: 4242 });
   runDays(g, 1);
   const c = g.colonists()[0];
+  c.traits = []; // no personal traits (hardy, sickly): this test is about the wound
   injure(g, c, 'wound', 40, 'Gored by a boar');
+  c.health.injuries.at(-1).infected = true; // it does not fester (infection is a game-rng draw that any earlier change moves; this test is about the scar)
   runDays(g, 4);
   assert.equal(c.health.injuries.length, 0, 'the wound has healed');
   assert.equal(c.lasting?.length, 1, 'it left a lasting injury');

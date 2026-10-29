@@ -178,3 +178,22 @@ A person's mood is the sum of their current thoughts, each a named value with a 
   exactly; levels; reasons in the explanation and the plan; the people's leaning rule; Cheerful and Gloomy;
   save and load; an old save starting at its target; distant villages.
 - **Checks:** 232 tests pass. Classic: `forty` 00d13c824c43dec4 (workshops on day 5.94: the two new traits change who draws what), `modern` 33e51d33d37f815e (modern on day 46.12, as before).
+### Slice 2 (2026-10-29): effects
+- **Work** (`jobs.js workSpeed`, so distant villages too): ×1.05 at mood +50 and above, ×0.85 at −50 and
+  below, a straight line between (0 is ×1).
+- **Births:** the chance is multiplied by 0.75–1.25 by the parents' mean mood. It is the same single draw, so
+  the draws do not shift.
+- **Breaks** (the owner's answer 2):
+  - at 09:00 a miserable adult (mood −50 or less) may, by a hash draw (30%), stop work for 3 hours
+    (`colonist.breakUntil`, saved and validated);
+  - at full detail their work job ends and they take no new work ("Miserable: sulking"); needs, fights and
+    flight go on;
+  - distant villages leave them out of the hour's work;
+  - the log says "X is miserable and stops work for a while".
+- **Tests:** the work factors exactly; the birth factor; a break within 30 days of misery, with no work job
+  held during it, and a save and load matching.
+- **Three older tests isolated** (no assertion weakened): mood and the two new traits change the game's draws.
+  - The 8c monster tests' colonists now have no personal traits.
+  - The hunt-party test wakes everyone first.
+  - The lasting-injury test's wound is marked as not festering, since infection is a game-rng draw that any
+    earlier change moves.
