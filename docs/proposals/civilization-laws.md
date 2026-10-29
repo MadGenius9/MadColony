@@ -10,7 +10,7 @@ CLAUDE.md).
 4. **Tithe:** a tenth of spare goods every 10 days.
 5. **A mood system:** yes. It becomes its own phase, **Mood**, right after this one, because it touches food,
    homes, grief, traits, peoples and laws. This phase gives every law option a `mood` value in data (e.g.
-   curfew −2, rationing −3, open borders +1, harsh justice −1, lenient +1), so Mood can use them at once.
+   curfew −1, rationing −3, open borders +1, harsh justice −1, lenient +1), so Mood can use them at once.
 6. **Relations from laws:** left to me. **Yes:** similar laws bring villages a little closer, and opposed ones
    push them a little apart, as proposed.
 7. **AI changes:** yes, AI villages change laws by situation (war → militia, famine → rationing) and go back
