@@ -190,3 +190,17 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
   endless: plague cases and the log line, a save and load match, and a small village is spared on every day
   it has 3 or fewer standing.
 - **Checks:** 211 tests pass; classic unchanged.
+### Slice 5 (2026-10-28): no spreading fire, endless season
+- **No spreading fire** (`fire.js tickFire`): a burning tile passes fire to no neighbour. Fires set by
+  lightning, meteors or the fire power burn where they were set, and go out as usual.
+- **Endless season** (the owner's answer 7; `heat.js seasonDay`):
+  - the seasons' day of the year is pinned at midsummer (a quarter year in) or midwinter (three quarters);
+  - every reader of the season follows: crop growth and frost, wild regrowth, the cold, the founding wait,
+    the animals' seasons, and the planners' look-ahead;
+  - days and nights still differ.
+  - Under endless summer or winter herds have no spring, so no births, and endless winter brings winter
+    losses: herds shrink while it holds.
+- **Tests:** a set fire spreads without the law and stays on its one tile with it; temperatures are flat at
+  the midwinter low and the midsummer high, the season names follow, days and nights still differ, and a
+  save and load match.
+- **Checks:** 213 tests pass; classic unchanged.

@@ -23,15 +23,24 @@ export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
 export function climateOf(g) { return { ...DEFAULT_CLIMATE, ...(g.reg.get('worldgen', g.s.worldgenId)?.climate || {}) }; }
 
 /** The season's average temperature (°C) at a tick, without the day/night swing. */
+/** The day of the year's cycle the seasons follow: the real day, or under the Endless season law
+ *  (worldlaws.js) midsummer or midwinter for good (the warmest point is a quarter year in, the coldest three
+ *  quarters). Read straight from the state: O(1). */
+function seasonDay(g, tick, c) {
+  const v = g.s.worldLaws?.set?.['core:season'];
+  if (v === 'summer') return c.yearDays * 0.25;
+  if (v === 'winter') return c.yearDays * 0.75;
+  return tick / TICKS_PER_DAY;
+}
 export function seasonalTemp(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const day = tick / TICKS_PER_DAY;
+  const day = seasonDay(g, tick, c);
   return (c.summer + c.winter) / 2 - ((c.summer - c.winter) / 2) * Math.cos((2 * Math.PI * (day - c.yearDays * 0.75)) / c.yearDays);
 }
 /** Outdoor temperature (°C) at a tick: day 1 starts in spring; the coldest point is in the middle of winter. */
 export function outdoorTemp(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const day = tick / TICKS_PER_DAY;
+  const day = seasonDay(g, tick, c);
   const mean = (c.summer + c.winter) / 2, amp = (c.summer - c.winter) / 2;
   const season = mean - amp * Math.cos((2 * Math.PI * (day - c.yearDays * 0.75)) / c.yearDays);
   const hour = (tick % TICKS_PER_DAY) / TICKS_PER_HOUR;
@@ -39,7 +48,7 @@ export function outdoorTemp(g, tick = g.s.tick) {
 }
 export function seasonOf(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const d = (((tick / TICKS_PER_DAY) + c.yearDays / 8) % c.yearDays) / c.yearDays; // seasons centred on mid-summer and mid-winter
+  const d = ((seasonDay(g, tick, c) + c.yearDays / 8) % c.yearDays) / c.yearDays; // seasons centred on mid-summer and mid-winter
   return SEASONS[Math.min(3, Math.floor(d * 4))];
 }
 /** The coldest outdoor temperature over the next `days` days (planners look ahead). */

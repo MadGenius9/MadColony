@@ -124,10 +124,11 @@ export function tickFire(g) {
   const catching = new Set(), out = [], burned = new Set(), wx = !!D.weather, dry = wx ? weatherRules(g).drought.spread : 1;
   const rained = [];
   let count = keys.length;
+  const spreads = g.s.worldLaws?.set?.['core:no_fire_spread'] !== 'on'; // the No spreading fire law (worldlaws.js)
   for (const i of keys) {
     const x = i % W, y = (i - x) / W, since = D.fires[i];
     if (wx && weatherAtTile(g, i) === 'rain') { rained.push(i); continue; } // put out by the rain (below)
-    for (let d = 0; d < 8; d++) {
+    for (let d = 0; d < (spreads ? 8 : 0); d++) {
       const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
       if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
       const j = ny * W + nx;

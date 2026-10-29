@@ -391,3 +391,4 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Fast growth:** the village panel's growth notes say "×2 (Fast growth law)".
 - **Plague:** outbreak letters under the Endless law end "(the Endless plague law)". The illness panel shows
   "No illness (Plague law: none)" while that holds.
+- **Endless season:** the clock's season label shows "Winter (endless)" or "Summer (endless)".

@@ -221,3 +221,43 @@ test('laws: Plague none stops every new case; endless keeps outbreaks coming but
   }
   assert.ok(small > 0, 'it was small on some days');
 });
+
+// ---- slice 5: no spreading fire, endless season
+import { ignite } from '../src/sim/fire.js';
+import { seasonalTemp, seasonOf, outdoorTemp } from '../src/sim/heat.js';
+
+test('laws: under No spreading fire a fire burns only where it was set', () => {
+  const run = (on) => {
+    const g = newGame({ seed: 4242 });
+    g.tick();
+    if (on) law(g, 'core:no_fire_spread', 'on');
+    const pine = Object.values(g.s.nodes).filter((n) => n.def === 'core:pine' && Math.hypot(n.x - g.s.center.x, n.y - g.s.center.y) > 15).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+    assert.ok(ignite(g, g.i(pine.x, pine.y), true), 'set alight');
+    let most = 0;
+    for (let t = 0; t < 600; t++) { g.tick(); most = Math.max(most, Object.keys(g.s.disasters?.fires || {}).length); }
+    return most;
+  };
+  const wild = run(false), held = run(true);
+  assert.ok(wild > 1, `without the law the fire spreads (${wild} tiles)`);
+  assert.equal(held, 1, 'with it, only the tile it was set on burns');
+});
+
+test('laws: Endless season holds midsummer or midwinter all year', () => {
+  const g = newGame({ seed: 4242 });
+  g.tick();
+  const temps = (n) => Array.from({ length: n }, (_, d) => seasonalTemp(g, g.s.tick + d * TICKS_PER_DAY));
+  const normal = temps(30);
+  assert.ok(Math.max(...normal) - Math.min(...normal) > 10, 'the seasons turn');
+  law(g, 'core:season', 'winter');
+  const w = temps(30);
+  assert.ok(w.every((t) => t === w[0]) && w[0] <= Math.min(...normal) + 0.01, 'midwinter all year');
+  assert.equal(seasonOf(g), 'Winter');
+  assert.ok(outdoorTemp(g, g.s.tick) !== outdoorTemp(g, g.s.tick + 12 * 100), 'days and nights still differ');
+  law(g, 'core:season', 'summer');
+  assert.equal(seasonOf(g, g.s.tick + 17 * TICKS_PER_DAY), 'Summer');
+  assert.ok(temps(30).every((t) => t >= Math.max(...normal) - 0.01));
+  runDays(g, 2);
+  const b = reload(g);
+  runDays(g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(g));
+});
