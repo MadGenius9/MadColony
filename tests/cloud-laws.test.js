@@ -261,3 +261,13 @@ test('laws: Endless season holds midsummer or midwinter all year', () => {
   runDays(g, 1); runDays(b, 1);
   assert.equal(stateText(b), stateText(g));
 });
+
+test('laws: a save and load right after a season change plays on identically (review: the heating-season and lean-season caches)', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 3);
+  for (let t = 0; t < 250; t++) g.tick(); // part way through a quarter day
+  law(g, 'core:season', 'winter');
+  const b = reload(g);
+  runDays(g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(g));
+});

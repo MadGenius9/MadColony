@@ -15,7 +15,7 @@ import { intentsOf } from './civic/intents.js';
 import { PLAN_INTERVAL } from './constants.js';
 import { TICKS_PER_DAY, TICKS_PER_HOUR, NEAR_RADIUS } from './constants.js';
 import { canRipen } from './farming.js';
-import { heatSeason } from './heat.js';
+import { heatSeason, seasonLawKey } from './heat.js';
 import { isWaterNode, waterNetworks } from './water.js';
 import { GOAL_TYPES, goalIsOngoing, describeGoal } from './goals.js';
 import { createProject, findSite, assignHome, addSlotPart, partsOf, homeFurnished, tileUsable } from './construction.js';
@@ -782,7 +782,7 @@ function planFields(g, P, ctx, needPerDay, block, sid) {
 function leanSeason(g, sid) {
   const crops = g.reg.all('crop').filter((c) => g.owned('fields', sid).some((f) => (f.settlement || g.s.playerSettlement) === sid && f.crop === c.id));
   if (!crops.length) return null;
-  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) + ':' + crops.map((c) => c.id).join(',');
+  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) + ':' + crops.map((c) => c.id).join(',') + ':' + seasonLawKey(g); // the Endless season law changes it
   if (g._lean?.[sid]?.k === k) return g._lean[sid].v;
   const t0 = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) * (TICKS_PER_DAY / 2); // from the window's start, so saves continue identically
   const ok = (d) => crops.some((c) => canRipen(g, c, t0 + d * TICKS_PER_DAY));

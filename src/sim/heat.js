@@ -23,6 +23,8 @@ export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
 export function climateOf(g) { return { ...DEFAULT_CLIMATE, ...(g.reg.get('worldgen', g.s.worldgenId)?.climate || {}) }; }
 
 /** The season's average temperature (°C) at a tick, without the day/night swing. */
+/** Part of the key of every cache of temperatures over a time window: the Endless season law changes them all. */
+export const seasonLawKey = (g) => g.s.worldLaws?.set?.['core:season'] || '';
 /** The day of the year's cycle the seasons follow: the real day, or under the Endless season law
  *  (worldlaws.js) midsummer or midwinter for good (the warmest point is a quarter year in, the coldest three
  *  quarters). Read straight from the state: O(1). */
@@ -213,7 +215,7 @@ export function tickHeat(g) {
 
 /** Is it the heating season (cold now or within `days` days)? */
 export function heatSeason(g, days = 2) {
-  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) + ':' + days;
+  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) + ':' + days + ':' + seasonLawKey(g);
   g._heatSeason ||= {};
   if (g._heatSeason[k] === undefined) { let m = Infinity; const t0 = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) * (TICKS_PER_DAY / 4); for (let d = 0; d <= days; d += 0.25) m = Math.min(m, seasonalTemp(g, t0 + d * TICKS_PER_DAY)); if (Object.keys(g._heatSeason).length > 8) g._heatSeason = {}; g._heatSeason[k] = m < HEAT.coldSleep + 2; }
   return g._heatSeason[k];
