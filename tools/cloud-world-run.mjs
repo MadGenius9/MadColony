@@ -92,6 +92,7 @@ for (let d = 1; d <= days; d++) {
       villagesByPeople: st.filter((x) => !x.fallen).reduce((o, x) => { const k = String(x.people || 'none').replace('core:', ''); o[k] = (o[k] || 0) + 1; return o; }, {}),
       laws: st.filter((x) => !x.fallen).reduce((o, x) => { for (const l of g.reg.all('civLaw')) { const v = civLawOf(g, x.id, l.id); if (v !== l.options[0].id) { const k = `${l.id.replace('core:', '')}=${v}`; o[k] = (o[k] || 0) + 1; } } return o; }, {}),
       tithes: g.s.log.filter((e) => /sends its tithe/.test(e.msg)).length,
+      mood: (() => { const cs = Object.values(g.s.colonists); const m = cs.map((c) => c.mood ?? 0); return cs.length ? { avg: Math.round(m.reduce((a, x) => a + x, 0) / cs.length), unhappy: m.filter((x) => x <= -20).length, miserable: m.filter((x) => x <= -50).length, unrest: st.filter((x) => !x.fallen && x.unrest !== undefined).length } : {}; })(),
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;
