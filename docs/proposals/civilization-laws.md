@@ -260,3 +260,4 @@ and temperaments lean to it.
   - nearly every village protects its forest by the end (few trees near), which is fine for the land but
     worth a look;
   - Mood, the next phase, will use each option's `mood`.
+- **Bench:** against the code before the phase, +2.6% and −7.7% (two rounds; within noise).

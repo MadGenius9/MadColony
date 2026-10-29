@@ -153,3 +153,12 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   4.30 (−0.5%) and 4.25 → 4.18 (−1.7%).
 - Laws run (`tools/cloud-laws-run.mjs 200 vast 7`): ok; 129 people on day 200, 34 of 35 villages standing,
   1.39 ms/tick; 6.9 min.
+
+## Civilization laws acceptance (2026-10-29)
+- 229 tests pass. Classic unchanged: `forty` ee55506a781cb766, `modern` 479f5857575304ab.
+- Bench (the code before the phase, `8835aaf`, against now, two rounds, ms/tick summed over the six sizes):
+  4.71 → 4.83 (+2.6%) and 5.02 → 4.63 (−7.7%). This machine was slower today than in earlier sessions (all
+  numbers about 35% higher), so compare only within a day.
+- World seed 11, 300 days: 4.60 ms/tick at day 300 with laws, 3.31 with no laws (same code, same day), 256 people,
+  53 of 66 villages standing; 34.3 min.
+- Side by side, 100 days, no laws: the code before Civilization laws 1.30 ms/tick at day 100, now 1.26.
