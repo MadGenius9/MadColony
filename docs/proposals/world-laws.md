@@ -1,6 +1,6 @@
 # World laws (2026-10-24 direction, item 6)
 
-Status: **building** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
+Status: **done** (2026-10-29; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
 
 ## The owner's answers (2026-10-28)
@@ -204,3 +204,23 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
   the midwinter low and the midsummer high, the season names follow, days and nights still differ, and a
   save and load match.
 - **Checks:** 213 tests pass; classic unchanged.
+### Acceptance (2026-10-29)
+- **Run** (`tools/cloud-laws-run.mjs 200 vast 7`, a Vast world in Sandbox): ok.
+  - Every law was set and lifted on a schedule (peace day 20, fast growth 35, endless plague 50, tame monsters
+    and peaceful animals 65, endless winter and no spreading fire 80, ageless and no plague 95, endless summer
+    110, then all lifted by day 140).
+  - At each change a save and load played the next day identically, and items, people, animals and monsters
+    were counted.
+  - Day 200: 129 people (147 born, 42 died: 37 of plague, all under the endless law), 34 of 35 villages
+    standing. The fallen one fell after day 150, with the laws lifted. 1.39 ms/tick; 6.9 min.
+- **Found and fixed on the way:**
+  - **Two caches of temperatures over a window** (`heat.js heatSeason`, `planner.js leanSeason`) did not know
+    the Endless season law, so a load just after a change played differently. They now key on the law
+    (`seasonLawKey`).
+  - **The Endless plague emptied a village** (Millbrook): its people were sick before it fell to 3. Now, in a
+    village of 3 or fewer living, a plague case stops short of deadly (severity 60), as the owner asked.
+- **Suite:** 215 tests pass; classic runs unchanged (`forty` ee55506a781cb766, `modern` 479f5857575304ab).
+- **Carried over** (not done):
+  - the Endless plague is harsh: 37 dead in 45 days on this map (worth tuning after play);
+  - herds have no spring under an endless season;
+  - Civilization laws, the next phase.

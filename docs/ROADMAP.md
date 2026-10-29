@@ -710,6 +710,28 @@ Original peoples and personal traits (2026-10-24 direction, item 5), with their 
   - new materials;
   - mixed worlds see about twice the wars: tune after play.
 
+### World laws (Done in the cloud copy, 2026-10-29)
+The gods' world switches (2026-10-24 direction, item 6), with their own design note. The owner's laws of
+civilizations are the next phase (direction item 6b).
+
+- **Done:** the free `law` power and eight laws as data:
+  - **Peace:** no new wars; running ones go on (the owner's answer 3);
+  - **Ageless:** adults stop aging, no old-age deaths, children still grow up (answer 4);
+  - **Fast growth:** ×2 (answer 5);
+  - **Plague:** none or endless, never emptying a village (answer 6);
+  - **Peaceful animals** (the Phase 8b switch);
+  - **Tame monsters**;
+  - **No spreading fire**;
+  - **Endless season:** summer or winter (answer 7).
+  - `s.worldLaws`, save format 31. Design and results: `docs/proposals/world-laws.md`.
+- **Acceptance:**
+  - 215 tests pass; classic unchanged;
+  - a 200-day Vast run setting and lifting every law: save and load identical at each change, everything
+    counted;
+  - two bugs it found are fixed: the season caches, and the plague emptying a small village.
+- **Carried over** (not done): the endless plague is harsh (tune after play); herds have no spring under an
+  endless season.
+
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
 (reserved road corridors, plots, farmland, expansion space) replacing nearest-good-spot site choice, with
