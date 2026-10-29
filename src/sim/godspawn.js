@@ -31,6 +31,7 @@ import { rings, octile } from './util.js';
 import { claimRadius } from './territory.js';
 import { livingCount } from './fallen.js';
 import { defaultPeople, peopleOfSettlement, settleFolk, paletteOf, peopleByLand } from './peoples.js';
+import { startCode } from './civlaws.js';
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -261,6 +262,7 @@ function applyFound(g, cmd, r) {
   ensureSettlement(g.reg, s, rec);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryAdded(sid);
+  startCode(g, sid); // civilization laws: an AI village's leanings (civlaws.js)
   // Supplies: created at the site by divine power, into the new stockpile.
   const sup = supplies(g, r.spawn.suppliesPerSettler, a.count);
   for (const e of sup) divineItems(g, e.item, e.qty, a.x, a.y, sid);

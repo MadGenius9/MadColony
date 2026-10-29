@@ -145,3 +145,21 @@ and temperaments lean to it.
    - the bench, README and roadmap.
 
 ## Open questions (answered; see "The owner's answers")
+
+## Results
+### Slice 1 (2026-10-29): the code
+- **Built:**
+  - the `civLaw` type, with nine laws as data (`mods/core/content/civlaws.json`), each option with a `mood`;
+  - leanings in data: peoples' and profiles' `code` (Cragborn militia and harsh justice; Reedkin protected
+    forests and banned hunting; Duneshade the tithe);
+  - **`src/sim/civlaws.js`:**
+    - `civLawOf` (O(1); kingdom laws are read from the capital);
+    - `codeOf`;
+    - `setCivLaw`, with the 5-day wait, a logged reason and a replan;
+    - `startCode` for AI and divine villages;
+    - `mendCode` on load.
+  - Daughters copy their parent's code. Save format 32: `settlement.code` and `codeSince`, validated.
+- **No effects yet:** the laws change nothing in play until slices 2–4.
+- **Tests** (`tests/cloud-civlaws.test.js`): leanings by people, while classic villages keep the defaults;
+  set, wait, end, save, load, mend and refuse; kingdom laws from the capital.
+- **Checks:** 218 tests pass; classic unchanged.

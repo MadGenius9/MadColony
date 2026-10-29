@@ -13,6 +13,7 @@ import { claimsForSave, decodeClaimGrid } from './territory.js';
 import { validDisc } from './contact.js';
 import { drawTraits, defaultPeople, withTrait, MAX_TRAITS } from './peoples.js';
 import { mendLaws } from './worldlaws.js';
+import { mendCode } from './civlaws.js';
 
 export class SaveError extends Error {
   constructor(message, problems = []) { super(message); this.problems = problems; }
@@ -401,6 +402,8 @@ function validateSettlements(s, format, bad, inB) {
     for (const f of ['parent', 'culture']) if (st[f] !== undefined && (!isStr(st[f], 64) || !SAFE_ID.test(st[f]) || (f === 'parent' && st[f] === k))) bad(`${L} has an invalid ${f === 'parent' ? 'parent village' : 'culture'}`); // may name a village that is gone
     if (st.origin !== undefined && st.origin !== 'divine') bad(`${L} has an unknown origin`); // god powers (format 13, godspawn.js)
     if (st.people !== undefined && !isStr(st.people, 100)) bad(`${L} has an invalid people`); // format 30 (peoples.js)
+    if (st.code !== undefined && (!isObj(st.code) || Object.entries(st.code).some(([k, v]) => !SAFE_ID.test(k) || !isStr(v, 40)))) bad(`${L} has an invalid code of laws`); // format 32 (civlaws.js)
+    if (st.codeSince !== undefined && (!isObj(st.codeSince) || Object.entries(st.codeSince).some(([k, t]) => !SAFE_ID.test(k) || !isInt(t) || t < 0 || t > s.tick))) bad(`${L} has invalid law dates`); // format 32
     for (const f of ['founded', 'crowdedSince', 'lastFounding', 'noSiteAt']) if (st[f] !== undefined && (!isNum(st[f]) || st[f] < 0)) bad(`${L} has an invalid ${f} time`);
     if (st.training !== undefined && st.training !== null && (!isObj(st.training) || !isStr(st.training.cid, 64) || !isStr(st.training.qual, 100) || !isNum(st.training.progress))) bad(`${L} has invalid training data`);
     const r = st.research;
@@ -627,6 +630,7 @@ export function loadGame(reg, saveOrText) {
     for (const nd of reg.all('need')) if (c.needs[nd.id] === undefined) c.needs[nd.id] = 0.8;
   }
   mendLaws(reg, s); // World laws (format 31): laws a removed mod defined are dropped
+  mendCode(reg, s); // Civilization laws (format 32): the same for the villages' codes
   // Peoples and traits (format 30). Old saves get the village's people (else the default) and the traits the same
   // hash gives a new colonist of that id (peoples.js). A people a removed mod defined, or one other than the
   // village's (villages keep to one), becomes the village's; unknown traits and a trait beside its opposite are

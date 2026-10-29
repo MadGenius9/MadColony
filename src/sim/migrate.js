@@ -113,6 +113,8 @@ export const MIGRATIONS = {
   29() {},
   // 30 -> 31: world laws (worldlaws.js). `s.worldLaws` is optional: absent means no laws.
   30() {},
+  // 31 -> 32: civilization laws (civlaws.js). settlement.code is optional: absent means every law at its default.
+  31() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

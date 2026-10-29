@@ -10,6 +10,7 @@ import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.j
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
 import { knownPeople, settleFolk, modsOf, paletteOf, peopleByLand } from './peoples.js';
 import { isAdult } from './people.js';
+import { startCode } from './civlaws.js';
 import { lawIs } from './worldlaws.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
@@ -276,6 +277,7 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
   const byLand = !profile.people && g.reg.get('scenario', s.scenarioId)?.peoplesByLand;
   const folk0 = byLand ? peopleByLand(g, s.settlements[sid].center.x, s.settlements[sid].center.y, byLand.radius, byLand.minShare) : knownPeople(g, profile.people);
   if (folk0) s.settlements[sid].people = folk0;
+  startCode(g, sid); // civilization laws: its people's and profile's leanings (civlaws.js)
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryChanged();
   g.actor = sid;

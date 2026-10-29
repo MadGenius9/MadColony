@@ -517,6 +517,7 @@ export function foundDaughter(g, sid, opts = {}) {
     ...(parent.enforcement !== undefined ? { enforcement: parent.enforcement } : {}),
   };
   if (peopleOfSettlement(g, sid)) rec.people = peopleOfSettlement(g, sid); // the founders' people (villages keep to one)
+  if (parent.code) rec.code = { ...parent.code }; // civilization laws: the daughter keeps its parent's code (civlaws.js)
   s.settlements[child] = rec;
   ensureSettlement(g.reg, s, rec);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + child); }

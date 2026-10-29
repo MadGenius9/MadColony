@@ -392,3 +392,12 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Plague:** outbreak letters under the Endless law end "(the Endless plague law)". The illness panel shows
   "No illness (Plague law: none)" while that holds.
 - **Endless season:** the clock's season label shows "Winter (endless)" or "Summer (endless)".
+
+## Civilization laws, slice 1: the code
+- **Village panel, "Laws" tab:** one row per `civLaw` (data `civlaws.json`) with its options. The current one
+  (`civLawOf`) is highlighted and shows "since day N" (`codeOf`). Kingdom laws held by the capital show "set
+  by X" and are greyed out.
+- **Changing a law:** `setCivLaw(g, sid, law, option, why)` for the player's village. While
+  `civLawProblem` gives a reason ("wait 3 more days"), the option is greyed out with it as the tooltip. Each
+  option's `about` is the tooltip, and its `mood` shows as a small face (for the Mood phase).
+- **Other villages' panels** show their laws read-only, and the log shows "X passed a law: ...".

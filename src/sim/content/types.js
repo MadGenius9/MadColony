@@ -557,6 +557,7 @@ export const CONTENT_TYPES = {
     doc: 'The personality of an AI village: who lives there, what it starts with, what it researches and keeps in stock, and how it trades. No free resources: it uses the same economy as the player.',
     schema: obj({
       id, name, people: ref('people'), // its villages' people (Peoples and traits; default: the default people)
+      code: map({ type: 'ref', to: 'civLaw' }, str(40)), // the civilization laws its villages lean to (civlaws.js)
       settlementNames: req(arr(str(40), { minItems: 1 })),
       // Kingdom name patterns ("Kingdom of {capital}"), used when a village of this profile becomes a capital
       // (kingdoms.js picks one by a hash of the capital's id; without them the defaults are used).
@@ -624,6 +625,7 @@ export const CONTENT_TYPES = {
       traitOdds: arr(num(0, 100), { minItems: 3, maxItems: 3 }),
       namePool: ref('namePool'), // its own names (default: the scenario's)
       prefer: map({ type: 'tag' }, ref('building')), // slot tag -> the building it builds there when unlocked and affordable (construction.js)
+      code: map({ type: 'ref', to: 'civLaw' }, str(40)), // the civilization laws its villages lean to (civlaws.js)
       look: obj({ // its own palette (default: today's, appearance.js)
         skin: arr(color, { minItems: 1 }), hair: arr(color, { minItems: 1 }), pants: arr(color, { minItems: 1 }),
         styles: arr({ type: 'enum', values: ['short', 'crop', 'long', 'bun', 'ponytail', 'curly', 'bald', 'braid', 'mohawk'] }, { minItems: 1 }),
@@ -675,6 +677,13 @@ export const CONTENT_TYPES = {
       contagion: req(num(0, 1)), travel: req(num(0, 1)),
       growPerHour: req(num(0, 50)), days: req(num(0.1, 100)), immunityDays: req(num(0, 10000)), treatedGrowth: req(num(0, 1)),
       plague: { type: 'bool' }, // Phase 5b: sent by the plague power; spreads even where a scenario has no illness rules
+    }),
+  },
+  civLaw: {
+    doc: 'A law of a civilization (civlaws.js, Civilization laws): villages keep a code of them (settlement.code); options, the first being the default (today\'s game), each with what it does (about) and its mood (for the Mood phase: how people feel about living under it, -10..10). kingdom: set by a kingdom\'s capital for every member. Peoples and village profiles lean to options (their `code`).',
+    schema: obj({
+      id, name, about: str(300), kingdom: bool(),
+      options: req(arr(obj({ id: req(str(40)), name: req(str(60)), about: str(300), mood: num(-10, 10) }), { minItems: 2, maxItems: 6 })),
     }),
   },
   worldLaw: {

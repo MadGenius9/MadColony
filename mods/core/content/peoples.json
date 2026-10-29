@@ -83,7 +83,11 @@
         45,
         15
       ],
-      "color": "#6f8f4e"
+      "color": "#6f8f4e",
+      "code": {
+        "core:forests": "protected",
+        "core:hunting": "banned"
+      }
     },
     {
       "id": "core:cragborn",
@@ -153,6 +157,10 @@
       "color": "#8a8f99",
       "prefer": {
         "core:wall": "core:stone_wall"
+      },
+      "code": {
+        "core:conscription": "militia",
+        "core:justice": "harsh"
       }
     },
     {
@@ -216,7 +224,11 @@
         45,
         15
       ],
-      "color": "#b5763c"
+      "color": "#b5763c",
+      "code": {
+        "core:borders": "open",
+        "core:tithe": "tithe"
+      }
     }
   ],
   "trait": [
