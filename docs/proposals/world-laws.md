@@ -175,3 +175,18 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
   (one without it); crops exactly twice as fast in one farming step; half the founding wait; more births in
   a Living world.
 - **Checks:** 210 tests pass; classic unchanged.
+### Slice 4 (2026-10-28): plague
+- **None:**
+  - `infect`, through which every new case passes (outbreaks, spread, caravans, battles, the plague power),
+    refuses while the law holds;
+  - `tickIllness` does nothing;
+  - running cases finish their course.
+- **Endless:**
+  - the spread rules become the law's: each plague illness in the data, an outbreak chance of 0.1 a day per
+    village (about every 10 days), and the usual spread within homes and villages;
+  - a village of 3 or fewer standing gets no outbreak and no spread (the owner's answer 6);
+  - the log says "Plague broke out in X (the Endless plague law)".
+- **Tests:** none: no case in 15 days, and a direct infection is refused, though allowed without the law;
+  endless: plague cases and the log line, a save and load match, and a small village is spared on every day
+  it has 3 or fewer standing.
+- **Checks:** 211 tests pass; classic unchanged.

@@ -389,3 +389,5 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Ageless:** the inspector's age line adds "(ageless)" while the law holds (`lawIs(g, 'core:ageless',
   'on')`).
 - **Fast growth:** the village panel's growth notes say "×2 (Fast growth law)".
+- **Plague:** outbreak letters under the Endless law end "(the Endless plague law)". The illness panel shows
+  "No illness (Plague law: none)" while that holds.

@@ -20,6 +20,7 @@
 //   O(1); the spread then uses PLAGUE_SPREAD (no outbreaks).
 import { TICKS_PER_DAY } from './constants.js';
 import { cared } from './health.js';
+import { lawIs } from './worldlaws.js';
 import { modsOf } from './peoples.js';
 
 const CARE_GROWTH = 0.8; // an illness grows this much slower while the sick are cared for
@@ -27,8 +28,17 @@ const PLAGUE_SPREAD = Object.freeze({ outbreakPerDay: 0, villageShare: 0.3, kind
 
 /** Is a plague running its course somewhere (the plague power)? O(1). */
 export const plagueActive = (g) => (g.s.disasters?.plague?.until ?? -1) > g.s.tick;
-/** The rules spread works by: the scenario's, else the plague's while one runs, else null. */
-const spreadRules = (g) => illnessRules(g) || (plagueActive(g) ? PLAGUE_SPREAD : null);
+/** The rules spread works by: the Endless plague law's, else the scenario's, else the plague's while one runs,
+ *  else null. */
+const spreadRules = (g) => (lawIs(g, 'core:plague', 'endless') ? endlessRules(g) : null) || illnessRules(g) || (plagueActive(g) ? PLAGUE_SPREAD : null);
+/** The Endless plague law (worldlaws.js): a plague illness breaks out in each village about every 10 days. */
+export const ENDLESS_PLAGUE = Object.freeze({ outbreakPerDay: 0.1, villageShare: 0.3, spare: 3 });
+function endlessRules(g) {
+  const kinds = g.reg.all('illness').filter((d) => d.plague).map((d) => ({ illness: d.id, weight: 1 })).sort((a, b) => (a.illness < b.illness ? -1 : 1));
+  return kinds.length ? { ...ENDLESS_PLAGUE, kinds } : null;
+}
+/** Standing (not collapsed) people among `people`. */
+const standingOf = (people) => people.reduce((n, p) => n + (p.health?.down ? 0 : 1), 0);
 
 /** The scenario's illness rules, or null. */
 export function illnessRules(g) {
@@ -60,7 +70,7 @@ export const susceptible = (g, c, ill) => !sicknessOf(c) && !((c.immune?.[ill.id
 
 /** `c` falls ill with `ill` (how: the words for the log). Returns the injury, or null when they cannot catch it. */
 export function infect(g, c, ill, how) {
-  if (!ill || !susceptible(g, c, ill)) return null;
+  if (!ill || !susceptible(g, c, ill) || lawIs(g, 'core:plague', 'none')) return null; // the Plague law "none": nobody falls ill
   const s = g.s;
   c.health ||= { injuries: [] };
   const inj = { id: g.newId('inj'), kind: 'sickness', illness: ill.id, severity: 1, cause: ill.name, tick: s.tick, until: s.tick + Math.round(ill.days * TICKS_PER_DAY) };
@@ -113,11 +123,12 @@ function pick(g, R, u) {
 export function tickIllness(g) {
   if (g.s.disasters?.plague && !plagueActive(g)) delete g.s.disasters.plague; // the plague has run its course
   const R = spreadRules(g);
-  if (!R) return;
+  if (!R || lawIs(g, 'core:plague', 'none')) return;
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
   for (const sid of Object.keys(s.settlements || {}).sort()) {
     const people = g.owned('colonists', sid).sort(byId);
     if (!people.length) continue;
+    if (R.spare && standingOf(people) <= R.spare) continue; // the Endless plague spares a village of 3 or fewer standing (the owner's answer 6)
     const sick = people.filter((p) => contagious(g, p));
     if (!sick.length && R.outbreakPerDay > 0 && day >= (R.graceDays ?? 0)) {
       const crowd = crowding(g, sid, people.length);
@@ -125,8 +136,8 @@ export function tickIllness(g) {
       if (draw(`${s.seed}:outbreak:${sid}:${day}`) < chance) {
         const ill = pick(g, R, draw(`${s.seed}:outbreak-kind:${sid}:${day}`));
         const who = people[Math.floor(draw(`${s.seed}:outbreak-who:${sid}:${day}`) * people.length)];
-        const why = crowd > 0 ? 'crowded homes' : 'an outbreak';
-        if (infect(g, who, ill, why)) { s.stats.illness.outbreaks++; g.log(`${ill.name} broke out in ${s.settlements[sid].name}${crowd > 0 ? ' (crowded homes)' : ''}.`, 'warn'); }
+        const why = R.spare ? 'the Endless plague law' : crowd > 0 ? 'crowded homes' : 'an outbreak';
+        if (infect(g, who, ill, why)) { s.stats.illness.outbreaks++; g.log(`${ill.name} broke out in ${s.settlements[sid].name}${R.spare ? ' (the Endless plague law)' : crowd > 0 ? ' (crowded homes)' : ''}.`, 'warn'); }
       }
       continue;
     }

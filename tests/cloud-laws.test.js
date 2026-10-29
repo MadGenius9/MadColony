@@ -180,3 +180,44 @@ test('laws: Fast growth doubles crop growth, halves the founding wait and brings
   const n0 = births(false), n1 = births(true);
   assert.ok(n1 > n0, `more births (${n0} -> ${n1})`);
 });
+
+// ---- slice 4: plague
+import { infect, sicknessOf } from '../src/sim/illness.js';
+test('laws: Plague none stops every new case; endless keeps outbreaks coming but spares villages of 3 or fewer standing', () => {
+  const run = (value, days) => {
+    const g = newGame({ seed: 7, scenario: 'core:living_world' });
+    law(g, 'core:plague', value);
+    const c0 = g.s.stats.illness?.cases || 0;
+    runDays(g, days);
+    return { g, cases: (g.s.stats.illness?.cases || 0) - c0 };
+  };
+  const none = run('none', 15);
+  assert.equal(none.cases, 0, 'nobody falls ill');
+  const fever = none.g.reg.get('illness', 'core:fever'), who = Object.values(none.g.s.colonists).find((c) => !sicknessOf(c));
+  assert.equal(infect(none.g, who, fever, 'a test'), null, 'even a direct infection is refused');
+  none.g.s.worldLaws = undefined;
+  assert.ok(infect(none.g, who, fever, 'a test'), 'and allowed without the law');
+  const endless = run('endless', 12);
+  assert.ok(endless.cases > 0, 'the plague breaks out');
+  assert.ok(endless.g.s.log.some((e) => /broke out in .* \(the Endless plague law\)/.test(e.msg)));
+  const sick = Object.values(endless.g.s.colonists).filter((c) => (c.health?.injuries || []).some((i) => i.kind === 'sickness' && i.illness === 'core:plague'));
+  assert.ok(sick.length > 0, 'plague cases');
+  const b = reload(endless.g);
+  runDays(endless.g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(endless.g));
+  // A village of 3 standing: no outbreak there, ever.
+  const g = newGame({ seed: 7, scenario: 'core:living_world' });
+  const sid = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].ai && g.owned('colonists', k).length === 3);
+  assert.ok(sid, 'a village of 3');
+  law(g, 'core:plague', 'endless');
+  let small = 0;
+  for (let d = 0; d < 20; d++) {
+    const standing = g.owned('colonists', sid).filter((c) => !c.health?.down).length, t0 = g.s.tick;
+    runDays(g, 1);
+    if (standing > 3) continue;
+    small++;
+    const hit = g.s.log.some((e) => e.t >= t0 && e.msg.includes(`broke out in ${g.s.settlements[sid].name}`));
+    assert.equal(hit, false, `the small village is spared on day ${d} (the owner's answer 6)`);
+  }
+  assert.ok(small > 0, 'it was small on some days');
+});
