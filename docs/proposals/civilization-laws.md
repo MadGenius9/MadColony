@@ -1,6 +1,6 @@
 # Civilization laws (2026-10-28 direction, item 6b)
 
-Status: **building** (2026-10-29; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
+Status: **done** (2026-10-29; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
 
 ## The owner's answers (2026-10-29)
@@ -232,3 +232,31 @@ and temperaments lean to it.
   plentiful; the player's village untouched; drift exactly +0.1 for two laws alike and nothing for two alike
   and two apart, none without laws; a Vast world with reviews saves and loads the same.
 - **Checks:** 229 tests pass; classic unchanged.
+### Acceptance (2026-10-29)
+- **World run** (`tools/cloud-world-run.mjs 300 world 11`, which now counts laws and tithes): passed.
+  - Items, people, animals and monsters were counted every 25 days, and a save and load on day 150 played on
+    identically.
+  - **Laws on day 300, of 53 standing villages:**
+    - protected forests 51;
+    - banned hunting 13;
+    - militia 5 (rising to 37 in the wars around day 250 and standing down after);
+    - harsh justice 5;
+    - rationing 1.
+    - Tithes went out while kingdoms held them (up to 8 members).
+  - **People:** 256 people, 61 wars declared.
+- **Speed:**
+  - **Day 300:** 4.6 ms/tick, against 3.3 for the same seed and today's code with no laws (a copy where
+    villages start with no laws and never review them).
+  - **The code costs nothing extra:** with no laws it plays the identical game to the peoples run, and side by
+    side with the code before this phase it runs at the same speed (100 days: 1.30 against 1.26 ms/tick).
+    The earlier 2.45 at day 300 was a faster machine.
+  - **The difference is a different game:** militias make villages stronger, so they declare war sooner (35
+    wars by day 175 against 18). Fights cost time (`nearestEnemy` and `combatDecision` are 12% of a late
+    tick).
+  - **A profile of day 170:** the law code is about 1.5% of the time.
+- **Suite:** 229 tests pass; classic unchanged (`forty` ee55506a781cb766, `modern` 479f5857575304ab).
+- **Carried over** (not done):
+  - the militia makes worlds more warlike (worth tuning after play);
+  - nearly every village protects its forest by the end (few trees near), which is fine for the land but
+    worth a look;
+  - Mood, the next phase, will use each option's `mood`.

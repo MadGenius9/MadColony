@@ -735,6 +735,28 @@ civilizations are the next phase (direction item 6b).
 - **Carried over** (not done): the endless plague is harsh (tune after play); herds have no spring under an
   endless season.
 
+### Civilization laws (Done in the cloud copy, 2026-10-29)
+Laws villages and kingdoms keep (direction item 6b, the owner's ask), with their own design note.
+
+- **Done:** nine laws as data (`civLaw`), each option with a mood value for the Mood phase:
+  - work hours; rationing; schooling; conscription; hunting; forests; borders; tithe; justice;
+  - `settlement.code`, with a 5-day wait between changes (the owner's answer 2);
+  - kingdom laws from the capital (answer 3);
+  - leanings by people and profile;
+  - AI reviews by situation (answer 7);
+  - relations drift with similar laws (answer 6);
+  - the tithe as counted gift trades (answer 4);
+  - every effect in distant villages too;
+  - save format 32.
+  - Design and results: `docs/proposals/civilization-laws.md`.
+- **Acceptance:**
+  - 229 tests pass; classic unchanged;
+  - World 300 days: everything counted, save and load identical, laws spread and change with wars and want;
+  - the law code costs nothing extra (the same speed as before with no laws); the slower late game (4.6
+    against 3.3 ms/tick at day 300) is a more warlike world.
+- **Carried over** (not done): militias make worlds more warlike (tune after play); Mood (direction 6c) is
+  next.
+
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
 (reserved road corridors, plots, farmland, expansion space) replacing nearest-good-spot site choice, with
