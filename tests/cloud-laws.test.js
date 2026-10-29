@@ -271,3 +271,15 @@ test('laws: a save and load right after a season change plays on identically (re
   runDays(g, 1); runDays(b, 1);
   assert.equal(stateText(b), stateText(g));
 });
+
+test('laws: under the Endless plague a village of 3 or fewer living never dies out: its plague cases stop short of deadly', () => {
+  const g = newGame({ seed: 7, scenario: 'core:living_world' });
+  const sid = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].ai && g.owned('colonists', k).length === 3);
+  law(g, 'core:plague', 'endless');
+  const plague = g.reg.all('illness').find((d) => d.plague);
+  for (const c of g.owned('colonists', sid)) { const i = infect(g, c, plague, 'a test'); assert.ok(i); i.severity = 55; }
+  runDays(g, 3);
+  const left = g.owned('colonists', sid);
+  assert.equal(left.length, 3, 'nobody died');
+  for (const c of left) for (const i of c.health.injuries) if (i.kind === 'sickness') assert.ok(i.severity <= 60, `severity ${i.severity}`);
+});

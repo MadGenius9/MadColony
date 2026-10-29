@@ -33,6 +33,8 @@ export const plagueActive = (g) => (g.s.disasters?.plague?.until ?? -1) > g.s.ti
 const spreadRules = (g) => (lawIs(g, 'core:plague', 'endless') ? endlessRules(g) : null) || illnessRules(g) || (plagueActive(g) ? PLAGUE_SPREAD : null);
 /** The Endless plague law (worldlaws.js): a plague illness breaks out in each village about every 10 days. */
 export const ENDLESS_PLAGUE = Object.freeze({ outbreakPerDay: 0.1, villageShare: 0.3, spare: 3 });
+/** The most a plague case grows to in a spared village (health stays at 40% or more from it). */
+const SPARED_MAX = 60;
 function endlessRules(g) {
   const kinds = g.reg.all('illness').filter((d) => d.plague).map((d) => ({ illness: d.id, weight: 1 })).sort((a, b) => (a.illness < b.illness ? -1 : 1));
   return kinds.length ? { ...ENDLESS_PLAGUE, kinds } : null;
@@ -100,6 +102,9 @@ export function tickSickness(g, c, frac) {
     const care = cared(g, c) || (c.sleeping && !!c.job?.bedId) ? CARE_GROWTH : 1;
     const grow = ill.growPerHour * frac * hardy * care * (i.treated ? ill.treatedGrowth : 1);
     i.severity = Math.min(100, Math.round((i.severity + grow) * 10000) / 10000);
+    // The Endless plague law never wipes a village out (the owner's answer 6): in a village of SPARE or fewer
+    // living, a plague case stops short of deadly.
+    if (ill.plague && i.severity > SPARED_MAX && lawIs(g, 'core:plague', 'endless') && g.owned('colonists', c.settlementId || g.s.playerSettlement).length <= ENDLESS_PLAGUE.spare) i.severity = SPARED_MAX;
   }
 }
 
