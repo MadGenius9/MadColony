@@ -47,6 +47,16 @@ signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases co
 6c. **Mood** (owner, 2026-10-29): each person's mood from needs, home, food, grief, traits, their people and
    their village's laws (each law option has a mood value), with effects (work speed, unrest, villages
    changing laws or people leaving) and reasons. Its own phase and design note, after Civilization laws.
+6d. **Phases 11–16** (owner, 2026-10-29), after Mood and before the scale target. Each has its own section
+   below.
+   - **11** integration and reliability;
+   - **12** connected world chronicle;
+   - **13** need-driven prayers and petitions (the first slice of worship);
+   - **14** intervention follow-through;
+   - **15** village memories and traditions;
+   - **16** playtesting and balance.
+   The macro god-simulator direction holds: villages manage themselves; the player shapes the world and
+   watches consequences.
 7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
    performance work needed.
 Then Phase 3, Phase 4 and the rest, as written below.
@@ -757,6 +767,130 @@ Laws villages and kingdoms keep (direction item 6b, the owner's ask), with their
 - **Carried over** (not done): militias make worlds more warlike (tune after play); Mood (direction 6c) is
   next.
 
+### Mood (in progress in the cloud copy, 2026-10-29)
+Each person's mood from their thoughts (direction 6c), with its own design note: `docs/proposals/mood.md`
+(the owner's answers there).
+- **Built and tested:**
+  - slice 1, thoughts and the hourly mood;
+  - slice 2, work speed, the birth chance and breaks.
+- **Planned:**
+  - slice 3, unrest: AI villages repeal their most disliked law; a miserable family may move to another
+    village of its own people; the player gets warnings, never a forced law;
+  - slice 4, acceptance.
+- **Not playable yet:** the UI is not in the cloud copy (UI notes in `docs/ui-todo.md`).
+
+**Status words for every phase from here on:**
+- **planned:** a design note or roadmap entry;
+- **built:** code merged on `cloud-work`;
+- **tested:** suite, runs and bench recorded in `docs/cloud-baseline.md`;
+- **playable:** checked with the real UI (only possible at home).
+- Everything done in the cloud copy so far is built and tested, not yet playable.
+
+### Phase 11: integration and reliability (planned)
+Before more simulation complexity. Depends on: the home PC for the UI (back about 2026-11-08).
+- **1. A playable build:** combine the cloud simulation with the real UI. The UI (`src/ui`, `index.html`) is
+  not in the rescue copy, so the cloud part is an integration contract:
+  - every UI-facing function and field the cloud phases added (from `docs/ui-todo.md`), with its module and
+    signature;
+  - the save formats 27–33;
+  - what the UI must call (`setCivLaw`, `issueCommand('law' | 'trait' | 'shape', ...)`, `explainColonist(...).mood`).
+  The build and its testing happen at home; nothing is claimed as tested before that.
+- **2. A regression test for set-aside goods (missing mods):** a suspected bug, from reading the code
+  (`game.js tryRestore`, `save.js`).
+  - A map stack set aside on load keeps its village in the stack itself (`data.settlement`), but restoring
+    sets the owner only from the outer `owner`, which only caravan goods carry. So an AI village's goods may
+    come back as the player's or nobody's.
+  - Fuel, buffers, ammunition and carried goods set aside from a village keep no owner at all.
+  - First a test that reproduces it; then the fix.
+- **3. Performance baselines:**
+  - fixed seeds and sizes;
+  - terrain-edit latency (a shaping stroke on Vast and World) and long ticks (the worst ticks and their
+    causes);
+  - war cost (fights in full-detail villages; `nearestEnemy`, `combatDecision`) and animal cost (herds,
+    hunting), each measured on its own;
+  - comparisons only within one session, as this machine's speed varies by about 35% between days.
+- **4. Investigate war frequency and hunting limits:**
+  - why mixed worlds see twice the wars (feuds between peoples, militias);
+  - why distant villages hunt so little (one hunter a village an hour).
+  - Report first; balance changes only with the owner, never to pass a benchmark.
+- **Acceptance:** reproducible test results, a clear UI and integration status, and the remaining defects and
+  performance limits written down.
+- **Not in it:** a replacement UI; balance changes; new simulation features.
+
+### Phase 12: connected world chronicle (planned)
+Builds on the existing log (`s.log`, letters, `g.log` keys). Depends on: Phase 11.
+- **Events:** stable ids, simulation time, the villages, people, place and category, and cause links only
+  where the simulation knows them.
+  - Examples: a law passed for a recorded reason ("few trees left near"), a war declared by rivalry, a tithe,
+    a trade refused by closed borders.
+- **Chains:** shown only from recorded links (e.g. forest depletion → protection law → timber shortage →
+  trade dispute → war). Associations without a recorded link are labelled "followed", never "caused".
+- **Filters:** village, person or family where known, kingdom, category, time. Follow and favourite
+  controls, and a jump from an event to its subject or place (UI notes).
+- **Bounded storage:**
+  - milestones kept;
+  - routine events summarised as they age;
+  - a fixed cap with a save-size check on the World run;
+  - duplicate notifications merged (the log's existing keys).
+- **Acceptance:** one real chain is understandable in the UI, survives save and load, and does not flood the
+  player.
+- **Not in it:** a second event system next to the log; invented causes.
+
+### Phase 13: need-driven prayers and petitions (planned)
+The first slice of worship. The rescue copy holds only the roadmap line "worship and favour coming from
+villages" (Later, below). A fuller worship plan, if one exists at home, is linked and its open questions left
+to the owner. Depends on: Phase 12 (petitions are chronicle events) and Mood.
+- **Petitions from real conditions:**
+  - hunger (food days), water shortage, monster danger, environmental damage (forest loss, drought);
+  - each a small data type tied to an existing power the player can answer with (rain, bless, banish,
+    shaping, peaceful animals).
+- **Shown:** who asks, the evidence (the numbers behind it), the urgency, and when it expires or stops
+  mattering.
+- **The player** answers with a power, dismisses or ignores it. No quest playstyle, no free goods, no
+  arbitrary rewards: answers act through the simulation as usual.
+- **Limits:** cooldowns, de-duplication, and a cap by population.
+- **Acceptance:** petitions arise from real conditions, resolve sensibly when things change, and persist
+  through save and load without spam.
+- **Not in it:** a full religion, favour income from villages, temples.
+
+### Phase 14: intervention follow-through (planned)
+Builds on the existing power previews and results (`s.god.log`). Depends on: Phase 12; links to Phase 13.
+- **Each power's result records:**
+  - the region affected;
+  - the immediate effects (what apply returned);
+  - a few before-and-after measures already available (food days, casualties, migration, forest cover).
+- **An outcome card** after a configurable interval: what changed, split into "recorded consequences" (what
+  the power did) and "changes that followed" (no causal claim).
+- **No alternate-outcome claims:** there is no counterfactual simulation, and none is added.
+- **Links** to the chronicle and to any petition it answered.
+- **Acceptance:** the player understands the immediate result and the later changes, with no misleading
+  claims and little tracking cost.
+- **Not in it:** counterfactual runs; per-tile history.
+
+### Phase 15: village memories and traditions (planned)
+Builds on Mood, Peoples and traits, and Civilization laws. Depends on: Phases 12 and 14 (memories cite
+events) and Mood done.
+- **Memories:** a few data types of meaningful experiences: survived a famine, defeated a monster, received
+  aid, endured a disaster. Each has a description, a duration and decay, stacking limits and modest
+  transparent effects (e.g. a mood thought, a law leaning).
+- **Traditions:** these emerge from repeated or exceptional memories, so villages of one people can grow
+  different identities. They show why they exist and link to their events.
+- **Bounded:** no runaway bonuses or penalties (caps on effects and on the number held). Deterministic across
+  save and load.
+- **Acceptance:** two villages develop different histories and traditions for understandable reasons, with
+  bounded effects.
+- **Not in it:** a religion system; duplicates of inherited traits.
+
+### Phase 16: playtesting and balance (planned)
+Depends on: Phase 11's playable build (home), and Phases 12–15.
+- **Play the features together:**
+  - can players follow events, find interventions worth making, and see results without micromanaging?
+  - long runs, save and load, deleted or destroyed subjects, expired petitions, repeated interventions,
+    event retention, missing-mod recovery.
+- **Performance** against the Phase 11 baselines, with regressions reported honestly.
+- **A short tutorial or hints** for the new controls in the existing UI style.
+- **Not in it:** new systems.
+
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
 (reserved road corridors, plots, farmland, expansion space) replacing nearest-good-spot site choice, with
@@ -765,7 +899,8 @@ reasons.
 ### Later: god powers, part 4 (terrain and weather), then worship
 Once weather exists: terrain brushes (raise and lower land, dig water, plant forest) and weather powers
 (rain, drought, storms). Later still: worship and favour coming from villages. (2026-10-28: the terrain brushes
-are done, see "World shaping"; rain and drought came with Phase 5b.)
+are done, see "World shaping"; rain and drought came with Phase 5b. 2026-10-29: Phase 13 is the first slice
+of worship, prayers and petitions from real needs.)
 
 ### Phase 10: leftovers, then review
 Families (partnerships, old age, more professions), contraband selling policy, scripting API for mods, zip
