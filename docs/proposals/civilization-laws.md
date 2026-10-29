@@ -196,3 +196,19 @@ and temperaments lean to it.
 - **Tests:** no hunting, with the reason, against hunting without the law; the restricted rule; more grown
   trees near the village; more armed; a distant militia's war strength rises.
 - **Checks:** 223 tests pass; classic unchanged.
+### Slice 4 (2026-10-29): outside
+- **Borders, closed** (`civlaws.js bordersClosed`):
+  - no trade (`willTrade`) and no traders' visits (`contact.js`) between villages of different kingdoms when
+    either keeps closed borders;
+  - the player's offer screen says "Closed borders: X does not trade outside its kingdom";
+  - villages of one kingdom are open to each other.
+- **Tithe** (`src/sim/tithe.js`, daily after the kingdom check):
+  - every 10 days, each member whose capital keeps the tithe sends a tenth of its spare goods (free to trade,
+    at most 200 an item) as a gift trade;
+  - each member's day comes from a hash, so tithes are spread out;
+  - a new tithe waits while the last one is still on its way;
+  - delivery is the usual way, so every item stays counted.
+- **Justice:** harsh doubles the attention smuggling draws and the seizure chance; lenient halves them.
+- **Tests:** closed borders stop trade both ways and in offers, but not inside a kingdom; a tithe goes from
+  member to capital with every item counted and a save and load matching; harsh and lenient seizure chances.
+- **Checks:** 226 tests pass; classic unchanged.

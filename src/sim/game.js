@@ -46,6 +46,7 @@ import './godmonsters.js'; // registers the god powers 'monster' and 'banish' (P
 import './godshape.js'; // registers the god power 'shape' (world shaping)
 import './godtraits.js'; // registers the god power 'trait' (Peoples and traits)
 import './worldlaws.js'; // registers the god power 'law' (World laws)
+import { tickTithes } from './tithe.js'; // the Tithe law (civilization laws)
 import { defaultPeople, settleFolk } from './peoples.js';
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
@@ -1469,7 +1470,7 @@ export class Game {
     // Daily, at the start of the day, right after the villages' diplomacy: settlers of crowded villages may
     // found a new one (founding.js; off unless the scenario has `founding`; it draws no random numbers).
     // Births come later in the day (people.js, 06:00) and see the new head-counts.
-    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); updateMarkets(this); if (this._cl) growClaims(this); tickAging(this); tickIllness(this); tickRivalry(this); tickFallen(this); tickSpoil(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
+    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); tickTithes(this); updateMarkets(this); if (this._cl) growClaims(this); tickAging(this); tickIllness(this); tickRivalry(this); tickFallen(this); tickSpoil(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
     tickPower(this);
     tickWater(this);
     tickPeople(this);

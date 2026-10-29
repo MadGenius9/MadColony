@@ -162,3 +162,49 @@ test('civ laws: protected forests keep grown trees near the village; a militia a
   setCivLaw(w, far, 'core:conscription', 'militia', '', { force: true });
   assert.ok(warStrength(w, far) > before, `${before} -> ${warStrength(w, far)}`);
 });
+
+// ---- slice 4: outside
+import { bordersClosed } from '../src/sim/civlaws.js';
+import { willTrade, evaluateOffer, relationOf, seizeChance } from '../src/sim/villages.js';
+import { conservationErrors } from './cloud-helpers.js';
+
+test('civ laws: closed borders stop trade and traders outside the kingdom; members still trade', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  const me = g.s.playerSettlement, [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  for (const [x, y] of [[me, a], [me, b], [a, b]]) relationOf(g, x, y).contact = true;
+  assert.equal(willTrade(g, a, b), true);
+  setCivLaw(g, a, 'core:borders', 'closed', '', { force: true });
+  assert.equal(bordersClosed(g, a, b), true);
+  assert.equal(willTrade(g, a, b), false);
+  assert.equal(willTrade(g, b, a), false, 'either side closed is enough');
+  assert.ok(evaluateOffer(g, a, { give: [{ item: 'core:wood', qty: 5 }], want: [] }).problems.some((p) => /Closed borders: .* does not trade outside its kingdom/.test(p)));
+  formKingdom(g, a, b);
+  assert.equal(bordersClosed(g, a, b), false, 'one kingdom: open to each other');
+});
+
+test('civ laws: the tithe sends a tenth of a member\'s spare goods to the capital, every item counted', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  const [cap, mem] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  relationOf(g, cap, mem).contact = true;
+  formKingdom(g, cap, mem);
+  setCivLaw(g, cap, 'core:tithe', 'tithe', '', { force: true });
+  runDays(g, 12);
+  const tithes = Object.values(g.s.trades || {}).filter((t) => t.tithe);
+  assert.ok(tithes.length > 0 || g.s.log.some((e) => /sends its tithe/.test(e.msg)), 'a tithe went out');
+  assert.ok(tithes.every((t) => t.seller === mem && t.buyer === cap && t.gift));
+  assert.deepEqual(conservationErrors(g), []);
+  const b2 = reload(g);
+  runDays(g, 1); runDays(b2, 1);
+  assert.equal(stateText(b2), stateText(g));
+});
+
+test('civ laws: harsh justice doubles seizures, lenient halves them', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  const me = g.s.playerSettlement, a = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].ai);
+  const usual = seizeChance(g, a, me);
+  setCivLaw(g, a, 'core:justice', 'harsh', '', { force: true });
+  assert.ok(Math.abs(seizeChance(g, a, me) - Math.min(0.9, usual * 2)) < 1e-9);
+  g.s.tick += 6 * TICKS_PER_DAY;
+  setCivLaw(g, a, 'core:justice', 'lenient');
+  assert.ok(Math.abs(seizeChance(g, a, me) - usual * 0.5) < 1e-9);
+});

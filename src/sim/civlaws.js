@@ -74,6 +74,18 @@ export function treeProtected(g, sid, n) {
   return (n.x - c.x) ** 2 + (n.y - c.y) ** 2 <= PROTECT_R * PROTECT_R;
 }
 
+// ---- effects (slice 4: outside)
+/** Are villages a and b kept apart by closed borders (either side's; villages of one kingdom never are)? */
+export function bordersClosed(g, a, b) {
+  const ka = g.s.settlements?.[a]?.kingdom;
+  if (ka && ka === g.s.settlements?.[b]?.kingdom) return false;
+  return civLawIs(g, a, 'core:borders', 'closed') || civLawIs(g, b, 'core:borders', 'closed');
+}
+/** The Justice law's factor on smuggling attention and seizures in village sid: harsh 2, lenient 0.5. */
+export const justiceOf = (g, sid) => { const j = civLawOf(g, sid, 'core:justice'); return j === 'harsh' ? 2 : j === 'lenient' ? 0.5 : 1; };
+/** The tithe: every TITHE.days days a member sends this share of its spare goods to its capital. */
+export const TITHE = Object.freeze({ days: 10, share: 0.1, max: 200 });
+
 /** The mood of an option (data; for the Mood phase), 0 when unknown. */
 export function optionMood(g, id, option) { return g.reg.get('civLaw', id)?.options?.find((x) => x.id === option)?.mood ?? 0; }
 

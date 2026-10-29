@@ -49,6 +49,7 @@ import { spreadContact } from './illness.js';
 import { makeContact, changeRelation, relationOf, relationPeek, relationStatus, legRemaining } from './villages.js';
 import { octile } from './util.js';
 import { detailOf, sendFarCaravans, caravanTicks, caravanReach } from './lod.js';
+import { bordersClosed } from './civlaws.js';
 
 export { caravanReach }; // for ai/givers.js (far legs: which goods a caravan can load)
 
@@ -341,7 +342,7 @@ function launchTraders(g, sid, v, R) {
   v.nextTrade = s.tick + every;
   const met = [];
   for (const o of Object.keys(s.settlements).sort()) {
-    if (o === sid || s.settlements[o].fallen) continue; // nobody visits ruins (fallen.js)
+    if (o === sid || s.settlements[o].fallen || bordersClosed(g, sid, o)) continue; // nobody visits ruins (fallen.js), nor across closed borders (civlaws.js)
     const rel = relationPeek(g, sid, o);
     if (rel.contact && relationStatus(rel) !== 'hostile') met.push(o);
   }

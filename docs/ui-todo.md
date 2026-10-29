@@ -405,3 +405,5 @@ where, and which sim function or state field provides it. The UI is built at hom
   colonist card. Children's cards say "At school (compulsory schooling)" or "Working (child labour)".
 - **Hunting and forests:** the plan's hunt note "Hunting is banned by law" shows in the food panel. Protected
   trees near the village get a small marker (`treeProtected`).
+- **Borders, tithe and justice:** the trade window shows "Closed borders: ..." when it applies. Tithes appear
+  in the trades list as "Tithe to X". The smuggling panel notes "harsh justice: twice the attention".

@@ -10,7 +10,7 @@ import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.j
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
 import { knownPeople, settleFolk, modsOf, paletteOf, peopleByLand } from './peoples.js';
 import { isAdult } from './people.js';
-import { startCode } from './civlaws.js';
+import { startCode, bordersClosed, justiceOf, civLawIs as civLawIsB } from './civlaws.js';
 import { lawIs } from './worldlaws.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
@@ -393,7 +393,7 @@ const iname = (g, it) => g.reg.get('item', it)?.name || it;
 export function willTrade(g, sid, other) {
   const rel = relationPeek(g, sid, other);
   const status = relationStatus(rel);
-  if (!rel.contact || status === 'hostile' || tradeClosed(g, sid, other)) return false;
+  if (!rel.contact || status === 'hostile' || tradeClosed(g, sid, other) || bordersClosed(g, sid, other)) return false; // closed borders (civlaws.js)
   const st = settlementOf(g, sid);
   if (sid === g.s.playerSettlement) {
     const pol = g.s.diplomacy?.tradePolicy || 'open';
@@ -716,6 +716,7 @@ export function evaluateOffer(g, ai, offer) {
   if (status === 'hostile') res.problems.push(`${name} is hostile and will not trade.`);
   if (activeTradeBetween(g, me, ai)) res.problems.push(`A trade with ${name} is still being delivered. Wait for it to finish or call it off.`);
   if (tradeClosed(g, me, ai)) res.problems.push(`${name} has closed trade with you over smuggling until ${dayOf(attentionOf(g, ai, me).closedUntil)}.`);
+  if (bordersClosed(g, me, ai)) res.problems.push(civLawIs2(g, ai) ? `Closed borders: ${name} does not trade outside its kingdom.` : 'Your borders are closed: no trade outside your kingdom.');
   if (!give.length && !want.length) res.problems.push('Choose something to give or to ask for.');
   if (give.length > MAX_OFFER_ITEMS || want.length > MAX_OFFER_ITEMS) res.problems.push(`Use at most ${MAX_OFFER_ITEMS} different items on each side.`);
   for (const x of give) if (want.some((w) => w.item === x.item)) res.problems.push(`You cannot trade ${iname(g, x.item)} for itself.`);
@@ -805,6 +806,7 @@ export function greedOf(g, sid) {
   return Math.min(GREED_MAX, Math.round(x * 1000) / 1000);
 }
 
+const civLawIs2 = (g, sid) => civLawIsB(g, sid, 'core:borders', 'closed');
 /** Send an offer. If the neighbour accepts it becomes an active trade (one leg per item); returns { ok, message, tradeId }. */
 export function proposeTrade(g, ai, offer) {
   const me = g.s.playerSettlement;
@@ -1505,12 +1507,13 @@ export const tradeClosed = (g, a, b) => (g.s.enforcement?.[enfKey(a, b)]?.closed
 /** Chance a banned delivery into j by actor is seized right now. */
 export function seizeChance(g, j, actor) {
   const enf = settlementOf(g, j)?.enforcement ?? 0.6;
-  return Math.min(0.9, (ENFORCE.seizeBase + attentionOf(g, j, actor).value / 250) * (0.4 + enf));
+  return Math.min(0.9, (ENFORCE.seizeBase + attentionOf(g, j, actor).value / 250) * (0.4 + enf) * justiceOf(g, j)); // the Justice law (civlaws.js)
 }
 
 function raiseAttention(g, j, actor, delta, reason) {
   const a = attentionOf(g, j, actor);
   const before = a.value;
+  if (delta > 0) delta *= justiceOf(g, j); // the Justice law (civlaws.js): harsh doubles it, lenient halves it
   a.value = Math.min(100, Math.round((a.value + delta) * 10) / 10);
   a.history.push({ tick: g.s.tick, delta: Math.round(delta * 10) / 10, reason });
   if (a.history.length > 12) a.history.splice(0, a.history.length - 12);
