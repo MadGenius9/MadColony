@@ -56,6 +56,24 @@ export const rationOf = (g, c) => (civLawIs(g, sidOfC(g, c), 'core:rationing', '
 /** Village sid's work-hours law: 'normal', 'long' or 'curfew'. */
 export const hoursOf = (g, sid) => civLawOf(g, sid, 'core:work_hours') || 'normal';
 
+// ---- effects (slice 3: land and arms)
+/** Restricted hunting: hunts only while the village has under this many days of food. */
+export const HUNT_RESTRICT_DAYS = 3;
+/** Protected forests: no grown tree within this many tiles of the village centre is felled. */
+export const PROTECT_R = 12;
+/** May village sid hunt for meat now (foodDays: its planner's)? A pack that attacked it is hunted anyway. */
+export function huntAllowed(g, sid, foodDays) {
+  const h = civLawOf(g, sid, 'core:hunting');
+  return h === 'banned' ? false : h === 'restricted' ? (foodDays ?? 99) < HUNT_RESTRICT_DAYS : true;
+}
+/** Is node n a grown tree that village sid's Protected forests law keeps from felling? O(1). */
+export function treeProtected(g, sid, n) {
+  if (!n || n.young || civLawOf(g, sid, 'core:forests') !== 'protected') return false;
+  if (g.nodeDef(n)?.workType !== 'core:chop') return false;
+  const c = g.s.settlements?.[sid]?.center || g.s.center;
+  return (n.x - c.x) ** 2 + (n.y - c.y) ** 2 <= PROTECT_R * PROTECT_R;
+}
+
 /** The mood of an option (data; for the Mood phase), 0 when unknown. */
 export function optionMood(g, id, option) { return g.reg.get('civLaw', id)?.options?.find((x) => x.id === option)?.mood ?? 0; }
 

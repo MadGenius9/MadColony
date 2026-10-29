@@ -21,6 +21,7 @@ import { BURIAL_GIVERS } from '../burial.js';
 import { droughtAt } from '../weatherat.js';
 import { HUNT_GIVERS } from '../hunt.js';
 import { SLAY_GIVERS } from '../slay.js';
+import { treeProtected } from '../civlaws.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or
  *  near the centre (lod.js caravanReach). If those cannot cover what is still owed, one colonist at a time per
@@ -115,6 +116,7 @@ export const GIVERS = {
         const claim = g.footAt(node.x, node.y) || g.fieldAt(node.x, node.y);
         if (claim && !g.mine(claim, c)) continue; // on another settlement's land
         if (!g.gatherOk(mySid, node)) continue; // another settlement's land, unless it granted gathering rights
+        if (!clr && treeProtected(g, mySid, node)) continue; // a protected forest (civlaws.js); building sites are still cleared
         let urg = -1, why = '', max = 1, wantItem = null, goal = null;
         if (clr) { urg = clr.urgency; why = clr.why; max = 99; }
         for (const y of def.yields) {

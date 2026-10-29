@@ -403,3 +403,5 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Other villages' panels** show their laws read-only, and the log shows "X passed a law: ...".
 - **Work hours, rationing and schooling:** the idle reason "Curfew: no outdoor work at night" shows in the
   colonist card. Children's cards say "At school (compulsory schooling)" or "Working (child labour)".
+- **Hunting and forests:** the plan's hunt note "Hunting is banned by law" shows in the food panel. Protected
+  trees near the village get a small marker (`treeProtected`).

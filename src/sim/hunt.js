@@ -16,6 +16,7 @@ import { huntableNear, bringNear, herdAnimals, killAnimal, alarmHerd, meatOnHand
 import { roomAt } from './heat.js';
 import { hpOf } from './health.js';
 import { modsOf } from './peoples.js';
+import { huntAllowed } from './civlaws.js';
 
 export const HUNT_REACH = 60, GIVE_UP = 1500;
 
@@ -46,6 +47,7 @@ export const HUNT_GIVERS = {
         } });
       }
       if (meatOnHand(g, P) >= MEAT_PER_PERSON * Math.max(2, people)) return out;
+      if (!huntAllowed(g, sid, P?.foodDays)) return out; // the Hunting law (civlaws.js): banned, or restricted to want
       for (const { h, d, dist } of huntableNear(g, ctr.x, ctr.y, HUNT_REACH)) { // within reach of home (carcasses are hauled there)
         if (g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;
         out.push({

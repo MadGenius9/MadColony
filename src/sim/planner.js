@@ -16,7 +16,7 @@ import { PLAN_INTERVAL } from './constants.js';
 import { TICKS_PER_DAY, TICKS_PER_HOUR, NEAR_RADIUS } from './constants.js';
 import { canRipen } from './farming.js';
 import { heatSeason, seasonLawKey } from './heat.js';
-import { civLawIs, RATION } from './civlaws.js';
+import { civLawIs, RATION, huntAllowed, treeProtected } from './civlaws.js';
 import { isWaterNode, waterNetworks } from './water.js';
 import { GOAL_TYPES, goalIsOngoing, describeGoal } from './goals.js';
 import { createProject, findSite, assignHome, addSlotPart, partsOf, homeFurnished, tileUsable } from './construction.js';
@@ -235,7 +235,7 @@ function planSettlement(g, sid) {
     mealTarget: Math.ceil((pol.mealsPerColonist ?? 2) * n), mealUrgency: 0.9, mealGoal: null,
     foodDays: pol.foodDays ?? 3, foodUrgency: 0.55, foodGoal: null,
     guards: null, buildCounts: [], eraGoals: [],
-    armAll: !!pol.armColonists || Object.keys(s.settlements || {}).some((o) => o !== sid && relationStatus(relationPeek(g, sid, o)) === 'hostile'), armUrgency: 0.5, armGoal: null,
+    armAll: !!pol.armColonists || civLawIs(g, sid, 'core:conscription', 'militia') || Object.keys(s.settlements || {}).some((o) => o !== sid && relationStatus(relationPeek(g, sid, o)) === 'hostile'), armUrgency: 0.5, armGoal: null, // militia: the Conscription law (civlaws.js)
   };
   if (isPlayer) for (const goal of s.goals) if (goal.status === 'active') GOAL_TYPES[goal.type]?.apply(g, goal, ctx); // player goals steer the player's settlement
   // Era drive (scenario data `eraDrive`; the Living and vast worlds, never classic scenarios): a village with no
@@ -291,7 +291,8 @@ function planSettlement(g, sid) {
   // best hunters (by skill, then id) get a weapon if they have none; the reason is shown (P.huntNote).
   const ctr = s.settlements?.[sid]?.center || s.center, hunterIds = new Set();
   const herdsNear = !ctr || !s.animals ? [] : s.settlements?.[sid]?.detail === 'abstract' ? farHuntable(g, ctr.x, ctr.y, 40, sid) : huntableNear(g, ctr.x, ctr.y, 60); // distant villages hunt far herds (lod.js); full ones near or far
-  const meatShort = meatOnHand(g, P) < MEAT_PER_PERSON * Math.max(2, cols.length);
+  const huntLaw = huntAllowed(g, sid, P.foodDays); // the Hunting law (civlaws.js)
+  const meatShort = huntLaw && meatOnHand(g, P) < MEAT_PER_PERSON * Math.max(2, cols.length);
   if (herdsNear.length && meatShort) {
     const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
     for (const c of pool.slice(0, 2)) hunterIds.add(c.id);
@@ -305,7 +306,7 @@ function planSettlement(g, sid) {
     for (const c of pool.slice(0, td.fightGroup)) hunterIds.add(c.id);
   }
   P.monsterNote = td ? `A ${td.name} threatens the village: arming ${td.fightGroup} fighters to hunt it` : '';
-  P.huntNote = raid ? `Hunting down the ${raid.d.plural || raid.d.name} that attacked the village (${Math.round(raid.dist)} tiles away)` : !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
+  P.huntNote = raid ? `Hunting down the ${raid.d.plural || raid.d.name} that attacked the village (${Math.round(raid.dist)} tiles away)` : !huntLaw ? (civLawIs(g, sid, 'core:hunting', 'banned') ? 'Hunting is banned by law' : 'Hunting is restricted by law: only when food runs low') : !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
   for (const c of cols) {
     if (!isAdultP(g, c)) continue; // children get no tools or weapons
     const role = roleOf(g, c);
@@ -399,7 +400,7 @@ function planSettlement(g, sid) {
     const byDef = g.big ? null : g.nodesByDef();
     const pool = g.big ? (reach && nodesInReach(g, sid, set)) || g.nodesNear(center.x, center.y, NEAR_RADIUS, set) : defIds.flatMap((d) => byDef.get(d) || []);
     for (const nd of pool) {
-      if (nd.empty || !g.gatherOk(sid, nd)) continue;
+      if (nd.empty || !g.gatherOk(sid, nd) || treeProtected(g, sid, nd)) continue; // protected forests (civlaws.js)
       if (reach && !reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK)) continue; // one chunk's trip
       if (g.reachableFrom(center.x, center.y, nd.x, nd.y, g.nodeDef(nd).passable ? 'on' : 'adj')) { ok = true; break; }
     }

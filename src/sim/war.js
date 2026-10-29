@@ -34,6 +34,9 @@ import { spreadContact } from './illness.js';
 import { mayFight } from './people.js';
 import { settlementOf } from './research.js';
 import { peopleOfSettlement } from './peoples.js';
+import { civLawIs } from './civlaws.js';
+/** A militia member's weapon damage where nobody equips (a spear's). */
+const MILITIA_DAMAGE = 8;
 import { lawIs } from './worldlaws.js';
 
 /** The scenario's war rules, or null. */
@@ -62,10 +65,13 @@ export const OTHER_PEOPLE_RIVALRY = 1.5;
 /** Fighting strength of a village: fit adults, armed ones counted by weapon damage (fists: COMBAT.unarmed). */
 export function warStrength(g, sid) {
   let n = 0;
+  const militia = g.s.settlements?.[sid]?.detail === 'abstract' && civLawIs(g, sid, 'core:conscription', 'militia');
   for (const c of g.owned('colonists', sid)) {
     if (!isFit(g, c)) continue;
     const w = weaponOf(g, c);
-    n += (w.damage || COMBAT.unarmed.damage) / 5;
+    // A militia (the Conscription law, civlaws.js) in a distant village, where nobody equips: its fit adults
+    // count as spearmen.
+    n += (militia && !w.armed ? Math.max(MILITIA_DAMAGE, w.damage || 0) : w.damage || COMBAT.unarmed.damage) / 5;
   }
   return Math.round(n * 100) / 100;
 }

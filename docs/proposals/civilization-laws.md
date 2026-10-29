@@ -179,3 +179,20 @@ and temperaments lean to it.
 - **Tests:** the curfew by night and day; long hours and bedtime; rationing ×0.8 hunger and ×0.9 work;
   schooling in and after school hours and child labour; distant villages under laws save and load the same.
 - **Checks:** 221 tests pass (the distant test was fixed after a full run that had it failing for a setup reason: no village is distant before the first day); classic unchanged.
+### Slice 3 (2026-10-29): land and arms
+- **Conscription, militia:**
+  - the planner arms every adult (as when hostile neighbours are about);
+  - in a distant village, where nobody equips, each unarmed fit adult counts as a spearman in war strength.
+  - Seen in a 6-day classic run: 4 armed against 2.
+- **Hunting** (`civlaws.js huntAllowed`; `hunt.js`, the planner's hunters, distant `taskHunt`):
+  - **banned:** no hunting; the plan says "Hunting is banned by law";
+  - **restricted:** hunting only under 3 days of food;
+  - a pack that attacked the village is hunted down either way.
+- **Forests, protected** (`treeProtected`; the gather giver, the planner's `reachableNode`, distant
+  `nodeCandidates`, all agreeing):
+  - no grown tree within 12 tiles of the centre is felled;
+  - building sites are still cleared, and saplings do not count.
+  - Seen: 49 grown trees near the village against 26 after 6 days.
+- **Tests:** no hunting, with the reason, against hunting without the law; the restricted rule; more grown
+  trees near the village; more armed; a distant militia's war strength rises.
+- **Checks:** 223 tests pass; classic unchanged.

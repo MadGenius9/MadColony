@@ -34,7 +34,7 @@ import { droughtAt } from './weatherat.js';
 import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
 import { huntWeapon } from './hunt.js';
 import { modsOf } from './peoples.js';
-import { rationOf, hoursOf } from './civlaws.js';
+import { rationOf, hoursOf, huntAllowed, treeProtected } from './civlaws.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -729,7 +729,7 @@ function taskHunt(g, ctx, c, time) {
   ctx.huntMeat ??= storeMeat(g, ctx);
   ctx.huntTargets ??= farHuntable(g, ctx.center.x, ctx.center.y, HUNT_REACH, ctx.sid); // once a village an hour
   const targets = ctx.huntTargets.filter((t) => g.s.animals.herds[t.h.id] === t.h);
-  const target = targets.find((t) => t.raid) || (ctx.huntMeat < MEAT_PER_PERSON * Math.max(2, ctx.cols.length) ? targets[0] : null);
+  const target = targets.find((t) => t.raid) || (ctx.huntMeat < MEAT_PER_PERSON * Math.max(2, ctx.cols.length) && huntAllowed(g, ctx.sid, ctx.P?.foodDays) ? targets[0] : null); // the Hunting law (civlaws.js)
   if (!target) return 0;
   ctx.hunter = c.id;
   const { h, d } = target, abs = (settlementOf(g, ctx.sid).abs.hunt ||= {});
@@ -757,7 +757,7 @@ function nodeCandidates(g, ctx, item) {
   list = [];
   if (defs.size) {
     for (const n of g.nodesNear(cx, cy, LOD.nearRadius, defs)) {
-      if (n.empty || (n.x - cx) ** 2 + (n.y - cy) ** 2 > r2 || !g.gatherOk(ctx.sid, n)) continue;
+      if (n.empty || (n.x - cx) ** 2 + (n.y - cy) ** 2 > r2 || !g.gatherOk(ctx.sid, n) || treeProtected(g, ctx.sid, n)) continue; // protected forests (civlaws.js)
       const claim = g.footAt(n.x, n.y) || g.fieldAt(n.x, n.y);
       if (claim && !ctx.own(claim)) continue;
       if (!g.reachableFrom(cx, cy, n.x, n.y, g.nodeDef(n)?.passable ? 'on' : 'adj')) continue;

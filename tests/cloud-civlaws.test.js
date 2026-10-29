@@ -122,3 +122,43 @@ test('civ laws: distant villages under laws play, save and load the same', () =>
   runDays(g, 2); runDays(b, 2);
   assert.equal(stateText(b), stateText(g));
 });
+
+// ---- slice 3: land and arms
+import { huntAllowed, treeProtected, PROTECT_R } from '../src/sim/civlaws.js';
+import { warStrength } from '../src/sim/war.js';
+
+const sixDays = (law) => {
+  const g = newGame({ seed: 4242 });
+  const me = g.s.playerSettlement;
+  if (law) setCivLaw(g, me, law[0], law[1], '', { force: true });
+  runDays(g, 6);
+  return { g, me };
+};
+
+test('civ laws: banned hunting stops the hunt (with the reason); restricted hunts only when food runs low', () => {
+  const { g, me } = sixDays(['core:hunting', 'banned']);
+  assert.equal(Object.keys(g.s.ledger?.byReason?.['created:hunt'] || {}).length, 0, 'nothing hunted');
+  assert.equal(g.plans[me].huntNote, 'Hunting is banned by law');
+  const free = sixDays(null);
+  assert.ok(Object.keys(free.g.s.ledger?.byReason?.['created:hunt'] || {}).length > 0, 'without the law the village hunts');
+  setCivLaw(g, me, 'core:hunting', 'restricted', '', { force: true });
+  assert.equal(huntAllowed(g, me, 10), false);
+  assert.equal(huntAllowed(g, me, 2), true);
+});
+
+test('civ laws: protected forests keep grown trees near the village; a militia arms everyone and counts in war', () => {
+  const near = ({ g, me }) => { const c = g.s.settlements[me].center; return Object.values(g.s.nodes).filter((n) => !n.young && g.nodeDef(n)?.workType === 'core:chop' && (n.x - c.x) ** 2 + (n.y - c.y) ** 2 <= PROTECT_R * PROTECT_R).length; };
+  const prot = sixDays(['core:forests', 'protected']), free = sixDays(null);
+  assert.ok(near(prot) > near(free), `more grown trees within ${PROTECT_R} tiles (${near(prot)} against ${near(free)})`);
+  const sapling = Object.values(prot.g.s.nodes).find((n) => n.young);
+  if (sapling) assert.equal(treeProtected(prot.g, prot.me, sapling), false, 'saplings are not counted as grown');
+  const mil = sixDays(['core:conscription', 'militia']);
+  assert.ok(mil.g.colonists().filter((c) => c.equip.weapon).length > free.g.colonists().filter((c) => c.equip.weapon).length, 'more people armed');
+  // A distant militia counts its fit adults as spearmen.
+  const w = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(w, 1);
+  const far = Object.keys(w.s.settlements).find((k) => w.s.settlements[k].detail === 'abstract' && !w.s.settlements[k].code);
+  const before = warStrength(w, far);
+  setCivLaw(w, far, 'core:conscription', 'militia', '', { force: true });
+  assert.ok(warStrength(w, far) > before, `${before} -> ${warStrength(w, far)}`);
+});
