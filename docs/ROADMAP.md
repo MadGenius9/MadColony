@@ -44,6 +44,9 @@ signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases co
    curfews, rationing, taxes or tithes, borders, schooling, hunting and forest protection, punishments, ...),
    chosen by their people, temperament and rulers, with reasons; kingdoms set laws for their members. Its own
    phase and design note, right after World laws (which are the gods' world switches).
+6c. **Mood** (owner, 2026-10-29): each person's mood from needs, home, food, grief, traits, their people and
+   their village's laws (each law option has a mood value), with effects (work speed, unrest, villages
+   changing laws or people leaving) and reasons. Its own phase and design note, after Civilization laws.
 7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
    performance work needed.
 Then Phase 3, Phase 4 and the rest, as written below.

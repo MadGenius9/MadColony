@@ -1,7 +1,20 @@
 # Civilization laws (2026-10-28 direction, item 6b)
 
-Status: **design, waiting for the owner's answers** (2026-10-29). Branch `cloud-work` (cloud rescue copy; see
+Status: **building** (2026-10-29; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
+
+## The owner's answers (2026-10-29)
+1. **The list:** the nine laws as proposed.
+2. **Changing laws:** a law may change again only after 5 days.
+3. **Kingdom laws:** the capital sets conscription, borders, tithe and justice for every member.
+4. **Tithe:** a tenth of spare goods every 10 days.
+5. **A mood system:** yes. It becomes its own phase, **Mood**, right after this one, because it touches food,
+   homes, grief, traits, peoples and laws. This phase gives every law option a `mood` value in data (e.g.
+   curfew −2, rationing −3, open borders +1, harsh justice −1, lenient +1), so Mood can use them at once.
+6. **Relations from laws:** left to me. **Yes:** similar laws bring villages a little closer, and opposed ones
+   push them a little apart, as proposed.
+7. **AI changes:** yes, AI villages change laws by situation (war → militia, famine → rationing) and go back
+   to their leanings when the reason passes.
 
 ## Goal (from the owner and the roadmap)
 - **Laws that villages and kingdoms keep and change:** conscription, curfews, rationing, taxes or tithes,
@@ -131,16 +144,4 @@ and temperaments lean to it.
    - classic runs unchanged with no laws;
    - the bench, README and roadmap.
 
-## Open questions
-1. **The list:** work hours, rationing, schooling, conscription, hunting, forests, borders, tithe, justice.
-   Add or drop any (e.g. a curfew on its own, a ban on alcohol once there is any, marriage laws)?
-2. **Changing laws:** may the player change a law at any time, or wait 5 days between changes of the same
-   law (proposed), so it is a decision and not a toggle?
-3. **Kingdom laws:** should the capital set conscription, borders, tithe and justice for every member
-   (proposed), or fewer or more of them?
-4. **Tithe:** a tenth of spare goods every 10 days (proposed)? More or less?
-5. **Unhappiness:** there is no mood system, so a law costs only through its effects (slower work, less food,
-   fewer trades). Is that enough for now, or should harsh laws cause trouble later (unrest when rulers come)?
-6. **Relations:** should similar laws bring villages together and opposed ones push them apart, as proposed?
-7. **AI changes:** should AI villages change laws by situation (war → militia, famine → rationing), or keep
-   their people's leanings fixed?
+## Open questions (answered; see "The owner's answers")
