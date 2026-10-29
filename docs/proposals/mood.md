@@ -1,7 +1,19 @@
 # Mood (2026-10-29 direction, item 6c)
 
-Status: **design, waiting for the owner's answers** (2026-10-29). Branch `cloud-work` (cloud rescue copy; see
+Status: **building** (2026-10-29; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
+
+## The owner's answers (2026-10-29)
+1. **Classic games:** left to me. **Mood in every game**, classic too, as with traits and monsters: one
+   rule everywhere, and the classic change is small.
+2. **Breaks:** yes. Miserable people sometimes stop work for a few hours.
+3. **Leaving:** left to me. **A miserable family in a village in unrest may move to another village of its
+   own people that has room** (as settlers, carrying nothing; peoples keep apart). Otherwise unhappy families
+   are first in line for daughter villages.
+4. **The player's village under unrest:** not sure, so mine: **warnings and people leaving only.** The
+   player's laws are never forced: who rules the village is the player's call.
+5. **Thoughts:** the list as proposed.
+6. **Cheerful and Gloomy:** yes, two new traits.
 
 ## Goal (from the owner and the roadmap)
 - **A mood for every person**, from their needs, home, food, grief, health, traits, their people and their
@@ -141,14 +153,28 @@ A person's mood is the sum of their current thoughts, each a named value with a 
    - classic runs;
    - the bench, README and roadmap.
 
-## Open questions
-1. **Classic games:** mood in every game (it changes classic runs a little, as traits did), or only in
-   Living, Vast and Blank worlds?
-2. **Breaks:** should miserable people sometimes stop work for a few hours, or is slower work enough?
-3. **Leaving:** may a miserable family leave its village for another of its own people (as settlers carrying
-   nothing), or only go with daughter villages?
-4. **The player's village under unrest:** warnings and people leaving only (proposed), or should unrest also
-   force a law change on the player?
-5. **Thoughts:** is the list right? Add or drop any (e.g. beauty, light and rooms later, a tavern or festival
-   building)?
-6. **Cheerful and Gloomy:** add these two traits?
+## Open questions (answered; see "The owner's answers")
+
+## Results
+### Slice 1 (2026-10-29): thoughts and mood
+- **Built:**
+  - the `thought` type with 20 thoughts as data (`mods/core/content/mood.json`);
+  - **`src/sim/mood.js`:**
+    - `thoughtsOf` (needs, home and comfort, last night and last meal, grief, health, the cold, laws, war,
+      deaths, crowding);
+    - `moodTarget` (thoughts plus the new traits **Cheerful** +10 and **Gloomy** −10);
+    - an hourly pass for every person, full and distant, moving the mood a tenth of the gap and at least 1;
+    - `moodLevel`;
+    - `villageFacts`, worked out fresh each pass, so a load cannot differ;
+    - `moodNote` for the plan.
+  - **The last meal** is noted at the three eating places (the eat job, being fed, distant villages). **A night
+    on the ground** is noted by the hourly pass.
+  - **Laws** count from the defaults (a village with no laws reads 0), and a people's own leanings never
+    count against them (the Cragborn do not mind their militia).
+  - `explainColonist` gives the mood, its level, its target and the thoughts. Save format 33: `mood`, `ate`,
+    `rough`, validated.
+- **No effects yet:** that is slice 2.
+- **Tests** (`tests/cloud-mood.test.js`): thoughts from hunger, grief and laws; the hourly step settles
+  exactly; levels; reasons in the explanation and the plan; the people's leaning rule; Cheerful and Gloomy;
+  save and load; an old save starting at its target; distant villages.
+- **Checks:** 232 tests pass. Classic: `forty` 00d13c824c43dec4 (workshops on day 5.94: the two new traits change who draws what), `modern` 33e51d33d37f815e (modern on day 46.12, as before).

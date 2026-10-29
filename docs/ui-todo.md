@@ -407,3 +407,11 @@ where, and which sim function or state field provides it. The UI is built at hom
   trees near the village get a small marker (`treeProtected`).
 - **Borders, tithe and justice:** the trade window shows "Closed borders: ..." when it applies. Tithes appear
   in the trades list as "Tithe to X". The smuggling panel notes "harsh justice: twice the attention".
+
+## Mood, slice 1: thoughts and mood
+- **Portrait bar:** a small mood bar per person (`c.mood`, −100..100), coloured by `moodLevel` (content
+  green, fine grey, unhappy amber, miserable red).
+- **Inspector:** "Mood: fine (12), rising to 18" (`explainColonist(g, c).mood`: value, level, target) and the
+  thoughts as a list with their values ("A good meal +4", "The village's laws −9").
+- **Village panel:** the plan's `moodNote` ("Mood: fine (8); 2 of 7 unhappy: homeless, hungry").
+- **New traits** Cheerful and Gloomy show as trait chips like the others.

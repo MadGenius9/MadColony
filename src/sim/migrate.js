@@ -115,6 +115,8 @@ export const MIGRATIONS = {
   30() {},
   // 31 -> 32: civilization laws (civlaws.js). settlement.code is optional: absent means every law at its default.
   31() {},
+  // 32 -> 33: mood (mood.js). colonist.mood is optional: absent means it starts at the person's thoughts.
+  32() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

@@ -149,6 +149,9 @@ export function validateSave(save) {
     if (e.stage !== undefined && !isStr(e.stage, 100)) bad(`colonist "${k}" has an invalid life stage`);
     if (e.origin !== undefined && e.origin !== 'divine') bad(`colonist "${k}" has an unknown origin`); // god powers (format 13, godspawn.js)
     if (e.people !== undefined && !isStr(e.people, 100)) bad(`colonist "${k}" has an invalid people`); // format 30 (peoples.js)
+    if (e.mood !== undefined && (!isInt(e.mood) || e.mood < -100 || e.mood > 100)) bad(`colonist "${k}" has an invalid mood`); // format 33 (mood.js)
+    if (e.ate !== undefined && (!isObj(e.ate) || !isInt(e.ate.t) || e.ate.t > s.tick || typeof e.ate.m !== 'boolean' || typeof e.ate.f !== 'boolean')) bad(`colonist "${k}" has an invalid last meal`); // format 33
+    if (e.rough !== undefined && (!isInt(e.rough) || e.rough > s.tick)) bad(`colonist "${k}" has an invalid night on the ground`); // format 33
     if (e.traits !== undefined && (!Array.isArray(e.traits) || e.traits.length > MAX_TRAITS || new Set(e.traits).size !== e.traits.length || e.traits.some((t) => !isStr(t, 100)))) bad(`colonist "${k}" has invalid traits`); // format 30
     for (const f of ['bornTick', 'ageYears', 'ageTick', 'education']) if (e[f] !== undefined && e[f] !== null && !isNum(e[f])) bad(`colonist "${k}" has an invalid ${f}`);
     if (e.quals !== undefined && (!Array.isArray(e.quals) || e.quals.some((q) => !isStr(q, 100)))) bad(`colonist "${k}" has invalid qualifications`);

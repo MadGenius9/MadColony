@@ -48,6 +48,7 @@ import './godtraits.js'; // registers the god power 'trait' (Peoples and traits)
 import './worldlaws.js'; // registers the god power 'law' (World laws)
 import { tickTithes } from './tithe.js'; // the Tithe law (civilization laws)
 import { tickCivLaws } from './civreview.js'; // civilization laws: AI reviews and the relations drift
+import { tickMood } from './mood.js'; // Mood: hourly
 import { defaultPeople, settleFolk } from './peoples.js';
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
@@ -1475,6 +1476,7 @@ export class Game {
     tickPower(this);
     tickWater(this);
     tickPeople(this);
+    if (s.tick % TICKS_PER_HOUR === 0 && Object.keys(s.colonists).length) tickMood(this); // Mood: hourly (mood.js)
     tickEducation(this);
     tickHeat(this);
     tickLOD(this); // big worlds: level of detail, abstract villages' hours, caravans

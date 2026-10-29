@@ -162,3 +162,7 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - World seed 11, 300 days: 4.60 ms/tick at day 300 with laws, 3.31 with no laws (same code, same day), 256 people,
   53 of 66 villages standing; 34.3 min.
 - Side by side, 100 days, no laws: the code before Civilization laws 1.30 ms/tick at day 100, now 1.26.
+
+## Mood, slice 1 (2026-10-29): new classic hashes
+- Moods saved, and two new traits (Cheerful, Gloomy) change trait draws: `forty` 00d13c824c43dec4 (workshops era on
+  day 5.94, 66 built), `modern` 33e51d33d37f815e (modern era on day 46.12, 90 built). 232 tests pass.

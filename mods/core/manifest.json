@@ -38,6 +38,7 @@
     "content/peoples.json",
     "content/laws.json",
     "content/civlaws.json",
+    "content/mood.json",
     "content/god.json"
   ]
 }

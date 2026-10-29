@@ -17,6 +17,7 @@ import { TICKS_PER_DAY, TICKS_PER_HOUR, NEAR_RADIUS } from './constants.js';
 import { canRipen } from './farming.js';
 import { heatSeason, seasonLawKey } from './heat.js';
 import { civLawIs, RATION, huntAllowed, treeProtected } from './civlaws.js';
+import { moodNote } from './mood.js';
 import { isWaterNode, waterNetworks } from './water.js';
 import { GOAL_TYPES, goalIsOngoing, describeGoal } from './goals.js';
 import { createProject, findSite, assignHome, addSlotPart, partsOf, homeFurnished, tileUsable } from './construction.js';
@@ -34,7 +35,7 @@ export function emptyPlan() {
   return {
     tick: -1, wants: {}, bills: [], clear: new Map(), equipNeeds: [], seedReserve: {}, goalInfo: {}, notes: [],
     blockers: {}, trace: {}, foodDays: 0, growingDays: 0, stock: {}, mealCount: 0, bedsBuilt: 0, anyFood: true, stockFull: false,
-    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', monsterNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
+    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', moodNote: '', monsterNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
   };
 }
 
@@ -306,6 +307,7 @@ function planSettlement(g, sid) {
     for (const c of pool.slice(0, td.fightGroup)) hunterIds.add(c.id);
   }
   P.monsterNote = td ? `A ${td.name} threatens the village: arming ${td.fightGroup} fighters to hunt it` : '';
+  P.moodNote = moodNote(g, cols); // mood.js: how the village feels and why
   P.huntNote = raid ? `Hunting down the ${raid.d.plural || raid.d.name} that attacked the village (${Math.round(raid.dist)} tiles away)` : !huntLaw ? (civLawIs(g, sid, 'core:hunting', 'banned') ? 'Hunting is banned by law' : 'Hunting is restricted by law: only when food runs low') : !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
   for (const c of cols) {
     if (!isAdultP(g, c)) continue; // children get no tools or weapons

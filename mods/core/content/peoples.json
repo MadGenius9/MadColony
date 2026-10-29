@@ -366,6 +366,28 @@
       "effects": {
         "tend": 1.3
       }
+    },
+    {
+      "id": "core:cheerful",
+      "name": "Cheerful",
+      "opposite": "core:gloomy",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Looks on the bright side: mood +10.",
+      "effects": {
+        "mood": 10
+      }
+    },
+    {
+      "id": "core:gloomy",
+      "name": "Gloomy",
+      "opposite": "core:cheerful",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Expects the worst: mood -10.",
+      "effects": {
+        "mood": -10
+      }
     }
   ],
   "namePool": [

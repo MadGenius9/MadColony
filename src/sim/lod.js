@@ -35,6 +35,7 @@ import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
 import { huntWeapon } from './hunt.js';
 import { modsOf } from './peoples.js';
 import { rationOf, hoursOf, huntAllowed, treeProtected } from './civlaws.js';
+import { noteMeal } from './mood.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -367,6 +368,7 @@ function hourNeeds(g, sid, cols, store, structs) {
         const got = g.takeFromStack(food.id, 1);
         if (!got || got.qty < 1) break;
         g.consume(got.item, 1, 'eat');
+        noteMeal(g, c, got.item); // mood.js
         c.needs[hunger.id] = Math.min(1, c.needs[hunger.id] + (d?.nutrition || 0));
       }
     }

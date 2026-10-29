@@ -643,7 +643,7 @@ export const CONTENT_TYPES = {
         work: num(0.1, 10), workBy: map({ type: 'ref', to: 'skill' }, num(0.1, 10)), walk: num(0.25, 4), learn: num(0, 10), tend: num(0.1, 10),
         needs: map({ type: 'ref', to: 'need' }, num(0.1, 10)), illnessChance: num(0, 10), illnessStrength: num(0.1, 10), heal: num(0.1, 10),
         cold: num(-30, 30), fightHp: num(0, 101), wolfHp: num(0, 100), flee: num(0, 50),
-        party: { type: 'enum', values: ['first', 'never'] }, trade: num(0, 1),
+        party: { type: 'enum', values: ['first', 'never'] }, trade: num(0, 1), mood: num(-50, 50),
       }),
     }),
   },
@@ -679,6 +679,10 @@ export const CONTENT_TYPES = {
       growPerHour: req(num(0, 50)), days: req(num(0.1, 100)), immunityDays: req(num(0, 10000)), treatedGrowth: req(num(0, 1)),
       plague: { type: 'bool' }, // Phase 5b: sent by the plague power; spreads even where a scenario has no illness rules
     }),
+  },
+  thought: {
+    doc: 'A thought that moves a person\'s mood (mood.js, Mood): its name (shown) and value (-100..100; for core:laws the multiplier of the village laws\' moods, for core:comfort the most a comfortable home gives). When it applies is decided in mood.js by its id.',
+    schema: obj({ id, name, value: req(num(-100, 100)) }),
   },
   civLaw: {
     doc: 'A law of a civilization (civlaws.js, Civilization laws): villages keep a code of them (settlement.code); options, the first being the default (today\'s game), each with what it does (about) and its mood (for the Mood phase: how people feel about living under it, -10..10). kingdom: set by a kingdom\'s capital for every member. Peoples and village profiles lean to options (their `code`).',

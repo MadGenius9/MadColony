@@ -114,7 +114,7 @@ export function settleFolk(g, c, people) {
   return c;
 }
 
-const ONE = Object.freeze({ work: 1, workBy: Object.freeze({}), walk: 1, learn: 1, tend: 1, needs: Object.freeze({}), illnessChance: 1, illnessStrength: 1, heal: 1, cold: 0, fightHp: null, wolfHp: null, flee: null, party: null, trade: 0 });
+const ONE = Object.freeze({ work: 1, workBy: Object.freeze({}), walk: 1, learn: 1, tend: 1, needs: Object.freeze({}), illnessChance: 1, illnessStrength: 1, heal: 1, cold: 0, fightHp: null, wolfHp: null, flee: null, party: null, trade: 0, mood: 0 });
 const cache = new WeakMap(); // colonist -> { p, t, reg, m }
 
 /** A colonist's combined effects (see the trait type's doc). Multipliers multiply, cold and trade add; the
@@ -123,7 +123,7 @@ export function modsOf(g, c) {
   if (!c || (!c.people && !c.traits?.length)) return ONE;
   const e = cache.get(c);
   if (e && e.p === c.people && e.t === c.traits && e.reg === g.reg) return e.m;
-  const m = { work: 1, workBy: {}, walk: 1, learn: 1, tend: 1, needs: {}, illnessChance: 1, illnessStrength: 1, heal: 1, cold: 0, fightHp: null, wolfHp: null, flee: null, party: null, trade: 0 };
+  const m = { work: 1, workBy: {}, walk: 1, learn: 1, tend: 1, needs: {}, illnessChance: 1, illnessStrength: 1, heal: 1, cold: 0, fightHp: null, wolfHp: null, flee: null, party: null, trade: 0, mood: 0 };
   const P = c.people && g.reg.get('people', c.people);
   if (P) {
     for (const [k, v] of Object.entries(P.work || {})) m.workBy[k] = (m.workBy[k] ?? 1) * v;
@@ -139,6 +139,7 @@ export function modsOf(g, c) {
     for (const [k, v] of Object.entries(x.needs || {})) m.needs[k] = (m.needs[k] ?? 1) * v;
     m.cold += x.cold ?? 0;
     m.trade += x.trade ?? 0;
+    m.mood += x.mood ?? 0;
     for (const k of ['fightHp', 'wolfHp', 'flee', 'party']) if (x[k] !== undefined) m[k] = x[k];
   }
   cache.set(c, { p: c.people, t: c.traits, reg: g.reg, m });

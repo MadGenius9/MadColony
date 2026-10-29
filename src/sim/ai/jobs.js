@@ -23,6 +23,7 @@ import { blessingOf } from '../god.js';
 import { droughtAt } from '../weatherat.js';
 import { modsOf } from '../peoples.js';
 import { rationOf, RATION } from '../civlaws.js';
+import { noteMeal } from '../mood.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -531,7 +532,7 @@ export const DRIVERS = {
       if (c.carry) {
         const d = g.reg.get('item', c.carry.item);
         const hunger = g.reg.all('need').find((n) => n.behavior === 'core:eat');
-        if (hunger && d?.nutrition) p.needs[hunger.id] = Math.min(1, (p.needs[hunger.id] ?? 0) + d.nutrition);
+        if (hunger && d?.nutrition) { p.needs[hunger.id] = Math.min(1, (p.needs[hunger.id] ?? 0) + d.nutrition); noteMeal(g, p, c.carry.item); }
         g.consume(c.carry.item, 1, 'eat');
         c.carry = null;
       }
@@ -692,6 +693,7 @@ export const DRIVERS = {
       if (j.prog < 40) return 'running';
       const hunger = g.reg.all('need').find((n) => n.behavior === 'core:eat');
       if (hunger) c.needs[hunger.id] = Math.min(1, (c.needs[hunger.id] ?? 0) + (d?.nutrition || 0));
+      noteMeal(g, c, c.carry.item); // mood.js: a good meal, a favourite
       g.consume(c.carry.item, 1, 'eat');
       c.carry = null;
       return 'done';
