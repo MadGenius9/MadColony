@@ -212,3 +212,23 @@ and temperaments lean to it.
 - **Tests:** closed borders stop trade both ways and in offers, but not inside a kingdom; a tithe goes from
   member to capital with every item counted and a save and load matching; harsh and lenient seizure chances.
 - **Checks:** 226 tests pass; classic unchanged.
+### Slice 5 (2026-10-29): the AI
+- **Reviews** (`src/sim/civreview.js`, daily after the tithe; each AI village every 10 days by a hash of its
+  id; the owner's answer 7):
+  - at war → militia; peace again → its leaning;
+  - under 2 days of food → rationing, until food is plentiful again (5 days);
+  - 3 or more children of school age and a school desk → compulsory schooling;
+  - 5 or fewer grown trees within 12 tiles → protected forests, until 20 have grown back (unless the people
+    lean to protection).
+  - Kingdom laws are the capital's to change. The 5-day wait applies, and the player's village is never
+    changed.
+  - The log says "Marketon passed a law: Rationing, rationed (food is short)".
+- **Relations drift** (the owner's answer 6):
+  - daily over met pairs, for each law at least one of the two has set: alike +0.05, apart −0.05, at most 0.3
+    a day either way;
+  - a change of standing is recorded with "Similar laws (n alike)" or "Their laws differ (n apart)";
+  - villages with no laws (classic games) are untouched.
+- **Tests:** a militia raised at war and stood down in peace; rationing on short food and off once food is
+  plentiful; the player's village untouched; drift exactly +0.1 for two laws alike and nothing for two alike
+  and two apart, none without laws; a Vast world with reviews saves and loads the same.
+- **Checks:** 229 tests pass; classic unchanged.

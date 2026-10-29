@@ -9,6 +9,7 @@ import { metPairs } from '../src/sim/contact.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
 import { herdCensus, animalCensus } from '../src/sim/animals.js';
 import { monsterCensus, monsterSummary } from '../src/sim/monsters.js';
+import { civLawOf } from '../src/sim/civlaws.js';
 
 /** Phase 8: raw food made so far (nutrition, from the ledger) and the share that is meat (hunting, butchering). */
 function foodShare(g) {
@@ -89,6 +90,8 @@ for (let d = 1; d <= days; d++) {
       hunted: g.s.ledger?.byReason?.['created:hunt'], meatShare: foodShare(g),
       peoples: Object.fromEntries(Object.entries(pc.byPeople || {}).map(([k, v]) => [k.replace('core:', ''), v])),
       villagesByPeople: st.filter((x) => !x.fallen).reduce((o, x) => { const k = String(x.people || 'none').replace('core:', ''); o[k] = (o[k] || 0) + 1; return o; }, {}),
+      laws: st.filter((x) => !x.fallen).reduce((o, x) => { for (const l of g.reg.all('civLaw')) { const v = civLawOf(g, x.id, l.id); if (v !== l.options[0].id) { const k = `${l.id.replace('core:', '')}=${v}`; o[k] = (o[k] || 0) + 1; } } return o; }, {}),
+      tithes: g.s.log.filter((e) => /sends its tithe/.test(e.msg)).length,
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;

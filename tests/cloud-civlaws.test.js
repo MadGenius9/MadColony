@@ -208,3 +208,65 @@ test('civ laws: harsh justice doubles seizures, lenient halves them', () => {
   setCivLaw(g, a, 'core:justice', 'lenient');
   assert.ok(Math.abs(seizeChance(g, a, me) - usual * 0.5) < 1e-9);
 });
+
+// ---- slice 5: the AI
+import { tickCivLaws, REVIEW_DAYS, DRIFT } from '../src/sim/civreview.js';
+import { declareWar } from '../src/sim/combat.js';
+import { relationPeek } from '../src/sim/villages.js';
+
+/** Run the daily law pass on each of the next `days` days (time moved on by hand). */
+const reviewDays = (g, days) => { for (let d = 0; d < days; d++) { g.s.tick += TICKS_PER_DAY; tickCivLaws(g); } };
+
+test('civ laws: AI villages raise a militia at war and stand it down after; they ration when food is short', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  const me = g.s.playerSettlement, [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  for (const [x, y] of [[me, a], [a, b]]) relationOf(g, x, y).contact = true;
+  relationOf(g, a, b).value = 0;
+  declareWar(g, a, b, 'A test war');
+  reviewDays(g, REVIEW_DAYS);
+  assert.equal(civLawOf(g, a, 'core:conscription'), 'militia');
+  assert.ok(g.s.log.some((e) => /passed a law: Conscription, militia \(it is at war\)/.test(e.msg)));
+  assert.equal(civLawOf(g, me, 'core:conscription'), 'none', 'the player\'s village is never changed');
+  relationOf(g, a, b).value = 10; // peace again
+  delete relationOf(g, a, b).aggressor;
+  reviewDays(g, REVIEW_DAYS);
+  assert.equal(civLawOf(g, a, 'core:conscription'), 'none', 'stood down');
+  g.plans[a].foodDays = 1;
+  reviewDays(g, REVIEW_DAYS);
+  assert.equal(civLawOf(g, a, 'core:rationing'), 'rationed');
+  g.plans[a].foodDays = 3;
+  reviewDays(g, REVIEW_DAYS);
+  assert.equal(civLawOf(g, a, 'core:rationing'), 'rationed', 'kept until food is plentiful (5 days)');
+  g.plans[a].foodDays = 8;
+  reviewDays(g, REVIEW_DAYS);
+  assert.equal(civLawOf(g, a, 'core:rationing'), 'none');
+});
+
+test('civ laws: similar laws bring villages together and differing ones push them apart; no laws, no drift', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  relationOf(g, a, b).contact = true;
+  relationOf(g, a, b).value = 0;
+  reviewDays(g, 3);
+  assert.equal(relationPeek(g, a, b).value, 0, 'no laws: no drift');
+  setCivLaw(g, a, 'core:hunting', 'banned', '', { force: true });
+  setCivLaw(g, b, 'core:hunting', 'banned', '', { force: true });
+  setCivLaw(g, a, 'core:forests', 'protected', '', { force: true });
+  setCivLaw(g, b, 'core:forests', 'protected', '', { force: true });
+  const v0 = relationPeek(g, a, b).value;
+  g.s.tick += TICKS_PER_DAY; tickCivLaws(g);
+  assert.ok(Math.abs(relationPeek(g, a, b).value - v0 - 2 * DRIFT) < 1e-9, 'two laws alike');
+  setCivLaw(g, b, 'core:borders', 'closed', '', { force: true });
+  setCivLaw(g, a, 'core:justice', 'harsh', '', { force: true });
+  const v1 = relationPeek(g, a, b).value;
+  g.s.tick += TICKS_PER_DAY; tickCivLaws(g);
+  assert.ok(Math.abs(relationPeek(g, a, b).value - v1) < 1e-9, 'two alike, two apart: no change');
+});
+
+test('civ laws: a Vast world with reviews on plays, saves and loads the same', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(g, 12);
+  const b = reload(g);
+  runDays(g, 2); runDays(b, 2);
+  assert.equal(stateText(b), stateText(g));
+});
