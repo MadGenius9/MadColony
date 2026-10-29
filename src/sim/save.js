@@ -406,6 +406,7 @@ function validateSettlements(s, format, bad, inB) {
     for (const f of ['parent', 'culture']) if (st[f] !== undefined && (!isStr(st[f], 64) || !SAFE_ID.test(st[f]) || (f === 'parent' && st[f] === k))) bad(`${L} has an invalid ${f === 'parent' ? 'parent village' : 'culture'}`); // may name a village that is gone
     if (st.origin !== undefined && st.origin !== 'divine') bad(`${L} has an unknown origin`); // god powers (format 13, godspawn.js)
     if (st.people !== undefined && !isStr(st.people, 100)) bad(`${L} has an invalid people`); // format 30 (peoples.js)
+    if (st.unrest !== undefined && (!isInt(st.unrest) || st.unrest < 0 || st.unrest > s.tick)) bad(`${L} has an invalid unrest time`); // format 33 (unrest.js)
     if (st.code !== undefined && (!isObj(st.code) || Object.entries(st.code).some(([k, v]) => !SAFE_ID.test(k) || !isStr(v, 40)))) bad(`${L} has an invalid code of laws`); // format 32 (civlaws.js)
     if (st.codeSince !== undefined && (!isObj(st.codeSince) || Object.entries(st.codeSince).some(([k, t]) => !SAFE_ID.test(k) || !isInt(t) || t < 0 || t > s.tick))) bad(`${L} has invalid law dates`); // format 32
     for (const f of ['founded', 'crowdedSince', 'lastFounding', 'noSiteAt']) if (st[f] !== undefined && (!isNum(st[f]) || st[f] < 0)) bad(`${L} has an invalid ${f} time`);

@@ -417,3 +417,6 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **New traits** Cheerful and Gloomy show as trait chips like the others.
 - **Mood, slice 2:** a person on a break shows "Miserable: sulking" with a small cloud icon; the inspector's
   work line adds "×0.9 (mood)".
+- **Mood, slice 3 (unrest):** the village panel shows "Unrest for N days" (`settlement.unrest`) with the
+  reasons from the log line. Leaving families appear in both villages' logs. A small flame icon on the map
+  marks a village in unrest.

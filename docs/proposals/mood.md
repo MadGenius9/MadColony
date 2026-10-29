@@ -198,3 +198,22 @@ A person's mood is the sum of their current thoughts, each a named value with a 
   - The lasting-injury test's wound is marked as not festering, since infection is a game-rng draw that any
     earlier change moves.
 - **Checks:** 234 tests pass. Classic: `forty` 8345afce244873af (workshops on day 6.46), `modern` 3db6905a9e1dc4d5 (modern on day 46.31; mood's work speed moves both a little).
+### Slice 3 (2026-10-29): unrest
+- **Unrest** (`src/sim/unrest.js`, daily after the law reviews): a village is in unrest while half or more of
+  its adults (at least 2) are unhappy (`settlement.unrest`, the tick it began, saved). After 5 days of it,
+  and every 5 days while it lasts:
+  - **an AI village** repeals its most disliked law: the option furthest below its default's mood, among
+    those it holds itself, not a militia at war and not rationing under 5 days of food. The 5-day wait
+    applies. The log says "Unrest in X: the rationing law was repealed (hungry, the village's laws)".
+  - **The player's village** gets a warning: "Unrest in X: 4 of 7 are unhappy (homeless, hungry)". Its laws
+    are never forced (the owner's answer 4).
+  - **Leaving:** one family whose adults are all miserable may leave for the nearest village of its own people
+    that is not at war with it and has free beds for all of them (the owner's answer 3). They carry nothing:
+    their jobs end and goods are dropped as their old village's. They give up bed and home and become the
+    new village's people. The log says "X's family (3) left A for B, miserable".
+- **Daughter villages:** unhappy families now go first among the founders (`founding.js chooseFounders`,
+  which now builds its families with the shared `familiesOf`).
+- **Tests:** the most disliked law is repealed, and a liked one kept; rationing in a famine is kept; the
+  player only gets a warning; nothing before 5 days; a miserable family moves to a village of its people with
+  free beds, nobody lost, peoples apart, everything counted, save and load matching.
+- **Checks:** 236 tests pass; classic unchanged from slice 2 (no unrest there).

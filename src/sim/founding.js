@@ -42,6 +42,7 @@ import { coldWait } from './life.js';
 import { livingCount } from './fallen.js';
 import { peopleOfSettlement } from './peoples.js';
 import { growthOf } from './worldlaws.js';
+import { MOOD } from './mood.js';
 
 export const FOUNDING_DEFAULTS = Object.freeze({
   maxVillages: 30, minAdults: 6, crowdedDays: 3, foodDaysLeft: 5, cooldownDays: 20, founders: Object.freeze([3, 5]),
@@ -90,19 +91,9 @@ export function crowdedness(g, sid, counts = null) {
 /** How many adults leave: half the adults, within the data's [fewest, most]. */
 const founderTarget = (R, adults) => Math.min(R.founders[1], Math.max(R.founders[0], Math.floor(adults / 2)));
 
-/**
- * Who leaves (read-only, deterministic). Returns the ids (sorted) of at most `n` adults and the children who
- * go with them. Families are never split. The fixed rule:
- *  - a family is everyone joined by sharing a home or by being parent and child (at any age), so a child
- *    goes only with every parent of it who lives in the village, and a household is never split;
- *  - families with a home go first, in the order of their first home's id; then families without a home
- *    (unattached adults), in the order of their first adult's id;
- *  - a family is skipped whole if it would take more than the adults still wanted, if anyone in it cannot
- *    travel (collapsed, carried, in a medical bed), or if it would take the village's last adult holding
- *    one of its qualifications (needed roles: the village keeps at least one holder of each);
- *  - if no family fits exactly, fewer adults leave (canFound then says too few could leave).
- */
-export function chooseFounders(g, sid, n) {
+/** The families of village sid: people of one home together, children with their parents here; families with no
+ *  adult here are left out. Returns { adults, fams: [{ adults, kids, home }] } (fams unsorted). */
+export function familiesOf(g, sid) {
   const s = g.s;
   const people = Object.values(s.colonists).filter((c) => sidOf(g, c) === sid).sort(byId);
   const adults = people.filter((c) => isAdult(g, c));
@@ -128,7 +119,29 @@ export function chooseFounders(g, sid, n) {
     if (h && (f.home === null || h.id < f.home)) f.home = h.id;
   }
   for (const [r, f] of fam) if (!f.adults.length) fam.delete(r); // children with no adult here stay
-  const fams = [...fam.values()].sort((a, b) => (a.home === null) - (b.home === null)
+  return { adults, fams: [...fam.values()] };
+}
+
+/** Is a family unhappy (its adults' mean mood at or below the unhappy line; mood.js)? */
+const sadFamily = (f) => f.adults.reduce((a, c) => a + (c.mood ?? 0), 0) / f.adults.length <= MOOD.unhappy;
+
+/**
+ * Who leaves (read-only, deterministic). Returns the ids (sorted) of at most `n` adults and the children who
+ * go with them. Families are never split. The fixed rule:
+ *  - a family is everyone joined by sharing a home or by being parent and child (at any age), so a child
+ *    goes only with every parent of it who lives in the village, and a household is never split;
+ *  - unhappy families (their adults' mean mood at or below the unhappy line, mood.js) go first; then
+ *    families with a home, in the order of their first home's id; then families without a home
+ *    (unattached adults), in the order of their first adult's id;
+ *  - a family is skipped whole if it would take more than the adults still wanted, if anyone in it cannot
+ *    travel (collapsed, carried, in a medical bed), or if it would take the village's last adult holding
+ *    one of its qualifications (needed roles: the village keeps at least one holder of each);
+ *  - if no family fits exactly, fewer adults leave (canFound then says too few could leave).
+ */
+export function chooseFounders(g, sid, n) {
+  const { adults, fams: all } = familiesOf(g, sid);
+  // Unhappy families first (mood.js): those who have had enough leave first; otherwise as before.
+  const fams = all.sort((a, b) => sadFamily(b) - sadFamily(a) || (a.home === null) - (b.home === null)
     || (a.home !== null && a.home !== b.home ? (a.home < b.home ? -1 : 1) : 0) || byId(a.adults[0], b.adults[0]));
   const qualLeft = new Map(); // qualification -> adults still holding it
   for (const c of adults) for (const q of c.quals || []) qualLeft.set(q, (qualLeft.get(q) || 0) + 1);

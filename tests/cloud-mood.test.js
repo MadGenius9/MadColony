@@ -117,3 +117,75 @@ test('mood: a miserable person sometimes stops work for 3 hours, sulking; the br
   assert.equal(stateText(b), stateText(g));
   assert.equal(onBreak(g, c), false, 'over within the day');
 });
+
+// ---- slice 3: unrest
+import { tickUnrest, unrestOf, UNREST } from '../src/sim/unrest.js';
+import { civLawOf } from '../src/sim/civlaws.js';
+import { peopleCensus } from '../src/sim/godspawn.js';
+import { conservationErrors } from './cloud-helpers.js';
+
+/** Make every adult of village sid feel `m`, and put it in unrest since `days` days ago. */
+const upset = (g, sid, m, days) => { for (const c of g.owned('colonists', sid)) c.mood = m; g.s.settlements[sid].unrest = g.s.tick - days * TICKS_PER_DAY; };
+
+test('mood: unrest makes an AI village repeal its most disliked law (not one it needs); the player only gets a warning', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 2);
+  const me = g.s.playerSettlement, a = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].ai);
+  setCivLaw(g, a, 'core:rationing', 'rationed', '', { force: true });
+  setCivLaw(g, a, 'core:forests', 'protected', '', { force: true });
+  g.s.tick += 6 * TICKS_PER_DAY; // past the 5-day wait
+  g.plans[a].foodDays = 10;
+  upset(g, a, -40, UNREST.days);
+  assert.equal(unrestOf(g, a).on, true);
+  tickUnrest(g);
+  assert.equal(civLawOf(g, a, 'core:rationing'), 'none', 'rationing (the most disliked) was repealed');
+  assert.equal(civLawOf(g, a, 'core:forests'), 'protected', 'a law they like stays');
+  assert.ok(g.s.log.some((e) => /Unrest in .*: the rationing law was repealed/.test(e.msg)));
+  // Rationing in a famine is kept.
+  g.s.tick += 6 * TICKS_PER_DAY;
+  setCivLaw(g, a, 'core:rationing', 'rationed', '', { force: true });
+  g.plans[a].foodDays = 1;
+  upset(g, a, -40, UNREST.days);
+  tickUnrest(g);
+  assert.equal(civLawOf(g, a, 'core:rationing'), 'rationed', 'still needed: kept');
+  // The player: a warning, the laws untouched.
+  setCivLaw(g, me, 'core:rationing', 'rationed', '', { force: true });
+  g.s.tick += 6 * TICKS_PER_DAY;
+  upset(g, me, -40, UNREST.days);
+  tickUnrest(g);
+  assert.equal(civLawOf(g, me, 'core:rationing'), 'rationed', 'never forced on the player');
+  assert.ok(g.s.log.some((e) => /Unrest in .*: \d+ of \d+ are unhappy/.test(e.msg)));
+  // Not yet five days: nothing.
+  upset(g, a, -40, 1);
+  const n = g.s.log.length;
+  tickUnrest(g);
+  assert.equal(g.s.log.length, n);
+});
+
+test('mood: a miserable family may leave for a village of its own people with room; everyone stays counted', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', size: 'large', villages: 2 });
+  runDays(g, 8);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  const before = { a: g.owned('colonists', a).length, b: g.owned('colonists', b).length };
+  // Room in b: free beds for the whole family (built beds no one owns), placed by hand on free ground.
+  const cb = g.s.settlements[b].center;
+  let placed = 0;
+  for (let r = 3; r < 20 && placed < before.a; r++) for (let dx = -r; dx <= r && placed < before.a; dx++) {
+    const x = cb.x + dx, y = cb.y - r;
+    if (g.inB(x, y) && g.isPassable(x, y) && !g.structAt(x, y) && !g.nodeAt(x, y) && !g.zoneAt(g.i(x, y))) { g.addStructure('core:bed', x, y, { built: true, settlement: b }); placed++; }
+  }
+  upset(g, a, -80, UNREST.days);
+  for (const c of g.owned('colonists', b)) c.mood = 0;
+  tickUnrest(g);
+  const moved = g.s.log.find((e) => /family \(\d+\) left .* miserable/.test(e.msg));
+  assert.ok(moved, 'a miserable family left for a village of its people with room');
+  const now = { a: g.owned('colonists', a).length, b: g.owned('colonists', b).length };
+  assert.ok(now.a < before.a && now.b > before.b);
+  assert.equal(now.a + now.b, before.a + before.b, 'nobody lost on the way');
+  assert.ok(g.owned('colonists', b).every((c) => c.people === g.s.settlements[b].people), 'peoples keep apart');
+  assert.ok(peopleCensus(g).ok, JSON.stringify(peopleCensus(g).problems));
+  assert.deepEqual(conservationErrors(g), []);
+  const r = reload(g);
+  runDays(g, 1); runDays(r, 1);
+  assert.equal(stateText(r), stateText(g));
+});
