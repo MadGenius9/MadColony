@@ -386,3 +386,6 @@ where, and which sim function or state field provides it. The UI is built at hom
   winter".
 - **Peace:** the attack button shows the refusal "The Peace law holds: no new war may start" for villages not
   at war. The relations history shows "(held at neutral by the Peace law)".
+- **Ageless:** the inspector's age line adds "(ageless)" while the law holds (`lawIs(g, 'core:ageless',
+  'on')`).
+- **Fast growth:** the village panel's growth notes say "×2 (Fast growth law)".

@@ -15,6 +15,7 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { tempAt, roomAt, outdoorTemp, climateOf, coldestAhead } from './heat.js';
 import { modsOf } from './peoples.js';
+import { lawIs, lawSince, onLawChange } from './worldlaws.js';
 
 /** The scenario's life rules, or null. */
 export function lifeRules(g) {
@@ -85,8 +86,28 @@ const yearDaysOf = (g) => (g._yearDays ??= climateOf(g).yearDays || 30); // deri
 export function ageYears(g, c) {
   if (c.ageYears === undefined || c.ageYears === null) return null;
   const yearDays = yearDaysOf(g);
-  return c.ageYears + Math.max(0, g.s.tick - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY);
+  return c.ageYears + Math.max(0, ageNow(g, c) - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY);
 }
+
+/** The tick an adult's age is counted to: now, or under the Ageless law (worldlaws.js) the later of the law's
+ *  start and the time they came of age, so ages stand still while children still grow up. */
+export function ageNow(g, c) {
+  if (!lawIs(g, 'core:ageless', 'on')) return g.s.tick;
+  return Math.min(g.s.tick, Math.max(lawSince(g, 'core:ageless') ?? g.s.tick, c.ageTick ?? g.s.tick));
+}
+
+// Lifting the Ageless law: every adult's age clock moves on by the time it stood still, so ages run on from
+// where they stood (one pass, by id).
+onLawChange('core:ageless', (g, from, to) => {
+  if (to !== 'off') return;
+  const since = lawSince(g, 'core:ageless');
+  if (since === null) return;
+  for (const id of Object.keys(g.s.colonists).sort()) {
+    const c = g.s.colonists[id];
+    if (c.ageTick === undefined || c.ageTick === null) continue;
+    c.ageTick += g.s.tick - Math.max(c.ageTick, since);
+  }
+});
 
 /** Work speed of the old (jobs.js workSpeed). O(1); 1 without aging rules. */
 export function elderFactor(g, c) {
@@ -107,7 +128,7 @@ export function startAge(g, id) {
 /** Daily (day start): the old may die of old age. Marks them for processDeaths (death.js) with the cause. */
 export function tickAging(g) {
   const A = lifeRules(g)?.aging;
-  if (!A) return;
+  if (!A || lawIs(g, 'core:ageless', 'on')) return; // the Ageless law: nobody dies of old age
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY), yearDays = yearDaysOf(g);
   for (const id of Object.keys(s.colonists).sort()) {
     const y = ageYears(g, s.colonists[id]);

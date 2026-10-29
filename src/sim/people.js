@@ -15,9 +15,10 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { inheritLook } from './appearance.js';
 import { namePoolOf, surnameOf, uniqueName, usedNames } from './names.js';
-import { startAge } from './life.js';
+import { startAge, ageNow } from './life.js';
 import { blessingOf } from './god.js';
 import { peopleOfSettlement, inheritTraits, paletteOf } from './peoples.js';
+import { growthOf } from './worldlaws.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
 
@@ -45,7 +46,7 @@ export function ageLabel(g, c) {
   const st = stageOf(g, c);
   if (!isAdult(g, c)) return `${st.name}, ${Math.floor(ageDays(g, c) || 0)} day(s) old`;
   const yearDays = g.reg.get('worldgen', g.s.worldgenId)?.climate?.yearDays || 30;
-  const yrs = (c.ageYears ?? 30) + Math.max(0, g.s.tick - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY);
+  const yrs = (c.ageYears ?? 30) + Math.max(0, ageNow(g, c) - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY); // the Ageless law stops it (life.js)
   return `${st.name}, ${Math.floor(yrs)}`;
 }
 
@@ -96,7 +97,7 @@ function considerBirths(g, sid) {
   const bedsOf = (h) => (s.projects[h.projectId]?.parts || []).map((id) => s.structures[id]).filter((b) => b?.built && g.bDef(b)?.bed && !g.bDef(b).medical);
   const isFree = (b) => !b.owner || !s.colonists[b.owner];
   for (const home of homes) {
-    if (s.tick - (home.lastBirth ?? -1e9) < BIRTH.gapDays * TICKS_PER_DAY) continue;
+    if (s.tick - (home.lastBirth ?? -1e9) < (BIRTH.gapDays / growthOf(g)) * TICKS_PER_DAY) continue; // the Fast growth law halves the gap
     const beds = bedsOf(home);
     const adults = beds.map((b) => s.colonists[b.owner]).filter((c) => c && isAdult(g, c));
     if (adults.length < 2) continue;
@@ -107,7 +108,7 @@ function considerBirths(g, sid) {
     if (!bed) continue;
     // A divine blessing (godboons.js) multiplies the chance; the same single draw either way.
     const bl = g.s.god ? blessingOf(g, sid) : null;
-    if (!g.rng.chance(bl ? Math.min(1, BIRTH.chancePerDay * bl.growth) : BIRTH.chancePerDay)) continue;
+    if (!g.rng.chance(Math.min(1, BIRTH.chancePerDay * (bl ? bl.growth : 1) * growthOf(g)))) continue; // the Fast growth law doubles it (worldlaws.js)
     birth(g, sid, where, bed, adults.slice(0, 2));
     home.lastBirth = s.tick;
     return; // one birth per settlement per day at most

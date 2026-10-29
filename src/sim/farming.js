@@ -6,6 +6,7 @@ import { seasonalTemp, outdoorTemp, climateOf } from './heat.js';
 import { growFactor, weatherRules } from './weather.js';
 import { destroyCrop } from './ruin.js';
 import { REGROW_DEFAULTS } from './regrow.js';
+import { growthOf } from './worldlaws.js';
 
 export const CROP = { minTemp: 5, frost: -3, fullAt: 3 }; // full growth this many °C above minTemp
 
@@ -31,6 +32,7 @@ export const wildGrowth = (g) => clamp((seasonalTemp(g) + 2) / 10, 0.2, 1);
 
 export function tickFarming(g, dt) {
   const season = seasonalTemp(g); // the same for every crop this tick
+  const gf = growthOf(g); // the Fast growth law (worldlaws.js)
   const wx = !!g.s.disasters?.weather, withered = []; // rain and drought (weather.js); nothing without them
   for (const cr of Object.values(g.s.crops)) {
     if (cr.growth >= 1) continue;
@@ -43,7 +45,7 @@ export function tickFarming(g, dt) {
       if (cr.growth <= 0) withered.push(cr.id);
       continue;
     }
-    cr.growth = Math.min(1, cr.growth + (dt / (def.growDays * TICKS_PER_DAY)) * fert * seasonGrowth(def, season) * w);
+    cr.growth = Math.min(1, cr.growth + (dt / (def.growDays * TICKS_PER_DAY)) * fert * seasonGrowth(def, season) * w * gf); // gf: the Fast growth law
     if (cr.growth >= 1) g.log(`${def.name} are ready to harvest.`, 'food', `ripe:${def.id}`, 600);
   }
   if (withered.length) {
@@ -68,7 +70,7 @@ export function tickFarming(g, dt) {
       if (!n.empty || g.s.nodes[n.id] !== n) { empty.delete(n.id); continue; }
       const def = g.nodeDef(n);
       const days = n.young ? (def?.sproutDays ?? REGROW_DEFAULTS.sproutDays) : (def?.regrowDays || 1); // young: a new plant grows up (regrow.js)
-      n.regrow = (n.regrow || 0) + (50 * wild * (wx ? growFactor(g, n.x, n.y) : 1)) / (days * TICKS_PER_DAY);
+      n.regrow = (n.regrow || 0) + (50 * wild * gf * (wx ? growFactor(g, n.x, n.y) : 1)) / (days * TICKS_PER_DAY);
       if (n.regrow >= 1) { n.empty = false; n.regrow = 0; n.chunks = def.chunks; delete n.young; empty.delete(n.id); }
     }
   }

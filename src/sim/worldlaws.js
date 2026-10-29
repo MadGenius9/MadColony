@@ -12,7 +12,8 @@ import { registerPower } from './god.js';
 export const PEACEFUL = 'core:peaceful_animals';
 const HOOKS = new Map();
 
-/** Register fn(g, from, to) to run when law `id` changes (in apply, before the message is logged). */
+/** Register fn(g, from, to) to run when law `id` changes (in apply, just before the change, so lawOf and
+ *  lawSince still give the old value). */
 export function onLawChange(id, fn) { HOOKS.set(id, fn); }
 
 /** The default value of law `id` (its first), or null for an unknown law. */
@@ -29,6 +30,11 @@ export function lawIs(g, id, value) {
   if (id === PEACEFUL) return (value === 'on') === !!g.s.animals?.peaceful;
   return g.s.worldLaws?.set?.[id] === value;
 }
+
+/** The Fast growth law: births, crops, wild regrowth, forest spread and founding come this many times as fast. */
+export const FAST_GROWTH = 2;
+/** 2 under the Fast growth law, else 1 (O(1)). */
+export const growthOf = (g) => (g.s.worldLaws?.set?.['core:fast_growth'] === 'on' ? FAST_GROWTH : 1);
 
 /** The tick law `id` took its current value, or null (at its default). */
 export function lawSince(g, id) { return g.s.worldLaws?.since?.[id] ?? null; }
@@ -67,6 +73,7 @@ registerPower('law', {
   apply(g, cmd) {
     const { L, V, from } = check(g, cmd.args);
     const s = g.s, def = L.values[0].id;
+    HOOKS.get(L.id)?.(g, from, V.id); // before the change: hooks see the old value and its start (lawSince)
     if (L.id === PEACEFUL) { if (V.id === 'on') s.animals.peaceful = true; else delete s.animals.peaceful; }
     else {
       s.worldLaws ||= { set: {}, since: {} };
@@ -75,7 +82,6 @@ registerPower('law', {
       else { s.worldLaws.set[L.id] = V.id; s.worldLaws.since[L.id] = s.tick; }
       if (!Object.keys(s.worldLaws.set).length) delete s.worldLaws;
     }
-    HOOKS.get(L.id)?.(g, from, V.id);
     return { msg: `World law: ${L.name} is now ${V.name.toLowerCase()}.${V.about ? ` ${V.about}` : ''}`, law: L.id, value: V.id };
   },
 });

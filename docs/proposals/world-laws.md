@@ -156,3 +156,22 @@ Each law has an id, a name, an `about` line and a kind: a switch (on/off), or a 
 - **Tests:** a running war goes on while new ones are refused, relations are held, and a save and load
   match; a Thornback gores and tramples when wild but not when tame; a foray ends when the law comes.
   208 tests pass; classic unchanged.
+### Slice 3 (2026-10-28): ageless and fast growth
+- **Ageless** (`life.js ageNow`):
+  - adults' ages count only to the law's start, or to when they came of age if later, so children still grow up
+    (the owner's answer 4) and stop aging once adult;
+  - no old-age deaths (`tickAging`);
+  - lifting it moves every adult's age clock on by the frozen time (a law hook, one pass by id), so ages run
+    on from where they stood.
+  - The display age (`people.js ageLabel`) follows.
+- **Fast growth** (×2, `worldlaws.js growthOf`; the owner's answer 5):
+  - the birth chance doubles in the same single draw (as a blessing), and the gap between births halves;
+  - crops and wild regrowth grow twice as fast (`farming.js`);
+  - forests spread twice as often (`regrow.js`);
+  - daughter villages wait half the crowded and cooldown days (`founding.js canFound`).
+- **The law power** now runs its change hooks just before the change, so a hook sees the old value and its
+  start.
+- **Tests:** ages frozen for a year then a year older a year after lifting; no old-age death under the law
+  (one without it); crops exactly twice as fast in one farming step; half the founding wait; more births in
+  a Living world.
+- **Checks:** 210 tests pass; classic unchanged.

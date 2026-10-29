@@ -41,6 +41,7 @@ import { isDiscovered } from './contact.js';
 import { coldWait } from './life.js';
 import { livingCount } from './fallen.js';
 import { peopleOfSettlement } from './peoples.js';
+import { growthOf } from './worldlaws.js';
 
 export const FOUNDING_DEFAULTS = Object.freeze({
   maxVillages: 30, minAdults: 6, crowdedDays: 3, foodDaysLeft: 5, cooldownDays: 20, founders: Object.freeze([3, 5]),
@@ -171,10 +172,11 @@ export function canFound(g, sid, counts = null) {
   if (g.policyFor(sid).allowEmigration === false) P.push(sid === s.playerSettlement ? 'Your policy keeps settlers at home.' : `${name}'s policy keeps settlers at home.`);
   const crowd = res.crowd = crowdedness(g, sid, counts);
   if (!crowd.crowded) P.push(`${name} is not crowded (${crowd.pop} of ${crowd.cap} people).`);
-  else if (crowd.days < R.crowdedDays) P.push(`${name} has been crowded for ${plural(crowd.days, 'day')} of ${R.crowdedDays}.`);
+  const gf = growthOf(g), crowdedDays = R.crowdedDays / gf, cooldownDays = R.cooldownDays / gf; // the Fast growth law halves the waits
+  if (crowd.crowded && crowd.days < crowdedDays) P.push(`${name} has been crowded for ${plural(crowd.days, 'day')} of ${crowdedDays}.`);
   if (crowd.adults < R.minAdults) P.push(`${name} has ${plural(crowd.adults, 'adult')}; settlers leave only with at least ${R.minAdults}.`);
-  if (Number.isFinite(st.lastFounding) && s.tick - st.lastFounding < R.cooldownDays * TICKS_PER_DAY)
-    P.push(`${name} founded a village on day ${dayOf(st.lastFounding)}; it waits until day ${dayOf(st.lastFounding + R.cooldownDays * TICKS_PER_DAY)}.`);
+  if (Number.isFinite(st.lastFounding) && s.tick - st.lastFounding < cooldownDays * TICKS_PER_DAY)
+    P.push(`${name} founded a village on day ${dayOf(st.lastFounding)}; it waits until day ${dayOf(st.lastFounding + cooldownDays * TICKS_PER_DAY)}.`);
   if (R.daughterMinDays && st.parent && s.tick - (st.founded || 0) < R.daughterMinDays * TICKS_PER_DAY)
     P.push(`${name} was founded on day ${dayOf(st.founded || 0)}; a new village sends settlers out only from day ${dayOf((st.founded || 0) + R.daughterMinDays * TICKS_PER_DAY)}.`);
   if (Number.isFinite(st.noSiteAt) && s.tick - st.noSiteAt < R.siteRetryDays * TICKS_PER_DAY)

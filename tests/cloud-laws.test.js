@@ -120,3 +120,63 @@ test('laws: Tame monsters keep to their lairs and strike nobody; turning it on e
   law(g, 'core:tame_monsters', 'on');
   assert.ok(!m.foray || m.foray.until <= g.s.tick, 'its foray ended');
 });
+
+// ---- slice 3: ageless and fast growth
+import { ageYears, tickAging } from '../src/sim/life.js';
+import { canFound } from '../src/sim/founding.js';
+import { tickFarming } from '../src/sim/farming.js';
+import { TICKS_PER_DAY } from '../src/sim/constants.js';
+
+test('laws: Ageless stops adults aging and old-age deaths; ages run on when lifted', () => {
+  const g = newGame({ seed: 5 });
+  g.tick();
+  const c = Object.values(g.s.colonists)[0];
+  const a0 = ageYears(g, c);
+  law(g, 'core:ageless', 'on');
+  runDays(g, 30); // a year
+  assert.ok(Math.abs(ageYears(g, c) - a0) < 0.001, 'frozen');
+  // The very old do not die of old age while it holds (a Living world has aging rules).
+  const w = newGame({ seed: 5, scenario: 'core:living_world' });
+  const o = Object.values(w.s.colonists)[0];
+  o.ageYears = 400; o.ageTick = w.s.tick;
+  w._dying = null;
+  for (let d = 0; d < 60 && !w._dying?.has(o.id); d++) { w.s.tick += TICKS_PER_DAY; tickAging(w); }
+  assert.ok(w._dying?.has(o.id), 'without the law the very old die of old age');
+  w._dying = null;
+  law(w, 'core:ageless', 'on');
+  for (let d = 0; d < 60; d++) { w.s.tick += TICKS_PER_DAY; tickAging(w); }
+  assert.ok(!w._dying?.has(o.id), 'no old-age death under the law');
+  const b = reload(g);
+  runDays(g, 1); runDays(b, 1);
+  assert.equal(stateText(b), stateText(g));
+  law(g, 'core:ageless', 'off');
+  const a1 = ageYears(g, c);
+  runDays(g, 30);
+  assert.ok(Math.abs(ageYears(g, c) - a1 - 1) < 0.01, 'a year later, a year older');
+});
+
+test('laws: Fast growth doubles crop growth, halves the founding wait and brings more births', () => {
+  const base = newGame({ seed: 4242 });
+  runDays(base, 4);
+  const step = (fast) => {
+    const g = loadGame(base.reg, serializeGame(base));
+    if (fast) g.s.worldLaws = { set: { 'core:fast_growth': 'on' }, since: { 'core:fast_growth': g.s.tick } };
+    const cr = Object.values(g.s.crops).filter((x) => x.growth < 0.9).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+    const before = cr.growth;
+    tickFarming(g, 10);
+    return g.s.crops[cr.id].growth - before;
+  };
+  const d0 = step(false), d1 = step(true);
+  assert.ok(d0 > 0 && Math.abs(d1 / d0 - 2) < 1e-6, `crops grow twice as fast (${d0} -> ${d1})`);
+  // Founding: a village that founded 12 days ago waits 20 days, or 10 under the law.
+  const g = newGame({ seed: 7, scenario: 'core:living_world' });
+  const ai = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].ai);
+  g.s.tick = 40 * TICKS_PER_DAY; g.s.settlements[ai].lastFounding = g.s.tick - 12 * TICKS_PER_DAY;
+  assert.ok(canFound(g, ai).problems.some((p) => /waits until/.test(p)));
+  law(g, 'core:fast_growth', 'on');
+  assert.ok(!canFound(g, ai).problems.some((p) => /waits until/.test(p)), 'half the wait under the law');
+  // Births across a Living world, 15 days.
+  const births = (on) => { const w = newGame({ seed: 7, scenario: 'core:living_world' }); if (on) law(w, "core:fast_growth", "on"); runDays(w, 15); return Object.values(w.s.colonists).filter((x) => x.bornTick !== undefined).length + Object.values(w.s.dead || {}).filter((x) => x.bornTick !== undefined).length; };
+  const n0 = births(false), n1 = births(true);
+  assert.ok(n1 > n0, `more births (${n0} -> ${n1})`);
+});

@@ -13,6 +13,7 @@
 // Draws are hashes of (seed, node or tile, day); nothing while there are no seeds and no spread rule.
 // Cost: O(seeds + nodes of the spreading kinds / 24) an hour.
 import { TICKS_PER_DAY } from './constants.js';
+import { growthOf } from './worldlaws.js';
 
 export const REGROW_DEFAULTS = Object.freeze({ seedDays: 10, sproutTries: 30, sproutDays: 10 });
 const NEAR = 2, CLEAR = 3;
@@ -98,13 +99,13 @@ export function tickRegrowth(g) {
   // Forests spread (scenario rule).
   const R = natureRules(g)?.spread;
   if (!R?.length) return;
-  const byDef = g.nodesByDef(), seedNum = hash(`${s.seed}:spread`);
+  const byDef = g.nodesByDef(), seedNum = hash(`${s.seed}:spread`), gf = growthOf(g);
   for (const rule of R) {
     const list = byDef.get(rule.node) || [];
     for (let k = hour; k < list.length; k += 24) {
       const p = list[k];
       if (p.young || !s.nodes[p.id]) continue;
-      if (mix(seedNum, Number(p.id.slice(1)) | 0, day) >= rule.perDay) continue;
+      if (mix(seedNum, Number(p.id.slice(1)) | 0, day) >= rule.perDay * gf) continue; // gf: the Fast growth law
       const key = `${s.seed}:spread:${p.id}:${day}`;
       const r = rule.radius, dx = Math.floor(draw(key + ':x') * (2 * r + 1)) - r, dy = Math.floor(draw(key + ':y') * (2 * r + 1)) - r;
       const x = p.x + dx, y = p.y + dy;
