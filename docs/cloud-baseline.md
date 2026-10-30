@@ -190,9 +190,10 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Animals, Vast 20 days: animals.js 3.8%, monsters.js 0.6%, hunt.js < 0.1% of CPU.
 
 ## Phase 12, slice 1 (2026-10-30): structured events
-- 242 tests pass (238 before, plus 4 in `tests/cloud-chronicle.test.js`).
+- The full suite: 238 pass (run before the new file existed); the 4 new tests in
+  `tests/cloud-chronicle.test.js` pass on their own.
 - `forty`: 8345afce244873af, unchanged (no event line is written in that run); 0.091 ms/tick, workshops era on
   day 6.46.
 - Gameplay checked apart from the log: the state hash without `log`, `logKeys` and `chronicle` is the same
   before and after the change: `forty` 083cf9ca5bea8d96, `modern` 69abf41e3365aa5a (both runs, old and new
-  code). The full `modern` hash changes only through the event fields on its log lines.
+  code). The full `modern` hash was not rerun.
