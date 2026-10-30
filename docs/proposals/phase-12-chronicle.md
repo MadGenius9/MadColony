@@ -1,0 +1,114 @@
+# Phase 12: connected world chronicle
+
+Status: **design, waiting for the owner's answers** (2026-10-30). Branch `cloud-work` (cloud rescue copy; see
+CLAUDE.md). The scope is the roadmap's Phase 12 (owner, 2026-10-29). It builds on the existing log; it is not
+a second event system.
+
+## Goal
+- **Explain how events relate:** stable event ids, time, the villages, people and place, and cause links
+  only where the simulation knows them.
+- **Chains only from recorded links;** associations labelled as such, never "caused".
+- **Filters:** village, person or family, kingdom, category, time. Follow and favourite; a jump to the
+  subject or place.
+- **Bounded storage:** keep milestones, summarise old routine events, no duplicate floods.
+- **Acceptance:** one meaningful chain is understandable in the UI, survives save and load, and does not
+  flood the player.
+
+## What exists today
+- **The log** (`game.js log(msg, cat, key, cooldown)`): `s.log` entries hold `{ t, msg, cat }`.
+  - The categories are warn, info, trade, good, build, research, goal, food, god and a few more.
+  - A `key` with a cooldown stops repeats (`s.logKeys`).
+  - The newest 500 are kept.
+  - 154 places write to it.
+- **No separate letters:** "letters" are warn lines in the same log.
+- **The god powers' own record:** `s.god.log` (the newest 500 commands and their results).
+- **Reasons already recorded elsewhere:**
+  - relations keep their last 16 changes with reasons;
+  - laws keep the day they were passed (`codeSince`) and a reason in the log line;
+  - unrest keeps the tick it began;
+  - wars keep `aggressor` and `warSince`;
+  - death records keep cause and tick;
+  - trades keep a reason ("Tribute to X", "Tithe to X").
+- **Things the simulation does not know** (and so must not be claimed): why a village lacked timber
+  (beyond "no reachable trees" in its plan), or whether a war was "about" a law.
+
+## Design
+
+### Events: the log, with more fields (save format 34)
+- **The same calls:** `g.log(msg, cat, key, cooldown, ev)`, where `ev` is optional:
+  - `kind` (an event type from data, e.g. `core:war_declared`);
+  - `sids` (villages), `cids` (people), `at { x, y }`;
+  - `cause` (an earlier event's id, only when the code holds it);
+  - `rel` (an association, labelled "followed", never "caused").
+- **Ids:** every line with `ev` gets a stable id `e<n>` from a saved counter. Lines without `ev` stay as
+  today (routine).
+- **Event kinds as data** (`mods/core/content/chronicle.json`): name, category, importance (routine,
+  notable, milestone), and whether it notifies.
+- **First milestones:**
+  - war declared, peace, conquest, a village fallen;
+  - a village founded (daughter or divine), a kingdom formed, joined or left;
+  - a law passed or repealed (with its recorded reason);
+  - unrest begun, a family leaving;
+  - a plague outbreak, a monster slain or a lair cleared;
+  - a god power used;
+  - the death of a person the player follows.
+
+### Cause links, only where the code knows them
+| Event | Its cause link |
+|---|---|
+| A law passed for war (militia) | the war's declaration event (kept on the relation) |
+| A law repealed by unrest | the unrest's start event |
+| A family leaving | the unrest's start event |
+| A tithe sent | the law event that set the tithe |
+| A village joining a kingdom by conquest | the conquest event |
+| Peace | the war's declaration event |
+| A war declared by rivalry | the last recorded dispute event between the two villages (a covet, rights refusal or seizure), if any; else none |
+| A god power's effects (a fire's spread, a plague's deaths) | the power's event |
+
+- **Associations** ("followed"):
+  - a law passed for "few trees" and, later, that village's first "no reachable trees" plan note;
+  - a famine and later deaths in that village.
+- **The example chain** (forest depletion → protection law → timber shortage → trade dispute → war) is
+  shown only as far as each link is recorded. For instance: law (reason: few trees) → rights request
+  refused (recorded) → relation fall (recorded reason) → war (rivalry; linked to the last dispute). The
+  timber shortage itself is an association, from the plan note.
+
+### Retention (bounded)
+- **Routine lines:** as today, the newest 500.
+- **Notable and milestone events:** a separate cap (e.g. 2,000 entries) in the same array, kept while routine
+  lines roll off.
+- **Old milestones** beyond the cap fold into one summary entry per year and village ("Year 3 in Marshby: 2
+  wars, 3 laws, 1 plague"), with their ids kept so chains still resolve to "summarised".
+- **Size:** a check in the World run (save size and the number of entries).
+
+### Reading it (for the UI)
+- `chronicle.js`:
+  - `eventsOf(g, { sid, cid, kingdom, kind, cat, from, to })`;
+  - `chainOf(g, id)`: the recorded causes back and the known effects forward, each step marked "recorded"
+    or "followed";
+  - `subjectOf(g, id)`: where to jump.
+- **Follow and favourites:** where they are kept is question 1.
+- **Notifications:** an event notifies when its kind says so and it concerns the player's village or
+  something followed. Duplicates merge (the existing keys).
+
+## Slices
+1. **Structured events:**
+   - `ev` on the log, with ids and kinds as data;
+   - the milestone call sites (about 30 of the 154);
+   - retention and summaries;
+   - save format 34.
+2. **Cause links** where known, and associations.
+3. **Reading:** filters, chains, subjects; follow and favourites; notification rules; UI notes.
+4. **Acceptance:**
+   - a World run that finds and prints one real chain;
+   - save and load identical;
+   - the size check;
+   - classic runs, the bench, README and roadmap.
+
+## Open questions
+1. **Follow and favourites:** kept in the save (they travel with the game; proposed), or in the UI only?
+2. **Retention:** the newest 500 routine lines plus up to 2,000 notable and milestone events, and older ones
+   summarised by year and village. Are these numbers right?
+3. **Milestones:** is the list right? Add or drop any (births, a person's first skill level 10, records)?
+4. **Notifications:** only for the player's village and followed subjects (proposed), or also world news
+   (any war, any fallen village)?
