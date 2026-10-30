@@ -56,7 +56,7 @@ export function fall(g, sid, cause, fate = 'ruin', by = null) {
     leaveKingdom(g, sid, `${st.name} has fallen`, { force: true });
   }
   g.planDirty = true;
-  g.log(`${st.name} has fallen: ${cause}. Its ruins remain.`, 'warn');
+  g.log(`${st.name} has fallen: ${cause}. Its ruins remain.`, 'warn', null, 0, { kind: 'core:village_fallen', sids: [sid, by].filter(Boolean), at: st.center });
   return st.fallen;
 }
 

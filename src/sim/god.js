@@ -218,7 +218,7 @@ function applyOneNow(g, god, cmd) {
   const out = P.apply(g, cmd, r) || {};
   const { msg = `A divine command (${cmd.type}) was carried out.`, ...rest } = out;
   record(god, cmd, { ok: true, cost, msg, ...rest });
-  g.log(msg, 'god');
+  g.log(msg, 'god', null, 0, { kind: 'core:god_power', at: Number.isFinite(cmd.args?.x) ? cmd.args : null, sids: rest.sid ? [rest.sid] : [] });
 }
 
 // ---------- ledger helpers (used by the powers) ----------

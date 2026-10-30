@@ -131,7 +131,7 @@ export function killColonist(g, c, kind = null, opts = {}) {
   s.stats.deaths[cause] = (s.stats.deaths[cause] || 0) + 1;
   const village = st?.name ? ` of ${st.name}` : '';
   const how = worst?.cause && cause === worst.kind && !/^(starving|dehydrated|collapsing from exhaustion)$/i.test(worst.cause) ? ` (${worst.cause.toLowerCase()})` : '';
-  g.log(`${c.name}${village} ${text}${how}.`, 'death');
+  g.log(`${c.name}${village} ${text}${how}.`, 'death', null, 0, { kind: 'core:death', sids: [sid], cids: [c.id], at: c });
   if (opts.replan !== false) replan(g, new Set([sid]));
   return rec;
 }

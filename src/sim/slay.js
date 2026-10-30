@@ -140,7 +140,7 @@ function slain(g, c, m, d) {
     if (d.carcass && g.reg.has('item', d.carcass)) g.createItems(d.carcass, 1, x, y, 'hunt');
     for (const e of d.drops || []) if (g.reg.has('item', e.item)) g.createItems(e.item, e.qty, x, y, 'hunt');
   } finally { g.actor = prev; }
-  g.log(`${c.name} and the hunt party slew the ${d.name}!`, 'good', `slay:${m.id}`);
+  g.log(`${c.name} and the hunt party slew the ${d.name}!`, 'good', `slay:${m.id}`, 600, { kind: 'core:monster_slain', sids: [sid], cids: [c.id], at: { x, y } });
 }
 
 export const SLAY_DRIVERS = {
@@ -188,7 +188,7 @@ export const SLAY_DRIVERS = {
       if (++j.prog < CLEAR_WORK) return 'running';
       l.cleared = true;
       const d = g.reg.get('monster', l.sp);
-      g.log(`${c.name} cleared the ${d?.name || 'monster'}'s lair: nothing will live there again.`, 'good', `lair:${l.id}`);
+      g.log(`${c.name} cleared the ${d?.name || 'monster'}'s lair: nothing will live there again.`, 'good', `lair:${l.id}`, 600, { kind: 'core:lair_cleared', sids: [c.settlementId], cids: [c.id], at: l });
       return 'done';
     },
   },

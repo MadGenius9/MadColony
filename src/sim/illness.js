@@ -142,7 +142,7 @@ export function tickIllness(g) {
         const ill = pick(g, R, draw(`${s.seed}:outbreak-kind:${sid}:${day}`));
         const who = people[Math.floor(draw(`${s.seed}:outbreak-who:${sid}:${day}`) * people.length)];
         const why = R.spare ? 'the Endless plague law' : crowd > 0 ? 'crowded homes' : 'an outbreak';
-        if (infect(g, who, ill, why)) { s.stats.illness.outbreaks++; g.log(`${ill.name} broke out in ${s.settlements[sid].name}${R.spare ? ' (the Endless plague law)' : crowd > 0 ? ' (crowded homes)' : ''}.`, 'warn'); }
+        if (infect(g, who, ill, why)) { s.stats.illness.outbreaks++; g.log(`${ill.name} broke out in ${s.settlements[sid].name}${R.spare ? ' (the Endless plague law)' : crowd > 0 ? ' (crowded homes)' : ''}.`, 'warn', null, 0, { kind: 'core:outbreak', sids: [sid], cids: [who.id] }); }
       }
       continue;
     }

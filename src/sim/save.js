@@ -107,6 +107,7 @@ export function validateSave(save) {
   if (s.animals !== undefined) validateAnimals(s, bad, save.saveFormat); // format 27
   if (s.monsters !== undefined) validateMonsters(s, bad); // format 29
   if (s.worldLaws !== undefined) validateWorldLaws(s, bad); // format 31
+  validateChronicle(s, bad); // format 34
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -320,6 +321,30 @@ function validateDead(s, bad) {
 
 /** World laws (format 31, worldlaws.js): { set: { law: value }, since: { law: tick } }, ids and values short
  *  strings, ticks not in the future. Laws a removed mod defined are dropped on load. */
+/** The chronicle (format 34): event fields on log lines and s.chronicle. */
+function validateChronicle(s, bad) {
+  const C = s.chronicle;
+  if (C !== undefined) {
+    if (!isObj(C) || !isInt(C.next) || C.next < 1) { bad('state.chronicle is malformed'); return; }
+    if (C.folded !== undefined && (!isInt(C.folded) || C.folded < 0 || C.folded >= C.next)) { bad('state.chronicle.folded is invalid'); return; }
+    if (C.years !== undefined && (!isObj(C.years) || Object.entries(C.years).some(([y, V]) => !/^\d{1,6}$/.test(y) || !isObj(V) || Object.entries(V).some(([sid, K]) => !SAFE_ID.test(sid) || !isObj(K) || Object.entries(K).some(([k, n]) => !isStr(k, 100) || !isInt(n) || n < 1))))) { bad('state.chronicle.years is malformed'); return; }
+    for (const f of ['follow', 'favs']) if (C[f] !== undefined && (!Array.isArray(C[f]) || C[f].length > 200 || C[f].some((x) => !isStr(x, 80)))) { bad(`state.chronicle.${f} is malformed`); return; }
+  }
+  if (!Array.isArray(s.log)) return;
+  if (s.log.length > 3000) { bad('state.log is too long'); return; }
+  const next = C?.next ?? 1;
+  const seen = new Set();
+  const idList = (v) => v === undefined || (Array.isArray(v) && v.length <= 64 && v.every((x) => isStr(x, 64)));
+  for (const e of s.log) {
+    if (!isObj(e) || e.id === undefined) continue;
+    const n = /^e(\d{1,9})$/.exec(e.id)?.[1];
+    if (!n || Number(n) >= next || seen.has(e.id)) { bad('a log entry has an invalid or repeated event id'); return; }
+    seen.add(e.id);
+    if ((e.kind !== undefined && !isStr(e.kind, 100)) || !idList(e.sids) || !idList(e.cids) || (e.at !== undefined && (!isObj(e.at) || !isInt(e.at.x) || !isInt(e.at.y)))
+      || (e.cause !== undefined && !isStr(e.cause, 20)) || (e.rel !== undefined && !isStr(e.rel, 20))) { bad(`log event ${e.id} is malformed`); return; }
+  }
+}
+
 function validateWorldLaws(s, bad) {
   const W = s.worldLaws;
   if (!isObj(W) || (W.set !== undefined && !isObj(W.set)) || (W.since !== undefined && !isObj(W.since))) { bad('state.worldLaws is malformed'); return; }

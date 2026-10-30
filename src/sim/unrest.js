@@ -109,15 +109,15 @@ export function tickUnrest(g) {
     if (s.tick - st.unrest < UNREST.days * TICKS_PER_DAY) continue;
     st.unrest = s.tick; // the clock starts again after each outcome
     const why = reasons(g, sid).join(', ');
-    if (sid === s.playerSettlement) g.log(`Unrest in ${st.name}: ${u.unhappy} of ${u.adults} are unhappy${why ? ` (${why})` : ''}.`, 'warn');
+    if (sid === s.playerSettlement) g.log(`Unrest in ${st.name}: ${u.unhappy} of ${u.adults} are unhappy${why ? ` (${why})` : ''}.`, 'warn', null, 0, { kind: 'core:unrest', sids: [sid] });
     else {
       const L = lawToRepeal(g, sid);
       if (L) {
         const r = setCivLaw(g, sid, L.id, L.options[0].id, 'unrest', { quiet: true });
-        if (r.ok) g.log(`Unrest in ${st.name}: the ${L.name.toLowerCase()} law was repealed${why ? ` (${why})` : ''}.`, 'info');
+        if (r.ok) g.log(`Unrest in ${st.name}: the ${L.name.toLowerCase()} law was repealed${why ? ` (${why})` : ''}.`, 'info', null, 0, { kind: 'core:unrest', sids: [sid] });
       }
     }
     const m = leave(g, sid);
-    if (m) g.log(`${m.name}'s family (${m.n}) left ${st.name} for ${s.settlements[m.to].name}, miserable.`, sid === s.playerSettlement || m.to === s.playerSettlement ? 'warn' : 'info');
+    if (m) g.log(`${m.name}'s family (${m.n}) left ${st.name} for ${s.settlements[m.to].name}, miserable.`, sid === s.playerSettlement || m.to === s.playerSettlement ? 'warn' : 'info', null, 0, { kind: 'core:family_left', sids: [sid, m.to] });
   }
 }

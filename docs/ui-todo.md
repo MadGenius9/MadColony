@@ -420,3 +420,15 @@ where, and which sim function or state field provides it. The UI is built at hom
 - **Mood, slice 3 (unrest):** the village panel shows "Unrest for N days" (`settlement.unrest`) with the
   reasons from the log line. Leaving families appear in both villages' logs. A small flame icon on the map
   marks a village in unrest.
+
+## Phase 12, slice 1: structured events (the chronicle)
+- **The log panel keeps working unchanged:** every entry still has `{ t, msg, cat }`. Entries with an `id`
+  (`e<n>`) are chronicle events and may also carry `kind` (an `eventKind`: name, importance, notify), `sids`
+  (villages), `cids` (people) and `at { x, y }`.
+- **Mark events by importance:** milestones (wars, peace, conquests, fallen villages, kingdoms, laws, unrest,
+  outbreaks, god powers) in bold or with an icon; notable ones (deaths, alliances, relation changes, monsters)
+  plain; routine lines dimmer.
+- **Clicking an event with `at`** centres the map there; one with `sids` or `cids` can open that village or
+  person. (Filters, chains, follow and favourites come in slice 3.)
+- **Old events** beyond the 2,000 kept are counted per year and village in `s.chronicle.years`; a "Year N"
+  row can show "Marshby: 2 wars, 3 laws".

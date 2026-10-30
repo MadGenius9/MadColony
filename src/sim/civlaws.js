@@ -121,7 +121,7 @@ export function setCivLaw(g, sid, id, option, why = '', opts = {}) {
   (g.replanSids ||= new Set()).add(sid);
   if (!opts.quiet) {
     const mine = sid === g.s.playerSettlement;
-    g.log(`${st.name} ${option === L.options[0].id ? `ended its ${L.name.toLowerCase()} law` : `passed a law: ${L.name}, ${O.name.toLowerCase()}`}${why ? ` (${why})` : ''}.`, mine ? 'good' : 'info');
+    g.log(`${st.name} ${option === L.options[0].id ? `ended its ${L.name.toLowerCase()} law` : `passed a law: ${L.name}, ${O.name.toLowerCase()}`}${why ? ` (${why})` : ''}.`, mine ? 'good' : 'info', null, 0, { kind: 'core:law', sids: [sid] });
   }
   return { ok: true, message: `${L.name}: ${O.name}.` };
 }

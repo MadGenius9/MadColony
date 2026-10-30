@@ -117,6 +117,9 @@ export const MIGRATIONS = {
   31() {},
   // 32 -> 33: mood (mood.js). colonist.mood is optional: absent means it starts at the person's thoughts.
   32() {},
+  // 33 -> 34: the chronicle (chronicle.js). Log entries may carry an event id and fields; s.chronicle is optional:
+  // absent means no event has been recorded (old lines stay as routine lines).
+  33() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

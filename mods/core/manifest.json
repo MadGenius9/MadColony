@@ -39,6 +39,7 @@
     "content/laws.json",
     "content/civlaws.json",
     "content/mood.json",
+    "content/chronicle.json",
     "content/god.json"
   ]
 }

@@ -51,6 +51,7 @@ import { tickCivLaws } from './civreview.js'; // civilization laws: AI reviews a
 import { tickMood } from './mood.js'; // Mood: hourly
 import { tickUnrest } from './unrest.js'; // Mood: unrest, daily
 import { defaultPeople, settleFolk } from './peoples.js';
+import { stampEvent, trimLog } from './chronicle.js'; // Phase 12: the chronicle
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
@@ -1450,14 +1451,19 @@ export class Game {
   }
 
   // ---------- log ----------
-  log(msg, cat = 'info', key = null, cooldown = 600) {
+  // ev (Phase 12, chronicle.js): optional event details { kind, sids, cids, at, cause, rel }; such a line gets a
+  // stable id, returned (null when the line is held back by its key or written without ev).
+  log(msg, cat = 'info', key = null, cooldown = 600, ev = null) {
     if (key) {
       const last = this.s.logKeys[key];
-      if (last !== undefined && this.s.tick - last < cooldown) return;
+      if (last !== undefined && this.s.tick - last < cooldown) return null;
       this.s.logKeys[key] = this.s.tick;
     }
-    this.s.log.push({ t: this.s.tick, msg, cat });
-    if (this.s.log.length > 500) this.s.log.splice(0, this.s.log.length - 500);
+    const e = { t: this.s.tick, msg, cat };
+    if (ev) stampEvent(this, e, ev);
+    this.s.log.push(e);
+    trimLog(this, e);
+    return e.id || null;
   }
 
   // ---------- main loop ----------

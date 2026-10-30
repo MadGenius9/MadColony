@@ -587,7 +587,7 @@ export function foundDaughter(g, sid, opts = {}) {
   g.planDirty = true;
   (g.plans ||= {})[child] = emptyPlan(); // a plan of its own (empty) until it plans next tick, never the player's
   (g.replanSids ||= new Set()).add(sid).add(child);
-  g.log(`${founders.length} settlers left ${pName} (${why}) and founded ${name}.`, 'good');
+  g.log(`${founders.length} settlers left ${pName} (${why}) and founded ${name}.`, 'good', null, 0, { kind: 'core:village_founded', sids: [sid, child], at: s.settlements[child]?.center });
   // Kingdoms (slice 3): the daughter joins its parent's kingdom, or the parent becomes the capital of a new one.
   kingdomForDaughter(g, sid, child);
   if (g.big && wantDetail(g, child) === 'abstract') setDetail(g, child, 'abstract', 'it is far from the player');

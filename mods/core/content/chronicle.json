@@ -1,0 +1,154 @@
+{
+  "$comment": "Kinds of chronicle events (docs/proposals/phase-12-chronicle.md, chronicle.js). importance: routine lines roll off with the newest 500; notable and milestone events are kept. notify: world (world news) or own (only the player's village or something followed); absent: never notifies.",
+  "eventKind": [
+    {
+      "id": "core:war_declared",
+      "name": "War declared",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:war_joined",
+      "name": "Joined a war",
+      "importance": "notable"
+    },
+    {
+      "id": "core:war_threatened",
+      "name": "War threatened",
+      "importance": "notable",
+      "notify": "own"
+    },
+    {
+      "id": "core:peace",
+      "name": "Peace",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:conquest",
+      "name": "Conquest",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:sacked",
+      "name": "Village sacked",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:village_fallen",
+      "name": "Village fallen",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:village_founded",
+      "name": "Village founded",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:kingdom_formed",
+      "name": "Kingdom formed",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:kingdom_joined",
+      "name": "Joined a kingdom",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:kingdom_left",
+      "name": "Left a kingdom",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:capital_moved",
+      "name": "New capital",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:kingdom_dissolved",
+      "name": "Kingdom dissolved",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:alliance",
+      "name": "Alliance signed",
+      "importance": "notable"
+    },
+    {
+      "id": "core:alliance_ended",
+      "name": "Alliance ended",
+      "importance": "notable"
+    },
+    {
+      "id": "core:relations",
+      "name": "Relations changed",
+      "importance": "notable"
+    },
+    {
+      "id": "core:rights_refused",
+      "name": "Gathering rights refused",
+      "importance": "notable"
+    },
+    {
+      "id": "core:law",
+      "name": "Law passed or ended",
+      "importance": "milestone",
+      "notify": "own"
+    },
+    {
+      "id": "core:unrest",
+      "name": "Unrest",
+      "importance": "milestone",
+      "notify": "own"
+    },
+    {
+      "id": "core:family_left",
+      "name": "A family left",
+      "importance": "milestone",
+      "notify": "own"
+    },
+    {
+      "id": "core:outbreak",
+      "name": "Outbreak",
+      "importance": "milestone",
+      "notify": "own"
+    },
+    {
+      "id": "core:monster_slain",
+      "name": "Monster slain",
+      "importance": "notable",
+      "notify": "own"
+    },
+    {
+      "id": "core:lair_cleared",
+      "name": "Lair cleared",
+      "importance": "notable",
+      "notify": "own"
+    },
+    {
+      "id": "core:god_power",
+      "name": "God power",
+      "importance": "milestone",
+      "notify": "world"
+    },
+    {
+      "id": "core:death",
+      "name": "Death",
+      "importance": "notable"
+    },
+    {
+      "id": "core:tithe",
+      "name": "Tithe sent",
+      "importance": "routine"
+    }
+  ]
+}

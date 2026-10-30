@@ -403,7 +403,7 @@ export function declareWar(g, sid, target, reason) {
   rel.warSince = g.s.tick; // war.js: AI wars end in a truce when old (save format 20)
   const k = [sid, target].sort().join('|');
   if (g.s.treaties?.[k]) { delete g.s.treaties[k]; rel.history.push({ tick: g.s.tick, delta: 0, reason: 'Trade pact ended: war' }); }
-  g.log(`${reason}.`, 'warn');
+  g.log(`${reason}.`, 'warn', null, 0, { kind: 'core:war_declared', sids: [sid, target] });
   setOrder(g, sid, 'attack', target);
   strikeFirst(g, sid, target);
 }
@@ -474,7 +474,7 @@ export function joinDefence(g, x, y) {
     if (rel.value <= ALLIANCE.joinRelation) continue; // already at war with x
     changeRelation(g, z, x, ALLIANCE.joinRelation - rel.value, `Attacked ${via}`);
     if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; rel.warSince = g.s.tick; }
-    g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn');
+    g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn', null, 0, { kind: 'core:war_joined', sids: [z, x, y] });
   }
 }
 

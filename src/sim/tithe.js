@@ -31,6 +31,6 @@ export function tickTithes(g) {
     g.tradeAdded();
     s.trades[id] = { id, seller: sid, buyer: k.capital, legs, gift: true, tribute: true, tithe: true, relOnDone: 0, status: 'active', created: s.tick,
       deadline: g.tradeDeadline ? g.tradeDeadline(sid, k.capital, s.tick + 6 * TICKS_PER_DAY) : s.tick + 6 * TICKS_PER_DAY, reason: `Tithe to ${s.settlements[k.capital].name}` };
-    g.log(`${st.name} sends its tithe to ${s.settlements[k.capital].name} (${legs.length} kind${legs.length === 1 ? '' : 's'} of goods).`, 'info', `tithe:${sid}`, 2400);
+    g.log(`${st.name} sends its tithe to ${s.settlements[k.capital].name} (${legs.length} kind${legs.length === 1 ? '' : 's'} of goods).`, 'info', `tithe:${sid}`, 2400, { kind: 'core:tithe', sids: [sid, k.capital] });
   }
 }
