@@ -229,3 +229,17 @@ test('chronicle: relations recovering from hostile with no war on record are a r
   assert.equal(g.s.log.some((e) => e.kind === 'core:peace'), false);
   assert.equal(g.s.log.at(-1).kind, 'core:relations');
 });
+
+test('chronicle: the end of a war joined to defend an ally is its own kind (minor news, no notification)', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 1);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  const rel = relationOf(g, a, b);
+  rel.contact = true;
+  changeRelation(g, a, b, -40 - rel.value, 'Attacked our ally');
+  rel.aggressor = a; rel.joinedFor = g.s.playerSettlement; // as joinDefence marks it
+  makePeace(g, a, b, 'A truce');
+  const e = g.s.log.at(-1);
+  assert.equal(e.kind, 'core:peace_joined');
+  assert.equal(notifies(g, e), false);
+});

@@ -25,6 +25,11 @@
       "notify": "world"
     },
     {
+      "id": "core:peace_joined",
+      "name": "Peace (a joined war)",
+      "importance": "notable"
+    },
+    {
       "id": "core:conquest",
       "name": "Conquest",
       "importance": "milestone",
