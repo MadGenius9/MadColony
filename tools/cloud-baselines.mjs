@@ -1,6 +1,7 @@
 // Phase 11, item 3: repeatable performance baselines, each measured on its own (fixed seeds and sizes).
 //   node tools/cloud-baselines.mjs stroke [size=vast]    terrain-edit latency: one raise and one forest stroke in a
-//                                                         running game; the stroke tick and the worst of the next 10
+//                                                         running game; the stroke tick and the worst of the next 200
+//                                                         (the map caches rebuild when a job first asks for them)
 //   node tools/cloud-baselines.mjs longticks [days=60]   the 10 slowest ticks of a World run and when they fall
 //                                                         (day start, the hour, other)
 //   node tools/cloud-baselines.mjs war [days=2]          ms/tick of two full-detail neighbours at war against the same
@@ -28,18 +29,20 @@ async function stroke() {
   runDays(g, 1, 'warm-up');
   // A spot far from every village where a radius-8 raise is allowed.
   const far = (x, y) => Object.values(g.s.settlements).every((v) => Math.hypot(v.center.x - x, v.center.y - y) > 60);
-  let spot = null;
-  for (let y = 40; y < g.H - 40 && !spot; y += 37) for (let x = 40; x < g.W - 40 && !spot; x += 37) if (far(x, y) && previewCommand(g, 'shape', { brush: 'raise', x, y, r: 8 }).ok) spot = { x, y };
+  const spotFor = (brush) => { for (let y = 40; y < g.H - 40; y += 37) for (let x = 40; x < g.W - 40; x += 37) if (far(x, y) && previewCommand(g, 'shape', { brush, x, y, r: 8 }).ok) return { x, y }; return null; };
   const out = { mode: 'stroke', size, seed: 7, W: g.W, H: g.H };
   for (const brush of ['raise', 'forest']) {
+    const spot = spotFor(brush);
+    if (!spot) { out[brush] = { refused: 'no spot found' }; continue; }
     const a = { brush, ...spot, r: 8 };
     const p0 = performance.now(), pv = previewCommand(g, 'shape', a), previewMs = performance.now() - p0;
     if (!pv.ok) { out[brush] = { refused: pv.reason }; continue; }
     issueCommand(g, 'shape', a);
     const strokeTick = timed(g);
     let next = 0;
-    for (let t = 0; t < 10; t++) next = Math.max(next, timed(g));
-    out[brush] = { tiles: pv.preview.tiles, previewMs: +previewMs.toFixed(1), strokeTickMs: +strokeTick.toFixed(1), worstNext10Ms: +next.toFixed(1) };
+    let at = 0;
+    for (let t = 1; t <= 200; t++) { const d = timed(g); if (d > next) { next = d; at = t; } }
+    out[brush] = { tiles: pv.preview.tiles, previewMs: +previewMs.toFixed(1), strokeTickMs: +strokeTick.toFixed(1), worstNext200Ms: +next.toFixed(1), worstAfterTicks: at };
   }
   return out;
 }
@@ -65,6 +68,12 @@ async function war() {
     runDays(g, 1, atWar ? 'war warm-up' : 'peace warm-up');
     const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
     relationOf(g, a, b).contact = true;
+    // Both sides armed (spears through the ledger), so the war is fought and its cost is measured.
+    for (const sid of [a, b]) for (const c of g.owned('colonists', sid)) {
+      g.actor = sid; g.createItems('core:spear', 1, Math.round(c.x), Math.round(c.y), 'start', undefined, true); g.actor = null;
+      const st = Object.values(g.s.stacks).find((x) => x.item === 'core:spear' && x.settlement === sid);
+      if (st) { const t = g.takeFromStack(st.id, 1); c.equip.weapon = { item: t.item, dur: 1500 }; }
+    }
     if (atWar) { relationOf(g, a, b).value = 0; declareWar(g, a, b, 'A baseline war'); }
     const r = runDays(g, days, atWar ? 'war' : 'peace');
     return { ...r, wounded: Object.values(g.s.colonists).filter((c) => (c.health?.injuries || []).length).length };
