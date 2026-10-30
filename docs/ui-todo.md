@@ -432,3 +432,20 @@ where, and which sim function or state field provides it. The UI is built at hom
   person. (Filters, chains, follow and favourites come in slice 3.)
 - **Old events** beyond the 2,000 kept are counted per year and village in `s.chronicle.years`; a "Year N"
   row can show "Marshby: 2 wars, 3 laws".
+
+## Phase 12, slices 2 and 3: chains, filters, follow and favourites
+All reads are in `src/sim/chronicle.js`; none changes the game except follow and favourite (saved).
+- **Chronicle panel:** a list from `eventsOf(g, filter)` with filter controls for village (`sid`), person
+  (`cid`), family (`family`: a person id), kingdom, kind, category, importance and a time range; a "Followed
+  only" toggle (`followed: true`).
+- **An event's chain:** `chainOf(g, id)` gives `back` (each step `link: 'cause'` or `'followed'`) and
+  `forward`. Show causes as "because of …" with a solid arrow and associations as "followed …" with a dotted
+  arrow and the word *followed*, never "caused". A step whose event is `summarised` reads "(an older event,
+  now in the yearly summary)"; one marked `lost` reads "(no longer recorded)".
+- **Jump:** `subjectOf(g, id)` returns `at` (centre the map there) and the `sids`/`cids` to open.
+- **Follow:** a star on the village panel (`follow(g, 'v:' + sid, on)`), the inspector (`'p:' + cid`) and the
+  family line (`'f:' + cid`). **Favourite:** a bookmark icon on each event (`favourite(g, id, on)`); a
+  Favourites tab lists `favourites(g)`.
+- **Notifications (world news):** show `newsSince(g, lastSeenTick)` as toasts or a news list, following
+  `notifies(g, e)`: world-news kinds always, own-village kinds for the player's village or followed subjects,
+  and a followed subject's milestones and deaths. Everything else stays in the panel only.

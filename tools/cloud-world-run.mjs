@@ -10,6 +10,7 @@ import { TICKS_PER_DAY } from '../src/sim/constants.js';
 import { herdCensus, animalCensus } from '../src/sim/animals.js';
 import { monsterCensus, monsterSummary } from '../src/sim/monsters.js';
 import { civLawOf } from '../src/sim/civlaws.js';
+import { isEvent, chainOf, notifies } from '../src/sim/chronicle.js';
 
 /** Phase 8: raw food made so far (nutrition, from the ledger) and the share that is meat (hunting, butchering). */
 function foodShare(g) {
@@ -93,12 +94,17 @@ for (let d = 1; d <= days; d++) {
       laws: st.filter((x) => !x.fallen).reduce((o, x) => { for (const l of g.reg.all('civLaw')) { const v = civLawOf(g, x.id, l.id); if (v !== l.options[0].id) { const k = `${l.id.replace('core:', '')}=${v}`; o[k] = (o[k] || 0) + 1; } } return o; }, {}),
       tithes: g.s.log.filter((e) => /sends its tithe/.test(e.msg)).length,
       mood: (() => { const cs = Object.values(g.s.colonists); const m = cs.map((c) => c.mood ?? 0); return cs.length ? { avg: Math.round(m.reduce((a, x) => a + x, 0) / cs.length), unhappy: m.filter((x) => x <= -20).length, miserable: m.filter((x) => x <= -50).length, unrest: st.filter((x) => !x.fallen && x.unrest !== undefined).length } : {}; })(),
+      chronicle: { lines: g.s.log.length, events: g.s.log.filter((e) => isEvent(g, e)).length, folded: g.s.chronicle?.folded || 0, notify: g.s.log.filter((e) => notifies(g, e)).length, linked: g.s.log.filter((e) => e.cause || e.rel).length },
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;
   }
 }
 const text = serializeGame(g);
+// Phase 12: the longest recorded chain in the log, printed step by step (each link as written when it happened).
+let best = null;
+for (const e of g.s.log) if (e.cause || e.rel) { const c = chainOf(g, e.id); if (!best || c.back.length > best.back.length) best = c; }
+if (best) console.log(JSON.stringify({ longestChain: [best.event, ...best.back.map((x) => ({ link: x.link, ...x.event }))].map((e) => (e.link ? `  <-${e.link}- ` : '') + `day ${((e.t ?? 0) / TICKS_PER_DAY).toFixed(1)} [${e.kind || '?'}] ${e.msg || (e.summarised ? '(summarised)' : '(lost)')}`) }));
 console.log(JSON.stringify({ slowest }));
 console.log(JSON.stringify({ done: true, saveMB: +(text.length / 1e6).toFixed(2), totalMin: +((performance.now() - t0) / 60000).toFixed(1), failed }));
 process.exit(failed ? 1 : 0);
