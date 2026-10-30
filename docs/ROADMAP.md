@@ -857,7 +857,8 @@ Builds on the existing log (`s.log`, letters, `g.log` keys). Depends on: Phase 1
   player.
 - **Not in it:** a second event system next to the log; invented causes.
 
-### Phase 13: need-driven prayers and petitions (planned)
+### Phase 13: need-driven prayers and petitions (design, waiting for the owner)
+Design note: [docs/proposals/phase-13-petitions.md](proposals/phase-13-petitions.md).
 The first slice of worship. The rescue copy holds only the roadmap line "worship and favour coming from
 villages" (Later, below). A fuller worship plan, if one exists at home, is linked and its open questions left
 to the owner. Depends on: Phase 12 (petitions are chronicle events) and Mood.
