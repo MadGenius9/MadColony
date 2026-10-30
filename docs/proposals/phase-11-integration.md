@@ -1,6 +1,6 @@
 # Phase 11: integration and reliability
 
-Status: **in progress** (2026-10-30). Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). The scope is the
+Status: **the cloud part done** (2026-10-30). Item 1's build and UI test wait for the home PC. Branch `cloud-work` (cloud rescue copy; see CLAUDE.md). The scope is the
 roadmap's Phase 11 (owner, 2026-10-29). This phase changes no balance and adds no features.
 
 ## 1. A playable build (status: the cloud part only)
@@ -100,3 +100,41 @@ roadmap's Phase 11 (owner, 2026-10-29). This phase changes no balance and adds n
   - herds near villages thin out.
 - **Not changed** (report only, as the roadmap says). The owner decides whether hunting should matter more
   and whether herds should hold up better in long games.
+
+## Item 4 results, part 2: war frequency (World seed 11, 200 days)
+The same seed in four copies of today's code, each with one cause switched off in a scratch copy (not
+committed).
+
+| Copy | Wars declared by day 150 / 200 | People day 200 | Standing villages | ms/tick day 200 |
+|---|---|---|---|---|
+| Today's code | 19 / 55 | 272 | 62 of 64 | 3.42 |
+| No extra rivalry between peoples (×1 instead of ×1.5) | 5 / 27 | 272 | 62 of 65 | 3.32 |
+| No militias (conscription always none) | 18 / 63 | 283 | 63 of 64 | 3.26 |
+| No mood | 25 / 68 | 259 | 55 of 65 | 4.13 |
+
+- **The main cause is the faster feuds between different peoples** (the owner's answer 5 in Peoples and
+  traits: rivalry ×1.5). Without it, wars halve.
+- **Militias are a result, not a cause:** villages raise them when at war, 37 of 64 by day 200. Without them
+  slightly more wars happen.
+- **Mood lowers wars a little** (55 against 68) and keeps more villages standing (62 against 55). Unrest
+  repeals laws, and fewer villages fall.
+- **The cost of a warlike world:** the copy with most wars and fallen villages (no mood) was the slowest,
+  4.13 ms/tick. Fights are cheap (item 3), so the extra cost is everything wars bring: refugees, fallen
+  villages, kingdoms changing, tribute.
+- **The earlier "101 wars against 61"** compared runs 300 days long of different code. Over 300 days small
+  changes snowball, so single long runs are not a measure of one cause. This table, with one cause off at a
+  time on the same code, is.
+- **Not changed.** Options for the owner:
+  - keep ×1.5;
+  - lower it (e.g. ×1.2);
+  - let it fade for neighbours who have traded for a long time.
+
+## Phase 11 status
+- **Done in the cloud:** the integration contract (item 1, the cloud part), the set-aside goods bug
+  reproduced and fixed (item 2), baselines (item 3), the wars and hunting report (item 4).
+- **Waits for home:** the playable build, the UI checks against the contract, and the contract's 4 open
+  questions.
+- **Remaining limits:**
+  - terrain strokes cost 0.6–1.2 s (an incremental water walk is carried over);
+  - long games grow warlike between peoples (an owner decision);
+  - herds shrink over long games, mostly from winter and crowding losses (an owner decision).

@@ -792,7 +792,15 @@ Each person's mood from their thoughts (direction 6c), with its own design note:
 - **playable:** checked with the real UI (only possible at home).
 - Everything done in the cloud copy so far is built and tested, not yet playable.
 
-### Phase 11: integration and reliability (planned)
+### Phase 11: integration and reliability (the cloud part done, 2026-10-30; the build waits for home)
+Results: `docs/proposals/phase-11-integration.md`. In short:
+- the set-aside goods bug was reproduced and fixed;
+- the integration contract is `docs/integration-contract.md`;
+- baselines are recorded;
+- wars come mostly from the faster feuds between peoples (×1.5), which halve without it;
+- herds shrink mostly from winter and crowding, not hunting.
+
+The plan as written:
 Before more simulation complexity. Depends on: the home PC for the UI (back about 2026-11-08).
 - **1. A playable build:** combine the cloud simulation with the real UI. The UI (`src/ui`, `index.html`) is
   not in the rescue copy, so the cloud part is an integration contract:
