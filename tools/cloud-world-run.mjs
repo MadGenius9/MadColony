@@ -104,6 +104,9 @@ const text = serializeGame(g);
 // Phase 12: the longest recorded chain in the log, printed step by step (each link as written when it happened).
 let best = null;
 for (const e of g.s.log) if (e.cause || e.rel) { const c = chainOf(g, e.id); if (!best || c.back.length > best.back.length) best = c; }
+const byKind = {};
+for (const e of g.s.log) if (e.kind) { const k = (byKind[e.kind.replace('core:', '')] ||= { events: 0, notify: 0 }); k.events++; if (notifies(g, e)) k.notify++; }
+console.log(JSON.stringify({ chronicleByKind: byKind, years: g.s.chronicle?.years ? Object.keys(g.s.chronicle.years).length : 0 }));
 if (best) console.log(JSON.stringify({ longestChain: [best.event, ...best.back.map((x) => ({ link: x.link, ...x.event }))].map((e) => (e.link ? `  <-${e.link}- ` : '') + `day ${((e.t ?? 0) / TICKS_PER_DAY).toFixed(1)} [${e.kind || '?'}] ${e.msg || (e.summarised ? '(summarised)' : '(lost)')}`) }));
 console.log(JSON.stringify({ slowest }));
 console.log(JSON.stringify({ done: true, saveMB: +(text.length / 1e6).toFixed(2), totalMin: +((performance.now() - t0) / 60000).toFixed(1), failed }));

@@ -834,9 +834,10 @@ Before more simulation complexity. Depends on: the home PC for the UI (back abou
 ### Phase 12: connected world chronicle (in progress)
 Builds on the existing log (`s.log`, letters, `g.log` keys). Depends on: Phase 11. Design and the owner's answers:
 [docs/proposals/phase-12-chronicle.md](proposals/phase-12-chronicle.md).
-- **Status (2026-10-30):** slice 1 (structured events) built and tested: event ids, 26 kinds as data, 29
-  milestone lines, retention with yearly summaries, save format 34. Slices 2–4 (cause links, reading and
-  filters, acceptance) planned. Not playable: the UI is on the home PC.
+- **Status (2026-10-30):** slices 1–3 built and tested: event ids, 26 kinds as data, 29 milestone lines,
+  retention with yearly summaries, save format 34; cause links where the game holds the cause (associations
+  labelled "followed"); filters, chains, jump targets, follow and favourites (saved), world-news notifications.
+  Slice 4 (the World run acceptance) in progress. Not playable: the UI is on the home PC (`docs/ui-todo.md`).
 - **Events:** stable ids, simulation time, the villages, people, place and category, and cause links only
   where the simulation knows them.
   - Examples: a law passed for a recorded reason ("few trees left near"), a war declared by rivalry, a tithe,

@@ -367,12 +367,13 @@ export function changeRelation(g, a, b, delta, reason) {
   if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16);
   const after = relationStatus(rel);
   const warEv = rel.warEv; // the war's declaration (chronicle.js), for the peace line
+  const wasWar = warEv !== undefined || rel.aggressor !== undefined; // hostile relations without a war are not a war ending
   // A war's markers (who struck first, who joined to defend an ally: combat.js) end with the war.
   if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; delete rel.beaten; delete rel.warEv; }
   if (after !== before && rel.contact) {
     const na = settlementOf(g, a)?.name, nb = settlementOf(g, b)?.name;
     const id = g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade', null, 0,
-      { kind: before === 'hostile' ? 'core:peace' : 'core:relations', sids: [a, b], cause: before === 'hostile' ? warEv : undefined });
+      { kind: before === 'hostile' && wasWar ? 'core:peace' : 'core:relations', sids: [a, b], cause: before === 'hostile' ? warEv : undefined });
     if (id) rel.lastEv = id;
   }
 }

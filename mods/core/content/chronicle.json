@@ -58,13 +58,13 @@
       "id": "core:kingdom_joined",
       "name": "Joined a kingdom",
       "importance": "milestone",
-      "notify": "world"
+      "notify": "own"
     },
     {
       "id": "core:kingdom_left",
       "name": "Left a kingdom",
       "importance": "milestone",
-      "notify": "world"
+      "notify": "own"
     },
     {
       "id": "core:capital_moved",

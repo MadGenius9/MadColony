@@ -216,3 +216,16 @@ test('chronicle: filters, a chain back and forward, the jump target, follow and 
   g.s.chronicle.folded = 1;
   assert.deepEqual(eventById(g, 'e1'), g.s.log.find((e) => e.id === 'e1') || { id: 'e1', summarised: true });
 });
+
+test('chronicle: relations recovering from hostile with no war on record are a relations change, not peace', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 1);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  const rel = relationOf(g, a, b);
+  rel.contact = true;
+  changeRelation(g, a, b, -40 - rel.value, 'A quarrel');
+  assert.equal(rel.aggressor, undefined, 'no war');
+  changeRelation(g, a, b, 30, 'Gifts');
+  assert.equal(g.s.log.some((e) => e.kind === 'core:peace'), false);
+  assert.equal(g.s.log.at(-1).kind, 'core:relations');
+});
