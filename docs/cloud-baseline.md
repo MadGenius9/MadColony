@@ -210,3 +210,5 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   of 64 standing); 3.70 against 3.81 ms/tick; save 11.45 against 11.16 MB; save/load checks identical.
 - Bench, the code before the phase (`81b7774`) against now (two rounds, ms/tick summed over the sizes):
   3.691 → 3.675 (−0.4%) and 3.625 → 3.918 (+8%): within this machine's noise.
+- After the peace fixes, the same run: 281 notifications in 200 days (was 573); 49 "peace" against 55 wars
+  declared; 190 ends of joined wars recorded without a notification. Gameplay numbers unchanged (272 people).

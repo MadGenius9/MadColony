@@ -1,6 +1,6 @@
 # Phase 12: connected world chronicle
 
-Status: **design agreed; slice 1 in progress** (2026-10-30). Branch `cloud-work` (cloud rescue copy; see
+Status: **cloud part done** (2026-10-30): built and tested; not playable until the UI is wired at home. Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md). The scope is the roadmap's Phase 12 (owner, 2026-10-29). It builds on the existing log; it is not
 a second event system.
 
@@ -181,6 +181,7 @@ is a plan note, not an event). These stay unlinked rather than guessed.
     notify only for the player's own village or followed subjects;
   - and the end of a war joined to defend an ally is its own kind (`core:peace_joined`), without a
     notification (246 joinings against 55 declarations).
-  Notifications before these fixes: 573 over 200 days; after the first two: 471. The last fix removes most
-  of the remaining peace notifications; its count is in `docs/cloud-baseline.md` once measured.
+  Notifications over 200 days: 573 before the fixes, 471 after the first two, **281 after all three** (63
+  foundings, 82 sacks, 55 wars, 49 peaces, 12 conquests, 10 kingdom joins, 7 kingdoms, 2 fallen villages, 1
+  outbreak). Almost all come after day 100, when the wars start: about 2–3 a game day across 64 villages.
 - **Still to do at home:** see it in the UI; the playable check waits for the home PC.
