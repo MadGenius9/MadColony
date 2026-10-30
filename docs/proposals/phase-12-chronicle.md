@@ -1,6 +1,6 @@
 # Phase 12: connected world chronicle
 
-Status: **design, waiting for the owner's answers** (2026-10-30). Branch `cloud-work` (cloud rescue copy; see
+Status: **design agreed; slice 1 in progress** (2026-10-30). Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md). The scope is the roadmap's Phase 12 (owner, 2026-10-29). It builds on the existing log; it is not
 a second event system.
 
@@ -112,3 +112,17 @@ a second event system.
 3. **Milestones:** is the list right? Add or drop any (births, a person's first skill level 10, records)?
 4. **Notifications:** only for the player's village and followed subjects (proposed), or also world news
    (any war, any fallen village)?
+
+## The owner's answers (2026-10-30)
+1. **Follow and favourites** (explained: *follow* marks a village, person or family so its events stand out and
+   can notify you; a *favourite* bookmarks one event or chain to find again). No preference given, so: kept in
+   the save, as proposed (`s.chronicle.follow`, `s.chronicle.favs`), so they travel with the game.
+2. **Retention:** "not sure", so the proposed numbers stand: the newest 500 routine lines, up to 2,000 notable
+   and milestone events, older ones folded into yearly summaries per village. The World run's size check
+   (slice 4) tests them; they are constants, easy to change.
+3. **Milestones:** "sure, unless it's too much info". The list stands. To keep it light: no births, no skill
+   records, no "first" records; only milestones notify, and repeats merge (the existing keys).
+4. **Notifications:** "maybe just world news". An event notifies when its kind is marked `notify` (world-level
+   milestones: wars, peace, conquests, fallen villages, new kingdoms, plague outbreaks, god powers, and laws or
+   unrest in the player's own village). Followed subjects add their milestones. Routine and notable events never
+   notify; they stay readable in the chronicle.
