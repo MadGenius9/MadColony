@@ -767,16 +767,22 @@ Laws villages and kingdoms keep (direction item 6b, the owner's ask), with their
 - **Carried over** (not done): militias make worlds more warlike (tune after play); Mood (direction 6c) is
   next.
 
-### Mood (in progress in the cloud copy, 2026-10-29)
+### Mood (Done in the cloud copy: built and tested, 2026-10-30; not yet playable)
 Each person's mood from their thoughts (direction 6c), with its own design note: `docs/proposals/mood.md`
 (the owner's answers there).
 - **Built and tested:**
-  - slice 1, thoughts and the hourly mood;
-  - slice 2, work speed, the birth chance and breaks.
-- **Planned:**
-  - slice 3, unrest: AI villages repeal their most disliked law; a miserable family may move to another
-    village of its own people; the player gets warnings, never a forced law;
-  - slice 4, acceptance.
+  - 20 thoughts as data and an hourly mood (full and distant villages alike);
+  - the traits Cheerful and Gloomy;
+  - work speed ×0.85–1.05; the birth chance ×0.75–1.25; breaks for the miserable;
+  - unrest: AI villages repeal their most disliked law; the player gets warnings, never a forced law; a
+    miserable family may move to a village of its own people with room; unhappy families found daughters
+    first;
+  - save format 33.
+- **Acceptance:**
+  - 236 tests pass;
+  - World 300 days: everything counted, save and load identical; mood +8 to +19 on average, unrest in up to 4
+    villages during wars;
+  - 101 wars against 61 before (for Phase 11 to investigate).
 - **Not playable yet:** the UI is not in the cloud copy (UI notes in `docs/ui-todo.md`).
 
 **Status words for every phase from here on:**

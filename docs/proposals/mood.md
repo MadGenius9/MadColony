@@ -1,6 +1,6 @@
 # Mood (2026-10-29 direction, item 6c)
 
-Status: **building** (2026-10-29; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
+Status: **done** (built and tested, 2026-10-30; the owner's answers below). Not yet playable: the UI is at home. Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md).
 
 ## The owner's answers (2026-10-29)
@@ -217,3 +217,22 @@ A person's mood is the sum of their current thoughts, each a named value with a 
   player only gets a warning; nothing before 5 days; a miserable family moves to a village of its people with
   free beds, nobody lost, peoples apart, everything counted, save and load matching.
 - **Checks:** 236 tests pass; classic unchanged from slice 2 (no unrest there).
+### Acceptance (2026-10-30)
+- **World run** (`tools/cloud-world-run.mjs 300 world 11`, which now reports mood, unhappy, miserable and
+  villages in unrest): passed.
+  - Items, people, animals and monsters were counted every 25 days, and a save and load on day 150 played on
+    identically.
+  - **Mood across the world:** average +18–19 until day 100; it dipped to +8–9 as wars began (day 125: 12
+    unhappy, 4 villages in unrest; day 200: 14 unhappy, 1 miserable, 4 in unrest) and recovered to +14 by day
+    300 (2 unhappy, none in unrest).
+  - 258 people, 52 of 64 villages standing, 101 wars declared, against 61 in the Civilization laws run on the
+    same seed. Mood changes enough of the game to change how villages fall out. Phase 11, item 4,
+    investigates war frequency.
+  - 3.26 ms/tick at day 300; 28.6 min.
+  - **Not measured:** how many laws unrest repealed and how many families moved. The log keeps its last 500
+    lines, and Phase 12's chronicle will keep such milestones.
+- **Suite:** 236 tests pass. Classic: `forty` 8345afce244873af, `modern` 3db6905a9e1dc4d5.
+- **Carried over** (not done):
+  - outcome counts for unrest (Phase 12);
+  - more thoughts later (beauty, rooms and light need a version for distant villages first);
+  - the war count's rise (Phase 11).

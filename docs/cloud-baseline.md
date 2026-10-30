@@ -170,3 +170,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 ## Mood, slice 2 (2026-10-29): classic hashes
 - 234 tests pass. `forty` 8345afce244873af (workshops era on day 6.46, 66 built), `modern` 3db6905a9e1dc4d5 (modern
   era on day 46.31, 90 built).
+
+## Mood acceptance (2026-10-30)
+- 236 tests pass. Classic: `forty` 8345afce244873af (workshops era on day 6.46), `modern` 3db6905a9e1dc4d5 (modern era
+  on day 46.31).
+- World seed 11, 300 days: 3.26 ms/tick at day 300, 258 people, 52 of 64 villages standing, 101 wars; save 13.0 MB;
+  28.6 min.
