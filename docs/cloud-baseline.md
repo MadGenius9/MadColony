@@ -182,3 +182,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 ## Phase 11, item 2 (2026-10-30)
 - Goods set aside for a missing mod keep their village: 238 tests pass; classic unchanged (`forty`
   8345afce244873af, `modern` 3db6905a9e1dc4d5).
+
+## Phase 11 baselines (2026-10-30, `tools/cloud-baselines.mjs`, seed 7)
+- Raise stroke r8: Vast 40 ms its tick, 614 ms 43 ticks later; World 1,174 ms its tick. Forest stroke ≤ 29 ms.
+- Long ticks, World 60 days: 0.72 ms/tick; slowest 210 ms (tick 1), then ≤ 108 ms (day start, on the hour).
+- War, neighbours medium 2 days, both armed: war 0.40, peace 0.56 ms/tick.
+- Animals, Vast 20 days: animals.js 3.8%, monsters.js 0.6%, hunt.js < 0.1% of CPU.

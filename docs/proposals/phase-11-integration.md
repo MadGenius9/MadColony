@@ -65,3 +65,38 @@ roadmap's Phase 11 (owner, 2026-10-29). This phase changes no balance and adds n
 - **Item 2:** reproduced and fixed (above). 238 tests pass; classic unchanged (`forty` 8345afce244873af,
   `modern` 3db6905a9e1dc4d5).
 - **Items 3 and 4:** next.
+
+## Item 3 results: baselines (2026-10-30, seed 7; `tools/cloud-baselines.mjs`)
+| Measure | Vast | World |
+|---|---|---|
+| Raise stroke, radius 8 (197 tiles): preview | 0.7 ms | 0.7 ms |
+| Raise stroke: its own tick | 40 ms | 1,174 ms |
+| Raise stroke: worst of the next 200 ticks | 614 ms (43 ticks later, when a job first asks for the map data) | 32 ms |
+| Forest stroke: its own tick / worst next 200 | 2 ms / 24 ms | 3 ms / 29 ms |
+
+- **Terrain edits** cost about 0.6 s on Vast and 1.2 s on World, as World shaping slice 4 measured: mostly the
+  whole-map water walk rebuilt per map revision. An incremental water walk is still carried over.
+- **Long ticks** (World, 60 days, 0.72 ms/tick):
+  - the slowest is the first tick, 210 ms (start-up caches);
+  - after that 108 ms at most, on day starts (the daily passes) and on the hour (the hourly passes, mood
+    among them);
+  - nothing over 0.25 s.
+- **War cost** (neighbours, medium, 2 days, both villages armed): at war 0.40 ms/tick (5 wounded), at peace
+  0.56. Fighting itself is cheap, because wounded people stop working. The slower late World game is
+  therefore not the fights themselves, and item 4 looks at what wars bring with them.
+- **Animal cost** (Vast, 20 days, the in-process profiler):
+  - animals 3.8% of the time, monsters 0.6%, hunting under 0.1%;
+  - the largest shares are the game core 30%, distant villages 9.5% and the job givers 7%.
+
+## Item 4 results, part 1: hunting (World seed 11, 300 days, the Mood run)
+- **Meat's share of the food made** falls from 3.4% (day 50) to 0.8% (day 300). Villages hunted 197 deer, 59
+  horses and 9 wolves in 300 days (two Thornbacks too).
+- **The herds shrink much more than the hunting explains:** deer 2,810 → 1,029, horses 1,056 → 435, wolves
+  940 → 421. Hunting took about 200 deer, so most of the fall is winter and crowding losses (`animals.js`
+  winterLoss, crowdLoss, lostLoss), not people.
+- **Why hunting stays small:**
+  - full villages arm their 2 best hunters only while meat is short;
+  - distant villages hunt with one hunter an hour;
+  - herds near villages thin out.
+- **Not changed** (report only, as the roadmap says). The owner decides whether hunting should matter more
+  and whether herds should hold up better in long games.
