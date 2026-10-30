@@ -236,3 +236,4 @@ A person's mood is the sum of their current thoughts, each a named value with a 
   - outcome counts for unrest (Phase 12);
   - more thoughts later (beauty, rooms and light need a version for distant villages first);
   - the war count's rise (Phase 11).
+- **Bench:** against the code before Mood, −6% and +7% (two rounds; within noise).

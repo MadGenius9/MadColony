@@ -176,3 +176,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   on day 46.31).
 - World seed 11, 300 days: 3.26 ms/tick at day 300, 258 people, 52 of 64 villages standing, 101 wars; save 13.0 MB;
   28.6 min.
+- Bench, the code before Mood (`46bf5f4`) against now (two rounds, summed): 4.61 → 4.32 (−6%) and 4.29 → 4.60 (+7%):
+  within noise.
+
+## Phase 11, item 2 (2026-10-30)
+- Goods set aside for a missing mod keep their village: 238 tests pass; classic unchanged (`forty`
+  8345afce244873af, `modern` 3db6905a9e1dc4d5).
