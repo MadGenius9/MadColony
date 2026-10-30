@@ -1231,7 +1231,10 @@ export class Game {
       case 'stack': {
         if (!reg.has('item', d.item)) return false;
         const prevActor = this.actor;
-        if (o.owner && s.settlements?.[o.owner]) this.actor = o.owner; // goods set aside from a caravan stay the seller's
+        // Its village: the outer owner (caravans, buildings, people), else the one inside the stack (a map stack set
+        // aside whole keeps its own `settlement`). Phase 11 regression: before, only the outer owner was read.
+        const own = o.owner || d.settlement;
+        if (own && s.settlements?.[own]) this.actor = own;
         let left;
         try { left = this.placeOnMap(d.item, d.qty, d.x ?? s.center.x, d.y ?? s.center.y, d.dur); } finally { this.actor = prevActor; }
         if (left > 0) { d.qty = left; return 'no free ground for it yet'; }

@@ -605,8 +605,10 @@ export function loadGame(reg, saveOrText) {
     // charge is clamped rather than the save refused (validateSave rejects only malformed values).
     if (b.charge !== undefined) { const cap = reg.get('building', b.def).power?.store || 0; if (b.charge > cap) b.charge = cap; }
     for (const [it, qty] of Object.entries(b.delivered || {})) if (!reg.has('item', it)) { s.orphans.push({ kind: 'delivered', sid: id, item: it, qty, x: b.x, y: b.y, since: s.tick }); delete b.delivered[it]; }
-    if (b.fuel) b.fuel = b.fuel.filter((x) => reg.has('item', x.item) || (q('stack', { id: `s_orph_${id}_f_${x.item}`, item: x.item, qty: x.qty, x: b.x, y: b.y }), false));
-    if (b.buffer) b.buffer = b.buffer.filter((x) => reg.has('item', x.item) || (q('stack', { id: `s_orph_${id}_${x.item}`, item: x.item, qty: x.qty, x: b.x, y: b.y, ...(x.dur !== undefined ? { dur: x.dur } : {}) }), false));
+    // Goods held by a building or person keep their village (restored as its goods; game.js tryRestore).
+    const bOwn = b.settlement ? { owner: b.settlement } : {};
+    if (b.fuel) b.fuel = b.fuel.filter((x) => reg.has('item', x.item) || (q('stack', { id: `s_orph_${id}_f_${x.item}`, item: x.item, qty: x.qty, x: b.x, y: b.y }, bOwn), false));
+    if (b.buffer) b.buffer = b.buffer.filter((x) => reg.has('item', x.item) || (q('stack', { id: `s_orph_${id}_${x.item}`, item: x.item, qty: x.qty, x: b.x, y: b.y, ...(x.dur !== undefined ? { dur: x.dur } : {}) }, bOwn), false));
   }
   for (const [id, st] of Object.entries(s.stacks)) if (!reg.has('item', st.item)) { q('stack', st); delete s.stacks[id]; }
   for (const [id, c] of Object.entries(s.crops)) if (!reg.has('crop', c.def)) { q('crop', c); delete s.crops[id]; }
@@ -623,14 +625,15 @@ export function loadGame(reg, saveOrText) {
     s.orphans.push({ kind: 'stack', owner: cv.from, data: { id: `s_orph_${id}`, item: cv.item, qty: cv.qty, x: home.x, y: home.y, ...(cv.dur !== undefined ? { dur: cv.dur } : {}) }, since: s.tick });
     delete s.caravans[id];
   }
-  s.overflow = s.overflow.filter((o) => reg.has('item', o.item) || (q('stack', { id: `s_orph_over_${o.item}_${o.qty}`, item: o.item, qty: o.qty, x: o.x, y: o.y }), false));
+  s.overflow = s.overflow.filter((o) => reg.has('item', o.item) || (q('stack', { id: `s_orph_over_${o.item}_${o.qty}`, item: o.item, qty: o.qty, x: o.x, y: o.y }, o.settlement ? { owner: o.settlement } : {}), false));
   for (const c of Object.values(s.colonists)) {
     for (const slot of ['tool', 'weapon']) {
       const e = c.equip?.[slot];
       if (e && !reg.has('item', e.item)) { s.orphans.push({ kind: 'equip', cid: c.id, slot, data: e, since: s.tick }); c.equip[slot] = null; }
     }
-    if (c.ammo && !reg.has('item', c.ammo.item)) { q('stack', { id: `s_orph_ammo_${c.id}`, item: c.ammo.item, qty: c.ammo.qty, x: c.x, y: c.y }); c.ammo = null; }
-    if (c.carry && !reg.has('item', c.carry.item)) { q('stack', { id: `s_orph_carry_${c.id}`, item: c.carry.item, qty: c.carry.qty, x: c.x, y: c.y, ...(c.carry.dur !== undefined ? { dur: c.carry.dur } : {}) }); c.carry = null; }
+    const cOwn = c.settlementId ? { owner: c.settlementId } : {};
+    if (c.ammo && !reg.has('item', c.ammo.item)) { q('stack', { id: `s_orph_ammo_${c.id}`, item: c.ammo.item, qty: c.ammo.qty, x: c.x, y: c.y }, cOwn); c.ammo = null; }
+    if (c.carry && !reg.has('item', c.carry.item)) { q('stack', { id: `s_orph_carry_${c.id}`, item: c.carry.item, qty: c.carry.qty, x: c.x, y: c.y, ...(c.carry.dur !== undefined ? { dur: c.carry.dur } : {}) }, cOwn); c.carry = null; }
     for (const sk of reg.all('skill')) if (c.skills[sk.id] === undefined) c.skills[sk.id] = 0;
     for (const nd of reg.all('need')) if (c.needs[nd.id] === undefined) c.needs[nd.id] = 0.8;
   }
