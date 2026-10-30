@@ -156,3 +156,31 @@ is written after the join). **Not linked, because the game does not record it:**
 (a fire's spread, a plague's deaths: deaths record their cause kind, not the power), a famine and later
 deaths (there is no famine event), and a "few trees" protection law and a later timber shortage (the shortage
 is a plan note, not an event). These stay unlinked rather than guessed.
+
+### Slice 3: reading (built and tested, 2026-10-30)
+`eventById`, `eventsOf` (village, person, family, kingdom, kind, category, importance, time, followed),
+`chainOf` (back by `cause` or `followed`, forward by who names it), `subjectOf` (where to jump), `follow` and
+`favourite` (saved in `s.chronicle.follow` / `favs`, at most 200 each), `notifies` and `newsSince`. UI notes in
+`docs/ui-todo.md`.
+
+### Slice 4: acceptance (World seed 11, 200 days, 2026-10-30)
+- **A real chain, found and printed by the run** (`tools/cloud-world-run.mjs`):
+  day 116 Lanternhill passes militia ("it is at war") ← *cause* ← day 112 Lanternhill joins the war on
+  Quillmere's side ← *cause* ← day 112 Millbrook declares war on Quillmere (they compete for the same land) ←
+  *followed* ← day 101 relations between Quillmere and Millbrook turn hostile.
+- **Save and load:** at day 100 two loaded copies are identical, and the game continued after saving equals
+  the unsaved one.
+- **Gameplay unchanged:** the same run on the code before the phase gave the same numbers on day 200 (272
+  people, 266 born, 18 died, 51 wars running, 55 declared, 12 conquests, 82 sacks, 62 of 64 villages
+  standing). Speed 3.70 against 3.81 ms/tick on day 200.
+- **Size:** save 11.45 MB against 11.16 (+0.29 MB); the log holds 1,961 lines (500 routine, 1,461 events;
+  the 2,000 cap is not yet reached, so nothing is folded by day 200).
+- **Not flooding:** the first run showed two problems, both fixed with tests:
+  - "peace" fired for any recovery from hostile relations, even with no war: now only when a war is on record;
+  - a daughter village joining its parent's kingdom repeated the founding news: kingdom joins and leaves now
+    notify only for the player's own village or followed subjects;
+  - and the end of a war joined to defend an ally is its own kind (`core:peace_joined`), without a
+    notification (246 joinings against 55 declarations).
+  Notifications before these fixes: 573 over 200 days; after the first two: 471. The last fix removes most
+  of the remaining peace notifications; its count is in `docs/cloud-baseline.md` once measured.
+- **Still to do at home:** see it in the UI; the playable check waits for the home PC.

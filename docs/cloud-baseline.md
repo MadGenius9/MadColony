@@ -202,3 +202,11 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - The full suite passes, no failures (it now includes 7 tests in `tests/cloud-chronicle.test.js`).
 - Gameplay unchanged: the hash without the log and the new event-id fields is still `forty` 083cf9ca5bea8d96,
   `modern` 69abf41e3365aa5a. (Both are single-village runs; the World run comparison is in slice 4.)
+
+## Phase 12 acceptance (2026-10-30)
+- The full suite passes (no failures), including 11 tests in `tests/cloud-chronicle.test.js`.
+- World seed 11, 200 days (`tools/cloud-world-run.mjs 200 world 11 25 100`), against the code before the
+  phase (`81b7774`): identical day-200 numbers (272 people, 51 wars, 55 declared, 12 conquests, 82 sacks, 62
+  of 64 standing); 3.70 against 3.81 ms/tick; save 11.45 against 11.16 MB; save/load checks identical.
+- Bench, the code before the phase (`81b7774`) against now (two rounds, ms/tick summed over the sizes):
+  3.691 → 3.675 (−0.4%) and 3.625 → 3.918 (+8%): within this machine's noise.
