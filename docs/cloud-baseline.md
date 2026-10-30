@@ -197,3 +197,8 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Gameplay checked apart from the log: the state hash without `log`, `logKeys` and `chronicle` is the same
   before and after the change: `forty` 083cf9ca5bea8d96, `modern` 69abf41e3365aa5a (both runs, old and new
   code). The full `modern` hash was not rerun.
+
+## Phase 12, slice 2 (2026-10-30): cause links
+- The full suite passes, no failures (it now includes 7 tests in `tests/cloud-chronicle.test.js`).
+- Gameplay unchanged: the hash without the log and the new event-id fields is still `forty` 083cf9ca5bea8d96,
+  `modern` 69abf41e3365aa5a. (Both are single-village runs; the World run comparison is in slice 4.)

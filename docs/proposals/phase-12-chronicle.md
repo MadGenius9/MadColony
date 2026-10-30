@@ -126,3 +126,33 @@ a second event system.
    milestones: wars, peace, conquests, fallen villages, new kingdoms, plague outbreaks, god powers, and laws or
    unrest in the player's own village). Followed subjects add their milestones. Routine and notable events never
    notify; they stay readable in the chronicle.
+
+## Results
+
+### Slice 1: structured events (built and tested, 2026-10-30)
+- `g.log(msg, cat, key, cooldown, ev)` returns the new event's id; 26 kinds in `mods/core/content/chronicle.json`;
+  29 milestone lines carry them. Retention as agreed; `s.chronicle { next, years, folded }`; save format 34.
+- Gameplay unchanged: the state hash without the log is equal before and after (`docs/cloud-baseline.md`).
+
+### Slice 2: cause links (built and tested, 2026-10-30)
+Where the event id is kept (all optional, saved, format 34): `relation.warEv` (the war's declaration, or the
+joining line for a village that joined), `relation.lastEv` (the last recorded relations change, refused
+gathering rights or war threat between the pair) and `settlement.codeEv { law: id }` (the line that set each
+law not at its default).
+
+| Event | Link | Kind of link |
+|---|---|---|
+| Peace (relations leave hostile) | the war's declaration | cause |
+| Joined a war | the declaration of the war it joined | cause |
+| Conquest, sack, the conquered village joining a kingdom or forming one | the war's declaration | cause |
+| A village fallen to a war | the declaration of that war | cause |
+| An AI village's militia law ("it is at war") | the declaration of its first war on record | cause |
+| A tithe sent | the capital's tithe law line | cause |
+| A family leaving | that day's unrest line (the warning or the repeal), when there is one | cause |
+| A war declared | the pair's last relations change, refusal or threat | association ("followed") |
+
+Changed from the design table: conquest-related kingdom joins link to the war's declaration (the conquest line
+is written after the join). **Not linked, because the game does not record it:** a god power's later effects
+(a fire's spread, a plague's deaths: deaths record their cause kind, not the power), a famine and later
+deaths (there is no famine event), and a "few trees" protection law and a later timber shortage (the shortage
+is a plan note, not an event). These stay unlinked rather than guessed.

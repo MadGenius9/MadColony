@@ -121,8 +121,10 @@ export function setCivLaw(g, sid, id, option, why = '', opts = {}) {
   (g.replanSids ||= new Set()).add(sid);
   if (!opts.quiet) {
     const mine = sid === g.s.playerSettlement;
-    g.log(`${st.name} ${option === L.options[0].id ? `ended its ${L.name.toLowerCase()} law` : `passed a law: ${L.name}, ${O.name.toLowerCase()}`}${why ? ` (${why})` : ''}.`, mine ? 'good' : 'info', null, 0, { kind: 'core:law', sids: [sid] });
+    const eid = g.log(`${st.name} ${option === L.options[0].id ? `ended its ${L.name.toLowerCase()} law` : `passed a law: ${L.name}, ${O.name.toLowerCase()}`}${why ? ` (${why})` : ''}.`, mine ? 'good' : 'info', null, 0, { kind: 'core:law', sids: [sid], cause: opts.cause });
+    if (eid && option !== L.options[0].id) (st.codeEv ||= {})[id] = eid; // the line that set it (chronicle.js)
   }
+  if (option === L.options[0].id && st.codeEv) { delete st.codeEv[id]; if (!Object.keys(st.codeEv).length) delete st.codeEv; }
   return { ok: true, message: `${L.name}: ${O.name}.` };
 }
 

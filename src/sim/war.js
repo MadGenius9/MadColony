@@ -142,6 +142,7 @@ function conquests(g, R) {
 
 function absorb(g, loser, winner) {
   const s = g.s, ln = nameOf(g, loser), wn = nameOf(g, winner);
+  const cause = relationPeek(g, winner, loser).warEv; // the war's declaration (chronicle.js)
   const old = kingdomOf(g, loser);
   if (old) {
     if (old.capital === loser) {
@@ -151,18 +152,19 @@ function absorb(g, loser, winner) {
     leaveKingdom(g, loser, `conquered by ${wn}`, { force: true });
   }
   const k = kingdomOf(g, winner);
-  if (k) joinKingdom(g, loser, k.id, `conquered by ${wn}`);
-  else formKingdom(g, winner, loser, { conquered: true });
+  if (k) joinKingdom(g, loser, k.id, `conquered by ${wn}`, { cause });
+  else formKingdom(g, winner, loser, { conquered: true, cause });
   makePeace(g, winner, loser, `${ln} was conquered by ${wn}`);
   changeRelation(g, winner, loser, 50, `${ln} is now under ${wn}'s crown`); // from the truce value to friendly
   // Peace with the rest of its new kingdom too (members that had joined the war against it).
   const nk = kingdomOf(g, winner);
   if (nk) for (const m of membersOf(g, nk.id)) if (m !== winner && m !== loser && relationStatus(relationPeek(g, m, loser)) === 'hostile') makePeace(g, m, loser, `${ln} joined ${wn}'s kingdom`);
-  g.log(`${wn} has conquered ${ln}: it is now part of ${kingdomOf(g, winner) ? 'its kingdom' : 'its lands'}.`, 'warn', null, 0, { kind: 'core:conquest', sids: [winner, loser] });
+  g.log(`${wn} has conquered ${ln}: it is now part of ${kingdomOf(g, winner) ? 'its kingdom' : 'its lands'}.`, 'warn', null, 0, { kind: 'core:conquest', sids: [winner, loser], cause });
 }
 
 function sack(g, loser, winner, C) {
   const s = g.s, ln = nameOf(g, loser), wn = nameOf(g, winner);
+  const cause = relationPeek(g, winner, loser).warEv;
   const legs = [];
   // What it can spare (its plan's surplus, as for ordinary deals) and has free to trade, at most TRIBUTE_MAX an item.
   g.readOnly(() => {
@@ -179,7 +181,7 @@ function sack(g, loser, winner, C) {
     s.trades[id] = { id, seller: loser, buyer: winner, legs, gift: true, tribute: true, relOnDone: 0, status: 'active', created: s.tick,
       deadline: g.tradeDeadline ? g.tradeDeadline(loser, winner, s.tick + 6 * TICKS_PER_DAY) : s.tick + 6 * TICKS_PER_DAY, reason: `Tribute to ${wn}` };
   }
-  g.log(`${wn} has sacked ${ln}${legs.length ? `: ${legs.length} kinds of goods go to ${wn} as tribute` : ''}.`, 'warn', null, 0, { kind: 'core:sacked', sids: [winner, loser] });
+  g.log(`${wn} has sacked ${ln}${legs.length ? `: ${legs.length} kinds of goods go to ${wn} as tribute` : ''}.`, 'warn', null, 0, { kind: 'core:sacked', sids: [winner, loser], cause });
 }
 
 /** Wars in progress: hostile relations with an aggressor, both villages still standing with people. */
@@ -261,7 +263,7 @@ function declarations(g, R) {
         const r = relationOf(g, a, b);
         if (r.threat === undefined) {
           r.threat = s.tick;
-          g.log(`${nameOf(g, a)} threatens war on ${nameOf(g, b)} (${why}). Improve relations or make peace within ${R.warnDays} day${R.warnDays === 1 ? '' : 's'}.`, 'warn', null, 0, { kind: 'core:war_threatened', sids: [a, b] });
+          r.lastEv = g.log(`${nameOf(g, a)} threatens war on ${nameOf(g, b)} (${why}). Improve relations or make peace within ${R.warnDays} day${R.warnDays === 1 ? '' : 's'}.`, 'warn', null, 0, { kind: 'core:war_threatened', sids: [a, b] });
           break;
         }
         if (s.tick - r.threat < R.warnDays * TICKS_PER_DAY) continue;

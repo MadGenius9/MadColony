@@ -11,7 +11,7 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { civLawOf, setCivLaw, leaningsOf, lawHolder, PROTECT_R } from './civlaws.js';
 import { isEnemy } from './combat.js';
-import { relationStatus, changeRelation } from './villages.js';
+import { relationStatus, changeRelation, relationPeek } from './villages.js';
 import { isAdult } from './people.js';
 
 export const REVIEW_DAYS = 10;
@@ -26,13 +26,16 @@ const defaultOf = (g, id) => g.reg.get('civLaw', id)?.options?.[0]?.id;
 /** What village sid's situation calls for: [[law, option, why]] (only laws it holds itself). */
 function wanted(g, sid) {
   const s = g.s, st = s.settlements[sid], lean = leaningsOf(g, sid), out = [];
-  const want = (id, cond, option, why, back) => {
+  const want = (id, cond, option, why, back, cause) => {
     if (lawHolder(g, sid, id) !== sid || !g.reg.get('civLaw', id)) return;
-    if (cond) out.push([id, option, why]);
+    if (cond) out.push([id, option, why, cause]);
     else out.push([id, lean[id] || defaultOf(g, id), back]);
   };
-  const atWar = Object.keys(s.settlements).some((o) => o !== sid && isEnemy(g, sid, o));
-  want('core:conscription', atWar, 'militia', 'it is at war', 'the war is over');
+  const enemies = Object.keys(s.settlements).sort().filter((o) => o !== sid && isEnemy(g, sid, o));
+  const atWar = enemies.length > 0;
+  // The cause (chronicle.js): the declaration of the first war that has one on record.
+  const warEv = enemies.map((o) => relationPeek(g, sid, o).warEv).find(Boolean);
+  want('core:conscription', atWar, 'militia', 'it is at war', 'the war is over', warEv);
   const foodDays = g.plans?.[sid]?.foodDays;
   if (foodDays !== undefined) {
     const cur = civLawOf(g, sid, 'core:rationing');
@@ -58,9 +61,9 @@ export function tickCivLaws(g) {
   for (const sid of Object.keys(s.settlements || {}).sort()) {
     const st = s.settlements[sid];
     if (!st.ai || st.fallen || sid === s.playerSettlement || (day + (hash(sid) % REVIEW_DAYS)) % REVIEW_DAYS) continue;
-    for (const [id, option, why] of wanted(g, sid)) {
+    for (const [id, option, why, cause] of wanted(g, sid)) {
       if (!option || civLawOf(g, sid, id) === option) continue;
-      setCivLaw(g, sid, id, option, why); // refused quietly while the 5-day wait holds
+      setCivLaw(g, sid, id, option, why, { cause }); // refused quietly while the 5-day wait holds
     }
   }
   drift(g);

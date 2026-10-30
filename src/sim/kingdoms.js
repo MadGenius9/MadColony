@@ -101,7 +101,7 @@ export function formKingdom(g, capitalSid, firstDaughterSid, opts = {}) {
   s.kingdoms ||= {};
   s.kingdoms[kid] = { id: kid, name, capital: capitalSid, color: cap.color || '#a0c0e0', founded: opts.at ?? s.tick };
   cap.kingdom = kid;
-  g.log(opts.conquered ? `${cap.name} becomes the capital of ${theKingdom(name)}, with ${nameOf(g, firstDaughterSid)} under its crown.` : `${cap.name} founded ${nameOf(g, firstDaughterSid)} and becomes the capital of ${theKingdom(name)}.`, 'good', null, 0, { kind: 'core:kingdom_formed', sids: [capitalSid, firstDaughterSid] });
+  g.log(opts.conquered ? `${cap.name} becomes the capital of ${theKingdom(name)}, with ${nameOf(g, firstDaughterSid)} under its crown.` : `${cap.name} founded ${nameOf(g, firstDaughterSid)} and becomes the capital of ${theKingdom(name)}.`, 'good', null, 0, { kind: 'core:kingdom_formed', sids: [capitalSid, firstDaughterSid], cause: opts.cause });
   if (firstDaughterSid && s.settlements[firstDaughterSid]) joinKingdom(g, firstDaughterSid, kid, opts.conquered ? `conquered by ${cap.name}` : `founded by ${cap.name}`, opts);
   return kid;
 }
@@ -117,7 +117,7 @@ export function joinKingdom(g, sid, kid, reason = '', opts = {}) {
   if (st.kingdom) return { ok: false, msg: `${st.name} is in another kingdom.` };
   st.kingdom = kid;
   if (k.capital !== sid && s.settlements[k.capital]) note(g, sid, k.capital, `Joined ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}`, opts.at ?? s.tick);
-  g.log(`${st.name} joins ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}.`, 'good', null, 0, { kind: 'core:kingdom_joined', sids: [sid, k.capital] });
+  g.log(`${st.name} joins ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}.`, 'good', null, 0, { kind: 'core:kingdom_joined', sids: [sid, k.capital], cause: opts.cause });
   return { ok: true, msg: `${st.name} joined ${theKingdom(k.name)}.` };
 }
 

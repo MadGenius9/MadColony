@@ -7,6 +7,7 @@ import { declareWar } from '../src/sim/combat.js';
 import { relationOf } from '../src/sim/villages.js';
 import { killColonist } from '../src/sim/death.js';
 import { setCivLaw } from '../src/sim/civlaws.js';
+import { TICKS_PER_DAY } from '../src/sim/constants.js';
 
 test('chronicle: a line with event details gets a stable id, its kind, villages (sorted, once) and place', () => {
   const g = newGame({ seed: 4242 });
@@ -90,4 +91,72 @@ test('chronicle: everyday milestones carry their kinds (a death, a law)', () => 
   assert.deepEqual(g.s.log.at(-1).sids, [sid]);
   assert.equal(g.s.log.at(-1).kind, 'core:law');
   for (const k of new Set(g.s.log.map((e) => e.kind).filter(Boolean))) assert.ok(g.reg.get('eventKind', k), `${k} is a known kind`);
+});
+
+// ---- slice 2: cause links, only where the game holds the cause
+import { makePeace } from '../src/sim/combat.js';
+import { tickCivLaws } from '../src/sim/civreview.js';
+import { changeRelation } from '../src/sim/villages.js';
+
+const byId = (g, id) => g.s.log.find((e) => e.id === id);
+
+test('chronicle: peace links to the war it ends; the war is linked (as an association) to the last dispute', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 1);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  const rel = relationOf(g, a, b);
+  rel.contact = true;
+  changeRelation(g, a, b, 30, 'A good trade'); // a recorded relations change
+  const before = rel.lastEv;
+  assert.ok(before, 'the relations line is remembered on the pair');
+  declareWar(g, a, b, 'A test war');
+  const war = g.s.log.find((e) => e.kind === 'core:war_declared');
+  assert.equal(war.cause, undefined, 'no cause is claimed for a rivalry war');
+  assert.equal(war.rel, before, 'the last dispute is linked as "followed"');
+  assert.equal(relationOf(g, a, b).warEv, war.id);
+  makePeace(g, a, b, 'A test truce');
+  const peace = g.s.log.find((e) => e.kind === 'core:peace');
+  assert.ok(peace, 'peace is an event');
+  assert.equal(peace.cause, war.id, 'peace links to the declaration');
+  assert.equal(relationOf(g, a, b).warEv, undefined, 'the marker ends with the war');
+  const r = reload(g);
+  runDays(g, 1); runDays(r, 1);
+  assert.equal(stateText(r), stateText(g));
+});
+
+test('chronicle: an AI village\'s militia law links to the war; a tithe links to the capital\'s tithe law', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 1);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  relationOf(g, a, b).contact = true;
+  declareWar(g, a, b, 'A test war');
+  const war = g.s.log.find((e) => e.kind === 'core:war_declared');
+  // Run the daily reviews until each village has reviewed once (every 10 days, offset by village).
+  for (let d = 0; d < 10 && !g.s.log.some((e) => e.kind === 'core:law' && e.cause); d++) { g.s.tick += TICKS_PER_DAY; tickCivLaws(g); }
+  const law = g.s.log.find((e) => e.kind === 'core:law' && /militia/i.test(e.msg));
+  assert.ok(law, 'a militia law was passed');
+  assert.equal(law.cause, war.id);
+  assert.equal(g.s.settlements[law.sids[0]].codeEv['core:conscription'], law.id, 'the law remembers its line');
+  // Repealing it forgets the line.
+  setCivLaw(g, law.sids[0], 'core:conscription', 'none', '', { force: true });
+  assert.equal(g.s.settlements[law.sids[0]].codeEv?.['core:conscription'], undefined);
+});
+
+import { formKingdom } from '../src/sim/kingdoms.js';
+import { tickTithes } from '../src/sim/tithe.js';
+
+test('chronicle: a tithe links to the capital\'s tithe law', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 6);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  if (!g.s.settlements[a].kingdom) formKingdom(g, a, b);
+  const cap = g.s.kingdoms[g.s.settlements[a].kingdom].capital, member = cap === a ? b : a;
+  setCivLaw(g, cap, 'core:tithe', 'tithe', 'a test', { force: true });
+  const law = g.s.settlements[cap].codeEv['core:tithe'];
+  assert.ok(law);
+  for (let d = 0; d < 10 && !g.s.log.some((e) => e.kind === 'core:tithe'); d++) { g.s.tick += TICKS_PER_DAY; tickTithes(g); }
+  const t = g.s.log.find((e) => e.kind === 'core:tithe');
+  assert.ok(t, 'a tithe was sent');
+  assert.deepEqual(t.sids, [cap, member].sort());
+  assert.equal(t.cause, law);
 });

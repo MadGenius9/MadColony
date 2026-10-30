@@ -10,7 +10,7 @@ import { TICKS_PER_DAY } from './constants.js';
 import { releaseClaims } from './territory.js';
 import { leaveKingdom, kingdomOf, membersOf, setCapital } from './kingdoms.js';
 import { makePeace } from './combat.js';
-import { relationStatus } from './villages.js';
+import { relationStatus, relationPeek } from './villages.js';
 
 export const RUIN = { landDays: 20 };
 
@@ -32,6 +32,7 @@ function deathCause(g, sid) {
 /** `sid` falls now (cause: words for the log). Returns the fallen record. */
 export function fall(g, sid, cause, fate = 'ruin', by = null) {
   const s = g.s, st = s.settlements[sid];
+  const warEv = by ? relationPeek(g, sid, by).warEv : undefined; // the war that brought it down (chronicle.js)
   st.fallen = { tick: s.tick, cause: String(cause).slice(0, 120), fate, ...(by ? { by } : {}) };
   // Trades, pacts, alliances, proposals.
   for (const t of Object.values(s.trades || {})) if (t.status === 'active' && (t.seller === sid || t.buyer === sid)) t.status = 'cancelled';
@@ -56,7 +57,7 @@ export function fall(g, sid, cause, fate = 'ruin', by = null) {
     leaveKingdom(g, sid, `${st.name} has fallen`, { force: true });
   }
   g.planDirty = true;
-  g.log(`${st.name} has fallen: ${cause}. Its ruins remain.`, 'warn', null, 0, { kind: 'core:village_fallen', sids: [sid, by].filter(Boolean), at: st.center });
+  g.log(`${st.name} has fallen: ${cause}. Its ruins remain.`, 'warn', null, 0, { kind: 'core:village_fallen', sids: [sid, by].filter(Boolean), at: st.center, cause: warEv });
   return st.fallen;
 }
 

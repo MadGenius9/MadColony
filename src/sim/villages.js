@@ -366,12 +366,14 @@ export function changeRelation(g, a, b, delta, reason) {
   rel.history.push({ tick: g.s.tick, delta, reason });
   if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16);
   const after = relationStatus(rel);
+  const warEv = rel.warEv; // the war's declaration (chronicle.js), for the peace line
   // A war's markers (who struck first, who joined to defend an ally: combat.js) end with the war.
-  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; delete rel.beaten; }
+  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; delete rel.beaten; delete rel.warEv; }
   if (after !== before && rel.contact) {
     const na = settlementOf(g, a)?.name, nb = settlementOf(g, b)?.name;
-    g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade', null, 0,
-      { kind: before === 'hostile' ? 'core:peace' : 'core:relations', sids: [a, b] });
+    const id = g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade', null, 0,
+      { kind: before === 'hostile' ? 'core:peace' : 'core:relations', sids: [a, b], cause: before === 'hostile' ? warEv : undefined });
+    if (id) rel.lastEv = id;
   }
 }
 
@@ -1397,7 +1399,7 @@ function playerAsksRights(g, sid) {
     asked[`${best.owner}:${best.def}`] = s.tick;
     const ev = evaluateRights(g, sid, best.owner, best.def);
     if (ev.accept) grantRights(g, best.owner, sid, best.def);
-    else g.log(`${nameOf(g, sid)} has no ${nodeName(g, best.def)} left for ${g.reg.get('item', item)?.name || item} and asked ${nameOf(g, best.owner)} for gathering rights, but was refused: ${ev.verdict}`, 'trade', null, 0, { kind: 'core:rights_refused', sids: [sid, best.owner] });
+    else relationOf(g, sid, best.owner).lastEv = g.log(`${nameOf(g, sid)} has no ${nodeName(g, best.def)} left for ${g.reg.get('item', item)?.name || item} and asked ${nameOf(g, best.owner)} for gathering rights, but was refused: ${ev.verdict}`, 'trade', null, 0, { kind: 'core:rights_refused', sids: [sid, best.owner] });
     return; // one request per day
   }
 }

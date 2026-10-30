@@ -56,6 +56,7 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isInt = (v) => Number.isInteger(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const isStr = (v, max = 200) => typeof v === 'string' && v.length <= max;
+const isEvId = (v) => typeof v === 'string' && /^e\d{1,9}$/.test(v); // chronicle event ids (format 34)
 const MAX_MAP = 4096; // widest or tallest map a save may have (Phase 2b: the largest presets are 2048 wide)
 const SAFE_ID = /^[A-Za-z0-9_.:-]{1,64}$/;
 
@@ -434,6 +435,7 @@ function validateSettlements(s, format, bad, inB) {
     if (st.unrest !== undefined && (!isInt(st.unrest) || st.unrest < 0 || st.unrest > s.tick)) bad(`${L} has an invalid unrest time`); // format 33 (unrest.js)
     if (st.code !== undefined && (!isObj(st.code) || Object.entries(st.code).some(([k, v]) => !SAFE_ID.test(k) || !isStr(v, 40)))) bad(`${L} has an invalid code of laws`); // format 32 (civlaws.js)
     if (st.codeSince !== undefined && (!isObj(st.codeSince) || Object.entries(st.codeSince).some(([k, t]) => !SAFE_ID.test(k) || !isInt(t) || t < 0 || t > s.tick))) bad(`${L} has invalid law dates`); // format 32
+    if (st.codeEv !== undefined && (!isObj(st.codeEv) || Object.entries(st.codeEv).some(([k, v]) => !SAFE_ID.test(k) || !isEvId(v)))) bad(`${L} has invalid law events`); // format 34
     for (const f of ['founded', 'crowdedSince', 'lastFounding', 'noSiteAt']) if (st[f] !== undefined && (!isNum(st[f]) || st[f] < 0)) bad(`${L} has an invalid ${f} time`);
     if (st.training !== undefined && st.training !== null && (!isObj(st.training) || !isStr(st.training.cid, 64) || !isStr(st.training.qual, 100) || !isNum(st.training.progress))) bad(`${L} has invalid training data`);
     const r = st.research;
@@ -493,6 +495,7 @@ function validateDiplomacy(s, ids, bad) {
     if (!isObj(r)) continue;
     const L = `relation "${cut(k)}"`;
     if (r.aggressor !== undefined && r.aggressor !== r.a && r.aggressor !== r.b) { bad(`${L} names an aggressor that is not one of its two settlements`); break; }
+    if ((r.warEv !== undefined && !isEvId(r.warEv)) || (r.lastEv !== undefined && !isEvId(r.lastEv))) bad('a relation has an invalid event id'); // format 34
     if ((r.touch !== undefined && (!isInt(r.touch) || r.touch > s.tick)) || (r.threat !== undefined && (!isInt(r.threat) || r.threat > s.tick)) || (r.warSince !== undefined && (!isInt(r.warSince) || r.warSince > s.tick)) || (r.beaten !== undefined && (!isObj(r.beaten) || (r.beaten.sid !== r.a && r.beaten.sid !== r.b) || !isInt(r.beaten.since) || r.beaten.since > s.tick))) { bad(`${L} has an invalid border, threat or war time`); break; } // formats 19-22
     if (r.joinedFor !== undefined && !ids.has(r.joinedFor)) { bad(`${L} defends an ally that does not exist`); break; }
     // Contact games (format 11, optional): how they first met, and the traders' visits.
