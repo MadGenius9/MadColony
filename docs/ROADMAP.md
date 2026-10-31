@@ -857,8 +857,10 @@ Builds on the existing log (`s.log`, letters, `g.log` keys). Depends on: Phase 1
   player.
 - **Not in it:** a second event system next to the log; invented causes.
 
-### Phase 13: need-driven prayers and petitions (design, waiting for the owner)
-Design note: [docs/proposals/phase-13-petitions.md](proposals/phase-13-petitions.md).
+### Phase 13: need-driven prayers and petitions (cloud part done)
+Design note and results: [docs/proposals/phase-13-petitions.md](proposals/phase-13-petitions.md). Built and tested
+(2026-10-31): four kinds (hunger, drought, monster, lost woods), answered by bless, rain, banish or the forest
+brush, with caps, cooldowns and chronicle links; save format 35. Not playable: the UI is on the home PC.
 The first slice of worship. The rescue copy holds only the roadmap line "worship and favour coming from
 villages" (Later, below). A fuller worship plan, if one exists at home, is linked and its open questions left
 to the owner. Depends on: Phase 12 (petitions are chronicle events) and Mood.

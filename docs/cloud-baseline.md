@@ -212,3 +212,8 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   3.691 → 3.675 (−0.4%) and 3.625 → 3.918 (+8%): within this machine's noise.
 - After the peace fixes, the same run: 281 notifications in 200 days (was 573); 49 "peace" against 55 wars
   declared; 190 ends of joined wars recorded without a notification. Gameplay numbers unchanged (272 people).
+
+## Phase 13 acceptance (2026-10-31)
+- Full suite passes. `forty` 083cf9ca5bea8d96 and `modern` 69abf41e3365aa5a without the log (unchanged).
+- World seed 11, 200 days: 105 prayers (29 ended, 70 expired, 6 open), 8 notified; 272 people, 51 wars (as
+  before); save 11.50 MB; save/load identical; 9.9 min.

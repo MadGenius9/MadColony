@@ -95,6 +95,7 @@ for (let d = 1; d <= days; d++) {
       tithes: g.s.log.filter((e) => /sends its tithe/.test(e.msg)).length,
       mood: (() => { const cs = Object.values(g.s.colonists); const m = cs.map((c) => c.mood ?? 0); return cs.length ? { avg: Math.round(m.reduce((a, x) => a + x, 0) / cs.length), unhappy: m.filter((x) => x <= -20).length, miserable: m.filter((x) => x <= -50).length, unrest: st.filter((x) => !x.fallen && x.unrest !== undefined).length } : {}; })(),
       chronicle: { lines: g.s.log.length, events: g.s.log.filter((e) => isEvent(g, e)).length, folded: g.s.chronicle?.folded || 0, notify: g.s.log.filter((e) => notifies(g, e)).length, linked: g.s.log.filter((e) => e.cause || e.rel).length },
+      petitions: { open: Object.keys(g.s.petitions?.open || {}).length, raised: g.s.log.filter((e) => e.kind === 'core:petition').length, resolved: g.s.log.filter((e) => e.kind === 'core:petition_closed' && /no longer prays/.test(e.msg)).length, expired: g.s.log.filter((e) => e.kind === 'core:petition_closed' && /unanswered/.test(e.msg)).length, byKind: Object.values(g.s.petitions?.open || {}).reduce((o, p) => { o[p.kind.replace('core:', '')] = (o[p.kind.replace('core:', '')] || 0) + 1; return o; }, {}) },
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;

@@ -1,6 +1,6 @@
 # Phase 13: need-driven prayers and petitions
 
-Status: **slices 1 and 2 built and tested** (2026-10-31); acceptance (slice 3) next. Branch `cloud-work` (cloud rescue copy; see
+Status: **cloud part done** (2026-10-31): built and tested; not playable until the UI is wired at home. Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md). Scope: the roadmap's Phase 13 (owner, 2026-10-29), the first slice of worship. The rescue copy has
 no fuller worship plan, only the roadmap lines ("worship and favour coming from villages", Later). If one
 exists at home it is linked here and its open questions stay the owner's; nothing below decides them.
@@ -86,3 +86,13 @@ A full religion, favour income from villages, temples, priests, quests or reward
 - Found and fixed on the way: god-power events now record the village a power was aimed at (`settlementId`).
 - Tests: `tests/cloud-petitions.test.js` (raising with evidence, thresholds, cooldown, answering by bless and
   by banish with the links, dismissing, expiry, the caps, distant villages, save and load, old and bad saves).
+
+### Slice 3: acceptance (World seed 11, 200 days, 2026-10-31)
+- 105 prayers raised over 200 days in 64 villages (no player answering): 29 ended by themselves, 70
+  expired, 6 open on day 200 (5 lost woods, 1 monster). Open at once: 1 early on, at most 6 (the cap grows
+  with the population). 8 notified (the player's own village); the rest only listed.
+- Save and load identical at day 100; gameplay unchanged (272 people, 51 wars on day 200, as before the
+  phase); save 11.50 MB (11.45 before); 0 conservation errors.
+- The full suite passes; the classic runs are unchanged apart from the log (`forty` 083cf9ca5bea8d96,
+  `modern` 69abf41e3365aa5a).
+- **Not done here:** seeing it in the UI and playing it; that waits for the home PC.
