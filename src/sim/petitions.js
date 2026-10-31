@@ -126,13 +126,13 @@ function raise(g, sid, K, c) {
 
 /** After a power is carried out (god.js): open petitions it answers are closed as answered, linked to the
  *  power's chronicle event. A power answers when its kind is listed for the petition and it was aimed at the
- *  village (its settlementId) or within PETITION.answerR tiles of its centre. */
+ *  village (its settlementId) or within PETITION.answerR tiles of its centre. Returns the ids answered. */
 export function answerPetitions(g, cmd, out, eventId) {
   const S = g.s.petitions;
-  if (!S || !Object.keys(S.open).length) return 0;
+  if (!S || !Object.keys(S.open).length) return [];
   const a = cmd.args || {}, pt = Array.isArray(a.points) && a.points.length ? a.points[0] : (Number.isFinite(a.x) && Number.isFinite(a.y) ? a : null);
   const target = out?.settlementId || a.settlementId;
-  let n = 0;
+  const done = [];
   for (const id of Object.keys(S.open).sort((x, y) => Number(x.slice(1)) - Number(y.slice(1)))) {
     const p = S.open[id], K = g.reg.get('petitionKind', p.kind);
     if (!K?.answers.some((x) => x.power === cmd.type && (!x.brush || x.brush === a.brush))) continue;
@@ -140,9 +140,9 @@ export function answerPetitions(g, cmd, out, eventId) {
     const aimed = target === p.sid || (pt && (pt.x - c.x) ** 2 + (pt.y - c.y) ** 2 <= PETITION.answerR ** 2);
     if (!aimed) continue;
     close(g, p, 'answered', `${cmd.type}`, eventId || undefined);
-    n++;
+    done.push(p.id);
   }
-  return n;
+  return done;
 }
 
 /** The player turns a petition away. */

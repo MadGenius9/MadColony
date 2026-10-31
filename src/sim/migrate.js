@@ -122,6 +122,8 @@ export const MIGRATIONS = {
   33() {},
   // 34 -> 35: prayers and petitions (petitions.js). `s.petitions` is optional: absent means none open.
   34() {},
+  // 35 -> 36: intervention follow-through (followup.js). `s.followUps` is optional: absent means nothing waits.
+  35() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

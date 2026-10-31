@@ -710,6 +710,7 @@ export const CONTENT_TYPES = {
     doc: 'The numbers behind the god powers (god.js, Phase 2c): favour (start, max, regeneration perDay), the cost of each power (costs.settler is per settler; omen is the harmless test power, default 0), blessing length and multipliers, the inspire fraction, and the spawn limits and supplies. A scenario picks one with its optional `god` id; otherwise core:god applies. In a Sandbox game every power is free.',
     schema: obj({
       id, name,
+      followDays: num(0.5, 60), // Phase 14 (followup.js): days until a power's outcome card (default 3)
       favour: req(obj({ start: req(num(0, 1e6)), max: req(num(0, 1e6)), perDay: req(num(0, 1e6)) }, { check: (v, err) => {
         if (v.start > v.max) err('start must not be above max');
       } })),

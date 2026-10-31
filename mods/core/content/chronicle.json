@@ -165,6 +165,12 @@
       "id": "core:petition_closed",
       "name": "Prayer ended",
       "importance": "notable"
+    },
+    {
+      "id": "core:god_outcome",
+      "name": "A power's outcome",
+      "importance": "milestone",
+      "notify": "world"
     }
   ]
 }

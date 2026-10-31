@@ -458,3 +458,11 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Map:** a small prayer icon over a village with an open petition.
 - **Notifications:** prayers from the player's village (or a followed one) arrive as news; when answered the
   log says "The gods answered X's prayer (hunger): bless".
+
+## Phase 14: outcome cards
+- **After a power:** its result line as today (recorded consequences: what the power did).
+- **An outcome card** `followDays` later (default 3; `outcomeCards(g)`, newest first): the power, its
+  recorded result (`effect`), the petitions it answered, and per village before → after (food days, people,
+  deaths since, trees near, monsters near). Title the table **"Changes that followed"** and show the note
+  "The game does not know how much of this the power caused." Never word it as "the power saved / caused".
+- Clicking a card opens the power's chronicle chain (`chainOf(g, card.ev)`).

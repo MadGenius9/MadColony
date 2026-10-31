@@ -110,6 +110,7 @@ export function validateSave(save) {
   if (s.worldLaws !== undefined) validateWorldLaws(s, bad); // format 31
   validateChronicle(s, bad); // format 34
   if (s.petitions !== undefined) validatePetitions(s, bad); // format 35
+  if (s.followUps !== undefined) validateFollowUps(s, bad); // format 36
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -323,6 +324,15 @@ function validateDead(s, bad) {
 
 /** World laws (format 31, worldlaws.js): { set: { law: value }, since: { law: tick } }, ids and values short
  *  strings, ticks not in the future. Laws a removed mod defined are dropped on load. */
+/** Intervention follow-through (format 36, followup.js). */
+function validateFollowUps(s, bad) {
+  const F = s.followUps;
+  if (!isObj(F) || !Array.isArray(F.wait) || F.wait.length > 100 || (F.cards !== undefined && (!Array.isArray(F.cards) || F.cards.length > 50))) { bad('state.followUps is malformed'); return; }
+  const sidList = (v) => Array.isArray(v) && v.length <= 10 && v.every((x) => isStr(x, 64));
+  for (const w of F.wait) if (!isObj(w) || !isInt(w.cmd) || !isStr(w.type, 64) || !isInt(w.t) || !isInt(w.due) || !sidList(w.sids) || !isObj(w.before) || (w.ev !== undefined && !isEvId(w.ev)) || JSON.stringify(w).length > 4000) { bad('state.followUps has a malformed record'); return; }
+  for (const c of F.cards || []) if (!isObj(c) || !isInt(c.cmd) || !isStr(c.type, 64) || !isInt(c.t) || !isInt(c.at) || !sidList(c.sids) || !isObj(c.changes) || !isStr(c.effect ?? '', 2000) || JSON.stringify(c).length > 8000) { bad('state.followUps has a malformed card'); return; }
+}
+
 /** Prayers and petitions (format 35, petitions.js). */
 function validatePetitions(s, bad) {
   const P = s.petitions;
