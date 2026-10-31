@@ -217,3 +217,11 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Full suite passes. `forty` 083cf9ca5bea8d96 and `modern` 69abf41e3365aa5a without the log (unchanged).
 - World seed 11, 200 days: 105 prayers (29 ended, 70 expired, 6 open), 8 notified; 272 people, 51 wars (as
   before); save 11.50 MB; save/load identical; 9.9 min.
+
+## Phases 13 and 14 (2026-10-31)
+- Full suite passes; `forty` 083cf9ca5bea8d96, `modern` 69abf41e3365aa5a without the log (unchanged).
+- Powers run (`tools/cloud-powers-run.mjs 40 vast 7`): ok, 11 powers, 9 outcome cards, save/load after each
+  power identical.
+- Bench, the code before Phase 13 (`136f598`) against now (two rounds, ms/tick summed over the sizes): 3.137 →
+  3.229 (+2.9%) and 3.066 → 3.168 (+3.3%). A small, steady cost, most likely the daily prayer check (four
+  conditions per village, one counting the trees near its centre); under the 10% line.
