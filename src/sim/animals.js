@@ -716,8 +716,9 @@ function syncNear(g, h) {
 export const HUNT_LIMIT = 3; // villages leave every herd at least this many (the owner's answer 5)
 export const MEAT_PER_PERSON = 2; // a village hunts while it has less meat than this a person
 /** Hunting as food (docs/proposals/balance-feud-and-hunting.md): under HUNGRY_DAYS of food a village hunts until
- *  it holds twice the usual meat; a distant village short of meat sends up to DISTANT_HUNTERS hunters an hour. */
-export const HUNGRY_DAYS = 3, DISTANT_HUNTERS = 2;
+ *  it holds twice the usual meat. A distant village sends DISTANT_HUNTERS hunter an hour (2 was tried on
+ *  2026-10-31 and gave no consistent gain over two worlds, so it stays 1). */
+export const HUNGRY_DAYS = 3, DISTANT_HUNTERS = 1;
 export const meatWanted = (people, foodDays) => MEAT_PER_PERSON * Math.max(2, people) * (foodDays !== undefined && foodDays < HUNGRY_DAYS ? 2 : 1);
 
 /** Meat on hand for the village of plan P (meat items and carcasses, a carcass counted as 6). */
