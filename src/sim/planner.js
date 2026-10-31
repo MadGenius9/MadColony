@@ -2,7 +2,8 @@
 // content graph (stock -> in-flight production -> recipes/stations -> gatherable nodes -> crops), and
 // starts projects (homes, stations, fields, stockpile growth). It never moves a colonist itself; it
 // publishes `g.plan` (wants, bills, clear list, equipment needs, goal explanations) for job givers.
-import { huntableNear, farHuntable, meatOnHand, MEAT_PER_PERSON } from './animals.js';
+import { huntableNear, farHuntable, meatOnHand, meatWanted } from './animals.js';
+import { HUNT_REACH } from './hunt.js';
 import { monsterThreats } from './slay.js';
 import { staffing, educationSummary } from './education.js';
 import { isAdult as isAdultP, BIRTH, mayDoWork } from './people.js';
@@ -291,9 +292,9 @@ function planSettlement(g, sid) {
   // Hunting (Phase 8, animals.js / hunt.js): while a huntable herd is near the village and meat is short, its two
   // best hunters (by skill, then id) get a weapon if they have none; the reason is shown (P.huntNote).
   const ctr = s.settlements?.[sid]?.center || s.center, hunterIds = new Set();
-  const herdsNear = !ctr || !s.animals ? [] : s.settlements?.[sid]?.detail === 'abstract' ? farHuntable(g, ctr.x, ctr.y, 40, sid) : huntableNear(g, ctr.x, ctr.y, 60); // distant villages hunt far herds (lod.js); full ones near or far
+  const herdsNear = !ctr || !s.animals ? [] : s.settlements?.[sid]?.detail === 'abstract' ? farHuntable(g, ctr.x, ctr.y, HUNT_REACH, sid) : huntableNear(g, ctr.x, ctr.y, HUNT_REACH); // distant villages hunt far herds (lod.js); full ones near or far; both out to HUNT_REACH, as lod.js and hunt.js hunt (40 for distant ones until 2026-10-31)
   const huntLaw = huntAllowed(g, sid, P.foodDays); // the Hunting law (civlaws.js)
-  const meatShort = huntLaw && meatOnHand(g, P) < MEAT_PER_PERSON * Math.max(2, cols.length);
+  const meatShort = huntLaw && meatOnHand(g, P) < meatWanted(cols.length, P.foodDays); // twice as much when food is short
   if (herdsNear.length && meatShort) {
     const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
     for (const c of pool.slice(0, 2)) hunterIds.add(c.id);

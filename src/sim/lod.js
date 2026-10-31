@@ -31,7 +31,7 @@ import { tapHasWater, isWaterNode } from './water.js';
 import { fieldCells } from './game.js';
 import { planNow } from './planner.js';
 import { droughtAt } from './weatherat.js';
-import { farHuntable, killFar, meatWanted, distantHunters } from './animals.js';
+import { farHuntable, killFar, meatWanted, DISTANT_HUNTERS } from './animals.js';
 import { huntWeapon } from './hunt.js';
 import { modsOf } from './peoples.js';
 import { rationOf, hoursOf, huntAllowed, treeProtected } from './civlaws.js';
@@ -728,7 +728,7 @@ function storeMeat(g, ctx) {
 }
 function taskHunt(g, ctx, c, time) {
   const H = (ctx.hunters ||= []);
-  if (!can(g, c, 'core:hunt') || !g.s.animals || (H.length >= distantHunters(ctx.P?.foodDays) && !H.includes(c.id)) || !huntArmed(g, ctx, c)) return 0; // one hunter a village an hour (two when food is short)
+  if (!can(g, c, 'core:hunt') || !g.s.animals || (H.length >= DISTANT_HUNTERS && !H.includes(c.id)) || !huntArmed(g, ctx, c)) return 0; // up to DISTANT_HUNTERS hunters a village an hour
   ctx.huntMeat ??= storeMeat(g, ctx);
   ctx.huntTargets ??= farHuntable(g, ctx.center.x, ctx.center.y, HUNT_REACH, ctx.sid); // once a village an hour
   const targets = ctx.huntTargets.filter((t) => g.s.animals.herds[t.h.id] === t.h);
