@@ -87,5 +87,7 @@ console.log(JSON.stringify({
   youngPlants: Object.values(s.nodes).filter((n) => n.young).length, craterTiles: g.terrainPalette.includes('core:crater') ? [...g._ts.idx].filter((k) => g.terrainPalette[k] === 'core:crater').length : 0,
   ledgerDivine: s.ledger.byReason['created:divine'] || {}, ledgerBurned: s.ledger.byReason['consumed:fire'] || {},
   villages: Object.keys(s.settlements).length, fallen: Object.values(s.settlements).filter((v) => v.fallen).length,
+  // Phase 14: the outcome cards (changes that followed each power) and the records still waiting.
+  outcomeCards: (s.followUps?.cards || []).map((c) => s.log.find((e) => e.id === c.ev)?.msg || `(card for ${c.type}, line rolled off)`), followWaiting: s.followUps?.wait?.length || 0,
 }, null, 1));
 process.exit(failed ? 1 : 0);

@@ -877,7 +877,10 @@ to the owner. Depends on: Phase 12 (petitions are chronicle events) and Mood.
   through save and load without spam.
 - **Not in it:** a full religion, favour income from villages, temples.
 
-### Phase 14: intervention follow-through (planned)
+### Phase 14: intervention follow-through (cloud part done)
+Design and results: [docs/proposals/phase-14-follow-through.md](proposals/phase-14-follow-through.md). Built and
+tested (2026-10-31): outcome cards 3 days after a power (before → after per village, labelled "changes that
+followed"), linked to the power and the prayers it answered; save format 36. Not playable: the UI is at home.
 Builds on the existing power previews and results (`s.god.log`). Depends on: Phase 12; links to Phase 13.
 - **Each power's result records:**
   - the region affected;

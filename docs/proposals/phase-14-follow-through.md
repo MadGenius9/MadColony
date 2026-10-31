@@ -1,6 +1,6 @@
 # Phase 14: intervention follow-through
 
-Status: **design decided, slice 1 in progress** (2026-10-31; the owner: "You make the decisions"). Branch
+Status: **cloud part done** (2026-10-31; built and tested, not playable until the UI is wired at home; the owner: "You make the decisions"). Branch
 `cloud-work`. Scope: the roadmap's Phase 14. Builds on the power results (`s.god.log`), the chronicle
 (Phase 12) and petitions (Phase 13).
 
@@ -28,3 +28,21 @@ Counterfactual runs; per-tile history; measures the game does not already keep.
 ## Slices
 1. The records, the cards, format 36, the chronicle event, tests.
 2. Acceptance: a World run with scripted powers, save and load, bench, docs and UI notes.
+
+## Results
+### Slice 1 (built and tested, 2026-10-31)
+`src/sim/followup.js` (`villagesOf`, `measure`, `beforePower`, `afterPowerFollow`, `tickFollowUps`,
+`outcomeCards`), hooked through `g.beforePower` / `g.afterPower` in god.js; `godRules.followDays` (default 3);
+chronicle kind `core:god_outcome`; save format 36. `answerPetitions` now returns the ids it answered, kept on
+the card. Tests: `tests/cloud-followup.test.js` (a card with its
+before/after, links to the power and the prayer, save and load while waiting; no card without a village; old
+and bad saves).
+
+### Slice 2: acceptance (2026-10-31)
+- The powers run (`tools/cloud-powers-run.mjs 40 vast 7`, every destructive power and rain, save and load
+  after each): ok; 11 powers, 9 outcome cards (2 powers touched no village), none left waiting. Example:
+  "4 days after the lightning power: Frostholm: food 5.4 → 11 days, people 3 → 2, 1 died, trees 37. (Changes
+  that followed; the game does not know how much the power caused.)" One card shows why the label matters:
+  trees near First Hearth fell 13 → 0 after the rain power, because of a later fire.
+- The full suite passes; classic runs unchanged without the log.
+- Cards arrive at the first day start after `followDays`, so "3 days" reads as 3–4 days after the power.
