@@ -1,0 +1,9 @@
+{
+  "$comment": "Prayers and petitions (docs/proposals/phase-13-petitions.md, src/sim/petitions.js): when each applies is decided in code by its id. answers: the powers that answer it (a brush for shape). days: how long it stays open; cooldownDays: before the village asks again for the same.",
+  "petitionKind": [
+    { "id": "core:hunger", "name": "Hunger", "about": "Food for under two days.", "answers": [{ "power": "bless" }, { "power": "rain" }], "days": 4, "cooldownDays": 6 },
+    { "id": "core:drought", "name": "Drought", "about": "The village's fields lie in a drought.", "answers": [{ "power": "rain" }], "days": 4, "cooldownDays": 6 },
+    { "id": "core:monster", "name": "A monster", "about": "A monster prowls near the village.", "answers": [{ "power": "banish" }], "days": 3, "cooldownDays": 5 },
+    { "id": "core:lost_woods", "name": "Lost woods", "about": "Few grown trees are left near the village.", "answers": [{ "power": "shape", "brush": "forest" }], "days": 8, "cooldownDays": 15 }
+  ]
+}

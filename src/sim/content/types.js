@@ -684,6 +684,10 @@ export const CONTENT_TYPES = {
     doc: 'A thought that moves a person\'s mood (mood.js, Mood): its name (shown) and value (-100..100; for core:laws the multiplier of the village laws\' moods, for core:comfort the most a comfortable home gives). When it applies is decided in mood.js by its id.',
     schema: obj({ id, name, value: req(num(-100, 100)) }),
   },
+  petitionKind: {
+    doc: 'A kind of prayer (petitions.js, Phase 13): raised when a real trouble is found in a village (decided in code by its id), answered by one of its powers (answers: { power, brush? }) aimed at the village, open for days, then a cooldown before the village asks again.',
+    schema: obj({ id, name, about: str(300), answers: req(arr(obj({ power: req(str(40)), brush: str(40) }), { minItems: 1, maxItems: 6 })), days: req(num(0.5, 100)), cooldownDays: req(num(0, 365)) }),
+  },
   eventKind: {
     doc: 'A kind of chronicle event (chronicle.js, Phase 12): its name and importance. routine lines roll off with the newest 500; notable and milestone events are kept (up to 2,000, older ones counted by year and village). notify: world (news for the whole world) or own (only when it concerns the player\'s village or something followed); absent: never.',
     schema: obj({ id, name, importance: req({ type: 'enum', values: ['routine', 'notable', 'milestone'] }), notify: { type: 'enum', values: ['world', 'own'] } }),

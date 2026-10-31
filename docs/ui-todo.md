@@ -449,3 +449,12 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Notifications (world news):** show `newsSince(g, lastSeenTick)` as toasts or a news list, following
   `notifies(g, e)`: world-news kinds always, own-village kinds for the player's village or followed subjects,
   and a followed subject's milestones and deaths. Everything else stays in the panel only.
+
+## Phase 13: prayers and petitions
+- **A Prayers list** in the god panel: `petitionsOf(g)` (village, kind name, the evidence text from the log
+  line, urgency, days left, the powers that answer it). Clicking one centres the map on the village and opens
+  the matching power, aimed at the village.
+- **A dismiss button** per petition: `dismissPetition(g, id)`.
+- **Map:** a small prayer icon over a village with an open petition.
+- **Notifications:** prayers from the player's village (or a followed one) arrive as news; when answered the
+  log says "The gods answered X's prayer (hunger): bless".

@@ -109,6 +109,7 @@ export function validateSave(save) {
   if (s.monsters !== undefined) validateMonsters(s, bad); // format 29
   if (s.worldLaws !== undefined) validateWorldLaws(s, bad); // format 31
   validateChronicle(s, bad); // format 34
+  if (s.petitions !== undefined) validatePetitions(s, bad); // format 35
   if (s.stats?.illness !== undefined && (!isObj(s.stats.illness) || !isInt(s.stats.illness.cases) || !isInt(s.stats.illness.outbreaks) || s.stats.illness.cases < 0 || s.stats.illness.outbreaks < 0)) bad('state.stats.illness is malformed'); // format 17
   if (s.stats?.deaths !== undefined && (!isObj(s.stats.deaths) || Object.entries(s.stats.deaths).some(([k, v]) => !SAFE_ID.test(k) || !isInt(v) || v < 0))) bad('state.stats.deaths is malformed'); // format 15
   if (P.length) return P;
@@ -322,6 +323,18 @@ function validateDead(s, bad) {
 
 /** World laws (format 31, worldlaws.js): { set: { law: value }, since: { law: tick } }, ids and values short
  *  strings, ticks not in the future. Laws a removed mod defined are dropped on load. */
+/** Prayers and petitions (format 35, petitions.js). */
+function validatePetitions(s, bad) {
+  const P = s.petitions;
+  if (!isObj(P) || !isInt(P.next) || P.next < 1 || !isObj(P.open) || (P.cool !== undefined && !isObj(P.cool))) { bad('state.petitions is malformed'); return; }
+  if (Object.keys(P.open).length > 1000) { bad('state.petitions has too many open'); return; }
+  for (const [k, p] of Object.entries(P.open)) {
+    if (!isObj(p) || p.id !== k || !/^p\d{1,9}$/.test(k) || Number(k.slice(1)) >= P.next || !isStr(p.sid, 64) || !isObj(s.settlements?.[p.sid]) || !isStr(p.kind, 100)
+      || !isInt(p.since) || p.since > s.tick || !isInt(p.until) || !isNum(p.urgency) || !isObj(p.evidence) || (p.ev !== undefined && !isEvId(p.ev)) || (p.clear !== undefined && !isInt(p.clear))) { bad(`petition "${String(k).slice(0, 20)}" is malformed`); return; }
+  }
+  for (const [k, t] of Object.entries(P.cool || {})) if (!isStr(k, 200) || !isInt(t)) { bad('state.petitions.cool is malformed'); return; }
+}
+
 /** The chronicle (format 34): event fields on log lines and s.chronicle. */
 function validateChronicle(s, bad) {
   const C = s.chronicle;

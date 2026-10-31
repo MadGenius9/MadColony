@@ -154,6 +154,17 @@
       "id": "core:tithe",
       "name": "Tithe sent",
       "importance": "routine"
+    },
+    {
+      "id": "core:petition",
+      "name": "Prayer",
+      "importance": "notable",
+      "notify": "own"
+    },
+    {
+      "id": "core:petition_closed",
+      "name": "Prayer ended",
+      "importance": "notable"
     }
   ]
 }

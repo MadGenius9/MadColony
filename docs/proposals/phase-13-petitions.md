@@ -1,6 +1,6 @@
 # Phase 13: need-driven prayers and petitions
 
-Status: **design, waiting for the owner's answers** (2026-10-30). Branch `cloud-work` (cloud rescue copy; see
+Status: **slices 1 and 2 built and tested** (2026-10-31); acceptance (slice 3) next. Branch `cloud-work` (cloud rescue copy; see
 CLAUDE.md). Scope: the roadmap's Phase 13 (owner, 2026-10-29), the first slice of worship. The rescue copy has
 no fuller worship plan, only the roadmap lines ("worship and favour coming from villages", Later). If one
 exists at home it is linked here and its open questions stay the owner's; nothing below decides them.
@@ -66,3 +66,23 @@ A full religion, favour income from villages, temples, priests, quests or reward
 4. **The kinds:** hunger, drought, monster, lost woods. Add or drop any? (Thirst has no power that answers
    it today, so it is left out.)
 5. **A home worship plan:** if one exists, it is linked when the home PC is back, and this design follows it.
+
+## Decisions (2026-10-31: the owner said "You make the decisions")
+1. **Every village prays,** within the caps (one open per village, one per 40 living people in the world).
+2. **Notifications:** petitions from the player's village (or a followed one) notify; others are listed only.
+3. **No mood effect** for an answered prayer in this phase: nothing is given for answering.
+4. **The four kinds** as proposed (hunger, drought, monster, lost woods). Thirst waits for a power that
+   answers it.
+5. **A home worship plan,** if one exists, is linked when the home PC is back; this design yields to it.
+
+## Results
+### Slices 1 and 2 (built and tested, 2026-10-31)
+- `src/sim/petitions.js`: `conditionOf` (the four troubles, with start and end thresholds so a petition does
+  not flicker), the daily `tickPetitions` (ending, expiry, raising under the caps and cooldowns, the most
+  urgent first), `answerPetitions` (called after every power through `g.afterPower`), `dismissPetition`,
+  `petitionsOf`. Kinds in `mods/core/content/petitions.json`; save format 35 (`s.petitions`).
+- Chronicle: `core:petition` (notable, notifies the player's own village) and `core:petition_closed`; an
+  answered prayer's closing has the power's event as its cause and the prayer as its association.
+- Found and fixed on the way: god-power events now record the village a power was aimed at (`settlementId`).
+- Tests: `tests/cloud-petitions.test.js` (raising with evidence, thresholds, cooldown, answering by bless and
+  by banish with the links, dismissing, expiry, the caps, distant villages, save and load, old and bad saves).

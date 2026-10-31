@@ -120,6 +120,8 @@ export const MIGRATIONS = {
   // 33 -> 34: the chronicle (chronicle.js). Log entries may carry an event id and fields; s.chronicle is optional:
   // absent means no event has been recorded (old lines stay as routine lines).
   33() {},
+  // 34 -> 35: prayers and petitions (petitions.js). `s.petitions` is optional: absent means none open.
+  34() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

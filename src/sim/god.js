@@ -218,7 +218,9 @@ function applyOneNow(g, god, cmd) {
   const out = P.apply(g, cmd, r) || {};
   const { msg = `A divine command (${cmd.type}) was carried out.`, ...rest } = out;
   record(god, cmd, { ok: true, cost, msg, ...rest });
-  g.log(msg, 'god', null, 0, { kind: 'core:god_power', at: Number.isFinite(cmd.args?.x) ? cmd.args : null, sids: rest.sid ? [rest.sid] : [] });
+  const sid = rest.settlementId || cmd.args?.settlementId;
+  const eid = g.log(msg, 'god', null, 0, { kind: 'core:god_power', at: Number.isFinite(cmd.args?.x) ? cmd.args : null, sids: sid ? [sid] : [] });
+  g.afterPower?.(cmd, rest, eid); // petitions it answers (petitions.js)
 }
 
 // ---------- ledger helpers (used by the powers) ----------
