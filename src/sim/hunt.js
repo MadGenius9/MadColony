@@ -1,7 +1,7 @@
 // Hunting (Phase 8, slice 3; docs/proposals/phase-8-animals.md). Work type core:hunt (skill core:hunting), giver
 // core:hunt_animals, job `hunt`.
 // - The giver offers a hunt to an armed adult (a melee weapon, or a ranged one with ammunition) when the village is
-//   short of meat (meat and carcasses in stock below MEAT_PER_PERSON a person) and a near herd of a huntable
+//   short of meat (meat and carcasses in stock below meatWanted: MEAT_PER_PERSON a person, twice that under 3 days of food) and a near herd of a huntable
 //   grazing species is within HUNT_REACH of the village centre and above the hunting limit (animals.js HUNT_LIMIT). One
 //   hunter per herd (reserved).
 // - The job follows the herd's nearest animal (a new walk goal when it has moved 2 tiles away), and when in weapon
@@ -12,7 +12,7 @@
 //   GIVE_UP ticks.
 // Draws come from the game's random stream, like other colonist work.
 import { travel, newJob, practice } from './ai/jobs.js';
-import { huntableNear, bringNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, packThreat, nearHerdIds, HUNT_LIMIT, MEAT_PER_PERSON } from './animals.js';
+import { huntableNear, bringNear, herdAnimals, killAnimal, alarmHerd, meatOnHand, woundAnimal, wolfNear, packThreat, nearHerdIds, HUNT_LIMIT, meatWanted } from './animals.js';
 import { roomAt } from './heat.js';
 import { hpOf } from './health.js';
 import { modsOf } from './peoples.js';
@@ -46,7 +46,7 @@ export const HUNT_GIVERS = {
           return g.reserveExcl(job, `hunt:${h.id}`, c.id) ? job : null;
         } });
       }
-      if (meatOnHand(g, P) >= MEAT_PER_PERSON * Math.max(2, people)) return out;
+      if (meatOnHand(g, P) >= meatWanted(people, P?.foodDays)) return out; // twice as much when food is short
       if (!huntAllowed(g, sid, P?.foodDays)) return out; // the Hunting law (civlaws.js): banned, or restricted to want
       for (const { h, d, dist } of huntableNear(g, ctr.x, ctr.y, HUNT_REACH)) { // within reach of home (carcasses are hauled there)
         if (g.isReserved(`hunt:${h.id}`, c.id) || g.isBlocked(`hunt:${sid}:${h.id}`)) continue;

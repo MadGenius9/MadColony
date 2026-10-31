@@ -15,7 +15,7 @@ import { wolfDanger } from '../src/sim/hunt.js';
 import { greedOf, evaluateOffer } from '../src/sim/villages.js';
 import { findFood } from '../src/sim/ai/needs.js';
 import { endJob } from '../src/sim/ai/ai.js';
-import { tickRivalry } from '../src/sim/war.js';
+import { tickRivalry, OTHER_PEOPLE_RIVALRY } from '../src/sim/war.js';
 import { relationOf } from '../src/sim/villages.js';
 import { readAllMods } from '../tools/fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
@@ -301,8 +301,10 @@ test('peoples: rivalry grows faster between villages of different peoples', () =
   };
   const same = drop(false), other = drop(true);
   assert.ok(same.d > 0, `rivalry between neighbours (${same.d})`);
-  // Reedkin temperament 1, Hearthfolk 1: only the 1.5 for different peoples changes the fall.
-  assert.ok(Math.abs(other.d - 1.5 * same.d) < 0.02, `${other.d} against ${same.d}`);
+  // Reedkin temperament 1, Hearthfolk 1: only the factor for different peoples changes the fall (1.5 until
+  // 2026-10-31, now OTHER_PEOPLE_RIVALRY: docs/proposals/balance-feud-and-hunting.md).
+  assert.ok(OTHER_PEOPLE_RIVALRY > 1, 'different peoples still drift apart faster');
+  assert.ok(Math.abs(other.d - OTHER_PEOPLE_RIVALRY * same.d) < 0.02, `${other.d} against ${same.d}`);
 });
 
 // ---- slice 4: names and looks

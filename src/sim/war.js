@@ -59,8 +59,9 @@ const draw = (key) => hash(key) / 4294967296;
 const isFit = (g, c) => !isDown(c) && hpOf(c) >= fitHpOf(g, c) && mayFight(g, c); // brave and timid (peoples.js)
 // Temperament: the village profile's, else its people's (peoples.js), else 1.
 const temperOf = (g, sid) => { const p = g.s.settlements?.[sid]?.profile; return (p && g.reg.get('villageProfile', p)?.temperament) ?? g.reg.get('people', peopleOfSettlement(g, sid))?.temperament ?? 1; };
-/** Rivalry grows this much faster between villages of different peoples (the owner's answer 5). */
-export const OTHER_PEOPLE_RIVALRY = 1.5;
+/** Rivalry grows this much faster between villages of different peoples (the owner's answer 5). 1.5 until
+ *  2026-10-31, when it was the main driver of wars (docs/proposals/balance-feud-and-hunting.md). */
+export const OTHER_PEOPLE_RIVALRY = 1.2;
 
 /** Fighting strength of a village: fit adults, armed ones counted by weapon damage (fists: COMBAT.unarmed). */
 export function warStrength(g, sid) {
