@@ -30,7 +30,7 @@ const terrainLook = obj({ style: { type: 'enum', values: ['grass', 'soil', 'sand
 const ITEM_ICONS = ['logs', 'stones', 'beans', 'potatoes', 'berries', 'bowl', 'cup', 'axe', 'pickaxe', 'spear', 'bow', 'gun', 'ammo', 'clay', 'pot', 'produce', 'sack', 'crate'];
 const itemLook = obj({ shape: { type: 'enum', values: ['logs', 'stones', 'basket', 'meal', 'tool', 'axe', 'pickaxe', 'spear', 'gun', 'crate', 'sack', 'pots'] }, color2: color, icon: { type: 'enum', values: ITEM_ICONS } });
 const cropLook = look(['bush', 'vine', 'stalk']);
-const buildingLook = look(['log_wall', 'stone_wall', 'plank_wall', 'door', 'bed', 'table', 'chair', 'campfire', 'workbench', 'desk', 'lamp', 'shelf', 'cabinet', 'rug', 'kiln', 'furnace', 'generator', 'pole', 'streetlamp', 'machine', 'battery', 'well', 'pump', 'tower', 'tap', 'pipe', 'hearth', 'heater', 'medbed', 'cabinet', 'quarry']);
+const buildingLook = look(['log_wall', 'stone_wall', 'plank_wall', 'door', 'bed', 'table', 'chair', 'campfire', 'workbench', 'desk', 'lamp', 'shelf', 'cabinet', 'rug', 'kiln', 'furnace', 'generator', 'pole', 'streetlamp', 'machine', 'battery', 'well', 'pump', 'tower', 'tap', 'pipe', 'hearth', 'heater', 'medbed', 'cabinet', 'quarry', 'grave']);
 
 export const CONTENT_TYPES = {
   skill: {
@@ -79,7 +79,7 @@ export const CONTENT_TYPES = {
   },
   terrain: {
     doc: 'Ground type.',
-    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), drinkable: bool(), render: terrainLook }),
+    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), drinkable: bool(), flammable: num(0, 1), render: terrainLook }),
   },
   item: {
     doc: 'Anything that can lie on the ground, be stored, carried, eaten, crafted or equipped.',
@@ -89,6 +89,7 @@ export const CONTENT_TYPES = {
       value: num(0, 100000), // trade value per unit (default 1)
       tags,
       nutrition: num(0, 2),
+      spoilPerDay: num(0, 1), // Phase 8 (spoil.js): this share of every stack and load spoils each day
       fuel: num(0, 100), // burn-time multiplier when used as generator fuel (default 1)
       equipment: obj({
         slot: req({ type: 'enum', values: ['tool', 'weapon'] }),
@@ -98,6 +99,7 @@ export const CONTENT_TYPES = {
         range: num(1, 40), cooldown: int(1, 10000), accuracy: num(0, 1), ammo: ref('item'), // weapons
       }),
       render: itemLook,
+      flammable: num(0, 1), // Phase 5b: how readily it burns (fire, lightning); default 0
     }),
   },
   node: {
@@ -110,9 +112,11 @@ export const CONTENT_TYPES = {
       cover: num(0, 0.9), // share of ranged hits it stops for someone sheltering beside it (default: 0.3 if solid)
       chunks: req(int(1, 100)),
       regrowDays: num(0.1, 100),
+      sproutDays: num(0.1, 1000), // Phase 5b (regrow.js): a young one grows up in this many days
       passable: req(bool()),
       tags,
       render,
+      flammable: num(0, 1), // Phase 5b: how readily it burns; default 0
     }),
   },
   crop: {
@@ -177,6 +181,7 @@ export const CONTENT_TYPES = {
       color: req(color),
       tags,
       render: buildingLook,
+      flammable: num(0, 1), // Phase 5b: how readily it burns (default: the share of flammable materials in its cost)
     }),
   },
   template: {
@@ -195,6 +200,7 @@ export const CONTENT_TYPES = {
         clear: bool(),
       }))),
       weight: num(0, 100),
+      people: arr(ref('people')), // a home style only these peoples build (Peoples and traits; civic/sites.js)
     }),
   },
   recipe: {
@@ -212,6 +218,7 @@ export const CONTENT_TYPES = {
       minSkill: int(0, 10),
       // A fallback recipe is only used while its output cannot be gathered (e.g. quarrying once no boulders are left).
       fallback: { type: 'bool' },
+      fromStock: { type: 'bool' }, // Phase 8: only uses up goods on hand (butchering); the planner bills it only for a want naming it
     }),
   },
   workType: {
@@ -223,6 +230,7 @@ export const CONTENT_TYPES = {
       givers: req(arr(obj({ giver: req(str(60)), params: { type: 'any' } }), { minItems: 1 })),
       // Chance per finished job of a work accident (an injury of min..max severity), and how it is described.
       hazard: obj({ chance: req(num(0, 1)), min: req(num(0, 100)), max: req(num(0, 100)), text: str(120) }),
+      outdoor: bool(), // work done outdoors (a curfew stops it at night; civlaws.js)
       color,
     }),
   },
@@ -351,6 +359,7 @@ export const CONTENT_TYPES = {
     schema: obj({
       id, name,
       colonists: req(int(1, 20)),
+      people: bool(), // false: a world with no people at the start (world shaping); the first spawned village is the player's
       startItems: req(qtyList()),
       namePool: req(ref('namePool')),
       skillMin: int(0, 10),
@@ -362,6 +371,7 @@ export const CONTENT_TYPES = {
       god: ref('godRules'), // the god-power rules of this scenario (god.js; otherwise core:god, else the first godRules)
       size: { type: 'enum', values: ['small', 'medium', 'large', 'huge', 'colossal', 'vast', 'world'] }, // default world size preset
       placement: { type: 'enum', values: ['ring', 'spread', 'far'] }, // ring: around the player (default); spread: over the whole land; far: far apart on good sites (farPlacement)
+      peoplesByLand: obj({ radius: req(int(2, 40)), minShare: req(num(0, 1)) }), // Peoples and traits: an AI village without a profile people takes the people whose home terrains cover the largest share (at least minShare) of the land within radius of it (peoples.js)
       siteWaterWalk: int(4, 200), // spread placement on big worlds: prefer village sites with a lake shore within this walk (tiles); far: required
       // placement 'far' (villages.js farSites): sites on the player's land, at least
       // max(minSpacing, round(spacingFactor x sqrt(W x H))) tiles from every settlement, with water, open ground,
@@ -386,6 +396,41 @@ export const CONTENT_TYPES = {
       } }),
       // Era drive (planner.js): every village with no player era goal works toward the next era by itself (its
       // milestones become build targets and wanted research at this urgency). Absent: only player goals do.
+      // Phase 5 slice 2 (life.js): cold and old age. cold: below `below` °C where a colonist is, hypothermia grows by
+      // perHour severity an hour per degree under it. aging: elders (from elderAge years) work at elderWork speed;
+      // from deathAge a daily chance of death (perYear a year, perYearStep more per year past it); startAges [lo, hi]
+      // for new adults of unknown age.
+      // Phase 5 slice 3 (illness.js): outbreaks (a daily chance per village with nobody ill, raised by `crowding` x the
+      // share of people without a bed; none before graceDays), the illnesses by weight, and the share of the contagion
+      // that reaches people of the village who do not share the sick person's home.
+      // Phase 5 slice 5 (war.js): rivalry from pressing borders (perDay a day x the profiles' mean temperament, never
+      // below floor by this cause) and AI war declarations (relation <= declareBelow, stronger x the target's strength,
+      // at least minStrength; on the player's village only warnDays after a threat).
+      war: obj({
+        rivalry: obj({ perDay: req(num(0, 20)), floor: req(num(-100, 0)), near: num(0, 5000), nearPerDay: num(0, 20) }),
+        declareBelow: req(num(-100, 0)), stronger: req(num(1, 10)), minStrength: num(0, 100), warnDays: num(0, 30),
+        battle: obj({ woundsPerStrength: req(num(0, 10)), minSeverity: req(num(1, 100)), maxSeverity: req(num(1, 100)) }), // slice 5b
+        truce: obj({ weakerShare: req(num(0, 1)), maxDays: req(num(1, 1000)), minDays: num(0, 1000) }),
+        conquest: obj({ beatenDays: req(num(0, 100)), tribute: req(num(0, 1)), beatenShare: num(0, 1) }), // slice 6b
+      }),
+      illness: obj({
+        outbreakPerDay: req(num(0, 1)), crowding: num(0, 100), graceDays: num(0, 1000), villageShare: num(0, 1),
+        kinds: req(arr(obj({ illness: req(ref('illness')), weight: req(num(0, 1000)) }), { minItems: 1 })),
+      }),
+      life: obj({
+        cold: obj({ below: req(num(-60, 30)), perHour: req(num(0.01, 50)), shelter: num(0, 40), fires: arr(ref('building')), fireRadius: int(0, 50), foundWaitDays: num(0, 30) }),
+        aging: obj({
+          elderAge: req(num(1, 500)), elderWork: req(num(0.1, 1)), deathAge: req(num(1, 500)),
+          perYear: req(num(0, 1)), perYearStep: req(num(0, 1)),
+          startAges: arr(int(0, 500), { minItems: 2, maxItems: 2 }),
+        }, { check: (v, err) => {
+          if (v.elderAge > v.deathAge) err('elderAge must not be above deathAge');
+          if (v.startAges && v.startAges[0] > v.startAges[1]) err('startAges must be [lowest, highest]');
+        } }),
+      }),
+      animals: obj({ species: req(arr(ref('animal'))), scale: num(0, 100) }), // Phase 8 (animals.js): wild herds (default: every species; [] turns them off)
+      monsters: obj({ species: req(arr(ref('monster'))), scale: num(0, 100) }), // Phase 8c (monsters.js): lairs (default: every species; [] turns them off)
+      nature: obj({ spread: arr(obj({ node: req(ref('node')), perDay: req(num(0, 1)), radius: req(int(1, 10)), minNear: int(0, 24), maxNear: req(int(1, 24)) })) }), // Phase 5b (regrow.js): forests spread
       travel: TRAVEL, // trip budgets for colonists (ai/trips.js); absent: off unless the AI profile sets it
       eraDrive: obj({ urgency: num(0, 2), afterDays: num(0, 3650) }), // afterDays: from this many days after the village's founding (default 0)
       // Villages founded during play by settlers leaving crowded villages (founding.js). Absent: off.
@@ -512,7 +557,8 @@ export const CONTENT_TYPES = {
   villageProfile: {
     doc: 'The personality of an AI village: who lives there, what it starts with, what it researches and keeps in stock, and how it trades. No free resources: it uses the same economy as the player.',
     schema: obj({
-      id, name,
+      id, name, people: ref('people'), // its villages' people (Peoples and traits; default: the default people)
+      code: map({ type: 'ref', to: 'civLaw' }, str(40)), // the civilization laws its villages lean to (civlaws.js)
       settlementNames: req(arr(str(40), { minItems: 1 })),
       // Kingdom name patterns ("Kingdom of {capital}"), used when a village of this profile becomes a capital
       // (kingdoms.js picks one by a hash of the capital's id; without them the defaults are used).
@@ -531,6 +577,8 @@ export const CONTENT_TYPES = {
       // Laws on controlled goods (items tagged core:controlled), keyed by item id, by tag, or `default`.
       laws: map(str(80), { type: 'enum', values: ['legal', 'restricted', 'banned'] }),
       enforcement: num(0, 1), // how strict the village watch is (seizure odds)
+      temperament: num(0, 5), // Phase 5 (war.js): how quickly it quarrels over land (default 1)
+      conquest: { type: 'enum', values: ['absorb', 'sack'] }, // Phase 5 (war.js): what it does with a village it beats (default absorb)
     }),
   },
   techField: {
@@ -567,17 +615,120 @@ export const CONTENT_TYPES = {
     doc: 'Colonist names.',
     schema: obj({ id, name, names: req(arr(str(30), { minItems: 1 })), surnames: arr(str(30)) }), // surnames: used once every first name is taken (names.js)
   },
+  people: {
+    doc: 'A people (peoples.js, Peoples and traits): every colonist and village belongs to one; villages keep to one people. default: the people of classic colonists and old saves (exactly one should have it). terrains: its home land (founding and spawn previews). namePool: its own names; look: its own palette (appearance.js). needs: need decay multipliers (1 = as defined); cold: degrees C later (+) or sooner (-) the cold sets in; work: work-speed multipliers by skill; walk: walking speed multiplier; temperament: border rivalry 0-5 for its villages without a profile temperament; food: eaten first; traitOdds: [none, one, two] weights of how many traits a new person has. about: what it is (shown).',
+    schema: obj({
+      id, name, plural: str(40), about: str(300), default: bool(),
+      terrains: arr(ref('terrain')),
+      needs: map({ type: 'ref', to: 'need' }, num(0.1, 10)), cold: num(-30, 30),
+      work: map({ type: 'ref', to: 'skill' }, num(0.1, 10)), walk: num(0.25, 4),
+      temperament: int(0, 5), food: ref('item'),
+      traitOdds: arr(num(0, 100), { minItems: 3, maxItems: 3 }),
+      namePool: ref('namePool'), // its own names (default: the scenario's)
+      prefer: map({ type: 'tag' }, ref('building')), // slot tag -> the building it builds there when unlocked and affordable (construction.js)
+      code: map({ type: 'ref', to: 'civLaw' }, str(40)), // the civilization laws its villages lean to (civlaws.js)
+      look: obj({ // its own palette (default: today's, appearance.js)
+        skin: arr(color, { minItems: 1 }), hair: arr(color, { minItems: 1 }), pants: arr(color, { minItems: 1 }),
+        styles: arr({ type: 'enum', values: ['short', 'crop', 'long', 'bun', 'ponytail', 'curly', 'bald', 'braid', 'mohawk'] }, { minItems: 1 }),
+        build: arr(num(0.5, 2), { minItems: 2, maxItems: 2 }), height: arr(num(0.5, 2), { minItems: 2, maxItems: 2 }), beard: num(0, 1),
+      }),
+      color,
+    }),
+  },
+  trait: {
+    doc: 'A personal trait (peoples.js, Peoples and traits): each person has at most two; children may inherit them (inherit: the chance each passes on). opposite: a trait it never goes with. weight: how often it is drawn for a new person. effects: work (all work), workBy (by skill), walk, learn (skill gain), tend (tending and treating patients), needs (decay by need), illnessChance and illnessStrength, heal, cold (degrees C later the cold sets in), fightHp (the health an armed person needs to fight; above 100: never fights), wolfHp (the health needed to fend off wolves), flee (tiles at which danger is fled), party (first: joins hunt parties first; never: does not join), trade (a village asks this much more per such adult). about: what it does (shown).',
+    schema: obj({
+      id, name, about: str(300), opposite: ref('trait'), weight: req(num(0, 100)), inherit: num(0, 1),
+      effects: obj({
+        work: num(0.1, 10), workBy: map({ type: 'ref', to: 'skill' }, num(0.1, 10)), walk: num(0.25, 4), learn: num(0, 10), tend: num(0.1, 10),
+        needs: map({ type: 'ref', to: 'need' }, num(0.1, 10)), illnessChance: num(0, 10), illnessStrength: num(0.1, 10), heal: num(0.1, 10),
+        cold: num(-30, 30), fightHp: num(0, 101), wolfHp: num(0, 100), flee: num(0, 50),
+        party: { type: 'enum', values: ['first', 'never'] }, trade: num(0, 1), mood: num(-50, 50),
+      }),
+    }),
+  },
+  monster: {
+    doc: 'A wild monster (monsters.js, Phase 8c): a single strong creature living at a lair on its terrains, about one lair per perTiles tiles of them, at least 80 tiles from any village (every game has at least minWorld of the species with the most ground, as far from villages as the map allows). It roams up to roam chunks from its lair; a slain one is replaced after respawnDays unless the lair is cleared. health, speed (tiles a step), damage [lo, hi] a blow, fightGroup: armed people it takes to fight it; night: it hunts only at night. behaviour near villages: trample (fields, and anyone near its den), stalk (lone people outdoors at night), tear (wooden building parts). carcass (an item) or drops (items) when slain. godCost: favour to send one. about: what it is (shown).',
+    schema: obj({
+      id, name, plural: str(40), about: str(300),
+      terrains: req(arr(ref('terrain'), { minItems: 1 })), perTiles: req(num(1000, 1e9)), minWorld: int(0, 10),
+      health: req(num(1, 100000)), speed: req(num(0.1, 10)), damage: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })), fightGroup: req(int(1, 20)),
+      behaviour: req({ type: 'enum', values: ['trample', 'stalk', 'tear'] }), roam: req(int(0, 20)), respawnDays: req(num(0, 10000)), night: bool(), godCost: num(0, 1000),
+      carcass: ref('item'), drops: arr(obj({ item: req(ref('item')), qty: req(int(1, 1000)) })),
+      color, render,
+    }),
+  },
+  animal: {
+    doc: 'A wild animal species (animals.js, Phase 8). Herds of herd [lo, hi] live on its terrains: density herds per 1,000 tiles of them when the world starts, cap animals per 1,000 tiles the land feeds. Far from people a herd is a count, moved one chunk at most every moveHours and grown once a year in spring by births (less as its land fills); winterLoss a day in winter (three times that on poor winter ground: under a fifth of its ground is winterTerrains, which it moves toward in winter); droughtLoss a day in a drought (grazers also move away from one). godCost: favour a head when the gods send it (the animals power, godanimals.js; default 3). lostLoss (default 0.05) a day in a chunk with none of its ground, crowdLoss (default 0.03) in a chunk holding over 1.5 times what its ground feeds; such herds also move on. diet graze or hunt (prey: species it eats; a pack with no prey for starveDays loses one). fear: the distance at which it runs from people and from predators.',
+    schema: obj({
+      id, name, plural: str(40),
+      herd: req(arr(int(1, 100), { minItems: 2, maxItems: 2 })), terrains: req(arr(ref('terrain'), { minItems: 1 })),
+      density: req(num(0, 100)), cap: req(num(0, 1000)), health: req(num(1, 1000)), speed: req(num(0.1, 10)),
+      diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
+      fear: obj({ people: num(0, 50), predators: num(0, 50) }),
+      carcass: ref('item'), // what a kill leaves (hunting, Phase 8 slice 3)
+      births: req(num(0, 10)), winterLoss: req(num(0, 1)), winterTerrains: arr(ref('terrain'), { minItems: 1 }), droughtLoss: num(0, 1), godCost: num(0, 1000), lostLoss: num(0, 1), crowdLoss: num(0, 1), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
+      color, render,
+    }),
+  },
+  illness: {
+    doc: 'A contagious illness (illness.js, Phase 5). While ill (days), its severity grows by growPerHour (treatedGrowth of that once a doctor treats it with medicine); then it heals and the person is immune for immunityDays. contagion: daily chance to pass it to each person sharing a home (scenario villageShare of it for the rest of the village); travel: chance to pass along a contact between villages (a delivery, caravan or traders).',
+    schema: obj({
+      id, name,
+      contagion: req(num(0, 1)), travel: req(num(0, 1)),
+      growPerHour: req(num(0, 50)), days: req(num(0.1, 100)), immunityDays: req(num(0, 10000)), treatedGrowth: req(num(0, 1)),
+      plague: { type: 'bool' }, // Phase 5b: sent by the plague power; spreads even where a scenario has no illness rules
+    }),
+  },
+  thought: {
+    doc: 'A thought that moves a person\'s mood (mood.js, Mood): its name (shown) and value (-100..100; for core:laws the multiplier of the village laws\' moods, for core:comfort the most a comfortable home gives). When it applies is decided in mood.js by its id.',
+    schema: obj({ id, name, value: req(num(-100, 100)) }),
+  },
+  petitionKind: {
+    doc: 'A kind of prayer (petitions.js, Phase 13): raised when a real trouble is found in a village (decided in code by its id), answered by one of its powers (answers: { power, brush? }) aimed at the village, open for days, then a cooldown before the village asks again.',
+    schema: obj({ id, name, about: str(300), answers: req(arr(obj({ power: req(str(40)), brush: str(40) }), { minItems: 1, maxItems: 6 })), days: req(num(0.5, 100)), cooldownDays: req(num(0, 365)) }),
+  },
+  eventKind: {
+    doc: 'A kind of chronicle event (chronicle.js, Phase 12): its name and importance. routine lines roll off with the newest 500; notable and milestone events are kept (up to 2,000, older ones counted by year and village). notify: world (news for the whole world) or own (only when it concerns the player\'s village or something followed); absent: never.',
+    schema: obj({ id, name, importance: req({ type: 'enum', values: ['routine', 'notable', 'milestone'] }), notify: { type: 'enum', values: ['world', 'own'] } }),
+  },
+  civLaw: {
+    doc: 'A law of a civilization (civlaws.js, Civilization laws): villages keep a code of them (settlement.code); options, the first being the default (today\'s game), each with what it does (about) and its mood (for the Mood phase: how people feel about living under it, -10..10). kingdom: set by a kingdom\'s capital for every member. Peoples and village profiles lean to options (their `code`).',
+    schema: obj({
+      id, name, about: str(300), kingdom: bool(),
+      options: req(arr(obj({ id: req(str(40)), name: req(str(60)), about: str(300), mood: num(-10, 10) }), { minItems: 2, maxItems: 6 })),
+    }),
+  },
+  worldLaw: {
+    doc: 'A world law the gods switch during play (worldlaws.js, World laws): values, the first being the default (no law), each with a name and what it does (about, shown in the preview). Free; saved in s.worldLaws only while not at its default.',
+    schema: obj({
+      id, name, about: str(300),
+      values: req(arr(obj({ id: req(str(40)), name: req(str(60)), about: str(300) }), { minItems: 2, maxItems: 8 })),
+    }),
+  },
   godRules: {
     doc: 'The numbers behind the god powers (god.js, Phase 2c): favour (start, max, regeneration perDay), the cost of each power (costs.settler is per settler; omen is the harmless test power, default 0), blessing length and multipliers, the inspire fraction, and the spawn limits and supplies. A scenario picks one with its optional `god` id; otherwise core:god applies. In a Sandbox game every power is free.',
     schema: obj({
       id, name,
+      followDays: num(0.5, 60), // Phase 14 (followup.js): days until a power's outcome card (default 3)
       favour: req(obj({ start: req(num(0, 1e6)), max: req(num(0, 1e6)), perDay: req(num(0, 1e6)) }, { check: (v, err) => {
         if (v.start > v.max) err('start must not be above max');
       } })),
-      costs: req(obj({ settler: req(num(0, 1e6)), bless: req(num(0, 1e6)), inspire: req(num(0, 1e6)), omen: num(0, 1e6) })),
+      costs: req(obj({ settler: req(num(0, 1e6)), bless: req(num(0, 1e6)), inspire: req(num(0, 1e6)), omen: num(0, 1e6),
+        lightning: num(0, 1e6), smite: num(0, 1e6), fire: num(0, 1e6), meteor: num(0, 1e6), quake: num(0, 1e6), tornado: num(0, 1e6), plague: num(0, 1e6), rain: num(0, 1e6), drought: num(0, 1e6), banish: num(0, 1e6), shapeTile: num(0, 1e6), trait: num(0, 1e6) })), // Phase 5b; banish: Phase 8c; shapeTile: world shaping (a tile); trait: Peoples and traits
       bless: req(obj({ days: req(num(0.1, 1000)), maxDays: req(num(0.1, 1000)), work: req(num(1, 10)), growth: req(num(1, 10)) }, { check: (v, err) => {
         if (v.days > v.maxDays) err('days must not be above maxDays');
       } })),
+      // Phase 5b (godwrath.js): numbers of the destructive powers; defaults in godwrath.js.
+      wrath: obj({
+        lightning: obj({ wound: req(arr(num(0, 100), { minItems: 2, maxItems: 2 })) }),
+        meteor: obj({ radius: int(1, 6), ring: int(0, 8), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }), fire: num(0, 1), iron: arr(int(0, 100), { minItems: 2, maxItems: 2 }), item: ref('item') }),
+        plague: obj({ share: num(0, 1), illness: ref('illness') }),
+        weather: obj({ rain: obj({ radius: int(1, 100), days: num(0.05, 60), grow: num(0, 10) }), drought: obj({ radius: int(1, 100), days: num(0.05, 60), wither: num(0, 10), spread: num(0, 10) }), maxAreas: int(1, 20) }),
+        tornado: obj({ step: int(1, 2400), hours: num(0.1, 48), radius: int(0, 4), wander: num(0, 1), destroy: num(0, 1), light: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }), throw: arr(int(0, 20), { minItems: 2, maxItems: 2 }), maxStorms: int(1, 20) }),
+        quake: obj({ radius: int(1, 30), collapse: num(0, 1), sturdy: num(0, 1), wound: arr(num(0, 100), { minItems: 2, maxItems: 2 }) }),
+        fire: obj({ step: int(1, 2400), spread: num(0, 1), burnTicks: int(1, 100000), maxTiles: int(1, 100000), burnPerStep: num(0, 100), scorchDays: num(0, 1000), cropFlammable: num(0, 1), threat: int(0, 10), fightReach: int(0, 200) /* 0: no firefighting */, fightWork: num(1, 10000), fightWater: int(0, 50), distantPut: num(0, 1) }),
+      }),
       inspire: req(obj({ fraction: req(num(0.01, 1)) })), // research share added per inspiration (above 0: an inspiration always advances)
       spawn: req(obj({
         maxCount: req(int(1, 10)),            // the most settlers one command may bring

@@ -22,13 +22,16 @@ import { foundingRules, FOUNDING_DEFAULTS, siteProblem, pileCells } from './foun
 import { newResearchState, ensureSettlement, settlementOf } from './research.js';
 import { villageColor } from './villages.js';
 import { makeLook } from './appearance.js';
-import { namePoolOf, uniqueName, firstByKey } from './names.js';
+import { namePoolOf, uniqueName, firstByKey, usedNames } from './names.js';
 import { ensureAdult, isAdult } from './people.js';
 import { homeBeds } from './construction.js';
 import { emptyPlan } from './planner.js';
 import { LOD, wantDetail, setDetail, isAbstract } from './lod.js';
 import { rings, octile } from './util.js';
 import { claimRadius } from './territory.js';
+import { livingCount } from './fallen.js';
+import { defaultPeople, peopleOfSettlement, settleFolk, paletteOf, peopleByLand } from './peoples.js';
+import { startCode } from './civlaws.js';
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -93,8 +96,9 @@ function wouldBeAbstract(g, x, y) {
 }
 
 function validate(g, a, r) {
-  const k = Object.keys(a).find((x) => !['x', 'y', 'count', 'mode', 'profile', 'name'].includes(x));
-  if (k) return `settlers take only x, y, count, mode, profile and name (not "${String(k).slice(0, 40)}")`;
+  const k = Object.keys(a).find((x) => !['x', 'y', 'count', 'mode', 'profile', 'name', 'people'].includes(x));
+  if (k) return `settlers take only x, y, count, mode, profile, name and people (not "${String(k).slice(0, 40)}")`;
+  if (has(a.people) && (typeof a.people !== 'string' || !g.reg.get('people', a.people))) return `there is no people "${String(a.people).slice(0, 40)}"`;
   if (!Number.isInteger(a.x) || !Number.isInteger(a.y)) return 'pick a tile (whole x and y)';
   if (!g.inB(a.x, a.y)) return 'that spot is outside the map';
   const max = r.spawn.maxCount;
@@ -115,7 +119,7 @@ function validate(g, a, r) {
     if (Object.values(g.s.settlements).some((st) => String(st.name).toLowerCase() === low)) return `a village called ${n} already exists`;
   }
   const R = foundingRules(g) || FOUNDING_DEFAULTS;
-  const nV = Object.keys(g.s.settlements).length;
+  const nV = livingCount(g); // ruins do not count (fallen.js)
   if (nV >= R.maxVillages) return `the world already has ${nV} villages (the most is ${R.maxVillages})`;
   return siteProblem(g, a.x, a.y, R, null);
 }
@@ -124,6 +128,7 @@ function validate(g, a, r) {
 function joinProblem(g, a, r) {
   const sid = ownerAt(g, a.x, a.y);
   if (!sid || !g.s.settlements[sid]) return { sid: null, reason: 'that spot is in no village\'s territory' };
+  if (g.s.settlements[sid].fallen) return { sid, reason: `${g.s.settlements[sid].name} has fallen; only ruins are left` }; // fallen.js
   const st = g.s.settlements[sid], c = st.center || g.s.center;
   if (!g.isPassable(a.x, a.y)) return { sid, reason: 'the settlers cannot stand there' };
   const home = g.regionOf(c.x, c.y);
@@ -136,6 +141,9 @@ function joinProblem(g, a, r) {
     const d = octile(a.x, a.y, c.x, c.y);
     if (d > lim) return { sid, h, reason: `too far from ${st.name} to join (${Math.round(d)} tiles)` };
   }
+  // Peoples keep apart (the owner's answer 4): settlers join only a village of their own people.
+  const folk = has(a.people) ? a.people : peopleOfSettlement(g, sid);
+  if (folk && folk !== peopleOfSettlement(g, sid)) return { sid, h, reason: `${g.reg.get('people', folk).plural || g.reg.get('people', folk).name} will not settle among the ${g.reg.get('people', peopleOfSettlement(g, sid))?.plural || 'others'} of ${st.name}` };
   const room = h.beds + r.spawn.joinOverHousing - h.people;
   if (a.count > room) return { sid, h, reason: `no room: ${plural(h.beds, 'bed')}, ${peopleN(h.people)} (+${r.spawn.joinOverHousing} allowed over housing)` };
   return { sid, h, reason: null };
@@ -152,14 +160,26 @@ function preview(g, a, r) {
       effect: `${plural(a.count, 'settler')} join ${st.name} (it has ${peopleN(h.people)} and ${plural(h.beds, 'bed')}; ${peopleN(h.people + a.count)} after they join), bringing ${listText(sup) || 'nothing'}.`,
     };
   }
-  const key = keyOf(g, null), prof = profileFor(g, a, key), name = villageName(g, a, prof, key);
+  const key = keyOf(g, null), prof = profileFor(g, a, key), name = villageName(g, a, prof, key), folk = foundPeople(g, a, prof);
   const color = villageColor(g, prof?.color || '#a0c0e0', Object.keys(g.s.settlements).length);
   const sup = supplies(g, r.spawn.suppliesPerSettler, a.count), far = wouldBeAbstract(g, a.x, a.y);
+  const fname = folk ? `${g.reg.get('people', folk).name} ` : '';
   return {
-    mode: 'found', site: { x: a.x, y: a.y, ok: true }, village: { name, profile: prof?.id || null, profileName: prof?.name || '', color, detail: far ? 'abstract' : 'full' },
+    mode: 'found', site: { x: a.x, y: a.y, ok: true }, village: { name, profile: prof?.id || null, profileName: prof?.name || '', color, detail: far ? 'abstract' : 'full', people: folk },
     people: a.count, supplies: sup, costPer: cost.per,
-    effect: `${plural(a.count, 'settler')} found ${name} here (${prof?.name || 'their own'} ways), bringing ${listText(sup) || 'nothing'}${far ? '; it is far from your village, so it is simulated at a distance' : ''}.`,
+    effect: g.s.playerSettlement === null ? `${plural(a.count, `${fname}settler`)} found ${name} here: your village, bringing ${listText(sup) || 'nothing'}.`
+      : `${plural(a.count, `${fname}settler`)} found ${name} here (${prof?.name || 'their own'} ways), bringing ${listText(sup) || 'nothing'}${far ? '; it is far from your village, so it is simulated at a distance' : ''}.`,
   };
+}
+
+/** The people of a village the gods found: the one asked for, else the profile's, else the people whose land is
+ *  under the spot (peoples.js peopleByLand, by the scenario's peoplesByLand rule or 10 tiles and 10%). */
+function foundPeople(g, a, prof) {
+  if (!defaultPeople(g)) return null;
+  if (has(a.people)) return a.people;
+  if (prof?.people && g.reg.get('people', prof.people)) return prof.people;
+  const L = g.reg.get('scenario', g.s.scenarioId)?.peoplesByLand || { radius: 10, minShare: 0.1 };
+  return peopleByLand(g, a.x, a.y, L.radius, L.minShare);
 }
 
 /** Free standing places for n people round (x0, y0) in region `region` (spiral order; never on another colonist,
@@ -186,8 +206,8 @@ function placesAround(g, x0, y0, region, n) {
 /** n new adult colonists of `sid` (like world-start founders, but every random choice from a hash of the
  *  command): ids from s.nextId, names from the scenario's pool, skills 0..5. Counted in s.god.spawned. */
 function makeSettlers(g, cmd, sid, color, spots, why) {
-  const s = g.s, key = keyOf(g, cmd), pool = namePoolOf(g, 'Settler');
-  const used = new Set(Object.values(s.colonists).map((c) => c.name));
+  const s = g.s, key = keyOf(g, cmd), folk = peopleOfSettlement(g, sid), pool = namePoolOf(g, 'Settler', folk);
+  const used = usedNames(s); // the living and the dead (death.js)
   const skills = g.reg.all('skill'), needs = g.reg.all('need');
   const ids = [];
   spots.forEach(([x, y], i) => {
@@ -201,11 +221,12 @@ function makeSettlers(g, cmd, sid, color, spots, why) {
     const nd = {};
     for (const n of needs) nd[n.id] = n.behavior === 'core:shelter' ? 0.6 : 0.8;
     const c = s.colonists[id] = {
-      id, settlementId: sid, name, color, look: makeLook(`${key}:${i}`),
+      id, settlementId: sid, name, color, look: makeLook(`${key}:${i}`, paletteOf(g, folk)),
       x, y, mv: null, skills: sk, xp: {}, needs: nd, carry: null, equip: { tool: null, weapon: null },
       homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false, idle: 0,
       status: { goal: 'Arriving', action: why, target: '', blocker: '' }, workCount: {}, origin: 'divine',
     };
+    settleFolk(g, c, peopleOfSettlement(g, sid));
     ensureAdult(g, c);
     g.ownAdd('colonists', c);
     ids.push(id);
@@ -225,15 +246,23 @@ function applyFound(g, cmd, r) {
   for (const [f, p] of Object.entries(prof?.research || {})) research.priorities[f] = p;
   const pile = pileCells(a.x, a.y).map(([x, y]) => `${x},${y}`);
   const clone = (o) => JSON.parse(JSON.stringify(o || {}));
-  const rec = {
-    id: sid, name, ...(prof ? { profile: prof.id } : {}), ai: true, color, founded: s.tick, origin: 'divine',
-    center: { x: a.x, y: a.y }, stockpile: pile, research,
-    policy: clone(prof?.policy), trade: clone(prof?.trade), laws: { ...(prof?.laws || {}) }, enforcement: prof?.enforcement ?? 0.6,
-  };
+  // In a world with no people yet (world shaping), the first village founded is the player's: no AI profile,
+  // laws and policy as a starting player village.
+  const first = s.playerSettlement === null;
+  const rec = first ? { id: sid, name, color: '#e8b84a', founded: s.tick, origin: 'divine', center: { x: a.x, y: a.y }, stockpile: pile, research }
+    : {
+      id: sid, name, ...(prof ? { profile: prof.id } : {}), ai: true, color, founded: s.tick, origin: 'divine',
+      center: { x: a.x, y: a.y }, stockpile: pile, research,
+      policy: clone(prof?.policy), trade: clone(prof?.trade), laws: { ...(prof?.laws || {}) }, enforcement: prof?.enforcement ?? 0.6,
+    };
+  const folk = foundPeople(g, a, prof);
+  if (folk) rec.people = folk;
   s.settlements[sid] = rec;
+  if (first) { s.playerSettlement = sid; s.center = { x: a.x, y: a.y }; g._own = null; } // the player's village from now on
   ensureSettlement(g.reg, s, rec);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryAdded(sid);
+  startCode(g, sid); // civilization laws: an AI village's leanings (civlaws.js)
   // Supplies: created at the site by divine power, into the new stockpile.
   const sup = supplies(g, r.spawn.suppliesPerSettler, a.count);
   for (const e of sup) divineItems(g, e.item, e.qty, a.x, a.y, sid);
@@ -244,9 +273,10 @@ function applyFound(g, cmd, r) {
   g.planDirty = true;
   (g.plans ||= {})[sid] = emptyPlan();
   (g.replanSids ||= new Set()).add(sid);
-  if (g.big && wantDetail(g, sid) === 'abstract') setDetail(g, sid, 'abstract', 'it is far from the player');
-  const ways = prof ? `, ${prof.name} ways` : '';
-  return { msg: `Divine settlers founded ${name} (${peopleN(ids.length)}${ways}; they brought ${listText(sup) || 'nothing'}).`, settlementId: sid, colonists: ids };
+  if (first) g.plan = g.plans[sid];
+  else if (g.big && wantDetail(g, sid) === 'abstract') setDetail(g, sid, 'abstract', 'it is far from the player');
+  const ways = prof && !first ? `, ${prof.name} ways` : '';
+  return { msg: `Divine settlers founded ${first ? 'your village, ' : ''}${name} (${peopleN(ids.length)}${ways}; they brought ${listText(sup) || 'nothing'}).`, settlementId: sid, colonists: ids };
 }
 
 function applyJoin(g, cmd, r) {
@@ -271,25 +301,32 @@ registerPower('spawn', {
 });
 
 /**
- * The people ledger (for tests and reports; read-only, one pass over the colonists): living people by origin.
- * Colonists never leave the world yet (there is no death or emigration out of it), so
- *   start + born + spawned = living,
- * where born = colonists with a birth tick, spawned = s.god.spawned (people made by powers; each also carries
- * origin 'divine'), and start = the rest. Pass `start` (the head-count at tick 0) to check the sum;
- * `problems` lists what does not add up.
+ * The people ledger (for tests and reports; read-only, one pass over the living and the dead): people by origin.
+ * Nobody leaves the world but by death (s.dead, death.js), so
+ *   start + born + spawned - died = living,
+ * where born = people (living or dead) with a birth tick, spawned = s.god.spawned (people made by powers; each
+ * also carries origin 'divine'), died = s.dead, and start = the rest. Pass `start` (the head-count at tick 0) to
+ * check the sum; `problems` lists what does not add up.
  */
 export function peopleCensus(g, start = null) {
-  let living = 0, born = 0, divine = 0, adults = 0;
-  for (const c of Object.values(g.s.colonists)) {
-    living++;
+  let living = 0, born = 0, divine = 0, adults = 0, died = 0;
+  const count = (c) => {
     if (c.bornTick !== undefined && c.bornTick !== null) born++;
     else if (c.origin === 'divine') divine++;
-    if (isAdult(g, c)) adults++;
-  }
+  };
+  for (const c of Object.values(g.s.colonists)) { living++; count(c); if (isAdult(g, c)) adults++; }
+  for (const d of Object.values(g.s.dead || {})) { died++; count(d); }
   const spawned = g.s.god?.spawned || 0, left = 0;
   const problems = [];
-  if (divine !== spawned) problems.push(`${divine} colonists came by divine power but the ledger counts ${spawned}`);
-  const others = living - born - divine;
-  if (start !== null && start + born + spawned - left !== living) problems.push(`start ${start} + born ${born} + spawned ${spawned} - left ${left} = ${start + born + spawned - left}, but ${living} are living`);
-  return { living, start: start ?? others, born, spawned, left, adults, ok: !problems.length, problems };
+  if (divine !== spawned) problems.push(`${divine} people came by divine power but the ledger counts ${spawned}`);
+  const others = living + died - born - divine;
+  if (start !== null && start + born + spawned - died - left !== living) problems.push(`start ${start} + born ${born} + spawned ${spawned} - died ${died} - left ${left} = ${start + born + spawned - died - left}, but ${living} are living`);
+  // Peoples and traits: villages keep to one people, so everyone is of their village's people.
+  const byPeople = {};
+  if (defaultPeople(g)) for (const c of Object.values(g.s.colonists)) {
+    byPeople[c.people] = (byPeople[c.people] || 0) + 1;
+    if (!g.reg.get('people', c.people)) problems.push(`${c.name} has no known people`);
+    else if (c.people !== peopleOfSettlement(g, c.settlementId || g.s.playerSettlement)) problems.push(`${c.name} (${c.people}) lives in a village of another people`);
+  }
+  return { living, start: start ?? others, born, spawned, died, left, adults, byPeople, ok: !problems.length, problems };
 }

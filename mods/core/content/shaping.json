@@ -1,0 +1,895 @@
+{
+  "$comment": "World shaping (src/sim/godshape.js): what the ore brush places. Iron is smelted from ore-bearing stone, so an ore rock is a rich boulder. The Blank world scenarios start with no people (people: false): shape the land, then found the first village with the spawn power; it becomes the player's.",
+  "node": [
+    {
+      "id": "core:ore_rock",
+      "name": "Ore-bearing rock",
+      "workType": "core:mine",
+      "work": 180,
+      "yields": [
+        {
+          "item": "core:stone",
+          "qty": 10
+        }
+      ],
+      "chunks": 5,
+      "passable": false,
+      "tags": [
+        "core:rock"
+      ],
+      "render": {
+        "shape": "rock",
+        "color": "#8a6a5a",
+        "color2": "#5e4638"
+      }
+    }
+  ],
+  "worldgen": [
+    {
+      "id": "core:ocean",
+      "name": "Ocean with islands",
+      "width": 1536,
+      "height": 1152,
+      "noiseScale": 40,
+      "startClearRadius": 6,
+      "startTerrain": "core:grass",
+      "layers": [
+        {
+          "terrain": "core:grass",
+          "below": 2
+        }
+      ],
+      "climate": {
+        "yearDays": 30,
+        "summer": 22,
+        "winter": -6,
+        "daySwing": 5
+      },
+      "planet": {
+        "oceanShare": 0.9,
+        "plates": {
+          "count": 22,
+          "continental": 0.4,
+          "continents": 2,
+          "landHeight": 0.55,
+          "oceanHeight": 0,
+          "jitter": 0.2,
+          "warp": 0.1,
+          "warpScale": 0.12,
+          "blend": 0.03,
+          "dome": 0.6,
+          "channel": 0.002
+        },
+        "ridges": {
+          "height": [
+            0.15,
+            0.6,
+            0.9
+          ],
+          "convergent": 0.6,
+          "rift": 0.3,
+          "width": 0.011,
+          "scale": 26,
+          "oceanSide": 0,
+          "split": 0.8,
+          "splitWidth": 0.03,
+          "segments": {
+            "scale": 0.03,
+            "cut": 0.35,
+            "soft": 0.3
+          },
+          "widthVary": 0.12,
+          "fadeBelow": 0.02,
+          "fadeWidth": 0.12
+        },
+        "shapeScale": 0.07,
+        "shapeWeight": 0.5,
+        "detailScale": 22,
+        "detailWeight": 0.16,
+        "edgeWidth": 0.12,
+        "edgeFalloff": 1.2,
+        "continentMinShare": 0.02,
+        "coast": {
+          "shallowWidth": 4
+        },
+        "climate": {
+          "lapse": 0.3,
+          "lapseFrom": 0.8,
+          "jitter": 0.06,
+          "noiseScale": 0.05,
+          "seaReach": 60,
+          "seaWeight": 0.5,
+          "beltWeight": 0.35,
+          "noiseWeight": 0.35
+        },
+        "lakes": {
+          "minDepth": 0.004,
+          "share": 0.015,
+          "minArea": 12
+        },
+        "rivers": {
+          "terrain": "core:shallows",
+          "minDrainage": 900,
+          "mountainRain": 3
+        },
+        "terrain": {
+          "ocean": "core:deep_water",
+          "shallow": "core:water",
+          "lake": "core:water",
+          "mountain": "core:mountain"
+        },
+        "passTerrain": "core:hills",
+        "minPocket": 8,
+        "start": {
+          "terrain": [
+            "core:grass",
+            "core:soil"
+          ],
+          "areaRadius": 7
+        },
+        "biomes": [
+          {
+            "terrain": "core:mountain",
+            "heightAbove": 0.94
+          },
+          {
+            "terrain": "core:snow",
+            "tempBelow": 0.08
+          },
+          {
+            "terrain": "core:hills",
+            "heightAbove": 0.87
+          },
+          {
+            "terrain": "core:sand",
+            "coastWithin": 1,
+            "heightBelow": 0.4,
+            "tempAbove": 0.25
+          },
+          {
+            "terrain": "core:tundra",
+            "tempBelow": 0.2
+          },
+          {
+            "terrain": "core:taiga",
+            "tempBelow": 0.36,
+            "moistureAbove": 0.35
+          },
+          {
+            "terrain": "core:tundra",
+            "tempBelow": 0.36
+          },
+          {
+            "terrain": "core:marsh",
+            "moistureAbove": 0.93,
+            "heightBelow": 0.35
+          },
+          {
+            "terrain": "core:jungle",
+            "tempAbove": 0.72,
+            "moistureAbove": 0.6
+          },
+          {
+            "terrain": "core:sand",
+            "tempAbove": 0.6,
+            "moistureBelow": 0.15
+          },
+          {
+            "terrain": "core:savanna",
+            "tempAbove": 0.66
+          },
+          {
+            "terrain": "core:forest_floor",
+            "moistureAbove": 0.62
+          },
+          {
+            "terrain": "core:soil",
+            "moistureAbove": 0.47
+          },
+          {
+            "terrain": "core:gravel",
+            "moistureBelow": 0.06
+          },
+          {
+            "terrain": "core:grass"
+          }
+        ],
+        "nodeBudget": 0.05,
+        "nodes": [
+          {
+            "node": "core:pine",
+            "terrain": [
+              "core:forest_floor",
+              "core:taiga"
+            ],
+            "density": 0.3,
+            "minDistFromStart": 5
+          },
+          {
+            "node": "core:pine",
+            "terrain": [
+              "core:jungle"
+            ],
+            "density": 0.4,
+            "minDistFromStart": 5
+          },
+          {
+            "node": "core:pine",
+            "terrain": [
+              "core:grass",
+              "core:soil"
+            ],
+            "density": 0.35,
+            "noiseScale": 7,
+            "noiseAbove": 0.6,
+            "minDistFromStart": 5
+          },
+          {
+            "node": "core:pine",
+            "terrain": [
+              "core:grass",
+              "core:savanna",
+              "core:tundra",
+              "core:snow"
+            ],
+            "density": 0.012,
+            "minDistFromStart": 5
+          },
+          {
+            "node": "core:boulder",
+            "terrain": [
+              "core:hills"
+            ],
+            "density": 0.09,
+            "minDistFromStart": 6
+          },
+          {
+            "node": "core:boulder",
+            "terrain": [
+              "core:gravel"
+            ],
+            "density": 0.3,
+            "minDistFromStart": 6
+          },
+          {
+            "node": "core:boulder",
+            "terrain": [
+              "core:tundra",
+              "core:grass",
+              "core:sand",
+              "core:savanna"
+            ],
+            "density": 0.012,
+            "minDistFromStart": 7
+          },
+          {
+            "node": "core:berry_bush",
+            "terrain": [
+              "core:forest_floor",
+              "core:jungle",
+              "core:grass",
+              "core:soil",
+              "core:taiga"
+            ],
+            "density": 0.018,
+            "minDistFromStart": 4
+          },
+          {
+            "node": "core:brush",
+            "terrain": [
+              "core:marsh"
+            ],
+            "density": 0.12,
+            "minDistFromStart": 3
+          },
+          {
+            "node": "core:brush",
+            "terrain": [
+              "core:grass",
+              "core:soil",
+              "core:savanna"
+            ],
+            "density": 0.05,
+            "minDistFromStart": 3
+          }
+        ]
+      }
+    }
+  ],
+  "scenario": [
+    {
+      "id": "core:blank_generated",
+      "name": "Blank world: generated land, no people yet",
+      "colonists": 5,
+      "startItems": [
+        {
+          "item": "core:wood",
+          "qty": 60
+        },
+        {
+          "item": "core:stone",
+          "qty": 20
+        },
+        {
+          "item": "core:stew",
+          "qty": 20
+        },
+        {
+          "item": "core:potato",
+          "qty": 60
+        },
+        {
+          "item": "core:bean",
+          "qty": 40
+        }
+      ],
+      "namePool": "core:names",
+      "skillMin": 0,
+      "skillMax": 6,
+      "neighbors": [
+        "core:lumber_camp",
+        "core:hill_fort",
+        "core:trading_post",
+        "core:river_hamlet",
+        "core:highland_steading",
+        "core:scholars_retreat",
+        "core:willowmere",
+        "core:stonebrook"
+      ],
+      "villages": 6,
+      "worldgen": "core:planet",
+      "size": "world",
+      "placement": "far",
+      "territory": "organic",
+      "claims": {
+        "baseRadius": 10,
+        "perPerson": 1,
+        "perDay": 0.2,
+        "maxRadius": 90,
+        "defaultCost": 1,
+        "costs": {
+          "core:forest_floor": 1.4,
+          "core:taiga": 1.3,
+          "core:jungle": 1.6,
+          "core:marsh": 2,
+          "core:tundra": 1.2,
+          "core:snow": 1.6,
+          "core:sand": 1.2,
+          "core:gravel": 1.3,
+          "core:hills": 1.8,
+          "core:shallows": 8,
+          "core:mountain": 10
+        },
+        "stops": [
+          "core:water",
+          "core:deep_water"
+        ],
+        "steepCost": 4
+      },
+      "siteWaterWalk": 24,
+      "farPlacement": {
+        "minVillages": 4,
+        "maxVillages": 8,
+        "spacingFactor": 0.1,
+        "minSpacing": 120,
+        "grid": 8,
+        "openRadius": 6,
+        "minWood": 12,
+        "minStone": 2,
+        "minFertile": 120,
+        "woodCap": 60,
+        "stoneCap": 12,
+        "fertileCap": 400,
+        "weights": {
+          "wood": 0.3,
+          "stone": 0.3,
+          "fertile": 0.3,
+          "water": 0.3,
+          "biome": 0.6,
+          "distanceCap": 1.6
+        },
+        "biomes": {
+          "core:grass": "plains",
+          "core:soil": "plains",
+          "core:forest_floor": "forest",
+          "core:taiga": "taiga",
+          "core:tundra": "tundra",
+          "core:snow": "tundra",
+          "core:jungle": "jungle",
+          "core:savanna": "savanna",
+          "core:sand": "desert",
+          "core:gravel": "desert",
+          "core:hills": "hills",
+          "core:marsh": "marsh"
+        }
+      },
+      "war": {
+        "rivalry": {
+          "perDay": 1,
+          "floor": -70,
+          "near": 110,
+          "nearPerDay": 0.9
+        },
+        "declareBelow": -50,
+        "stronger": 1.5,
+        "minStrength": 1.5,
+        "warnDays": 1,
+        "battle": {
+          "woundsPerStrength": 0.2,
+          "minSeverity": 15,
+          "maxSeverity": 50
+        },
+        "truce": {
+          "weakerShare": 0.25,
+          "maxDays": 20,
+          "minDays": 6
+        },
+        "conquest": {
+          "beatenDays": 2,
+          "tribute": 0.5,
+          "beatenShare": 0.15
+        }
+      },
+      "illness": {
+        "outbreakPerDay": 0.01,
+        "crowding": 3,
+        "graceDays": 10,
+        "villageShare": 0.3,
+        "kinds": [
+          {
+            "illness": "core:cough",
+            "weight": 6
+          },
+          {
+            "illness": "core:fever",
+            "weight": 3
+          },
+          {
+            "illness": "core:grey_fever",
+            "weight": 1
+          }
+        ]
+      },
+      "nature": {
+        "spread": [
+          {
+            "node": "core:pine",
+            "perDay": 0.004,
+            "radius": 2,
+            "maxNear": 6
+          },
+          {
+            "node": "core:berry_bush",
+            "perDay": 0.01,
+            "radius": 3,
+            "maxNear": 2,
+            "minNear": 1
+          },
+          {
+            "node": "core:brush",
+            "perDay": 0.01,
+            "radius": 2,
+            "maxNear": 4
+          }
+        ]
+      },
+      "life": {
+        "cold": {
+          "below": -2,
+          "perHour": 0.4,
+          "shelter": 6,
+          "fires": [
+            "core:campfire",
+            "core:hearth"
+          ],
+          "fireRadius": 5,
+          "foundWaitDays": 8
+        },
+        "aging": {
+          "elderAge": 50,
+          "elderWork": 0.8,
+          "deathAge": 60,
+          "perYear": 0.2,
+          "perYearStep": 0.15,
+          "startAges": [
+            16,
+            60
+          ]
+        }
+      },
+      "travel": {
+        "maxWalk": 120,
+        "checkBeyond": 30,
+        "farFromHome": 30,
+        "walkTicks": 4.6,
+        "workTicks": 150
+      },
+      "eraDrive": {
+        "urgency": 0.3,
+        "afterDays": 5
+      },
+      "founding": {
+        "maxVillages": 64,
+        "minAdults": 5,
+        "crowdedDays": 3,
+        "foodDaysLeft": 5,
+        "cooldownDays": 25,
+        "founders": [
+          2,
+          4
+        ],
+        "sendFoodDays": 6,
+        "sendItems": {
+          "core:wood": 20,
+          "core:stone": 10
+        },
+        "searchRadius": 36,
+        "minSpacing": 30,
+        "siteRetryDays": 5,
+        "growBeds": 1,
+        "growAfterDays": 5,
+        "perDay": 4,
+        "daughterMinDays": 40,
+        "searchesPerDay": 8,
+        "outward": {
+          "searchFactor": 0.06,
+          "maxSearch": 140,
+          "stride": 8,
+          "cell": 8,
+          "box": 2,
+          "discovered": true,
+          "farCap": 60,
+          "weights": {
+            "far": 1,
+            "free": 0.6,
+            "wood": 0.25,
+            "stone": 0.25,
+            "fertile": 0.3,
+            "out": 0.3
+          },
+          "caps": {
+            "wood": 30,
+            "stone": 8
+          }
+        }
+      },
+      "contact": {
+        "explore": {
+          "everyDays": 2,
+          "firstDays": 1,
+          "firstRange": 5,
+          "rangeStep": 2,
+          "maxRange": 48,
+          "tilesPerDay": 320,
+          "sight": 1,
+          "reach": 16,
+          "minLand": 0.2,
+          "around": 3,
+          "farWeight": 1
+        },
+        "traders": {
+          "everyDays": 8,
+          "firstDays": 2,
+          "tilesPerDay": 240,
+          "relation": 1
+        },
+        "borders": true,
+        "scoutRange": 60,
+        "scoutNeeds": 0.7,
+        "tendRange": 60,
+        "tradeWalkRange": 60,
+        "pruneTradesDays": 10,
+        "tradeRange": 400,
+        "maxActiveTrades": 3
+      },
+      "market": {
+        "reach": 120,
+        "landReach": 400,
+        "k": 200,
+        "minFactor": 0.5,
+        "maxFactor": 2,
+        "step": 0.25,
+        "minContacts": 2,
+        "researchContacts": 3
+      },
+      "people": false
+    },
+    {
+      "id": "core:blank_ocean",
+      "name": "Blank world: open ocean with a few islands, no people yet",
+      "colonists": 5,
+      "startItems": [
+        {
+          "item": "core:wood",
+          "qty": 60
+        },
+        {
+          "item": "core:stone",
+          "qty": 20
+        },
+        {
+          "item": "core:stew",
+          "qty": 20
+        },
+        {
+          "item": "core:potato",
+          "qty": 60
+        },
+        {
+          "item": "core:bean",
+          "qty": 40
+        }
+      ],
+      "namePool": "core:names",
+      "skillMin": 0,
+      "skillMax": 6,
+      "neighbors": [
+        "core:lumber_camp",
+        "core:hill_fort",
+        "core:trading_post",
+        "core:river_hamlet",
+        "core:highland_steading",
+        "core:scholars_retreat",
+        "core:willowmere",
+        "core:stonebrook"
+      ],
+      "villages": 6,
+      "worldgen": "core:ocean",
+      "size": "world",
+      "placement": "far",
+      "territory": "organic",
+      "claims": {
+        "baseRadius": 10,
+        "perPerson": 1,
+        "perDay": 0.2,
+        "maxRadius": 90,
+        "defaultCost": 1,
+        "costs": {
+          "core:forest_floor": 1.4,
+          "core:taiga": 1.3,
+          "core:jungle": 1.6,
+          "core:marsh": 2,
+          "core:tundra": 1.2,
+          "core:snow": 1.6,
+          "core:sand": 1.2,
+          "core:gravel": 1.3,
+          "core:hills": 1.8,
+          "core:shallows": 8,
+          "core:mountain": 10
+        },
+        "stops": [
+          "core:water",
+          "core:deep_water"
+        ],
+        "steepCost": 4
+      },
+      "siteWaterWalk": 24,
+      "farPlacement": {
+        "minVillages": 4,
+        "maxVillages": 8,
+        "spacingFactor": 0.1,
+        "minSpacing": 120,
+        "grid": 8,
+        "openRadius": 6,
+        "minWood": 12,
+        "minStone": 2,
+        "minFertile": 120,
+        "woodCap": 60,
+        "stoneCap": 12,
+        "fertileCap": 400,
+        "weights": {
+          "wood": 0.3,
+          "stone": 0.3,
+          "fertile": 0.3,
+          "water": 0.3,
+          "biome": 0.6,
+          "distanceCap": 1.6
+        },
+        "biomes": {
+          "core:grass": "plains",
+          "core:soil": "plains",
+          "core:forest_floor": "forest",
+          "core:taiga": "taiga",
+          "core:tundra": "tundra",
+          "core:snow": "tundra",
+          "core:jungle": "jungle",
+          "core:savanna": "savanna",
+          "core:sand": "desert",
+          "core:gravel": "desert",
+          "core:hills": "hills",
+          "core:marsh": "marsh"
+        }
+      },
+      "war": {
+        "rivalry": {
+          "perDay": 1,
+          "floor": -70,
+          "near": 110,
+          "nearPerDay": 0.9
+        },
+        "declareBelow": -50,
+        "stronger": 1.5,
+        "minStrength": 1.5,
+        "warnDays": 1,
+        "battle": {
+          "woundsPerStrength": 0.2,
+          "minSeverity": 15,
+          "maxSeverity": 50
+        },
+        "truce": {
+          "weakerShare": 0.25,
+          "maxDays": 20,
+          "minDays": 6
+        },
+        "conquest": {
+          "beatenDays": 2,
+          "tribute": 0.5,
+          "beatenShare": 0.15
+        }
+      },
+      "illness": {
+        "outbreakPerDay": 0.01,
+        "crowding": 3,
+        "graceDays": 10,
+        "villageShare": 0.3,
+        "kinds": [
+          {
+            "illness": "core:cough",
+            "weight": 6
+          },
+          {
+            "illness": "core:fever",
+            "weight": 3
+          },
+          {
+            "illness": "core:grey_fever",
+            "weight": 1
+          }
+        ]
+      },
+      "nature": {
+        "spread": [
+          {
+            "node": "core:pine",
+            "perDay": 0.004,
+            "radius": 2,
+            "maxNear": 6
+          },
+          {
+            "node": "core:berry_bush",
+            "perDay": 0.01,
+            "radius": 3,
+            "maxNear": 2,
+            "minNear": 1
+          },
+          {
+            "node": "core:brush",
+            "perDay": 0.01,
+            "radius": 2,
+            "maxNear": 4
+          }
+        ]
+      },
+      "life": {
+        "cold": {
+          "below": -2,
+          "perHour": 0.4,
+          "shelter": 6,
+          "fires": [
+            "core:campfire",
+            "core:hearth"
+          ],
+          "fireRadius": 5,
+          "foundWaitDays": 8
+        },
+        "aging": {
+          "elderAge": 50,
+          "elderWork": 0.8,
+          "deathAge": 60,
+          "perYear": 0.2,
+          "perYearStep": 0.15,
+          "startAges": [
+            16,
+            60
+          ]
+        }
+      },
+      "travel": {
+        "maxWalk": 120,
+        "checkBeyond": 30,
+        "farFromHome": 30,
+        "walkTicks": 4.6,
+        "workTicks": 150
+      },
+      "eraDrive": {
+        "urgency": 0.3,
+        "afterDays": 5
+      },
+      "founding": {
+        "maxVillages": 64,
+        "minAdults": 5,
+        "crowdedDays": 3,
+        "foodDaysLeft": 5,
+        "cooldownDays": 25,
+        "founders": [
+          2,
+          4
+        ],
+        "sendFoodDays": 6,
+        "sendItems": {
+          "core:wood": 20,
+          "core:stone": 10
+        },
+        "searchRadius": 36,
+        "minSpacing": 30,
+        "siteRetryDays": 5,
+        "growBeds": 1,
+        "growAfterDays": 5,
+        "perDay": 4,
+        "daughterMinDays": 40,
+        "searchesPerDay": 8,
+        "outward": {
+          "searchFactor": 0.06,
+          "maxSearch": 140,
+          "stride": 8,
+          "cell": 8,
+          "box": 2,
+          "discovered": true,
+          "farCap": 60,
+          "weights": {
+            "far": 1,
+            "free": 0.6,
+            "wood": 0.25,
+            "stone": 0.25,
+            "fertile": 0.3,
+            "out": 0.3
+          },
+          "caps": {
+            "wood": 30,
+            "stone": 8
+          }
+        }
+      },
+      "contact": {
+        "explore": {
+          "everyDays": 2,
+          "firstDays": 1,
+          "firstRange": 5,
+          "rangeStep": 2,
+          "maxRange": 48,
+          "tilesPerDay": 320,
+          "sight": 1,
+          "reach": 16,
+          "minLand": 0.2,
+          "around": 3,
+          "farWeight": 1
+        },
+        "traders": {
+          "everyDays": 8,
+          "firstDays": 2,
+          "tilesPerDay": 240,
+          "relation": 1
+        },
+        "borders": true,
+        "scoutRange": 60,
+        "scoutNeeds": 0.7,
+        "tendRange": 60,
+        "tradeWalkRange": 60,
+        "pruneTradesDays": 10,
+        "tradeRange": 400,
+        "maxActiveTrades": 3
+      },
+      "market": {
+        "reach": 120,
+        "landReach": 400,
+        "k": 200,
+        "minFactor": 0.5,
+        "maxFactor": 2,
+        "step": 0.25,
+        "minContacts": 2,
+        "researchContacts": 3
+      },
+      "people": false
+    }
+  ]
+}

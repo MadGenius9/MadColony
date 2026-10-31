@@ -1,0 +1,105 @@
+{
+  "$comment": "Mood (docs/proposals/mood.md): a person's mood moves toward the sum of their thoughts. When each applies is decided in src/sim/mood.js by its id; the values are here. core:laws: the multiplier of the village's law moods (civlaws.json); core:comfort: the most a comfortable home gives.",
+  "thought": [
+    {
+      "id": "core:hungry",
+      "name": "Hungry",
+      "value": -6
+    },
+    {
+      "id": "core:starving",
+      "name": "Starving",
+      "value": -20
+    },
+    {
+      "id": "core:thirsty",
+      "name": "Thirsty",
+      "value": -6
+    },
+    {
+      "id": "core:parched",
+      "name": "Parched",
+      "value": -20
+    },
+    {
+      "id": "core:exhausted",
+      "name": "Exhausted",
+      "value": -10
+    },
+    {
+      "id": "core:homeless",
+      "name": "Homeless",
+      "value": -15
+    },
+    {
+      "id": "core:own_home",
+      "name": "A home of my own",
+      "value": 5
+    },
+    {
+      "id": "core:comfort",
+      "name": "A comfortable home",
+      "value": 8
+    },
+    {
+      "id": "core:slept_rough",
+      "name": "Slept on the ground",
+      "value": -5
+    },
+    {
+      "id": "core:good_meal",
+      "name": "A good meal",
+      "value": 4
+    },
+    {
+      "id": "core:favourite_food",
+      "name": "My favourite food",
+      "value": 4
+    },
+    {
+      "id": "core:grieving",
+      "name": "Grieving",
+      "value": -20
+    },
+    {
+      "id": "core:hurt",
+      "name": "Hurt",
+      "value": -8
+    },
+    {
+      "id": "core:ill",
+      "name": "Ill",
+      "value": -10
+    },
+    {
+      "id": "core:scarred",
+      "name": "A lasting injury",
+      "value": -4
+    },
+    {
+      "id": "core:freezing",
+      "name": "Freezing",
+      "value": -10
+    },
+    {
+      "id": "core:laws",
+      "name": "The village's laws",
+      "value": 3
+    },
+    {
+      "id": "core:at_war",
+      "name": "At war",
+      "value": -5
+    },
+    {
+      "id": "core:death",
+      "name": "A death in the village",
+      "value": -4
+    },
+    {
+      "id": "core:crowded",
+      "name": "Crowded",
+      "value": -5
+    }
+  ]
+}

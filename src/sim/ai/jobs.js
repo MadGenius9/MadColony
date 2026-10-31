@@ -1,6 +1,9 @@
 // Job drivers: each job is plain serializable data advanced one tick at a time by its driver.
 // Drivers return 'running', 'done', or { fail: reason, cooldown? }.
 import { qualSpeed } from '../education.js';
+import { elderFactor } from '../life.js';
+import { spreadContact } from '../illness.js';
+import { lastingFactor } from '../medical.js';
 import { relationPeek } from '../villages.js';
 import { sleepWarmth, refuelSpot } from '../heat.js';
 import { fuelSpec } from '../power.js';
@@ -17,6 +20,10 @@ import { TICKS_PER_HOUR } from '../constants.js';
 import { NEED_BEHAVIORS, GROUND_REST_RATE, bedTooFar } from './needs.js';
 import { energyLastsWalkHome } from './trips.js';
 import { blessingOf } from '../god.js';
+import { droughtAt } from '../weatherat.js';
+import { modsOf } from '../peoples.js';
+import { rationOf, RATION } from '../civlaws.js';
+import { noteMeal, moodWork } from '../mood.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -40,13 +47,21 @@ export function workSpeed(g, c, workType, skill) {
   if ((c.needs['core:energy'] ?? 1) <= 0.03) sp *= 0.5;
   sp *= lightFactor(g, c.x, c.y); // working in the dark is slower
   if (workType) sp *= qualSpeed(g, c, workType); // a qualification for this work makes it faster (never required)
+  if (c.grief && c.grief.until > g.s.tick) sp *= c.grief.work; // mourning a close relative (burial.js)
+  sp *= lastingFactor(c, workType); // lasting injuries (medical.js)
+  sp *= elderFactor(g, c); // the old work more slowly (scenarios with aging rules, life.js)
   if (g.s.god) { const b = blessingOf(g, c.settlementId || g.s.playerSettlement); if (b) sp *= b.work; } // a divine blessing (godboons.js); skipped at once without s.god
+  const m = modsOf(g, c); // the person's people and traits (peoples.js)
+  if (rationOf(g, c) !== 1) sp *= RATION.work; // rationing: smaller meals, slower work (civlaws.js)
+  if (c.mood) sp *= moodWork(c.mood); // mood (mood.js): happy people work a little faster, miserable ones slower
+  sp *= m.work * (skill ? m.workBy[skill] ?? 1 : 1);
+  if (workType === 'core:doctor') sp *= m.tend; // treating patients (medical.js); kind people are quicker
   return sp;
 }
 
 export function practice(g, c, workType, skill) {
   if (skill) {
-    c.xp[skill] = (c.xp[skill] || 0) + 1;
+    c.xp[skill] = (c.xp[skill] || 0) + modsOf(g, c).learn; // wise people learn faster (peoples.js)
     const lv = c.skills[skill] || 0;
     if (lv < 10 && c.xp[skill] >= 600 + lv * 300) {
       c.xp[skill] = 0; c.skills[skill] = lv + 1;
@@ -101,7 +116,7 @@ export function travel(g, c, job, tx, ty, mode, what) {
   }
   c.path.shift();
   const diag = n.x !== c.x && n.y !== c.y;
-  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round(MOVE_TICKS * (diag ? 1.41 : 1) * g.moveCost(n.x, n.y))) };
+  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round((MOVE_TICKS * (diag ? 1.41 : 1) * g.moveCost(n.x, n.y)) / modsOf(g, c).walk)) }; // quick people and walkers (peoples.js)
   c.x = n.x; c.y = n.y;
   return false;
 }
@@ -512,13 +527,13 @@ export const DRIVERS = {
       }
       const r = go(g, c, j, p.x, p.y, 'adj', p.name);
       if (r !== 'arrived') return r === 'moving' ? 'running' : r;
-      j.prog = (j.prog || 0) + 1;
+      j.prog = (j.prog || 0) + modsOf(g, c).tend; // kind people tend faster (peoples.js)
       c.status.action = (c.carry ? 'Feeding ' : 'Tending ') + p.name;
       if (j.prog < 60) return 'running';
       if (c.carry) {
         const d = g.reg.get('item', c.carry.item);
         const hunger = g.reg.all('need').find((n) => n.behavior === 'core:eat');
-        if (hunger && d?.nutrition) p.needs[hunger.id] = Math.min(1, (p.needs[hunger.id] ?? 0) + d.nutrition);
+        if (hunger && d?.nutrition) { p.needs[hunger.id] = Math.min(1, (p.needs[hunger.id] ?? 0) + d.nutrition); noteMeal(g, p, c.carry.item); }
         g.consume(c.carry.item, 1, 'eat');
         c.carry = null;
       }
@@ -590,6 +605,7 @@ export const DRIVERS = {
       c.carry = null;
       c.status.action = 'Delivered ' + qty + ' ' + itemName;
       deliverLeg(g, t, j.leg, item, qty, c.x, c.y, dur); // ownership passes to the receiving settlement here
+      spreadContact(g, c.settlementId || g.s.playerSettlement, j.to, '', c); // the carrier met the buyers (illness.js)
       return 'done';
     },
   },
@@ -614,7 +630,7 @@ export const DRIVERS = {
       }
       if (!c.carry || c.carry.qty <= 0 || j.ti >= j.tiles.length) { c.carry = c.carry?.qty > 0 ? c.carry : null; return 'done'; }
       const [x, y] = j.tiles[j.ti];
-      if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y) || g.fieldAt(x, y)?.id !== field.id) {
+      if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y) || g.fieldAt(x, y)?.id !== field.id || droughtAt(g, x, y)) {
         g.release(j, (r) => r.k === 'x' && r.key === `sow:${x},${y}`);
         j.ti++; j.prog = 0; return 'running';
       }
@@ -635,7 +651,8 @@ export const DRIVERS = {
   },
 
   harvest: {
-    valid(g, c, j) { return j.cropIds.some((id) => g.s.crops[id]); },
+    // Finished its last crop: still valid (it ends as done on its next tick, after a load as without one).
+    valid(g, c, j) { return j.i >= j.cropIds.length || j.cropIds.some((id) => g.s.crops[id]); },
     tick(g, c, j) {
       while (j.i < j.cropIds.length && !g.s.crops[j.cropIds[j.i]]) j.i++;
       if (j.i >= j.cropIds.length) return 'done';
@@ -677,6 +694,7 @@ export const DRIVERS = {
       if (j.prog < 40) return 'running';
       const hunger = g.reg.all('need').find((n) => n.behavior === 'core:eat');
       if (hunger) c.needs[hunger.id] = Math.min(1, (c.needs[hunger.id] ?? 0) + (d?.nutrition || 0));
+      noteMeal(g, c, c.carry.item); // mood.js: a good meal, a favourite
       g.consume(c.carry.item, 1, 'eat');
       c.carry = null;
       return 'done';

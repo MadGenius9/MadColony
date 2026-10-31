@@ -2,6 +2,8 @@
 // content graph (stock -> in-flight production -> recipes/stations -> gatherable nodes -> crops), and
 // starts projects (homes, stations, fields, stockpile growth). It never moves a colonist itself; it
 // publishes `g.plan` (wants, bills, clear list, equipment needs, goal explanations) for job givers.
+import { huntableNear, farHuntable, meatOnHand, MEAT_PER_PERSON } from './animals.js';
+import { monsterThreats } from './slay.js';
 import { staffing, educationSummary } from './education.js';
 import { isAdult as isAdultP, BIRTH, mayDoWork } from './people.js';
 import { storageStatus, hubName } from './storage.js';
@@ -13,7 +15,9 @@ import { intentsOf } from './civic/intents.js';
 import { PLAN_INTERVAL } from './constants.js';
 import { TICKS_PER_DAY, TICKS_PER_HOUR, NEAR_RADIUS } from './constants.js';
 import { canRipen } from './farming.js';
-import { heatSeason } from './heat.js';
+import { heatSeason, seasonLawKey } from './heat.js';
+import { civLawIs, RATION, huntAllowed, treeProtected } from './civlaws.js';
+import { moodNote } from './mood.js';
 import { isWaterNode, waterNetworks } from './water.js';
 import { GOAL_TYPES, goalIsOngoing, describeGoal } from './goals.js';
 import { createProject, findSite, assignHome, addSlotPart, partsOf, homeFurnished, tileUsable } from './construction.js';
@@ -31,7 +35,7 @@ export function emptyPlan() {
   return {
     tick: -1, wants: {}, bills: [], clear: new Map(), equipNeeds: [], seedReserve: {}, goalInfo: {}, notes: [],
     blockers: {}, trace: {}, foodDays: 0, growingDays: 0, stock: {}, mealCount: 0, bedsBuilt: 0, anyFood: true, stockFull: false,
-    stations: {}, housingNote: '', mealNote: '', foodNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
+    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', moodNote: '', monsterNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
   };
 }
 
@@ -88,6 +92,7 @@ export function runPlanner(g, dueOnly = false) {
   const s = g.s;
   if (!s.center) return;
   const ids = Object.keys(s.settlements || {});
+  if (!ids.length && s.playerSettlement === null) return; // a world with no people yet: nothing to plan
   if (!ids.length) ids.push(s.playerSettlement || 't1');
   const prev = g.plans || {};
   const plans = dueOnly ? prev : {};
@@ -109,6 +114,7 @@ export function runPlanner(g, dueOnly = false) {
     else if (all) due = true;
     else if (sid === player) due = s.tick % PLAN_INTERVAL === 0 || dirty;
     else due = s.tick % PLAN_INTERVAL === planOffset(sid, PLAN_INTERVAL);
+    if (s.settlements?.[sid]?.fallen) { plans[sid] = emptyPlan(); later?.delete(sid); continue; } // a ruin plans nothing (fallen.js)
     if (due) { plans[sid] = planSettlement(g, sid); later?.delete(sid); }
     else if (!dueOnly && prev[sid]) plans[sid] = prev[sid];
   }
@@ -118,13 +124,13 @@ export function runPlanner(g, dueOnly = false) {
 
 /** Big worlds: plan one village now (an abstract village whose hour comes before its planning slot). */
 export function planNow(g, sid) {
-  (g.plans ||= {})[sid] = planSettlement(g, sid);
+  (g.plans ||= {})[sid] = g.s.settlements?.[sid]?.fallen ? emptyPlan() : planSettlement(g, sid); // ruins plan nothing (fallen.js)
   g.replanLater?.delete(sid);
 }
 
 function planSettlement(g, sid) {
   const reg = g.reg, s = g.s, pol = g.policyFor(sid);
-  const player = s.playerSettlement || sid;
+  const player = s.playerSettlement === null ? null : s.playerSettlement || sid; // null: no player village yet
   const isPlayer = sid === player;
   const own = (e) => (e?.settlement || player) === sid;
   const center = settlementOf(g, sid)?.center || s.center;
@@ -206,7 +212,7 @@ function planSettlement(g, sid) {
 
   // ---- Food accounting ----
   const hunger = reg.all('need').find((x) => x.behavior === 'core:eat');
-  const needPerDay = n * (hunger?.decayPerDay ?? 1);
+  const needPerDay = n * (hunger?.decayPerDay ?? 1) * (civLawIs(g, sid, 'core:rationing', 'rationed') ? RATION.hunger : 1); // rationing (civlaws.js)
   let foodNutr = 0;
   for (const [it, q] of Object.entries(P.stock)) {
     const nu = reg.get('item', it)?.nutrition || 0;
@@ -230,7 +236,7 @@ function planSettlement(g, sid) {
     mealTarget: Math.ceil((pol.mealsPerColonist ?? 2) * n), mealUrgency: 0.9, mealGoal: null,
     foodDays: pol.foodDays ?? 3, foodUrgency: 0.55, foodGoal: null,
     guards: null, buildCounts: [], eraGoals: [],
-    armAll: !!pol.armColonists || Object.keys(s.settlements || {}).some((o) => o !== sid && relationStatus(relationPeek(g, sid, o)) === 'hostile'), armUrgency: 0.5, armGoal: null,
+    armAll: !!pol.armColonists || civLawIs(g, sid, 'core:conscription', 'militia') || Object.keys(s.settlements || {}).some((o) => o !== sid && relationStatus(relationPeek(g, sid, o)) === 'hostile'), armUrgency: 0.5, armGoal: null, // militia: the Conscription law (civlaws.js)
   };
   if (isPlayer) for (const goal of s.goals) if (goal.status === 'active') GOAL_TYPES[goal.type]?.apply(g, goal, ctx); // player goals steer the player's settlement
   // Era drive (scenario data `eraDrive`; the Living and vast worlds, never classic scenarios): a village with no
@@ -282,6 +288,27 @@ function planSettlement(g, sid) {
     const pool = cols.slice().sort((a, b) => (b.equip.weapon?.item === ctx.guards.item) - (a.equip.weapon?.item === ctx.guards.item) || (a.id < b.id ? -1 : 1));
     for (const c of pool.slice(0, ctx.guards.count)) guardIds.add(c.id);
   }
+  // Hunting (Phase 8, animals.js / hunt.js): while a huntable herd is near the village and meat is short, its two
+  // best hunters (by skill, then id) get a weapon if they have none; the reason is shown (P.huntNote).
+  const ctr = s.settlements?.[sid]?.center || s.center, hunterIds = new Set();
+  const herdsNear = !ctr || !s.animals ? [] : s.settlements?.[sid]?.detail === 'abstract' ? farHuntable(g, ctr.x, ctr.y, 40, sid) : huntableNear(g, ctr.x, ctr.y, 60); // distant villages hunt far herds (lod.js); full ones near or far
+  const huntLaw = huntAllowed(g, sid, P.foodDays); // the Hunting law (civlaws.js)
+  const meatShort = huntLaw && meatOnHand(g, P) < MEAT_PER_PERSON * Math.max(2, cols.length);
+  if (herdsNear.length && meatShort) {
+    const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
+    for (const c of pool.slice(0, 2)) hunterIds.add(c.id);
+  }
+  const raid = herdsNear.find((t) => t.raid);
+  // Monsters (Phase 8c, slay.js): while one threatens the village, its fightGroup best hunters get a weapon if they
+  // have none (a hunt party needs that many armed).
+  const threat = s.monsters && s.settlements?.[sid]?.detail !== 'abstract' ? monsterThreats(g, sid)[0] : null, td = threat && reg.get('monster', threat.sp);
+  if (td) {
+    const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
+    for (const c of pool.slice(0, td.fightGroup)) hunterIds.add(c.id);
+  }
+  P.monsterNote = td ? `A ${td.name} threatens the village: arming ${td.fightGroup} fighters to hunt it` : '';
+  P.moodNote = moodNote(g, cols); // mood.js: how the village feels and why
+  P.huntNote = raid ? `Hunting down the ${raid.d.plural || raid.d.name} that attacked the village (${Math.round(raid.dist)} tiles away)` : !huntLaw ? (civLawIs(g, sid, 'core:hunting', 'banned') ? 'Hunting is banned by law' : 'Hunting is restricted by law: only when food runs low') : !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
   for (const c of cols) {
     if (!isAdultP(g, c)) continue; // children get no tools or weapons
     const role = roleOf(g, c);
@@ -304,8 +331,19 @@ function planSettlement(g, sid) {
       const better = w && c.equip.weapon && weaponScore(w) > weaponScore(reg.get('item', c.equip.weapon.item)) * 1.15 && (P.stock[w.id] || 0) > 0;
       if (w && (!c.equip.weapon || better) && !fetching('weapon', w.id)) D.push({ item: w.id, qty: 1, urgency: ctx.armUrgency, why: ctx.armGoal ? 'Goal: arm every colonist' : 'Arm the colonists', goal: ctx.armGoal, equipFor: c.id, slot: 'weapon' });
     }
+    if (hunterIds.has(c.id) && !c.equip.weapon && !guardItem && !ctx.armAll) {
+      const wid = bestAvailableWeapon(g, sid, P.stock);
+      if (wid && !fetching('weapon', wid)) D.push({ item: wid, qty: 1, urgency: 0.5, why: `A ${iname(g, wid)} for ${c.name} to hunt with`, equipFor: c.id, slot: 'weapon' });
+    }
   }
   for (const sp of ctx.spares) D.push(sp);
+  // Carcasses spoil: their meat (or hide) is wanted at once, so they are butchered (Phase 8).
+  for (const [it, q] of Object.entries(P.stock)) {
+    if (q <= 0 || !reg.get('item', it)?.tags?.includes('core:carcass')) continue;
+    const r = reg.all('recipe').find((x) => x.fromStock && x.inputs.some((e) => e.item === it));
+    const out = r?.outputs[0];
+    if (out) D.push({ item: out.item, qty: (P.stock[out.item] || 0) + q * out.qty, urgency: 0.9, why: `Butcher the ${reg.get('item', it).name.toLowerCase()} before it spoils`, recipe: r.id, maxRuns: q });
+  }
   for (const [it, q] of Object.entries(pol.stock || {})) if (reg.get('item', it)) D.push({ item: it, qty: q, urgency: 0.25, why: 'Keep a basic stockpile' });
   // Ammunition for everyone carrying a ranged weapon.
   const ammoNeed = {};
@@ -364,11 +402,11 @@ function planSettlement(g, sid) {
     const byDef = g.big ? null : g.nodesByDef();
     const pool = g.big ? (reach && nodesInReach(g, sid, set)) || g.nodesNear(center.x, center.y, NEAR_RADIUS, set) : defIds.flatMap((d) => byDef.get(d) || []);
     for (const nd of pool) {
-      if (nd.empty || !g.gatherOk(sid, nd)) continue;
+      if (nd.empty || !g.gatherOk(sid, nd) || treeProtected(g, sid, nd)) continue; // protected forests (civlaws.js)
       if (reach && !reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK)) continue; // one chunk's trip
       if (g.reachableFrom(center.x, center.y, nd.x, nd.y, g.nodeDef(nd).passable ? 'on' : 'adj')) { ok = true; break; }
     }
-    if (!ok) ok = (g.big ? pool : Object.values(s.nodes)).some((nd) => set.has(nd.def) && nd.empty && g.gatherOk(sid, nd) && (!reach || reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK))) ? 'regrowing' : false;
+    if (!ok) ok = (g.big ? pool : Object.values(s.nodes)).some((nd) => set.has(nd.def) && nd.empty && !nd.young && g.gatherOk(sid, nd) && (!reach || reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK))) ? 'regrowing' : false;
     reachCache.set(k, ok);
     return ok;
   };
@@ -389,6 +427,9 @@ function planSettlement(g, sid) {
     if (depth > 6 || seen.has(key)) { block(goal, `Production chain for ${label} is circular or too deep`); return; }
     const seen2 = new Set(seen); seen2.add(key);
     let allRecipes = spec.item ? (reg.idx.recipesFor[spec.item] || []) : reg.recipesForTag(spec.tag);
+    // Recipes that only use up goods on hand (`fromStock`: butchering a carcass) serve only a want that names them
+    // (Phase 8): meat is raw food, but a village short of food forages and farms, it does not plan to butcher deer.
+    allRecipes = spec.recipe ? allRecipes.filter((r) => r.id === spec.recipe) : allRecipes.filter((r) => !r.fromStock);
     // Fallback recipes (quarrying) are used only while the item cannot be gathered on reachable land.
     if (allRecipes.some((r) => r.fallback)) {
       const nodeIds = spec.item ? (reg.idx.nodesFor[spec.item] || []).map((n) => n.id) : [];
@@ -442,7 +483,7 @@ function planSettlement(g, sid) {
       }
       if (machine) r = machine;
       const out = r.outputs.find((o) => (spec.item ? o.item === spec.item : reg.itemHasTag(o.item, spec.tag)));
-      const runs = Math.ceil(short / out.qty);
+      const runs = Math.min(Math.ceil(short / out.qty), spec.maxRuns ?? Infinity);
       addBill(r, runs, urgency, machine ? `${why}; made on the ${reg.get('building', r.station).name} (faster)` : why, goal);
       const st = ensureStation(g, P, r.station, urgency, why, sid);
       const stName = g.reg.get('building', r.station).name;
@@ -503,7 +544,7 @@ function planSettlement(g, sid) {
       if (inf > 0) trace(d.goal, 1, `${inf} already being made or gathered`, 'working');
       short -= inf;
     }
-    if (short > 0) resolve(d.tag ? { tag: d.tag } : { item: d.item }, short, d.urgency, d.why, d.goal, 0, new Set());
+    if (short > 0) resolve(d.tag ? { tag: d.tag } : { item: d.item, ...(d.recipe ? { recipe: d.recipe, maxRuns: d.maxRuns } : {}) }, short, d.urgency, d.why, d.goal, 0, new Set());
   }
   P.bills = [...billMap.values()].sort((a, b) => b.urgency - a.urgency);
   // ---- Machine count sized to demand (Phase 3 slice 3): a 2nd or 3rd machine when work keeps waiting ----
@@ -745,7 +786,7 @@ function planFields(g, P, ctx, needPerDay, block, sid) {
 function leanSeason(g, sid) {
   const crops = g.reg.all('crop').filter((c) => g.owned('fields', sid).some((f) => (f.settlement || g.s.playerSettlement) === sid && f.crop === c.id));
   if (!crops.length) return null;
-  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) + ':' + crops.map((c) => c.id).join(',');
+  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) + ':' + crops.map((c) => c.id).join(',') + ':' + seasonLawKey(g); // the Endless season law changes it
   if (g._lean?.[sid]?.k === k) return g._lean[sid].v;
   const t0 = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) * (TICKS_PER_DAY / 2); // from the window's start, so saves continue identically
   const ok = (d) => crops.some((c) => canRipen(g, c, t0 + d * TICKS_PER_DAY));

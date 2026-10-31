@@ -7,10 +7,13 @@
 import { mayFight } from './people.js';
 import { travel, newJob } from './ai/jobs.js';
 import { injure, isDown, hpOf } from './health.js';
+import { warRules } from './war.js';
 import { relationOf, relationPeek, relationStatus, changeRelation, noteRelation, noteMet, allianceOf, alliesOf, endAlliance, ALLIANCE } from './villages.js';
 import { settlementOf } from './research.js';
 import { kingdomOf, membersOf, sameKingdom, theKingdom } from './kingdoms.js';
 import { octile } from './util.js';
+import { modsOf } from './peoples.js';
+import { lawIs } from './worldlaws.js';
 
 export const COMBAT = {
   scanEvery: 5, // ticks between a colonist's threat checks
@@ -22,7 +25,7 @@ export const COMBAT = {
   unarmed: { name: 'fists', damage: 3, range: 1.5, cooldown: 50, accuracy: 0.7 },
   woundRelation: -2, // relation cost per wound inflicted
 };
-export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm']);
+export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm', 'fend', 'slay']); // fend: against wild animals (hunt.js); slay: monsters (slay.js)
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 
@@ -31,7 +34,11 @@ const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
  *  (tickMilitary retreats), and the daily kingdom check makes one of them leave, after which they may fight. */
 export function isEnemy(g, a, b) {
   if (!a || !b || a === b) return false;
-  return relationStatus(relationPeek(g, a, b)) === 'hostile' && !sameKingdom(g, a, b);
+  const rel = relationPeek(g, a, b);
+  if (relationStatus(rel) !== 'hostile' || sameKingdom(g, a, b)) return false;
+  // War games (war.js): only a war that was started (declared, or an attack ordered) makes enemies; rivals who are
+  // merely hostile neither fight on sight, raid, nor keep each other in full detail.
+  return !rel.aggressor && warRules(g) ? false : true;
 }
 
 /** The military order of a settlement: { order: 'defend' | 'attack' | 'retreat', target? }. */
@@ -262,7 +269,7 @@ export function armJob(g, c) {
 export function combatDecision(g, c) {
   if (isDown(c)) return null;
   if ((g.s.tick + c.id.length * 3) % COMBAT.scanEvery) return null;
-  if (c.job && COMBAT_JOBS.has(c.job.type)) return null;
+  if (c.job && COMBAT_JOBS.has(c.job.type) && c.job.type !== 'fend' && c.job.type !== 'slay' && !(c.job.type === 'flee' && (c.job.wolf || c.job.monster))) return null; // raiders come before wolves and monsters
   const sid = sidOf(g, c);
   const ord = orderOf(g, sid);
   const st = settlementOf(g, sid);
@@ -276,13 +283,15 @@ export function combatDecision(g, c) {
     if (enemy || g.territoryAt(c.x, c.y) !== sid) return fleeJob('Falling back home (retreat order)');
     return null;
   }
-  const fit = hpOf(c) >= COMBAT.fitHp;
+  const m = modsOf(g, c), hp = hpOf(c);
+  const fit = hp >= fitHpOf(g, c); // brave people fight on while hurt; timid ones never join (peoples.js)
   if (enemy) {
     if (w.armed && fit) {
       if (w.outOfAmmo && Math.hypot(enemy.x - c.x, enemy.y - c.y) > 4) { const aj = armJob(g, c); if (aj) return aj; }
-      return newJob('fight', { targetId: enemy.id, stage: 'fight' }, { why: `Fighting ${enemy.name}`, label: `Fight ${enemy.name}` });
+      const brave = hp < COMBAT.fitHp ? ' (brave: fighting on while hurt)' : '';
+      return newJob('fight', { targetId: enemy.id, stage: 'fight' }, { why: `Fighting ${enemy.name}${brave}`, label: `Fight ${enemy.name}` });
     }
-    if (octile(c.x, c.y, enemy.x, enemy.y) <= COMBAT.fleeRange) return fleeJob(w.armed ? 'Wounded: avoiding the fight' : 'Unarmed: fleeing from enemies');
+    if (octile(c.x, c.y, enemy.x, enemy.y) <= (m.flee ?? COMBAT.fleeRange)) return fleeJob(!w.armed ? 'Unarmed: fleeing from enemies' : m.fightHp > 100 ? 'Timid: fleeing from the fight' : 'Wounded: avoiding the fight');
     return null;
   }
   if (ord.order === 'attack' && ord.target && w.armed && fit && isEnemy(g, sid, ord.target)) {
@@ -294,9 +303,12 @@ export function combatDecision(g, c) {
   return null;
 }
 
+/** The health colonist c needs to fight: COMBAT.fitHp, or their trait's (brave: lower; timid: above 100, never). */
+export function fitHpOf(g, c) { return modsOf(g, c).fightHp ?? COMBAT.fitHp; }
+
 /** Fit, armed fighters a settlement has right now. */
 export function fightersOf(g, sid, bySid = null) {
-  return (bySid ? bySid.get(sid) || [] : Object.values(g.s.colonists)).filter((c) => sidOf(g, c) === sid && !isDown(c) && hpOf(c) >= COMBAT.fitHp && !!c.equip?.weapon && mayFight(g, c));
+  return (bySid ? bySid.get(sid) || [] : Object.values(g.s.colonists)).filter((c) => sidOf(g, c) === sid && !isDown(c) && hpOf(c) >= fitHpOf(g, c) && !!c.equip?.weapon && mayFight(g, c));
 }
 
 /** AI villages decide their own orders every 100 ticks: raid a hostile neighbour they clearly outnumber,
@@ -345,9 +357,11 @@ export function evaluateAttack(g, sid, target) {
   const ours = fightersOf(g, sid), theirs = fightersOf(g, target);
   const res = { valid: true, problems: [], lines: [], risks: [], declares: status !== 'hostile', ours: ours.length, theirs: theirs.length };
   if (sid === target || !settlementOf(g, target)) { res.valid = false; res.problems.push('There is no such village.'); return res; }
+  if (settlementOf(g, target).fallen) { res.valid = false; res.problems.push(`${name} has fallen; only ruins are left.`); return res; } // fallen.js
   if (!rel.contact) { res.valid = false; res.problems.push(`You have not met ${name} yet.`); }
   if (allianceOf(g, sid, target)) { res.valid = false; res.problems.push(`${name} is your ally. End the alliance first.`); }
   if (sameKingdom(g, sid, target)) { res.valid = false; res.problems.push(`${name} is in your kingdom (${kingdomOf(g, sid).name}).`); }
+  if (lawIs(g, 'core:peace', 'on') && !isEnemy(g, sid, target)) { res.valid = false; res.problems.push(`The Peace law holds: no new war may start (you are not at war with ${name}).`); }
   if (!ours.length) { res.valid = false; res.problems.push('Nobody fit is armed. Make weapons first (spears, bows).'); }
   const ranged = ours.filter((c) => g.reg.get('item', c.equip.weapon.item)?.equipment?.ammo);
   res.lines.push(`Your fighters: ${ours.length} armed and fit (${ranged.length} with ranged weapons). Theirs: about ${theirs.length}.`);
@@ -376,6 +390,24 @@ export function evaluateAttack(g, sid, target) {
   }
   res.risks.push('Wounded colonists collapse and need care; every wound worsens relations further.');
   return res;
+}
+
+/** An AI village declares war (war.js, Phase 5): relations go to WAR.declareTo at most, a trade pact ends, it
+ *  orders an attack, and the attacked village's allies and kingdom are called in (strikeFirst). */
+export function declareWar(g, sid, target, reason) {
+  if (lawIs(g, 'core:peace', 'on') && !isEnemy(g, sid, target)) return false; // the Peace law: no new wars
+  const rel = relationOf(g, sid, target);
+  const before = rel.lastEv; // the last recorded dispute or relations change: an association (chronicle.js), not a cause
+  if (rel.value > WAR.declareTo) changeRelation(g, sid, target, WAR.declareTo - rel.value, reason);
+  else { rel.history.push({ tick: g.s.tick, delta: 0, reason }); if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16); }
+  delete rel.threat;
+  rel.warSince = g.s.tick; // war.js: AI wars end in a truce when old (save format 20)
+  const k = [sid, target].sort().join('|');
+  if (g.s.treaties?.[k]) { delete g.s.treaties[k]; rel.history.push({ tick: g.s.tick, delta: 0, reason: 'Trade pact ended: war' }); }
+  rel.warEv = g.log(`${reason}.`, 'warn', null, 0, { kind: 'core:war_declared', sids: [sid, target], rel: before }) || undefined;
+  if (!rel.warEv) delete rel.warEv;
+  setOrder(g, sid, 'attack', target);
+  strikeFirst(g, sid, target);
 }
 
 /** The player (or a script) orders an attack. Declares war first if needed. */
@@ -407,7 +439,9 @@ export function startsWar(g, x, y) { return !relationPeek(g, x, y).aggressor; }
  *  later attacks, retaliation by `y`, and raids by a village that joined to defend an ally call in nobody. */
 function strikeFirst(g, x, y) {
   if (!startsWar(g, x, y)) return false;
-  relationOf(g, x, y).aggressor = x;
+  const r = relationOf(g, x, y);
+  r.aggressor = x;
+  r.warSince ??= g.s.tick; // war.js: how old the war is
   joinDefence(g, x, y);
   return true;
 }
@@ -441,8 +475,9 @@ export function joinDefence(g, x, y) {
     if (!rel.contact) { rel.contact = true; noteMet(g, rel, `Met through ${via}`); noteRelation(g, z, x, `Met through ${via}`); }
     if (rel.value <= ALLIANCE.joinRelation) continue; // already at war with x
     changeRelation(g, z, x, ALLIANCE.joinRelation - rel.value, `Attacked ${via}`);
-    if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; }
-    g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn');
+    if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; rel.warSince = g.s.tick; }
+    const joined = g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn', null, 0, { kind: 'core:war_joined', sids: [z, x, y], cause: relationPeek(g, x, y).warEv });
+    if (joined) rel.warEv = joined;
   }
 }
 
@@ -461,10 +496,19 @@ export function offerTruce(g, sid, target) {
   makePeace(g, sid, target, `${settlementOf(g, sid)?.name} and ${settlementOf(g, target)?.name} agreed a truce`);
   return { ok: true, message: 'Truce agreed.' };
 }
-function makePeace(g, a, b, reason) {
+export function makePeace(g, a, b, reason) {
   const rel = relationOf(g, a, b);
   changeRelation(g, a, b, WAR.truceTo - rel.value, reason);
   for (const s of [a, b]) { const o = orderOf(g, s); if (o.order !== 'defend' && (o.target === a || o.target === b || o.order === 'retreat')) setOrder(g, s, 'defend'); }
+}
+
+/** War games: are a and b rivals over land (their lands touch, or their centres are within rivalry.near)? */
+function rivals(g, a, b) {
+  const R = warRules(g)?.rivalry;
+  if (!R) return false;
+  if (relationPeek(g, a, b).touch !== undefined) return true;
+  const ca = g.s.settlements[a]?.center, cb = g.s.settlements[b]?.center;
+  return !!(R.near && ca && cb && Math.hypot(ca.x - cb.x, ca.y - cb.y) <= R.near);
 }
 
 /** Daily: wars where nobody has been hurt for a while cool down; AI villages losing a war ask for a truce. */
@@ -475,7 +519,9 @@ export function tickWars(g, ticksPerDay) {
     const rel = relationPeek(g, a, b);
     if (relationStatus(rel) !== 'hostile') continue;
     const quiet = g.s.tick - (rel.lastClash || 0) > WAR.coolAfterDays * ticksPerDay;
-    if (quiet) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
+    // War games (war.js): only a war cools; rivals who never fought stay hostile.
+    const rivalsOnly = !rel.aggressor && !!warRules(g) && rivals(g, a, b);
+    if (quiet && !rivalsOnly) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
     for (const [me, them] of [[a, b], [b, a]]) {
       const st = settlementOf(g, me);
       if (!st?.ai || settlementOf(g, them)?.ai) continue; // AI villages sue the player; AI-vs-AI wars just cool

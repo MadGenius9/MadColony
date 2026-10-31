@@ -11,7 +11,7 @@ import { octile } from './util.js';
 import { fuelLoaded } from './power.js';
 
 export const MED = {
-  woundKinds: ['wound', 'injury'], // what bandages are for
+  woundKinds: ['wound', 'injury', 'burn', 'bite', 'gore', 'maul', 'crush'], // what bandages are for (burns: Phase 5b; bites: Phase 8; monsters: Phase 8c)
   minSeverity: 4, // smaller scrapes need nothing
   infectAfterHours: 6, // undressed wounds older than this may get infected
   infectPerHour: 0.02, // chance per hour for each undressed wound
@@ -20,17 +20,61 @@ export const MED = {
   infectionGrowth: 1.2, // severity per hour while untreated
   treatedHeal: 1.6, // dressed wounds and treated infections heal this much faster
   treatTicks: 60, // work per treatment
+  // Phase 5 slice 4: lasting injuries. A wound of at least scarAt severity is deep; if it heals without surgery it
+  // leaves a lasting injury (LASTING, picked by hash). Surgery: dressing a deep wound while the patient lies in a
+  // medical bed; it mends the wound with chance surgeryBase + surgeryPerSkill x the doctor's Medicine skill.
+  scarAt: 30, surgeryBase: 0.45, surgeryPerSkill: 0.07,
 };
+
+/** Lasting injuries and the work they slow (multipliers by work type; others unchanged). */
+export const LASTING = [
+  { kind: 'lame_leg', name: 'Lame leg', work: { 'core:construct': 0.85, 'core:haul': 0.8, 'core:farm': 0.9, 'core:chop': 0.9, 'core:mine': 0.9, 'core:forage': 0.85 } },
+  { kind: 'bad_hand', name: 'Crippled hand', work: { 'core:craft': 0.8, 'core:construct': 0.85, 'core:cook': 0.9, 'core:doctor': 0.85, 'core:chop': 0.9 } },
+];
+const hashKey = (str) => {
+  let h = 2166136261;
+  for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+  return h >>> 0;
+};
+
+/** health.js tickHealth: a deep wound healed without surgery leaves a lasting injury (c.lasting, save format 18). */
+export function scarFrom(g, c, inj) {
+  if (!inj.deep || inj.mended) return null;
+  const L = LASTING[hashKey(`${g.s.seed}:lasting:${inj.id}`) % LASTING.length];
+  c.lasting ||= [];
+  if (c.lasting.some((x) => x.kind === L.kind)) return null;
+  const rec = { kind: L.kind, since: g.s.tick, cause: String(inj.cause || '').slice(0, 80) };
+  c.lasting.push(rec);
+  const mine = (c.settlementId || g.s.playerSettlement) === g.s.playerSettlement;
+  g.log(`${c.name}'s wound healed badly: ${L.name.toLowerCase()} (${String(inj.cause || 'a wound').toLowerCase()}).`, mine ? 'warn' : 'info');
+  return rec;
+}
+
+/** Work speed with lasting injuries (jobs.js workSpeed). O(lasting injuries); 1 without any. */
+export function lastingFactor(c, workType) {
+  if (!c.lasting?.length || !workType) return 1;
+  let f = 1;
+  for (const x of c.lasting) { const L = LASTING.find((l) => l.kind === x.kind); if (L?.work[workType]) f *= L.work[workType]; }
+  return f;
+}
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 const medTag = (g, item) => g.reg.get('item', item)?.tags || [];
+
+/** A doctor operates on a deep wound of a patient in a medical bed: mended (no lasting injury) by chance from skill. */
+export function surgery(g, c, p, inj) {
+  const chance = Math.min(0.95, MED.surgeryBase + MED.surgeryPerSkill * (c.skills?.['core:medicine'] || 0));
+  inj.mended = hashKey(`${g.s.seed}:surgery:${inj.id}`) / 4294967296 < chance;
+  g.log(inj.mended ? `${c.name} operated on ${p.name}: the wound will heal clean.` : `${c.name} operated on ${p.name}, but could not save the ${String(inj.cause || 'wound').toLowerCase()} from leaving a mark.`, inj.mended ? 'good' : 'warn');
+}
 
 /** What a colonist needs from a doctor right now: [{ inj, need: 'bandage'|'medicine' }]. */
 export function treatmentNeeds(g, c) {
   const out = [];
   for (const i of c.health?.injuries || []) {
     if (i.treated) continue;
-    if (i.kind === 'infection') out.push({ inj: i, need: 'medicine' });
+    if (i.kind === 'infection' || (i.kind === 'sickness' && !i.over)) out.push({ inj: i, need: 'medicine' }); // illness: illness.js
     else if (MED.woundKinds.includes(i.kind) && i.severity >= MED.minSeverity) out.push({ inj: i, need: 'bandage' });
   }
   return out;
@@ -82,7 +126,15 @@ export function tickInfection(g, c, frac) {
   }
 }
 /** Resting in a bed (or collapsed in a medical bed), or tended by someone: the body can fight an infection. */
-const restingOrTended = (g, c) => (c.sleeping && !!c.job?.bedId) || !!c.medBedId || (c.health?.tendedUntil || 0) > g.s.tick;
+const restingOrTended = (g, c) => (c.sleeping && !!c.job?.bedId) || !!c.medBedId || (c.health?.tendedUntil || 0) > g.s.tick || villageCares(g, c);
+/** A village simulated at a distance (no carers walk there, lod.js) looks after its wounded while anyone else of it
+ *  is on their feet (Phase 5: battles between distant villages). Full villages: false (real carers). */
+function villageCares(g, c) {
+  const sid = c.settlementId || g.s.playerSettlement;
+  if (g.s.settlements?.[sid]?.detail !== 'abstract' || !g.reg.get('scenario', g.s.scenarioId)?.war) return false; // war games only
+  for (const o of g.owned('colonists', sid)) if (o !== c && !o.health?.down) return true;
+  return false;
+}
 /** Healing multiplier for one injury: treated ones heal faster; an untreated infection heals only slowly, and
  *  only while the patient rests or is tended (medicine is much better, but not the only way to survive). */
 export function healFactor(i, g, c) {
@@ -227,8 +279,9 @@ export const MEDICAL_DRIVERS = {
         g.consume(c.carry.item, 1, 'treatment');
         c.carry = c.carry.qty > 1 ? { ...c.carry, qty: c.carry.qty - 1 } : null;
         inj.treated = true;
+        if (inj.deep && !inj.mended && p.medBedId) surgery(g, c, p, inj); // in a medical bed: surgery (slice 4)
         p.health.tendedUntil = Math.max(p.health.tendedUntil || 0, g.s.tick + HEALTH.tendHours * TICKS_PER_HOUR);
-        g.log(`${c.name} ${j.treatNeed === 'medicine' ? 'treated the infection of' : 'dressed the wound of'} ${p.name}.`, 'good');
+        g.log(inj.kind === 'sickness' ? `${c.name} treated ${p.name} for ${String(inj.cause).toLowerCase()}.` : `${c.name} ${j.treatNeed === 'medicine' ? 'treated the infection of' : 'dressed the wound of'} ${p.name}.`, 'good');
       } else {
         inj.cleaned = true;
         g.log(`${c.name} cleaned ${p.name}'s wound (no bandages: first aid only).`, 'warn', `firstaid:${p.id}`, 600);
@@ -242,7 +295,9 @@ export const MEDICAL_DRIVERS = {
 export function medicalSummary(g, sid) {
   const cols = g.owned('colonists', sid);
   const patients = cols.filter((c) => isDown(c) || treatmentNeeds(g, c).length);
-  const needs = patients.flatMap((c) => treatmentNeeds(g, c));
+  // A snapshot of each injury at planning time: the plan only counts and shows them, and a live injury here would
+  // differ from its copy in a loaded save (plancodec.js) as it heals or worsens.
+  const needs = patients.flatMap((c) => treatmentNeeds(g, c)).map((n) => ({ ...n, inj: { ...n.inj } }));
   const { beds, free } = medicalBeds(g, sid);
   const doctors = cols.filter((c) => !isDown(c) && !c.workOff?.['core:doctor']);
   const bandages = supplyCount(g, sid, 'core:bandage'), medicine = supplyCount(g, sid, 'core:medicine');

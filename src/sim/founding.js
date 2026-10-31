@@ -38,6 +38,11 @@ import { emptyPlan } from './planner.js';
 import { kingdomForDaughter } from './kingdoms.js';
 import { claimsFreeFor, claimRadius } from './territory.js';
 import { isDiscovered } from './contact.js';
+import { coldWait } from './life.js';
+import { livingCount } from './fallen.js';
+import { peopleOfSettlement } from './peoples.js';
+import { growthOf } from './worldlaws.js';
+import { MOOD } from './mood.js';
 
 export const FOUNDING_DEFAULTS = Object.freeze({
   maxVillages: 30, minAdults: 6, crowdedDays: 3, foodDaysLeft: 5, cooldownDays: 20, founders: Object.freeze([3, 5]),
@@ -86,19 +91,9 @@ export function crowdedness(g, sid, counts = null) {
 /** How many adults leave: half the adults, within the data's [fewest, most]. */
 const founderTarget = (R, adults) => Math.min(R.founders[1], Math.max(R.founders[0], Math.floor(adults / 2)));
 
-/**
- * Who leaves (read-only, deterministic). Returns the ids (sorted) of at most `n` adults and the children who
- * go with them. Families are never split. The fixed rule:
- *  - a family is everyone joined by sharing a home or by being parent and child (at any age), so a child
- *    goes only with every parent of it who lives in the village, and a household is never split;
- *  - families with a home go first, in the order of their first home's id; then families without a home
- *    (unattached adults), in the order of their first adult's id;
- *  - a family is skipped whole if it would take more than the adults still wanted, if anyone in it cannot
- *    travel (collapsed, carried, in a medical bed), or if it would take the village's last adult holding
- *    one of its qualifications (needed roles: the village keeps at least one holder of each);
- *  - if no family fits exactly, fewer adults leave (canFound then says too few could leave).
- */
-export function chooseFounders(g, sid, n) {
+/** The families of village sid: people of one home together, children with their parents here; families with no
+ *  adult here are left out. Returns { adults, fams: [{ adults, kids, home }] } (fams unsorted). */
+export function familiesOf(g, sid) {
   const s = g.s;
   const people = Object.values(s.colonists).filter((c) => sidOf(g, c) === sid).sort(byId);
   const adults = people.filter((c) => isAdult(g, c));
@@ -124,7 +119,29 @@ export function chooseFounders(g, sid, n) {
     if (h && (f.home === null || h.id < f.home)) f.home = h.id;
   }
   for (const [r, f] of fam) if (!f.adults.length) fam.delete(r); // children with no adult here stay
-  const fams = [...fam.values()].sort((a, b) => (a.home === null) - (b.home === null)
+  return { adults, fams: [...fam.values()] };
+}
+
+/** Is a family unhappy (its adults' mean mood at or below the unhappy line; mood.js)? */
+const sadFamily = (f) => f.adults.reduce((a, c) => a + (c.mood ?? 0), 0) / f.adults.length <= MOOD.unhappy;
+
+/**
+ * Who leaves (read-only, deterministic). Returns the ids (sorted) of at most `n` adults and the children who
+ * go with them. Families are never split. The fixed rule:
+ *  - a family is everyone joined by sharing a home or by being parent and child (at any age), so a child
+ *    goes only with every parent of it who lives in the village, and a household is never split;
+ *  - unhappy families (their adults' mean mood at or below the unhappy line, mood.js) go first; then
+ *    families with a home, in the order of their first home's id; then families without a home
+ *    (unattached adults), in the order of their first adult's id;
+ *  - a family is skipped whole if it would take more than the adults still wanted, if anyone in it cannot
+ *    travel (collapsed, carried, in a medical bed), or if it would take the village's last adult holding
+ *    one of its qualifications (needed roles: the village keeps at least one holder of each);
+ *  - if no family fits exactly, fewer adults leave (canFound then says too few could leave).
+ */
+export function chooseFounders(g, sid, n) {
+  const { adults, fams: all } = familiesOf(g, sid);
+  // Unhappy families first (mood.js): those who have had enough leave first; otherwise as before.
+  const fams = all.sort((a, b) => sadFamily(b) - sadFamily(a) || (a.home === null) - (b.home === null)
     || (a.home !== null && a.home !== b.home ? (a.home < b.home ? -1 : 1) : 0) || byId(a.adults[0], b.adults[0]));
   const qualLeft = new Map(); // qualification -> adults still holding it
   for (const c of adults) for (const q of c.quals || []) qualLeft.set(q, (qualLeft.get(q) || 0) + 1);
@@ -163,19 +180,21 @@ export function canFound(g, sid, counts = null) {
   if (!st) { res.problems.push('There is no such village.'); res.reason = res.problems[0]; return res; }
   counts ||= headCounts(g);
   const s = g.s, name = nameOf(g, sid), P = res.problems;
-  const nVillages = Object.keys(s.settlements).length;
+  const nVillages = livingCount(g); // ruins do not count (fallen.js)
   if (nVillages >= R.maxVillages) P.push(`The world already has ${nVillages} villages (the most is ${R.maxVillages}).`);
   if (g.policyFor(sid).allowEmigration === false) P.push(sid === s.playerSettlement ? 'Your policy keeps settlers at home.' : `${name}'s policy keeps settlers at home.`);
   const crowd = res.crowd = crowdedness(g, sid, counts);
   if (!crowd.crowded) P.push(`${name} is not crowded (${crowd.pop} of ${crowd.cap} people).`);
-  else if (crowd.days < R.crowdedDays) P.push(`${name} has been crowded for ${plural(crowd.days, 'day')} of ${R.crowdedDays}.`);
+  const gf = growthOf(g), crowdedDays = R.crowdedDays / gf, cooldownDays = R.cooldownDays / gf; // the Fast growth law halves the waits
+  if (crowd.crowded && crowd.days < crowdedDays) P.push(`${name} has been crowded for ${plural(crowd.days, 'day')} of ${crowdedDays}.`);
   if (crowd.adults < R.minAdults) P.push(`${name} has ${plural(crowd.adults, 'adult')}; settlers leave only with at least ${R.minAdults}.`);
-  if (Number.isFinite(st.lastFounding) && s.tick - st.lastFounding < R.cooldownDays * TICKS_PER_DAY)
-    P.push(`${name} founded a village on day ${dayOf(st.lastFounding)}; it waits until day ${dayOf(st.lastFounding + R.cooldownDays * TICKS_PER_DAY)}.`);
+  if (Number.isFinite(st.lastFounding) && s.tick - st.lastFounding < cooldownDays * TICKS_PER_DAY)
+    P.push(`${name} founded a village on day ${dayOf(st.lastFounding)}; it waits until day ${dayOf(st.lastFounding + cooldownDays * TICKS_PER_DAY)}.`);
   if (R.daughterMinDays && st.parent && s.tick - (st.founded || 0) < R.daughterMinDays * TICKS_PER_DAY)
     P.push(`${name} was founded on day ${dayOf(st.founded || 0)}; a new village sends settlers out only from day ${dayOf((st.founded || 0) + R.daughterMinDays * TICKS_PER_DAY)}.`);
   if (Number.isFinite(st.noSiteAt) && s.tick - st.noSiteAt < R.siteRetryDays * TICKS_PER_DAY)
     P.push(`No free site was found near ${name} on day ${dayOf(st.noSiteAt)}; it looks again on day ${dayOf(st.noSiteAt + R.siteRetryDays * TICKS_PER_DAY)}.`);
+  if (!P.length) { const cw = coldWait(g); if (cw) P.push(`In ${name} ${cw}.`); } // scenarios with cold rules (life.js)
   if (P.length) { res.reason = P[0]; return res; }
   // Only villages that pass the cheap checks pick founders and count food.
   const n = res.n = founderTarget(R, crowd.adults);
@@ -510,6 +529,8 @@ export function foundDaughter(g, sid, opts = {}) {
     policy: clone(parent.policy || {}), trade: clone(parent.trade || {}), laws: { ...(parent.laws || {}) },
     ...(parent.enforcement !== undefined ? { enforcement: parent.enforcement } : {}),
   };
+  if (peopleOfSettlement(g, sid)) rec.people = peopleOfSettlement(g, sid); // the founders' people (villages keep to one)
+  if (parent.code) rec.code = { ...parent.code }; // civilization laws: the daughter keeps its parent's code (civlaws.js)
   s.settlements[child] = rec;
   ensureSettlement(g.reg, s, rec);
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + child); }
@@ -566,7 +587,7 @@ export function foundDaughter(g, sid, opts = {}) {
   g.planDirty = true;
   (g.plans ||= {})[child] = emptyPlan(); // a plan of its own (empty) until it plans next tick, never the player's
   (g.replanSids ||= new Set()).add(sid).add(child);
-  g.log(`${founders.length} settlers left ${pName} (${why}) and founded ${name}.`, 'good');
+  g.log(`${founders.length} settlers left ${pName} (${why}) and founded ${name}.`, 'good', null, 0, { kind: 'core:village_founded', sids: [sid, child], at: s.settlements[child]?.center });
   // Kingdoms (slice 3): the daughter joins its parent's kingdom, or the parent becomes the capital of a new one.
   kingdomForDaughter(g, sid, child);
   if (g.big && wantDetail(g, child) === 'abstract') setDetail(g, child, 'abstract', 'it is far from the player');
@@ -657,7 +678,7 @@ function budgetedFounding(g, R, counts, ids) {
     .sort((a, b) => s.settlements[a].crowdedSince - s.settlements[b].crowdedSince || (a < b ? -1 : a > b ? 1 : 0));
   let made = 0, looked = 0;
   for (const sid of order) {
-    if (made >= perDay || looked >= searches || Object.keys(s.settlements).length >= R.maxVillages) return;
+    if (made >= perDay || looked >= searches || livingCount(g) >= R.maxVillages) return;
     let ev = canFound(g, sid, counts);
     if (!ev.ok && !g.plans?.[sid] && g.replanLater?.has(sid) && ev.problems.length === 1 && ev.n !== undefined) { g.ensurePlan(sid); ev = canFound(g, sid, counts); }
     if (!ev.ok) continue;

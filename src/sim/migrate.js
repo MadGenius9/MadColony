@@ -62,6 +62,68 @@ export const MIGRATIONS = {
   // 13 -> 14: power storage (Phase 3, slice 4). A battery's stored energy (`structure.charge`) is optional: absent
   // means empty, and older saves had no batteries. Nothing to add.
   13() {},
+  // 14 -> 15: death (Phase 5, slice 1a). `s.dead` (the dead by id), `health.zeroSince` and `s.stats.deaths` are
+  // optional: absent means nobody has died, as in every older save. Nothing to add.
+  14() {},
+  // 15 -> 16: burial and mourning (Phase 5, slice 1b). Bodies (`s.bodies`), graves (`structure.grave`), the
+  // graveyard (`settlement.graveyard`) and grief (`colonist.grief`) are optional. A format-15 save with the dead
+  // has no bodies: they count as laid to rest. Nothing to add.
+  15() {},
+  // 16 -> 17: contagious illness (Phase 5, slice 3). The sickness fields on injuries, `colonist.immune` and
+  // `s.stats.illness` are optional: absent means nobody fell ill. Nothing to add.
+  16() {},
+  // 17 -> 18: lasting injuries and surgery (Phase 5, slice 4). `colonist.lasting` and the injury flags `deep` and
+  // `mended` are optional; wounds from older saves are not deep (they leave no lasting injury). Nothing to add.
+  17() {},
+  // 18 -> 19: rivalry and wars (Phase 5, slice 5). `relation.touch` (lands touch, war games) and `relation.threat`
+  // (an AI village threatened the player) are optional. Older vast-world saves have no touch marks: borders that
+  // touched before stay quiet. Nothing to add.
+  18() {},
+  // 19 -> 20: AI wars (Phase 5, slice 5b). `relation.warSince` is optional: a war from an older save has no start
+  // time, so it ends only when one side is losing. Nothing to add.
+  19() {},
+  // 20 -> 21: fallen villages (Phase 5, slice 6a). `settlement.fallen` is optional: absent means the village
+  // stands. An empty village from an older save falls at the next day start. Nothing to add.
+  20() {},
+  // 21 -> 22: conquest (Phase 5, slice 6b). `relation.beaten` (who has had no fighters, since when) and the trade
+  // flag `tribute` are optional. Nothing to add.
+  21() {},
+  // 22 -> 23: fire (Phase 5b). `s.disasters` (burning and scorched tiles) is optional: absent means nothing burns.
+  22() {},
+  // 23 -> 24: tornadoes (Phase 5b). `s.disasters.storms` is optional: absent means no storm blows. Nothing to add.
+  23() {},
+  // 24 -> 25: rain, drought and plague (Phase 5b). `s.disasters.weather` and `s.disasters.plague` are optional:
+  // absent means fair weather and no plague.
+  24() {},
+  // 25 -> 26: regrowth (Phase 5b). `s.disasters.seeds` and `node.young` are optional: nothing waits to sprout.
+  25() {},
+  // 26 -> 27: wild animals (Phase 8). `s.animals` is optional: absent, the herds are placed at the next tick.
+  26() {},
+  // 27 -> 28: the animal ledger (Phase 8b). Herds from before it: the living animals are its start.
+  27(s) {
+    const A = s.animals;
+    if (!A?.herds || A.ledger) return;
+    A.ledger = {};
+    for (const h of Object.values(A.herds)) (A.ledger[h.sp] ||= { start: 0, born: 0, sent: 0, died: {} }).start += Number(h.n) || 0;
+  },
+  // 28 -> 29: wild monsters (Phase 8c). `s.monsters` is optional: absent, the lairs are placed at the next tick.
+  28() {},
+  // 29 -> 30: peoples and traits (colonist people and traits, settlement and dead people). Absent: filled on load
+  // (save.js) with the default people and traits drawn by the colonist's hash, as a new colonist of that id gets.
+  29() {},
+  // 30 -> 31: world laws (worldlaws.js). `s.worldLaws` is optional: absent means no laws.
+  30() {},
+  // 31 -> 32: civilization laws (civlaws.js). settlement.code is optional: absent means every law at its default.
+  31() {},
+  // 32 -> 33: mood (mood.js). colonist.mood is optional: absent means it starts at the person's thoughts.
+  32() {},
+  // 33 -> 34: the chronicle (chronicle.js). Log entries may carry an event id and fields; s.chronicle is optional:
+  // absent means no event has been recorded (old lines stay as routine lines).
+  33() {},
+  // 34 -> 35: prayers and petitions (petitions.js). `s.petitions` is optional: absent means none open.
+  34() {},
+  // 35 -> 36: intervention follow-through (followup.js). `s.followUps` is optional: absent means nothing waits.
+  35() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

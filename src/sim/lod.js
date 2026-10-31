@@ -23,12 +23,19 @@ import { GROUND_REST_RATE } from './ai/needs.js';
 import { tickHealth, isDown } from './health.js';
 import { isAdult, mayDoWork, needsCare } from './people.js';
 import { isEnemy, orderOf } from './combat.js';
+import { spreadContact } from './illness.js';
 import { completeStructure, completeRenovation, materialsComplete, partEligible, workOrderOf } from './construction.js';
 import { completeTech, settlementOf } from './research.js';
 import { legRemaining, deliverLeg } from './villages.js';
 import { tapHasWater, isWaterNode } from './water.js';
 import { fieldCells } from './game.js';
 import { planNow } from './planner.js';
+import { droughtAt } from './weatherat.js';
+import { farHuntable, killFar, MEAT_PER_PERSON } from './animals.js';
+import { huntWeapon } from './hunt.js';
+import { modsOf } from './peoples.js';
+import { rationOf, hoursOf, huntAllowed, treeProtected } from './civlaws.js';
+import { noteMeal, onBreak } from './mood.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -45,7 +52,7 @@ export const LOD = {
   //   seed 7:  gathered 1.05, crafted 1.12, construction used 1.02, harvested 1.03, sown 1.06, research 0.87
   //   seed 11: gathered 1.04, crafted 1.11, construction used 1.03, harvested 1.22, sown 1.18, research 0.92
   //   (food eaten 1.13 / 1.22; seed 11's full run includes a village whose people collapsed from thirst).
-  share: { research: 0.085, construct: 0.7, bills: 0.73, farm: 0.8, gather: 0.57 },
+  share: { research: 0.085, construct: 0.7, bills: 0.73, farm: 0.8, gather: 0.57, hunt: 0.5 }, // hunt: Phase 8, not measured against full detail yet
 };
 const STACK_RADIUS = 20; // tiles round the centre searched for the village's goods (items overflow up to here)
 const SHORT = 1e-9;
@@ -100,7 +107,7 @@ export function wantDetail(g, sid) { return fullReason(g, sid) ? 'full' : 'abstr
 
 /** The village the player is watching (explicit player input, applied at the next LOD check). */
 export function setWatch(g, sid) {
-  if (sid && g.s.settlements?.[sid]) g.s.watch = sid;
+  if (sid && g.s.settlements?.[sid] && !g.s.settlements[sid].fallen) g.s.watch = sid; // not ruins (fallen.js)
   else delete g.s.watch;
 }
 
@@ -257,9 +264,12 @@ function planInputs(g, store, inputs, reserve) {
   const use = (it) => { if (!usable.has(it)) usable.set(it, store.free(it) - (reserve[it] || 0)); return usable.get(it); };
   const fromStack = new Map();
   const plan = [];
+  const rot = (st) => g.reg.get('item', st.item)?.spoilPerDay || 0;
   for (const inp of inputs) {
     let need = inp.qty;
-    for (const st of store.stacks()) {
+    // Stacks in id order, what spoils first (Phase 8; a stable sort: without spoiling goods the order is as before).
+    const stacks = inp.tag ? store.stacks().slice().sort((a, b) => rot(b) - rot(a)) : store.stacks();
+    for (const st of stacks) {
       if (need <= 0) break;
       if (st.dur !== undefined || (inp.item ? st.item !== inp.item : !g.reg.itemHasTag(st.item, inp.tag))) continue;
       const q = Math.min(need, store.avail(st) - (fromStack.get(st.id) || 0), use(st.item));
@@ -288,7 +298,7 @@ function takePlanned(g, plan) {
 /** One game hour of an abstract village: needs and health, labour, caravans (in this order). */
 export function abstractHour(g, sid) {
   const st = settlementOf(g, sid);
-  if (!st) return;
+  if (!st || st.fallen) return; // ruins live no hours (fallen.js)
   if (g.replanLater?.has(sid)) planNow(g, sid); // its hour comes before its planning slot (planner.js)
   const prevActor = g.actor;
   g.actor = sid;
@@ -334,7 +344,7 @@ function hourNeeds(g, sid, cols, store, structs) {
     // out again cut abstract production in tests/lod-rates.test.js, seed 7, from -21% to -26%).
     const asleep = night || (!!energyDef && (c.needs[energyDef.id] ?? 1) < energyDef.seekBelow);
     for (const def of reg.all('need')) {
-      const drop = (def.decayPerDay / 24) * (asleep && (def.behavior === 'core:eat' || def.behavior === 'core:drink') ? (def.sleepDecayMult ?? 1) : 1);
+      const drop = (def.decayPerDay / 24) * (asleep && (def.behavior === 'core:eat' || def.behavior === 'core:drink') ? (def.sleepDecayMult ?? 1) : 1) * (def.behavior === 'core:shelter' ? 1 : modsOf(g, c).needs[def.id] ?? 1) * (def.behavior === 'core:eat' ? rationOf(g, c) : 1); // people and traits (peoples.js); rationing (civlaws.js)
       const v = c.needs[def.id] ?? 1;
       if (def.behavior === 'core:drink') c.needs[def.id] = water ? 1 : Math.max(0, v - drop);
       else if (def.behavior === 'core:shelter') {
@@ -358,6 +368,7 @@ function hourNeeds(g, sid, cols, store, structs) {
         const got = g.takeFromStack(food.id, 1);
         if (!got || got.qty < 1) break;
         g.consume(got.item, 1, 'eat');
+        noteMeal(g, c, got.item); // mood.js
         c.needs[hunger.id] = Math.min(1, c.needs[hunger.id] + (d?.nutrition || 0));
       }
     }
@@ -376,7 +387,8 @@ function pickFood(g, store, reserve) {
     const d = reg.get('item', st.item);
     if (!d?.nutrition || st.dur !== undefined || store.avail(st) < 1 || freeOf(st.item) < 1) continue;
     if (d.tags?.includes('core:meal')) return st;
-    if (!raw && freeOf(st.item) - (reserve[st.item] || 0) >= 1) raw = st;
+    if (freeOf(st.item) - (reserve[st.item] || 0) < 1) continue;
+    if (!raw || (d.spoilPerDay || 0) > (reg.get('item', raw.item)?.spoilPerDay || 0)) raw = st; // raw food that spoils first (Phase 8)
   }
   return raw;
 }
@@ -384,15 +396,16 @@ function pickFood(g, store, reserve) {
 // ---------------------------------------------------------------- labour
 function hourLabour(g, sid, cols, store, structs, own) {
   const hour = Math.floor(g.hour);
-  if (hour < 6 || hour >= 21) return;
+  if (hour < 6 || hour >= (hoursOf(g, sid) === 'long' ? 23 : 21)) return; // long hours (civlaws.js): two more
   const P = g.plans?.[sid];
   if (!P) return;
-  const workers = cols.filter((c) => isAdult(g, c) && !isDown(c));
+  const workers = cols.filter((c) => isAdult(g, c) && !isDown(c) && !onBreak(g, c)); // mood.js: not those on a break
   if (!workers.length) return;
   const A = settlementOf(g, sid).abs.gather;
   for (const id of Object.keys(A)) if (!g.s.nodes[id]) delete A[id]; // work on a node that is gone is lost, as for a job
   const ctx = makeContext(g, sid, store, structs, own, P);
-  const tasks = [taskResearch, taskConstruct, taskBills, taskFarm, taskGather];
+  ctx.cols = cols;
+  const tasks = [taskResearch, taskConstruct, taskBills, taskHunt, taskFarm, taskGather];
   for (const c of workers) {
     let time = LOD.hour;
     for (const task of tasks) {
@@ -650,7 +663,7 @@ function taskFarm(g, ctx, c, time) {
     if (!crop || !g.s.fields[f.id] || ctx.P.sowOk?.[crop.id] === false) continue;
     for (const [x, y] of fieldCells(f)) {
       if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y) || g.fieldAt(x, y)?.id !== f.id) continue;
-      if (g.terrainAt(x, y).fertility < (crop.minFertility ?? 0.5)) continue;
+      if (g.terrainAt(x, y).fertility < (crop.minFertility ?? 0.5) || droughtAt(g, x, y)) continue;
       const seed = ctx.store.free(crop.seed) >= 1 && ctx.store.stacks().find((s) => s.item === crop.seed && s.dur === undefined && ctx.store.avail(s) >= 1);
       if (!seed) break;
       const need = (crop.sowWork || 25) / speed;
@@ -686,6 +699,56 @@ function taskGather(g, ctx, c, time) {
   return used;
 }
 
+// Hunting (Phase 8, slice 5): an adult who may hunt (armed, or a melee weapon in the village's stock), while the village is short of meat (meat and carcasses
+// below MEAT_PER_PERSON a person, counting what was hunted this hour), spends time on the nearest far herd of deer
+// or horses within HUNT_REACH of the centre that is above the hunting limit: a hunt is HUNT_WORK ticks of work
+// (LOD.share.hunt of the time counts) plus the walk there and back; progress is kept per herd
+// (settlement.abs.hunt). At the end a hash draw decides it (HUNT_HIT): a kill takes one animal from the herd and
+// makes its carcass at the centre (`created:hunt`), to be butchered by the village's bills; a miss starts again.
+const HUNT_REACH = 40, HUNT_WORK = 400, HUNT_HIT = 0.7;
+/** Can c hunt in a distant village: their own weapon, or a weapon in the village's stock (nobody equips there);
+ *  a bow counts only with its arrows in stock too. Weapons and arrows are not worn or spent here (an aggregate). */
+function huntArmed(g, ctx, c) {
+  if (huntWeapon(g, c)) return true;
+  if (ctx.huntGear === undefined) {
+    const have = new Set();
+    for (const st of ctx.store.stacks()) if (ctx.store.avail(st) >= 1) have.add(st.item); // weapons carry wear (dur)
+    ctx.huntGear = [...have].some((it) => { const eq = g.reg.get('item', it)?.equipment; return eq?.damage && (!eq.ammo || have.has(eq.ammo)); });
+  }
+  return ctx.huntGear;
+}
+/** Meat on hand now (carcasses count 6), from the live stacks rather than the plan's older snapshot. */
+function storeMeat(g, ctx) {
+  let n = 0;
+  for (const st of ctx.store.stacks()) {
+    const tags = g.reg.get('item', st.item)?.tags;
+    if (tags?.includes('core:meat')) n += st.qty; else if (tags?.includes('core:carcass')) n += 6 * st.qty;
+  }
+  return n;
+}
+function taskHunt(g, ctx, c, time) {
+  if (!can(g, c, 'core:hunt') || !g.s.animals || (ctx.hunter && ctx.hunter !== c.id) || !huntArmed(g, ctx, c)) return 0; // one hunter a village an hour
+  ctx.huntMeat ??= storeMeat(g, ctx);
+  ctx.huntTargets ??= farHuntable(g, ctx.center.x, ctx.center.y, HUNT_REACH, ctx.sid); // once a village an hour
+  const targets = ctx.huntTargets.filter((t) => g.s.animals.herds[t.h.id] === t.h);
+  const target = targets.find((t) => t.raid) || (ctx.huntMeat < MEAT_PER_PERSON * Math.max(2, ctx.cols.length) && huntAllowed(g, ctx.sid, ctx.P?.foodDays) ? targets[0] : null); // the Hunting law (civlaws.js)
+  if (!target) return 0;
+  ctx.hunter = c.id;
+  const { h, d } = target, abs = (settlementOf(g, ctx.sid).abs.hunt ||= {});
+  for (const id of Object.keys(abs)) if (!g.s.animals.herds[id]) delete abs[id];
+  const cost = HUNT_WORK + 2 * Math.max(1, octile(ctx.center.x, ctx.center.y, h.x, h.y)) * MOVE_TICKS;
+  const done = abs[h.id] || 0, spend = Math.min(time, (cost - done) / LOD.share.hunt);
+  abs[h.id] = done + spend * LOD.share.hunt;
+  practiceFor(g, c, 'core:hunt', 'core:hunting', spend, LOD.share.hunt);
+  if (abs[h.id] + SHORT < cost) return spend;
+  delete abs[h.id];
+  let x = hash(`${g.s.seed}:lodhunt:${ctx.sid}:${h.id}:${g.s.tick}:${c.id}`); // finalised: keys differ only at the end
+  x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16;
+  const hit = (x >>> 0) / 4294967296 < HUNT_HIT;
+  if (hit && d.carcass && g.reg.has('item', d.carcass)) { killFar(g, h.id); makeItems(g, ctx, d.carcass, 1, 'hunt'); ctx.huntMeat += 6; }
+  return spend;
+}
+
 /** Nodes yielding `item` that the village may gather, nearest to its centre first (cached for the hour). */
 function nodeCandidates(g, ctx, item) {
   let list = ctx.nodeCands.get(item);
@@ -696,7 +759,7 @@ function nodeCandidates(g, ctx, item) {
   list = [];
   if (defs.size) {
     for (const n of g.nodesNear(cx, cy, LOD.nearRadius, defs)) {
-      if (n.empty || (n.x - cx) ** 2 + (n.y - cy) ** 2 > r2 || !g.gatherOk(ctx.sid, n)) continue;
+      if (n.empty || (n.x - cx) ** 2 + (n.y - cy) ** 2 > r2 || !g.gatherOk(ctx.sid, n) || treeProtected(g, ctx.sid, n)) continue; // protected forests (civlaws.js)
       const claim = g.footAt(n.x, n.y) || g.fieldAt(n.x, n.y);
       if (claim && !ctx.own(claim)) continue;
       if (!g.reachableFrom(cx, cy, n.x, n.y, g.nodeDef(n)?.passable ? 'on' : 'adj')) continue;
@@ -770,6 +833,7 @@ function tickCaravans(g) {
     const t = s.trades?.[cv.trade];
     if (t && t.status === 'active' && t.legs[cv.leg]) {
       deliverLeg(g, t, cv.leg, cv.item, cv.qty, cv.tx, cv.ty, cv.dur, true);
+      spreadContact(g, cv.from, cv.to, `a caravan from ${nameOf(g, cv.from)}`); // illness may travel with it (illness.js)
       g.log(`A caravan from ${nameOf(g, cv.from)} delivered ${cv.qty} ${g.reg.get('item', cv.item)?.name || cv.item} to ${nameOf(g, cv.to)}.`, 'trade', `caravanin:${cv.trade}:${cv.leg}`, 600);
     } else {
       // The deal is off: the goods go back home (still the seller's).

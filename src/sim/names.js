@@ -8,9 +8,11 @@
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 
-/** The scenario's name pool: { names, surnames } (surnames may be empty). */
-export function namePoolOf(g, fallback = 'Settler') {
-  const p = g.reg.get('namePool', g.reg.get('scenario', g.s.scenarioId)?.namePool);
+/** The name pool: the people's own (peoples.json `namePool`) when it has one, else the scenario's:
+ *  { names, surnames } (surnames may be empty). */
+export function namePoolOf(g, fallback = 'Settler', people = null) {
+  const own = people ? g.reg.get('people', people)?.namePool : null;
+  const p = g.reg.get('namePool', own || g.reg.get('scenario', g.s.scenarioId)?.namePool);
   return { names: p?.names?.length ? p.names : [fallback], surnames: p?.surnames || [] };
 }
 
@@ -40,4 +42,11 @@ export function uniqueName(pool, used, first, key, family = null, allowPlain = t
   for (let k = 0; k < sn.length; k++) { const n = `${first} ${sn[(start + k) % sn.length]}`; if (!used.has(n)) return n; }
   const base = family ? `${first} ${family}` : sn.length ? `${first} ${sn[start]}` : first;
   for (let k = 2; ; k++) { const n = `${base} ${roman(k)}`; if (!used.has(n)) return n; }
+}
+
+/** Names already used by anyone, living or dead (s.dead, death.js): names stay unique. */
+export function usedNames(s) {
+  const used = new Set(Object.values(s.colonists).map((c) => c.name));
+  for (const d of Object.values(s.dead || {})) used.add(d.name);
+  return used;
 }

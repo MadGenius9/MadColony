@@ -3,6 +3,7 @@
   "scenario": [
     {
       "id": "core:vast_world", "name": "Vast world: a few settlements far apart on a whole planet",
+      "peoplesByLand": { "radius": 10, "minShare": 0.1 },
       "colonists": 5,
       "startItems": [{ "item": "core:wood", "qty": 60 }, { "item": "core:stone", "qty": 20 }, { "item": "core:stew", "qty": 20 }, { "item": "core:potato", "qty": 60 }, { "item": "core:bean", "qty": 40 }],
       "namePool": "core:names", "skillMin": 0, "skillMax": 6,
@@ -51,6 +52,13 @@
           "core:hills": "hills",
           "core:marsh": "marsh"
         }
+      },
+      "war": { "rivalry": { "perDay": 1, "floor": -70, "near": 110, "nearPerDay": 0.9 }, "declareBelow": -50, "stronger": 1.5, "minStrength": 1.5, "warnDays": 1, "battle": { "woundsPerStrength": 0.2, "minSeverity": 15, "maxSeverity": 50 }, "truce": { "weakerShare": 0.25, "maxDays": 20, "minDays": 6 }, "conquest": { "beatenDays": 2, "tribute": 0.5, "beatenShare": 0.15 } },
+      "illness": { "outbreakPerDay": 0.01, "crowding": 3, "graceDays": 10, "villageShare": 0.3, "kinds": [{ "illness": "core:cough", "weight": 6 }, { "illness": "core:fever", "weight": 3 }, { "illness": "core:grey_fever", "weight": 1 }] },
+      "nature": { "spread": [{ "node": "core:pine", "perDay": 0.004, "radius": 2, "maxNear": 6 }, { "node": "core:berry_bush", "perDay": 0.01, "radius": 3, "maxNear": 2, "minNear": 1 }, { "node": "core:brush", "perDay": 0.01, "radius": 2, "maxNear": 4 }] },
+      "life": {
+        "cold": { "below": -2, "perHour": 0.4, "shelter": 6, "fires": ["core:campfire", "core:hearth"], "fireRadius": 5, "foundWaitDays": 8 },
+        "aging": { "elderAge": 50, "elderWork": 0.8, "deathAge": 60, "perYear": 0.2, "perYearStep": 0.15, "startAges": [16, 60] }
       },
       "travel": { "maxWalk": 120, "checkBeyond": 30, "farFromHome": 30, "walkTicks": 4.6, "workTicks": 150 },
       "eraDrive": { "urgency": 0.3, "afterDays": 5 },

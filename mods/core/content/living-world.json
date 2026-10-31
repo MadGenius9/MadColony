@@ -2,7 +2,7 @@
   "$comment": "Phase 1: more kinds of AI village and the 'Living world' scenario (many villages spread over a continent). The profiles differ in priorities, stock and trade habits only: every village uses the same rules and economy as the player.",
   "villageProfile": [
     {
-      "id": "core:lumber_camp", "name": "Lumber camp",
+      "id": "core:lumber_camp", "temperament": 1.2, "conquest": "sack", "name": "Lumber camp",
       "settlementNames": ["Pinecroft", "Oakmere", "Timberley", "Fernwick", "Larchholt", "Sprucedale"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} Woodland Realm", "Timber Crown of {capital}"],
       "color": "#8fb860", "colonists": 3,
@@ -13,7 +13,7 @@
       "laws": { "core:arms": "restricted", "default": "banned" }, "enforcement": 0.5
     },
     {
-      "id": "core:hill_fort", "name": "Hill fort",
+      "id": "core:hill_fort", "temperament": 1.6, "conquest": "sack", "name": "Hill fort",
       "settlementNames": ["Highwatch", "Stonegard", "Ravenhold", "Brackenmoor", "Kestrel Tor", "Dunmere"],
       "kingdomNames": ["Kingdom of {capital}", "March of {capital}", "Iron Crown of {capital}"],
       "color": "#d08a6a", "colonists": 4,
@@ -24,7 +24,7 @@
       "laws": { "core:arms": "legal", "default": "banned" }, "enforcement": 0.9
     },
     {
-      "id": "core:trading_post", "name": "Trading post",
+      "id": "core:trading_post", "temperament": 0.7, "name": "Trading post",
       "settlementNames": ["Crossways", "Marketon", "Fairhaven", "Tollbridge", "Wayfarer's Rest", "Copperford"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} League", "Merchant Crown of {capital}"],
       "color": "#e0c060", "colonists": 3,
@@ -57,7 +57,7 @@
       "laws": { "core:arms": "legal", "default": "banned" }, "enforcement": 0.6
     },
     {
-      "id": "core:scholars_retreat", "name": "Scholars' retreat",
+      "id": "core:scholars_retreat", "temperament": 0.5, "name": "Scholars' retreat",
       "settlementNames": ["Lanternhill", "Quillmere", "Inkwell", "Bookham", "Sagecross", "Lorewick"],
       "kingdomNames": ["Kingdom of {capital}", "{capital} Realm", "Lantern Crown of {capital}"],
       "color": "#c890d0", "colonists": 3,
@@ -71,6 +71,7 @@
   "scenario": [
     {
       "id": "core:living_world", "name": "Living world: your village among many on a continent",
+      "peoplesByLand": { "radius": 10, "minShare": 0.1 },
       "colonists": 5,
       "startItems": [{ "item": "core:wood", "qty": 60 }, { "item": "core:stone", "qty": 20 }, { "item": "core:stew", "qty": 20 }, { "item": "core:potato", "qty": 60 }, { "item": "core:bean", "qty": 40 }],
       "namePool": "core:names", "skillMin": 0, "skillMax": 6,
@@ -79,6 +80,12 @@
       "worldgen": "core:continent",
       "size": "huge",
       "placement": "spread",
+      "illness": { "outbreakPerDay": 0.01, "crowding": 3, "graceDays": 10, "villageShare": 0.3, "kinds": [{ "illness": "core:cough", "weight": 6 }, { "illness": "core:fever", "weight": 3 }, { "illness": "core:grey_fever", "weight": 1 }] },
+      "nature": { "spread": [{ "node": "core:pine", "perDay": 0.004, "radius": 2, "maxNear": 6 }, { "node": "core:berry_bush", "perDay": 0.01, "radius": 3, "maxNear": 2, "minNear": 1 }, { "node": "core:brush", "perDay": 0.01, "radius": 2, "maxNear": 4 }] },
+      "life": {
+        "cold": { "below": -2, "perHour": 0.4, "shelter": 6, "fires": ["core:campfire", "core:hearth"], "fireRadius": 5, "foundWaitDays": 8 },
+        "aging": { "elderAge": 50, "elderWork": 0.8, "deathAge": 60, "perYear": 0.2, "perYearStep": 0.15, "startAges": [16, 60] }
+      },
       "siteWaterWalk": 24,
       "neighborDistance": 40,
       "eraDrive": { "urgency": 0.3, "afterDays": 5 },

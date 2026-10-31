@@ -5,7 +5,7 @@
       "id": "core:god",
       "name": "Core god powers",
       "favour": { "start": 30, "max": 100, "perDay": 5 },
-      "costs": { "settler": 4, "bless": 25, "inspire": 30, "omen": 1 },
+      "costs": { "settler": 4, "bless": 25, "inspire": 30, "omen": 1, "lightning": 15, "smite": 20, "fire": 25, "meteor": 60, "quake": 70, "tornado": 50, "plague": 50, "rain": 20, "drought": 35, "banish": 30, "trait": 15 },
       "bless": { "days": 5, "maxDays": 15, "work": 1.5, "growth": 2 },
       "inspire": { "fraction": 0.4 },
       "spawn": {

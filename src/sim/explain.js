@@ -4,6 +4,7 @@ import { describeTarget } from './ai/ai.js';
 import { describeGoal } from './goals.js';
 import { materialsComplete, partsOf } from './construction.js';
 import { BLOCK_COOLDOWN } from './constants.js';
+import { moodOf, moodLevel, moodTarget, thoughtsOf } from './mood.js';
 
 const iname = (g, id) => g.reg.get('item', id)?.name || id;
 const names = (list) => (list.length ? list.map((c) => c.name).join(', ') : '');
@@ -57,6 +58,8 @@ export function explainColonist(g, c) {
   };
   const recent = c.status.blocker && g.s.tick - (Number(c.status.blockerTick) || 0) < RECENT;
   if (recent) { out.blocker = c.status.blocker; out.blockerTick = c.status.blockerTick; }
+  // Mood (mood.js): the number, its level and the thoughts behind it (derived; nothing is saved by this).
+  out.mood = { value: moodOf(g, c), level: moodLevel(moodOf(g, c)), target: moodTarget(g, c), thoughts: thoughtsOf(g, c) };
 
   // Current job context (even when not failed).
   const j = c.job;

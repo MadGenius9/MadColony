@@ -1,0 +1,364 @@
+# Peoples and traits (2026-10-24 direction, item 5)
+
+Status: **done** (2026-10-28; the owner's answers below). Branch `cloud-work` (cloud rescue copy; see
+CLAUDE.md).
+
+## The owner's answers (2026-10-28)
+1. **The four peoples:** keep Hearthfolk, Reedkin, Cragborn and Duneshade for now.
+2. **Classic games:** left to me. **Traits in every game, classic too**, as with monsters: one rule everywhere,
+   and the change to classic play is small. Classic colonists are Hearthfolk.
+3. **More traits:** added **Quick** (walks ×1.1), **Strong** (mining, woodcutting and construction ×1.1) and
+   **Kind** (tends and treats the sick and hurt ×1.3).
+4. **Mixed villages:** **peoples keep apart.**
+   - A village holds one people.
+   - `spawn` with `join` is refused for another people ("Reedkin will not settle among Cragborn").
+   - Daughter villages take their founders' people.
+   - Conquest already keeps villages apart (the beaten village joins the winner's kingdom; nobody moves), so a
+     kingdom may hold several peoples.
+   - Children have their parents' people (both parents are always of the village's people).
+5. **Feuds between peoples:** yes. Border rivalry grows ×1.5 between villages of different peoples.
+6. **The `trait` power:** yes, for players who want to use it.
+
+## Goal (from the owner and the roadmap)
+- **Peoples:** 3–4 original peoples, each with its own looks, needs, preferences, temperament and building
+  style. This replaces "Multiple races" in the parking lot.
+- **Traits:** individual traits that children inherit (brave, greedy, wise, sickly, ...) and that change
+  behaviour.
+- **God powers:** the gods can spawn each people.
+- **Original only:** WorldBox's breadth, never a copy. No humans, elves, dwarves or orcs, and none of its
+  race designs.
+- **Rules for every phase:**
+  - determinism across save and load;
+  - conservation (items, people);
+  - sim and UI kept apart (UI notes in `docs/ui-todo.md`);
+  - old saves load (`migrate.js` and a format bump);
+  - content as data;
+  - works for 30+ villages;
+  - visible reasons;
+  - never weaken a test;
+  - the bench within 10%.
+
+## What exists today (an explorer's audit)
+- **The colonist record:**
+  - skills, needs, `look {skin, hair, style, pants, build, height, beard}` (a hash, `appearance.js`), `color`,
+    name, life stage and age, `parents` for children, health, immunity and lasting injuries;
+  - no people, trait, sex, temperament, mood or preference field.
+- **Where colonists are made:** in five places, each writing the record by hand:
+  - the new game (`game.js:143`);
+  - AI villages at world start (`villages.js:271`);
+  - births (`people.js:126`);
+  - the spawn power (`godspawn.js:190`);
+  - daughter villages, which move existing people (`founding.js:539`).
+- **Children inherit** only a colour and a surname. Their look is a fresh hash and their skills start at 0.
+- **Names:** one name pool per scenario (25 first names). Births draw a first name with `g.rng`.
+- **The hook points, each a single place:**
+  - `workSpeed` (`jobs.js:35`), also used by distant villages;
+  - skill gain (`practice`, `jobs.js:54`);
+  - need decay (`needs.js:11`, repeated in `lod.js:341`);
+  - each illness case's strength (`illness.js:87`, `hardy`);
+  - the cold (`life.js coldUnder`);
+  - fight or flee:
+    - `combatDecision` (`combat.js:267`; hp ≥ 50 and armed fights);
+    - wolves (`hunt.js:77`; hp > 40 fends them off);
+    - monster hunt parties (`slay.js partyJob`).
+- **Village "culture" today** is the `villageProfile`:
+  - colour, settlement names, start items, policy, trade, laws;
+  - `temperament` 0–5, used only for how fast border rivalry grows (`war.js:55`).
+- **Homes:** the largest unlocked home template that fits (`civic/sites.js:12`):
+  - cabin single, cabin double and longhouse;
+  - materials are chosen per slot (`construction.js:150`).
+- **Distant villages keep full colonist records:**
+  - only the per-tick AI is skipped;
+  - work speed, need decay, health, illness, births and aging all run on the records;
+  - so trait effects placed in those functions reach them at no extra cost.
+- **No mood system** (`burial.js:10`). The only "feelings" are grief (slower work) and shelter.
+
+## Design
+
+### Four original peoples (data: `mods/core/content/peoples.json`, new type `people`)
+Each people is matched to land the brushes can paint (grass, marsh, hills and snow, desert).
+
+| People | Home land | Looks | Needs and body | Work | Temperament (war rivalry 0–5) | Building style |
+|---|---|---|---|---|---|---|
+| **Hearthfolk** | grass, farmland | today's palette, average height | as today | as today | 1 (as today's default) | today's cabins and longhouse |
+| **Reedkin** | marsh, rivers, coast | small and slight; green-brown skin tones, reed-dark hair | thirst ×1.3, hunger ×0.85; marsh walks at full speed for them | farming and cooking ×1.15, mining ×0.8 | 1 (slow to anger) | a raised reed house (thatch and wood, cheaper in wood, needs straw) |
+| **Cragborn** | hills, mountains, snow | tall and broad; grey and ruddy skin, pale hair, more beards | hunger ×1.2; cold sets in 6 °C later | mining and construction ×1.15, farming ×0.9 | 4 (proud, quick to feud) | a stone roundhouse (stone walls preferred in every slot) |
+| **Duneshade** | sand and desert | lean; deep bronze skin, dark hair, wrapped style | thirst ×0.6; cold sets in 4 °C sooner; rest outdoors lasts longer | crafting and trading; hauling walks ×1.1 | 3 | a low clay-and-wood courtyard house (fewer windows, a shared hearth) |
+
+- **Data per people:**
+  - name and plural;
+  - look palette (skin, hair, styles, height and build ranges): `appearance.js`'s palettes move to data;
+  - name pool;
+  - need multipliers;
+  - cold offset;
+  - work multipliers by skill;
+  - favoured terrain;
+  - temperament;
+  - home templates;
+  - material preference;
+  - trait odds.
+- **Hearthfolk are exactly today's colonists.** A people with no multipliers changes nothing.
+- **Preferences** (with no mood system) steer choices only:
+  - **food:** each people eats its favoured food first (Reedkin beans, Cragborn meat, Duneshade berries,
+    Hearthfolk stew);
+  - **land:** daughter villages and the AI's land choice favour the people's home terrain.
+- **Villages:** each settlement has one `people` (the owner's answer 4), its founders'. It sets the home style,
+  the name pool and the people of everyone born there.
+- **Feuds:** border rivalry grows ×1.5 between villages of different peoples (answer 5).
+
+### Traits (data: `mods/core/content/traits.json`, new type `trait`)
+Each person has 0 to 2 traits. Opposite traits never go together.
+
+| Trait | Effect (all numbers in data) | Opposite |
+|---|---|---|
+| **Brave** | fights while hp ≥ 30 (others 50); fends wolves off at hp > 25; first to join hunt parties | Timid |
+| **Timid** | never joins a fight or hunt party unless cornered; flees at 8 tiles (others 5) | Brave |
+| **Hardy** | illness strength ×0.6; heals ×1.25; cold sets in 2 °C later | Sickly |
+| **Sickly** | catches illness at ×1.5 the chance; illness strength ×1.4; heals ×0.8 | Hardy |
+| **Wise** | learns skills ×1.5; teaches ×1.25 (education) | — |
+| **Diligent** | work ×1.1 | Lazy |
+| **Lazy** | work ×0.9; rests a little longer (energy seek threshold lower) | Diligent |
+| **Greedy** | eats ×1.1; a village asks 3% more in trade per greedy adult (at most +15%) | — |
+| **Quick** | walks ×1.1 (each step takes 1/1.1 the ticks) | — |
+| **Strong** | mining, woodcutting and construction ×1.1 | — |
+| **Kind** | tending and treating patients ×1.3 | — |
+
+- **Effects are a few kinds:** work (all or by skill), walking, tending, learning, a need's decay, illness chance and strength, healing, cold
+  offset, fight hp, flee range, trade margin.
+- **Assignment:**
+  - **New people** (new game, world-start villages, spawned settlers): each trait comes from a hash of the
+    person's key at that people's odds (about 40% have none, 45% one, 15% two).
+  - Hashes only, never `g.rng`, so existing draws do not move.
+- **Inheritance at birth:**
+  - each of a parent's traits passes on at 40% (a hash of `seed:born:id:trait`);
+  - plus 8% for a new trait;
+  - opposites and the cap of 2 settle conflicts;
+  - **people:** the parents' people (villages keep apart, so both parents share it); each look part comes from
+    one parent's (by hash), within the people's palette.
+- **Speed:** each colonist's combined modifiers are a small derived cache, never saved:
+  - built from people and traits on load and whenever traits change;
+  - the hot paths (`workSpeed`, need decay, `tickHealth`, combat checks) read one number each, with no list
+    scans.
+
+### Visible reasons
+- **Statuses name the trait:** "Fled: timid", "Joined the hunt party: brave", "Caught the fever (sickly)".
+- **The planner's trade note** names the greedy surcharge.
+- **The inspector** shows people, traits and what each does (UI note).
+- **Village panels** show the mix of peoples and the home style.
+
+### God powers
+- **`spawn`** takes `people`. By default the people of the village joined, or for `found` the people whose
+  home land is under the cursor. The preview says it ("found Reedkin village here").
+- **A new `trait` power** gives or removes one trait on one person. It costs favour (about 15) and is free in
+  Sandbox. The preview names the opposite trait it replaces.
+
+### Saves (format 30)
+- `colonist.people` and `colonist.traits` (a list, at most 2), `settlement.people`, `dead.people` and
+  `dead.traits`.
+- **Old saves** (`migrate.js` step 29):
+  - every colonist and village becomes Hearthfolk;
+  - traits come from the same hash as new people, so a loaded old save and the same game continued give the
+    same traits.
+- **On load** (`save.js`), like missing skills today:
+  - a people a removed mod defined, or one other than the village's, becomes the village's people;
+  - unknown traits, and a trait beside its opposite, are dropped (the person keeps the rest).
+- **The census:** `peopleCensus` also counts by people (born + spawned − died = living, per people).
+
+### Scale
+- **Per tick:** nothing new beyond reading the cached modifiers.
+- **Distant villages:** they get work, need, health and illness effects through the shared functions; combat
+  traits matter only at full detail, as combat does today.
+- **Bench target:** within 3%.
+
+### Classic games
+- **Classic colonists are Hearthfolk,** so the people layer changes nothing there.
+- **Traits do change behaviour** (a diligent woodcutter, a timid hunter), so the classic hashes and era days
+  move.
+- Question 2 asks whether classic games get traits.
+
+## Slices
+1. **Data and records:**
+   - the `people` and `trait` types, the four peoples and eleven traits;
+   - fields at all five creation sites by hash;
+   - the save format 30 migration, validation and the census by people;
+   - the modifier cache.
+   - No behaviour change yet (Hearthfolk everywhere).
+2. **Trait and people effects** on work, learning, needs, illness, healing and cold, with statuses.
+   - Tests: each effect against a twin without it, and distant villages.
+3. **Courage:** brave and timid in `combatDecision`, wolves and hunt parties; the greedy trade margin; food
+   preferences.
+4. **Births:** inheritance of people, traits and looks; a name pool per people; look palettes moved to data.
+5. **Building styles:**
+   - the three new home templates (reed house, stone roundhouse, courtyard house), chosen by the settlement's
+     people;
+   - material preference;
+   - land preference for daughter villages and AI villages;
+   - Living and Vast worlds give their AI villages peoples by home terrain.
+6. **God powers:** `spawn` with `people`, and the `trait` power.
+7. **Acceptance:**
+   - a World 300-day run with all four peoples (each survives somewhere, all counted, save and load
+     identical);
+   - the classic runs, the bench, README and roadmap.
+
+## Targets
+- **Mixed worlds:** each people lives and grows in its own land in the Vast run, and no people dies out by day
+  100.
+- **Old saves load** as Hearthfolk with hashed traits.
+- **Every effect is visible** in a status or note.
+
+## Open questions (answered; see "The owner's answers")
+1. The four peoples. 2. Classic games. 3. The traits. 4. Mixed villages. 5. Feuds between peoples. 6. The
+   `trait` power.
+
+## Results
+### Slice 1 (2026-10-28): the records
+- **Built:**
+  - **Content types** `people` and `trait` (`content/types.js`), with the four peoples and eleven traits as data
+    (`mods/core/content/peoples.json`). Village profiles may name a `people`.
+  - **`src/sim/peoples.js`:**
+    - the default people;
+    - traits drawn by hash (`${seed}:${id}`, never `g.rng`);
+    - inheritance at birth, one hash per parent trait plus 8% for a new one;
+    - `modsOf`, the combined effects as a derived cache. Nothing reads it yet: behaviour is unchanged.
+  - **Every place a colonist is made** gives people and traits: the new game, AI villages, births, divine
+    settlers. Daughter villages take their founders' people. The dead keep people and traits.
+  - **Save format 30**, validated. Old saves are filled on load with the village's people and the same hashed
+    traits a new game gives, so an old save plays on exactly as a new one.
+  - **The census** counts the living by people and checks every person is of their village's people (the
+    owner's answer 4).
+- **Not yet:** a per-people ledger (born + spawned − died per people). It needs a start count per people and
+  arrives with the slices that bring other peoples into play (5 and 6).
+- **Tests** (`tests/cloud-peoples.test.js`, 5):
+  - classic colonists;
+  - old saves and mended records;
+  - combined effects and inheritance;
+  - AI villages, births and divine settlers;
+  - a Reedkin village and its daughter.
+
+### Slice 2 (2026-10-28): effects on work, learning, walking, tending, needs, illness, healing and cold
+- **Built** (each reads `modsOf`, one cached object per colonist):
+  - **work** (`jobs.js workSpeed`): all work, by skill (people and Strong), and treating patients (Kind);
+  - **learning** (`practice`): Wise;
+  - **walking** (each step's ticks): Quick, Duneshade;
+  - **tending:** Kind;
+  - **need decay**, at full detail (`needs.js`) and in distant villages (`lod.js` hourly needs);
+  - **illness:** the chance to catch it from someone (Sickly) and each case's strength (Hardy, Sickly);
+  - **healing** (`health.js`): Hardy, Sickly;
+  - **the cold** (`life.js coldUnder`): the line moves by the people's and traits' `cold`.
+- **Visible reasons:** catching an illness says "(sickly)". The other effects show as the traits on the
+  inspector card (UI note).
+- **Not built:**
+  - "marsh walks at full speed for the Reedkin" (no per-people ground cost yet);
+  - trip estimates (`trips.js`) still use the plain decay rates.
+- **Tests:** each effect against a twin without it; the cold line at midwinter; a Vast world with all four
+  peoples mixed in plays, saves and loads the same, everyone counted.
+- **Checks:**
+  - 197 tests pass;
+  - classic `forty` reaches the workshops era on day 6.10 (was 5.94), `modern` the modern era on day 46.12 (was
+    45.5);
+  - bench about +7% against slice 1 (two rounds: +11% and +4%).
+### Slice 3 (2026-10-28): courage, greed, favourite food, feuds between peoples
+- **Built:**
+  - **Fighting** (`combat.js`): the health needed to fight is the trait's `fightHp` (Brave 30, Timid above
+    100: never), else 50, through `fitHpOf`. It also decides who counts as a fighter (`fightersOf`, war
+    strength). Timid people flee from 8 tiles (others 5).
+  - **Wolves** (`hunt.js`): an armed Brave person stands at over 25% health (others 40%). A Timid one always
+    runs.
+  - **Hunt parties** (`slay.js`): Timid people never join; Brave ones take the job first (urgency 1.9 against
+    1.6).
+  - **Statuses:**
+    - "Fighting X (brave: fighting on while hurt)";
+    - "Timid: fleeing from the fight";
+    - "A wolf came close (brave: standing while hurt)";
+    - "Timid: running from wolves" and "Timid: running from the Thornback".
+  - **Greed** (`villages.js greedOf`): a village asks 3% more per greedy adult, at most 15%. The offer screen
+    says "Greedy folk there: they ask 6% more."
+  - **Favourite food** (`needs.js findFood`): a stack of the people's favourite counts 25 tiles nearer. Meals
+    still come first.
+  - **Temperament:** a village without a profile temperament uses its people's (Hearthfolk 1, as today's
+    default).
+  - **Feuds:** rivalry grows ×1.5 between villages of different peoples, and the reason names both peoples
+    (the owner's answer 5).
+- **Not built:**
+  - favourite food in distant villages (their food is picked for the whole village);
+  - greed in trades between two AI villages (only offers to and from the player use it).
+### Slice 4 (2026-10-28): names and looks
+- **Built:**
+  - **Name pools:** each people may name a `namePool` (`names.js namePoolOf`). Reedkin, Cragborn and Duneshade
+    have their own 24 first names and 8 surnames, all invented for this game. Hearthfolk keep the scenario's.
+  - **Look palettes:** each people may give a `look` (skin, hair, trousers, hair styles, build and height
+    ranges, beard chance; `appearance.js makeLook`).
+    - Without one (the Hearthfolk), looks are drawn exactly as before.
+    - The palettes use the existing hair styles only. A "wrapped" style for the Duneshade is a UI note.
+  - **Children take after their parents** (`inheritLook`): skin and hair each from one parent, build and
+    height between theirs, the rest their own.
+  - **Where:** AI villages, divine settlers and births use their people's names and palette.
+  - **Already done in slice 1:** traits inherited at birth.
+- **Classic:** a child born now takes after the parents, so their look differs from before (play does not).
+  The classic runs have no births, so their hashes are unchanged. 201 tests pass.
+### Slice 5 (2026-10-28): home styles, stone walls, peoples by land
+- **Built:**
+  - **Home styles** (templates with `people`, in `peoples.json`; `civic/sites.js candidateTemplates`):
+    - **Reed house** (Reedkin, 2 beds, long and narrow);
+    - **Stone roundhouse** (Cragborn, 3 beds, round);
+    - **Courtyard house** (Duneshade, 3 beds, wide and low).
+    - A people builds its own style whenever it fits the beds needed, else the plain cabins and longhouse.
+      Hearthfolk build as before.
+  - **Material preference** (`prefer` in data, `construction.js chooseSlot`): the Cragborn build stone walls
+    once stone walls are researched and the stone for the whole house is in stock.
+  - **Peoples by land** (scenario `peoplesByLand`, Living and Vast worlds; `peoples.js peopleByLand`): an AI
+    village without a profile people takes the people whose home terrains cover the largest share (at least
+    10%) of the land within 10 tiles.
+    - Seed 7, after acceptance added the planet's terrains (see slice 7): Vast world villages are Hearthfolk 2,
+      Cragborn 3, Reedkin 1 and Duneshade 1; Living world villages are Hearthfolk 5, Cragborn 4 and Duneshade 2.
+    - The player's village stays Hearthfolk, and classic and neighbours games are all Hearthfolk.
+- **Not built:**
+  - Daughter villages keep their founders' people, but their site is still the nearest good one, not the
+    people's land. The site search (nearest first, plus the outward search) would need a land score; left for
+    later.
+  - No new materials. Only wood and stone exist, so styles differ in shape and walls, not in reed or clay.
+- **Checks:** 203 tests pass; classic runs unchanged from slice 2.
+### Slice 6 (2026-10-28): god powers
+- **Built:**
+  - **`spawn` takes `people`** (`godspawn.js`).
+    - **Found:** without `people`, the profile's people, else the people of the land under the spot (as AI
+      villages in Living and Vast worlds). This holds for the first village of a Blank world too. The preview
+      names them: "3 Duneshade settlers found Oakmere here".
+    - **Join:** refused for settlers of another people: "Cragborn will not settle among the Duneshade of X"
+      (the owner's answer 4).
+  - **The `trait` power** (`godtraits.js`; args colonistId, trait, mode give or remove; 15 favour, free in
+    Sandbox; the owner's answer 6):
+    - giving a trait replaces its opposite;
+    - a person with two traits must lose one first;
+    - the preview gives the trait's description, and the effect follows at once.
+- **Tests:** a Duneshade village founded by the gods; join refused across peoples; the trait power's gives,
+  replacements, removals and refusals, replayed after a load.
+- **Checks:** 205 tests pass; classic runs unchanged.
+### Slice 7 (2026-10-28): acceptance
+- **Content:** the planet's terrains joined the peoples' home land (Reedkin jungle, Cragborn tundra, Duneshade
+  savanna). Without them a World map had no Duneshade.
+- **World runs** (`tools/cloud-world-run.mjs 300 world <seed>`, which now counts people and standing villages
+  by people). Both runs passed: items, people, animals and monsters were counted every 25 days, and a save and
+  load on day 150 played on identically.
+
+  | Seed | Peoples at the start | Peoples on day 300 | Villages on day 300 | Wars declared | Day 300 speed | Time |
+  |---|---|---|---|---|---|---|
+  | 7 | three | Hearthfolk 131, Reedkin 107, Cragborn 64 (302 people) | 62 standing of 65 | 45 | 2.33 ms/tick (Phase 8c, same seed: 2.30) | 20.9 min |
+  | 11 | all four | Hearthfolk 158, Cragborn 50, Reedkin 48, Duneshade 33 (289 people) | 56 standing of 65 | 85 | 2.45 ms/tick | 20.4 min |
+
+  Every people grew through day 100 and none died out.
+- **Suite:** 205 tests pass.
+  - The 8c forays test now counts "was seen near" lines every day: the log keeps only its last 500 lines, and
+    in this busier world they had scrolled out by the end. Its assertions are kept.
+- **Classic:** `forty` reaches the workshops era on day 6.10 (5.94 before the phase), `modern` the modern era
+  on day 46.12 (45.5): the traits' effects.
+- **Bench** (the code before the phase, `9053c0f`, against now; ms/tick summed over the six sizes): 3.43 →
+  3.50 (+2%) and 3.58 → 3.56 (−1%).
+- **Carried over** (not done):
+  - a per-people ledger (needs a start count per people);
+  - Reedkin walking marsh at full speed;
+  - daughter sites chosen by the people's land;
+  - favourite food and greed in distant villages and between AI villages;
+  - trip estimates with each person's need rates;
+  - new materials (reed, clay) for the home styles;
+  - many more wars in mixed worlds (85 against 45 on these seeds): tune once the owner has played it.

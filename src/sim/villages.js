@@ -8,6 +8,10 @@ import { makeLook } from './appearance.js';
 import { namePoolOf, uniqueName, firstByKey } from './names.js';
 import { tickMilitary, tickWars, isEnemy, orderOf, fightersOf } from './combat.js';
 import { baseValue, marketFor, marketPicker, priceOf } from './markets.js';
+import { knownPeople, settleFolk, modsOf, paletteOf, peopleByLand } from './peoples.js';
+import { isAdult } from './people.js';
+import { startCode, bordersClosed, justiceOf, civLawIs as civLawIsB } from './civlaws.js';
+import { lawIs } from './worldlaws.js';
 
 const VILLAGE_COLORS = ['#7fc8a0', '#b0a0e0', '#e0a0a0', '#a0c0e0'];
 export const RELATION_LABEL = { unknown: 'Not met', neutral: 'Neutral', friendly: 'Friendly', hostile: 'Hostile' };
@@ -270,12 +274,17 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
     id: sid, name, profile: profile.id, ai: true, color: chosenSite ? villageColor(g, profile.color || VILLAGE_COLORS[n % VILLAGE_COLORS.length], n) : (profile.color || VILLAGE_COLORS[n % VILLAGE_COLORS.length]),
     founded: s.tick, center: { x: site.x, y: site.y + 3 }, stockpile: pile, research, policy: profile.policy || {}, trade: profile.trade || {}, laws: { ...(profile.laws || {}) }, enforcement: profile.enforcement ?? 0.6,
   };
+  const byLand = !profile.people && g.reg.get('scenario', s.scenarioId)?.peoplesByLand;
+  const folk0 = byLand ? peopleByLand(g, s.settlements[sid].center.x, s.settlements[sid].center.y, byLand.radius, byLand.minShare) : knownPeople(g, profile.people);
+  if (folk0) s.settlements[sid].people = folk0;
+  startCode(g, sid); // civilization laws: its people's and profile's leanings (civlaws.js)
   for (const k of pile) { const [x, y] = k.split(',').map(Number); g.setZone(g.i(x, y), 'S:' + sid); }
   g.territoryChanged();
   g.actor = sid;
   for (const it of profile.startItems) g.createItems(it.item, it.qty, site.x, site.y + 3, 'start', undefined, true);
   g.actor = null;
-  const pool = namePoolOf(g, 'Settler');
+  const folk = s.settlements[sid].people;
+  const pool = namePoolOf(g, 'Settler', folk); // the people's names (peoples.js), else the scenario's
   const names = rng.shuffle(pool.names.filter((x) => !usedNames.has(x)));
   const skills = g.reg.all('skill');
   for (let i = 0; i < profile.colonists; i++) {
@@ -288,16 +297,17 @@ export function foundVillage(g, profile, rng, usedNames, chosenSite = null) {
     const nd = {};
     for (const nn of g.reg.all('need')) nd[nn.id] = nn.behavior === 'core:shelter' ? 0.6 : 0.8;
     s.colonists[id] = {
-      id, settlementId: sid, name: cname, color: profile.color, look: makeLook(`${s.seed}:${sid}:${i}`),
+      id, settlementId: sid, name: cname, color: profile.color, look: makeLook(`${s.seed}:${sid}:${i}`, paletteOf(g, folk)),
       x: site.x - 1 + (i % 3), y: site.y, mv: null, skills: sk, xp: {}, needs: nd, carry: null, equip: { tool: null, weapon: null },
       homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false, idle: 0,
       status: { goal: 'Arriving', action: 'Looking around', target: '', blocker: '' }, workCount: {},
     };
+    settleFolk(g, s.colonists[id], s.settlements[sid].people);
     g.ownAdd('colonists', s.colonists[id]);
   }
   g.markDirty();
-  if (chosenSite?.biome) g.log(`A ${profile.name.toLowerCase()}, ${name}, was founded far away (${chosenSite.biome}, ${chosenSite.near} tiles from the nearest settlement; water, wood, stone and fertile land nearby) by ${profile.colonists} settlers.`, 'trade');
-  else g.log(`A ${profile.name.toLowerCase()}, ${name}, was founded nearby by ${profile.colonists} settlers.`, 'trade');
+  if (chosenSite?.biome) g.log(`A ${profile.name.toLowerCase()}, ${name}, was founded far away (${chosenSite.biome}, ${chosenSite.near} tiles from the nearest settlement; water, wood, stone and fertile land nearby) by ${profile.colonists} settlers.`, 'trade', null, 0, { kind: 'core:village_founded', sids: [sid], at: site });
+  else g.log(`A ${profile.name.toLowerCase()}, ${name}, was founded nearby by ${profile.colonists} settlers.`, 'trade', null, 0, { kind: 'core:village_founded', sids: [sid], at: site });
   return sid;
 }
 
@@ -343,19 +353,29 @@ export function relationStatus(rel) {
   if (!rel?.contact) return 'unknown';
   return rel.value >= 25 ? 'friendly' : rel.value <= -25 ? 'hostile' : 'neutral';
 }
+/** Under the Peace law relations of villages not at war stop here, just above hostile (-25). */
+export const PEACE_FLOOR = -24;
 /** Every change has a visible cause. */
 export function changeRelation(g, a, b, delta, reason) {
   const rel = relationOf(g, a, b);
   const before = relationStatus(rel);
   rel.value = Math.max(-100, Math.min(100, rel.value + delta));
+  // The Peace law (worldlaws.js): villages not already hostile cannot become so (no new wars); the drop stops
+  // just above the hostile line, and the reason says why.
+  if (before !== 'hostile' && rel.contact && rel.value <= -25 && lawIs(g, 'core:peace', 'on')) { delta += PEACE_FLOOR - rel.value; rel.value = PEACE_FLOOR; reason = `${reason} (held at neutral by the Peace law)`; }
   rel.history.push({ tick: g.s.tick, delta, reason });
   if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16);
   const after = relationStatus(rel);
+  const warEv = rel.warEv; // the war's declaration (chronicle.js), for the peace line
+  const wasWar = warEv !== undefined || rel.aggressor !== undefined; // hostile relations without a war are not a war ending
+  const joined = rel.joinedFor !== undefined; // a war joined to defend an ally (combat.js): its end is minor news
   // A war's markers (who struck first, who joined to defend an ally: combat.js) end with the war.
-  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; }
+  if (before === 'hostile' && after !== 'hostile') { delete rel.aggressor; delete rel.joinedFor; delete rel.warSince; delete rel.threat; delete rel.beaten; delete rel.warEv; }
   if (after !== before && rel.contact) {
     const na = settlementOf(g, a)?.name, nb = settlementOf(g, b)?.name;
-    g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade');
+    const id = g.log(`Relations between ${na} and ${nb} are now ${RELATION_LABEL[after].toLowerCase()} (${reason.toLowerCase()}).`, after === 'hostile' ? 'warn' : 'trade', null, 0,
+      { kind: before === 'hostile' && wasWar ? (joined ? 'core:peace_joined' : 'core:peace') : 'core:relations', sids: [a, b], cause: before === 'hostile' ? warEv : undefined });
+    if (id) rel.lastEv = id;
   }
 }
 
@@ -378,7 +398,7 @@ const iname = (g, it) => g.reg.get('item', it)?.name || it;
 export function willTrade(g, sid, other) {
   const rel = relationPeek(g, sid, other);
   const status = relationStatus(rel);
-  if (!rel.contact || status === 'hostile' || tradeClosed(g, sid, other)) return false;
+  if (!rel.contact || status === 'hostile' || tradeClosed(g, sid, other) || bordersClosed(g, sid, other)) return false; // closed borders (civlaws.js)
   const st = settlementOf(g, sid);
   if (sid === g.s.playerSettlement) {
     const pol = g.s.diplomacy?.tradePolicy || 'open';
@@ -404,7 +424,7 @@ function activeTradeBetween(g, a, b) {
 /** Settlement-level trade planning: match one side's needs with the other side's surplus. */
 export function planTrades(g) {
   const s = g.s;
-  const ids = Object.keys(s.settlements || {});
+  const ids = Object.keys(s.settlements || {}).filter((x) => !s.settlements[x].fallen); // ruins trade with nobody (fallen.js)
   // Pairs with an active trade: one pass over the trades (finished ones stay in s.trades), kept up to date as
   // trades are agreed below. The same answers as asking activeTradeBetween for every pair.
   const busy = new Set();
@@ -543,6 +563,7 @@ export function tickVillages(g) {
       if (s.tick > t.deadline || hostile) {
         t.status = hostile ? 'cancelled' : 'expired';
         for (const [k, leg] of t.legs.entries()) {
+          if (t.tribute) break; // tribute not delivered costs no goodwill (war.js sack)
           if (leg.delivered < leg.qty && legRemaining(g, t, k).inTransit === 0) changeRelation(g, leg.from, leg.to, -5, `${nameOf(g, leg.from)} failed to deliver ${iname(g, leg.item)}`);
         }
         g.log(`A trade between ${nameOf(g, t.seller)} and ${nameOf(g, t.buyer)} ${t.status} before it was fully delivered.`, 'warn');
@@ -696,9 +717,11 @@ export function evaluateOffer(g, ai, offer) {
   const rel = relationPeek(g, me, ai);
   const status = relationStatus(rel);
   if (!rel.contact) res.problems.push(`You have not met ${name} yet.`);
+  if (st.fallen) res.problems.push(`${name} has fallen; only ruins are left.`); // fallen.js
   if (status === 'hostile') res.problems.push(`${name} is hostile and will not trade.`);
   if (activeTradeBetween(g, me, ai)) res.problems.push(`A trade with ${name} is still being delivered. Wait for it to finish or call it off.`);
   if (tradeClosed(g, me, ai)) res.problems.push(`${name} has closed trade with you over smuggling until ${dayOf(attentionOf(g, ai, me).closedUntil)}.`);
+  if (bordersClosed(g, me, ai)) res.problems.push(civLawIs2(g, ai) ? `Closed borders: ${name} does not trade outside its kingdom.` : 'Your borders are closed: no trade outside your kingdom.');
   if (!give.length && !want.length) res.problems.push('Choose something to give or to ask for.');
   if (give.length > MAX_OFFER_ITEMS || want.length > MAX_OFFER_ITEMS) res.problems.push(`Use at most ${MAX_OFFER_ITEMS} different items on each side.`);
   for (const x of give) if (want.some((w) => w.item === x.item)) res.problems.push(`You cannot trade ${iname(g, x.item)} for itself.`);
@@ -768,7 +791,9 @@ export function evaluateOffer(g, ai, offer) {
   } else { // a trade: eager traders accept a thinner margin
     const pact = hasPact(g, me, ai);
     if (pact) res.lines.push('Trade pact: they accept a thinner margin.');
-    const need = Math.ceil(res.worthOut * ((pact ? 1 : 1.15) - 0.25 * willing));
+    const greed = greedOf(g, ai);
+    if (greed > 0) res.lines.push(`Greedy folk there: they ask ${Math.round(greed * 100)}% more.`);
+    const need = Math.ceil(res.worthOut * ((pact ? 1 : 1.15) - 0.25 * willing + greed));
     res.accept = res.worthIn >= need;
     res.relOnAgree = res.accept ? 2 : 0;
     res.relOnDone = res.accept ? 6 : 0;
@@ -778,6 +803,15 @@ export function evaluateOffer(g, ai, offer) {
   return res;
 }
 
+/** The extra share a village asks in trade for its greedy adults (peoples.js: each adult's trait `trade`, at most GREED_MAX). */
+export const GREED_MAX = 0.15;
+export function greedOf(g, sid) {
+  let x = 0;
+  for (const c of g.owned('colonists', sid)) if (isAdult(g, c)) x += modsOf(g, c).trade;
+  return Math.min(GREED_MAX, Math.round(x * 1000) / 1000);
+}
+
+const civLawIs2 = (g, sid) => civLawIsB(g, sid, 'core:borders', 'closed');
 /** Send an offer. If the neighbour accepts it becomes an active trade (one leg per item); returns { ok, message, tradeId }. */
 export function proposeTrade(g, ai, offer) {
   const me = g.s.playerSettlement;
@@ -882,6 +916,7 @@ export function evaluatePact(g, a, b, doneCounts = null) {
   const nb = nameOf(g, b);
   const res = { valid: true, accept: false, problems: [], lines: [], verdict: '' };
   if (a === b || !settlementOf(g, b)) res.problems.push('That is not a neighbouring village.');
+  if (settlementOf(g, a)?.fallen || settlementOf(g, b)?.fallen) res.problems.push('Only ruins are left there.'); // fallen.js
   if (!rel.contact) res.problems.push(`You have not met ${nb} yet.`);
   if (hasPact(g, a, b)) res.problems.push(`You already have a trade pact with ${nb}.`);
   const done = completedTradesBetween(g, a, b, doneCounts);
@@ -980,7 +1015,7 @@ export function evaluateAlliance(g, a, b, ctx = null) {
   const fightersFor = (x) => { if (!ctx) return fightersOf(g, x).length; if (!ctx.fighters.has(x)) ctx.fighters.set(x, fightersOf(g, x).length); return ctx.fighters.get(x); };
   const res = { valid: true, accept: false, problems: [], lines: [], verdict: '' };
   const na = nameOf(g, a), nb = nameOf(g, b);
-  if (a === b || !settlementOf(g, a) || !settlementOf(g, b)) {
+  if (a === b || !settlementOf(g, a) || !settlementOf(g, b) || settlementOf(g, a).fallen || settlementOf(g, b).fallen) { // ruins: fallen.js
     res.valid = false; res.problems.push('That is not a neighbouring village.'); res.verdict = res.problems[0]; return res;
   }
   const rel = relationPeek(g, a, b);
@@ -1023,7 +1058,7 @@ export function signAlliance(g, a, b, by, reason = '') {
   g.s.alliances ||= {};
   g.s.alliances[relKey(a, b)] = { a: a < b ? a : b, b: a < b ? b : a, since: g.s.tick, by, ...(reason ? { reason } : {}) };
   changeRelation(g, a, b, ALLIANCE.signBonus, `Signed an alliance${reason ? ` (${reason})` : ''}`);
-  g.log(`${nameOf(g, a)} and ${nameOf(g, b)} signed an alliance${reason ? ` (${reason})` : ''}: each will defend the other.`, 'trade');
+  g.log(`${nameOf(g, a)} and ${nameOf(g, b)} signed an alliance${reason ? ` (${reason})` : ''}: each will defend the other.`, 'trade', null, 0, { kind: 'core:alliance', sids: [a, b] });
   return { ok: true, msg: 'Alliance signed.', message: 'Alliance signed.' };
 }
 
@@ -1048,11 +1083,11 @@ export function endAlliance(g, a, b, by, reason, opts = {}) {
   const other = by === a ? b : a;
   if (by && !opts.free) {
     changeRelation(g, a, b, -ALLIANCE.endCost, 'Ended our alliance');
-    g.log(`${nameOf(g, by)} ended its alliance with ${nameOf(g, other)} (-${ALLIANCE.endCost} relations).`, 'warn');
+    g.log(`${nameOf(g, by)} ended its alliance with ${nameOf(g, other)} (-${ALLIANCE.endCost} relations).`, 'warn', null, 0, { kind: 'core:alliance_ended', sids: [a, b] });
   } else {
     noteRelation(g, a, b, `Alliance ended: ${reason || 'ended'}`);
     g.log(by ? `${nameOf(g, by)} has left its alliance with ${nameOf(g, other)}${reason ? ` (${reason})` : ''}.`
-      : `The alliance between ${nameOf(g, a)} and ${nameOf(g, b)} has ended${reason ? ` (${reason})` : ''}.`, 'warn');
+      : `The alliance between ${nameOf(g, a)} and ${nameOf(g, b)} has ended${reason ? ` (${reason})` : ''}.`, 'warn', null, 0, { kind: 'core:alliance_ended', sids: [a, b] });
   }
   return { ok: true, msg: 'Alliance ended.', message: 'Alliance ended.' };
 }
@@ -1103,7 +1138,7 @@ export function pendingProposals(g, to) {
 function aiDiplomacy(g) {
   const s = g.s;
   const me = s.playerSettlement;
-  const ids = Object.keys(s.settlements || {}).sort();
+  const ids = Object.keys(s.settlements || {}).sort().filter((x) => !s.settlements[x].fallen); // no deals with ruins (fallen.js)
   // Daily alliance pass state (never saved): who already proposed or signed today; enemies and fighter
   // counts per village, built on first use (signing does not change them); and the AI villages' alliance
   // proposals to the player, indexed once.
@@ -1279,6 +1314,7 @@ export function evaluateRights(g, grantee, owner, def) {
   const rel = relationPeek(g, grantee, owner);
   const on = nameOf(g, owner), what = nodeName(g, def);
   if (!rel.contact) res.problems.push(`You have not met ${on} yet.`);
+  if (settlementOf(g, owner)?.fallen) res.problems.push(`${on} has fallen; only ruins are left.`); // fallen.js
   if (relationStatus(rel) === 'hostile') res.problems.push(`${on} is hostile.`);
   if (rightsOf(g, owner, grantee)?.nodes.includes(def)) res.problems.push(`You may already gather ${what} there.`);
   const near = borderNodes(g, owner, grantee, def).length;
@@ -1365,7 +1401,7 @@ function playerAsksRights(g, sid) {
     asked[`${best.owner}:${best.def}`] = s.tick;
     const ev = evaluateRights(g, sid, best.owner, best.def);
     if (ev.accept) grantRights(g, best.owner, sid, best.def);
-    else g.log(`${nameOf(g, sid)} has no ${nodeName(g, best.def)} left for ${g.reg.get('item', item)?.name || item} and asked ${nameOf(g, best.owner)} for gathering rights, but was refused: ${ev.verdict}`, 'trade');
+    else relationOf(g, sid, best.owner).lastEv = g.log(`${nameOf(g, sid)} has no ${nodeName(g, best.def)} left for ${g.reg.get('item', item)?.name || item} and asked ${nameOf(g, best.owner)} for gathering rights, but was refused: ${ev.verdict}`, 'trade', null, 0, { kind: 'core:rights_refused', sids: [sid, best.owner] });
     return; // one request per day
   }
 }
@@ -1376,6 +1412,7 @@ function borderDiplomacy(g) {
   const s = g.s;
   const me = s.playerSettlement;
   for (const sid of Object.keys(s.settlements || {}).sort()) {
+    if (s.settlements[sid].fallen) continue; // ruins ask nothing (fallen.js)
     if (!settlementOf(g, sid)?.ai) { if (sid === me) playerAsksRights(g, sid); continue; }
     // Nodes of a kind round our centre, looked up once per kind (borderNodes for each neighbour filters the
     // same list by owner; nodes and land do not change in this pass, so the counts are the same).
@@ -1475,12 +1512,13 @@ export const tradeClosed = (g, a, b) => (g.s.enforcement?.[enfKey(a, b)]?.closed
 /** Chance a banned delivery into j by actor is seized right now. */
 export function seizeChance(g, j, actor) {
   const enf = settlementOf(g, j)?.enforcement ?? 0.6;
-  return Math.min(0.9, (ENFORCE.seizeBase + attentionOf(g, j, actor).value / 250) * (0.4 + enf));
+  return Math.min(0.9, (ENFORCE.seizeBase + attentionOf(g, j, actor).value / 250) * (0.4 + enf) * justiceOf(g, j)); // the Justice law (civlaws.js)
 }
 
 function raiseAttention(g, j, actor, delta, reason) {
   const a = attentionOf(g, j, actor);
   const before = a.value;
+  if (delta > 0) delta *= justiceOf(g, j); // the Justice law (civlaws.js): harsh doubles it, lenient halves it
   a.value = Math.min(100, Math.round((a.value + delta) * 10) / 10);
   a.history.push({ tick: g.s.tick, delta: Math.round(delta * 10) / 10, reason });
   if (a.history.length > 12) a.history.splice(0, a.history.length - 12);

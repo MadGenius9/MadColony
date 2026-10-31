@@ -45,9 +45,11 @@
 // round it (a summed-area table per launch, O(chunks)); with pruneTradesDays, finished trades and stale log keys
 // are pruned daily (pruneTrades, pruneLogKeys; O(trades + caravans + colonists) and O(keys) once a day).
 import { CHUNK, TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
+import { spreadContact } from './illness.js';
 import { makeContact, changeRelation, relationOf, relationPeek, relationStatus, legRemaining } from './villages.js';
 import { octile } from './util.js';
 import { detailOf, sendFarCaravans, caravanTicks, caravanReach } from './lod.js';
+import { bordersClosed } from './civlaws.js';
 
 export { caravanReach }; // for ai/givers.js (far legs: which goods a caravan can load)
 
@@ -340,7 +342,7 @@ function launchTraders(g, sid, v, R) {
   v.nextTrade = s.tick + every;
   const met = [];
   for (const o of Object.keys(s.settlements).sort()) {
-    if (o === sid) continue;
+    if (o === sid || s.settlements[o].fallen || bordersClosed(g, sid, o)) continue; // nobody visits ruins (fallen.js), nor across closed borders (civlaws.js)
     const rel = relationPeek(g, sid, o);
     if (rel.contact && relationStatus(rel) !== 'hostile') met.push(o);
   }
@@ -370,6 +372,7 @@ function traderStep(g, t, R) {
       if (R.relation && relationStatus({ contact: true, value }) !== before) changeRelation(g, t.from, t.to, R.relation, `Traders from ${a} visited`);
       else rel.value = value;
       rel.visits = { n: (rel.visits?.n || 0) + 1, last: s.tick, from: t.from };
+      spreadContact(g, t.from, t.to, `traders from ${a}`); // illness may travel with them (illness.js)
       const P = s.playerSettlement;
       if (t.from === P || t.to === P) g.log(`Traders from ${a} visited ${nameOf(g, t.to)}.`, 'trade', `traders:${t.from}:${t.to}`, TICKS_PER_DAY);
     }
@@ -389,6 +392,7 @@ export function tickContact(g) {
   if (!R) return;
   if (s.tick % TICKS_PER_HOUR === 0) {
     for (const sid of Object.keys(s.settlements).sort()) {
+      if (s.settlements[sid].fallen) continue; // ruins send nobody out (fallen.js)
       let v = C.v[sid];
       const founded = s.settlements[sid].founded || 0, off = hash('contact:' + sid) % TICKS_PER_DAY;
       if (!v) {
@@ -498,6 +502,7 @@ export function bordersTouched(g, pairs) {
   for (const [a, b] of pairs) {
     if (!g.s.settlements[a] || !g.s.settlements[b]) continue;
     const [x, y] = a < b ? [a, b] : [b, a];
+    if (g.reg.get('scenario', g.s.scenarioId)?.war) { const r = relationOf(g, x, y); if (r.touch === undefined) r.touch = g.s.tick; } // rivalry (war.js)
     if (makeContact(g, x, y, 'Their lands touch', `The lands of ${nameOf(g, x)} and ${nameOf(g, y)} now touch.`)) C.met.borders++;
   }
 }

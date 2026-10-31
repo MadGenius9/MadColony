@@ -7,6 +7,9 @@
       "givers": [
         {
           "giver": "core:tend"
+        },
+        {
+          "giver": "core:bury"
         }
       ],
       "color": "#e06a8a"
@@ -25,6 +28,7 @@
     },
     {
       "id": "core:farm",
+      "outdoor": true,
       "name": "Farming",
       "skill": "core:farming",
       "priority": 0.95,
@@ -76,6 +80,7 @@
     },
     {
       "id": "core:chop",
+      "outdoor": true,
       "name": "Woodcutting",
       "skill": "core:woodcutting",
       "priority": 0.8,
@@ -94,6 +99,7 @@
     },
     {
       "id": "core:mine",
+      "outdoor": true,
       "name": "Mining",
       "skill": "core:mining",
       "priority": 0.75,
@@ -112,6 +118,7 @@
     },
     {
       "id": "core:forage",
+      "outdoor": true,
       "name": "Foraging",
       "skill": "core:farming",
       "priority": 0.75,
@@ -124,6 +131,7 @@
     },
     {
       "id": "core:haul",
+      "outdoor": true,
       "name": "Hauling",
       "priority": 0.75,
       "givers": [

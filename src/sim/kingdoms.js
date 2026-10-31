@@ -101,8 +101,8 @@ export function formKingdom(g, capitalSid, firstDaughterSid, opts = {}) {
   s.kingdoms ||= {};
   s.kingdoms[kid] = { id: kid, name, capital: capitalSid, color: cap.color || '#a0c0e0', founded: opts.at ?? s.tick };
   cap.kingdom = kid;
-  g.log(`${cap.name} founded ${nameOf(g, firstDaughterSid)} and becomes the capital of ${theKingdom(name)}.`, 'good');
-  if (firstDaughterSid && s.settlements[firstDaughterSid]) joinKingdom(g, firstDaughterSid, kid, `founded by ${cap.name}`, opts);
+  g.log(opts.conquered ? `${cap.name} becomes the capital of ${theKingdom(name)}, with ${nameOf(g, firstDaughterSid)} under its crown.` : `${cap.name} founded ${nameOf(g, firstDaughterSid)} and becomes the capital of ${theKingdom(name)}.`, 'good', null, 0, { kind: 'core:kingdom_formed', sids: [capitalSid, firstDaughterSid], cause: opts.cause });
+  if (firstDaughterSid && s.settlements[firstDaughterSid]) joinKingdom(g, firstDaughterSid, kid, opts.conquered ? `conquered by ${cap.name}` : `founded by ${cap.name}`, opts);
   return kid;
 }
 
@@ -117,7 +117,7 @@ export function joinKingdom(g, sid, kid, reason = '', opts = {}) {
   if (st.kingdom) return { ok: false, msg: `${st.name} is in another kingdom.` };
   st.kingdom = kid;
   if (k.capital !== sid && s.settlements[k.capital]) note(g, sid, k.capital, `Joined ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}`, opts.at ?? s.tick);
-  g.log(`${st.name} joins ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}.`, 'good');
+  g.log(`${st.name} joins ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}.`, 'good', null, 0, { kind: 'core:kingdom_joined', sids: [sid, k.capital], cause: opts.cause });
   return { ok: true, msg: `${st.name} joined ${theKingdom(k.name)}.` };
 }
 
@@ -127,12 +127,23 @@ export function leaveKingdom(g, sid, reason = '', opts = {}) {
   const s = g.s;
   const st = s.settlements?.[sid], k = kingdomOf(g, sid);
   if (!st || !k) return { ok: false, msg: 'That village is in no kingdom.' };
+  if (k.capital === sid && opts.force) { dissolveKingdom(g, k.id, reason || 'its capital is gone'); return { ok: true, msg: `${theKingdom(k.name)} is no more.` }; } // a fallen capital with no heir (fallen.js)
   if (k.capital === sid) return { ok: false, msg: `${st.name} is the capital of ${theKingdom(k.name)} and never leaves it.` };
   delete st.kingdom;
   if (s.settlements[k.capital]) note(g, sid, k.capital, `Left ${theKingdom(k.name)}${reason ? `: ${reason}` : ''}`);
-  g.log(`${st.name} leaves ${theKingdom(k.name)}${reason ? `: ${reason}` : ''}.`, 'warn');
+  g.log(`${st.name} leaves ${theKingdom(k.name)}${reason ? `: ${reason}` : ''}.`, 'warn', null, 0, { kind: 'core:kingdom_left', sids: [sid, k.capital] });
   if (!opts.noDissolve && membersOf(g, k.id).length <= 1) dissolveKingdom(g, k.id, 'only its capital is left');
   return { ok: true, msg: `${st.name} left ${theKingdom(k.name)}.` };
+}
+
+/** Succession (Phase 5, fallen.js): `sid`, a member, becomes the capital of kingdom `kid`. The kingdom keeps its
+ *  name and colour. */
+export function setCapital(g, kid, sid, reason = '') {
+  const k = g.s.kingdoms?.[kid];
+  if (!k || g.s.settlements?.[sid]?.kingdom !== kid) return false;
+  k.capital = sid;
+  g.log(`${nameOf(g, sid)} is now the capital of ${theKingdom(k.name)}${reason ? ` (${reason})` : ''}.`, 'warn', null, 0, { kind: 'core:capital_moved', sids: [sid] });
+  return true;
 }
 
 /** Remove a kingdom: the record goes, and so does the field on every village still in it. */
@@ -142,7 +153,7 @@ function dissolveKingdom(g, kid, reason) {
   for (const sid of Object.keys(s.settlements || {}).sort()) if (s.settlements[sid].kingdom === kid) delete s.settlements[sid].kingdom;
   delete s.kingdoms[kid];
   const t = theKingdom(k.name);
-  g.log(`${t.charAt(0).toUpperCase()}${t.slice(1)} is dissolved${reason ? `: ${reason}` : ''}.`, 'warn');
+  g.log(`${t.charAt(0).toUpperCase()}${t.slice(1)} is dissolved${reason ? `: ${reason}` : ''}.`, 'warn', null, 0, { kind: 'core:kingdom_dissolved', sids: [k.capital] });
 }
 
 /** Where a village founded by `parentSid` belongs: the parent's kingdom, or a new one with the parent as capital.

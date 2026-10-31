@@ -25,8 +25,35 @@ import { updateMarkets } from './markets.js';
 import { IdLayer, SparseIdLayer, layerView, terrainStoreOf } from './tiles.js';
 import { tickContact, bordersTouched, newContactState, landChunks, travellers, tradeDeadline, sameLandmass, landmassOf } from './contact.js';
 import { applyCommands, newGodState } from './god.js';
+import { processDeaths } from './death.js';
+import { tickBurial } from './burial.js';
+import { tickAging } from './life.js';
+import { tickIllness } from './illness.js';
+import { tickRivalry } from './war.js';
+import { tickFallen } from './fallen.js';
+import { tickFire } from './fire.js';
+import { tickStorms } from './storm.js';
+import { tickWeather } from './weather.js';
+import { tickRegrowth, natureRules } from './regrow.js';
+import { tickAnimals, animalSpecies } from './animals.js';
+import { tickMonsters, monsterSpecies } from './monsters.js';
+import { tickSpoil } from './spoil.js';
+import './godwrath.js'; // registers the destructive powers (Phase 5b)
 import './godspawn.js'; // registers the god power 'spawn' (Phase 2c slice 2)
 import './godboons.js'; // registers the god powers 'bless' and 'inspire' (Phase 2c slice 3)
+import './godanimals.js'; // registers the god power 'animals' (Phase 8b)
+import './godmonsters.js'; // registers the god powers 'monster' and 'banish' (Phase 8c)
+import './godshape.js'; // registers the god power 'shape' (world shaping)
+import './godtraits.js'; // registers the god power 'trait' (Peoples and traits)
+import './worldlaws.js'; // registers the god power 'law' (World laws)
+import { tickTithes } from './tithe.js'; // the Tithe law (civilization laws)
+import { tickCivLaws } from './civreview.js'; // civilization laws: AI reviews and the relations drift
+import { tickMood } from './mood.js'; // Mood: hourly
+import { tickUnrest } from './unrest.js'; // Mood: unrest, daily
+import { defaultPeople, settleFolk } from './peoples.js';
+import { stampEvent, trimLog } from './chronicle.js'; // Phase 12: the chronicle
+import { tickPetitions, answerPetitions } from './petitions.js'; // Phase 13: prayers and petitions
+import { beforePower, afterPowerFollow, tickFollowUps } from './followup.js'; // Phase 14: follow-through
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
@@ -56,7 +83,7 @@ export class Game {
     this.plan = emptyPlan();
     this.plans = {};
     this.actor = null; // settlement acting right now (owner of items it creates/drops)
-    state.playerSettlement ||= 't1';
+    if (state.playerSettlement === undefined) state.playerSettlement = 't1'; // null: a world with no people yet (world shaping)
     state.settlements ||= { [state.playerSettlement]: { id: state.playerSettlement, name: 'First Hearth', founded: 0 } };
     for (const st of Object.values(state.settlements)) ensureSettlement(reg, state, st);
     for (const st of Object.values(state.settlements)) st.stockpile ||= [];
@@ -84,7 +111,9 @@ export class Game {
     const scenario = (opts.scenarioId && reg.get('scenario', opts.scenarioId)) || reg.all('scenario')[0];
     const size = WORLD_SIZES[opts.size] || WORLD_SIZES[scenario?.size] || null; // a size preset overrides the world's own width and height
     // The generator: one asked for, else the size preset's own (Vast and World are planets), else the scenario's.
-    const wg0 = (opts.worldgenId && reg.get('worldgen', opts.worldgenId)) || (size?.worldgen && reg.get('worldgen', size.worldgen)) || (scenario?.worldgen && reg.get('worldgen', scenario.worldgen)) || reg.all('worldgen')[0];
+    // A scenario's own planet-style generator (world shaping's ocean) wins over the size preset's planet.
+    const own = scenario?.worldgen && reg.get('worldgen', scenario.worldgen);
+    const wg0 = (opts.worldgenId && reg.get('worldgen', opts.worldgenId)) || (own?.planet && own) || (size?.worldgen && reg.get('worldgen', size.worldgen)) || own || reg.all('worldgen')[0];
     const wg = wg0 && size ? { ...wg0, width: size.w, height: size.h } : wg0;
     const prof = (opts.aiProfileId && reg.get('aiProfile', opts.aiProfileId)) || reg.all('aiProfile')[0];
     if (!scenario || !wg || !prof) throw new Error('Cannot start a game: scenario, worldgen or aiProfile content is missing.');
@@ -104,22 +133,28 @@ export class Game {
     const pile = [];
     for (let y = sy0; y < sy0 + 4; y++) for (let x = sx0; x < sx0 + 6; x++) pile.push(`${x},${y}`);
     s.center = { x: cx, y: cy + 3 };
-    // One settlement for now. Colonists belong to it; the planner plans for it. See docs/ARCHITECTURE.md.
-    s.settlements = { t1: { id: 't1', name: 'First Hearth', founded: 0, center: { ...s.center }, stockpile: pile, color: '#e8b84a' } };
-    s.playerSettlement = 't1';
-    // Remove anything spawned on the stockpile.
-    for (const [id, n] of Object.entries(s.nodes)) if (pile.includes(`${n.x},${n.y}`)) delete s.nodes[id];
+    // A world with no people (world shaping: scenario people: false): no village, no colonists, no neighbours;
+    // the first village founded by the spawn power becomes the player's (godspawn.js).
+    const empty = scenario.people === false;
+    if (empty) { s.settlements = {}; s.playerSettlement = null; } else {
+      // One settlement for now. Colonists belong to it; the planner plans for it. See docs/ARCHITECTURE.md.
+      s.settlements = { t1: { id: 't1', name: 'First Hearth', founded: 0, center: { ...s.center }, stockpile: pile, color: '#e8b84a' } };
+      if (defaultPeople({ reg })) s.settlements.t1.people = defaultPeople({ reg });
+      s.playerSettlement = 't1';
+      // Remove anything spawned on the stockpile.
+      for (const [id, n] of Object.entries(s.nodes)) if (pile.includes(`${n.x},${n.y}`)) delete s.nodes[id];
+    }
 
     const game = new Game(reg, s);
     const g = game;
     // Starting items go into the stockpile.
-    for (const it of scenario.startItems) g.createItems(it.item, it.qty, s.center.x, s.center.y, 'start', undefined, true);
+    if (!empty) for (const it of scenario.startItems) g.createItems(it.item, it.qty, s.center.x, s.center.y, 'start', undefined, true);
     // Colonists
     const pool = reg.get('namePool', scenario.namePool);
     const names = rng.shuffle([...pool.names]);
     const skills = reg.all('skill');
     const needs = reg.all('need');
-    for (let i = 0; i < scenario.colonists; i++) {
+    for (let i = 0; i < (empty ? 0 : scenario.colonists); i++) {
       const id = 'c' + s.nextId++;
       const sk = {};
       for (const k of skills) sk[k.id] = (scenario.skillMin ?? 0) + rng.int((scenario.skillMax ?? 6) - (scenario.skillMin ?? 0) + 1);
@@ -135,9 +170,10 @@ export class Game {
         homeId: null, bedId: null, job: null, workOff: {}, lastWork: null, sleeping: false,
         idle: 0, status: { goal: 'Arriving', action: 'Looking around', target: '', blocker: '' }, workCount: {},
       };
+      settleFolk(game, s.colonists[id], 't1' in s.settlements ? s.settlements.t1.people : null);
     }
     // Neighbouring AI villages (scenario option), founded after the player's colonists.
-    if (scenario.neighbors?.length) {
+    if (!empty && scenario.neighbors?.length) {
       // Village spacing grows with the map (square root of its area relative to the standard 72x52).
       const scale = Math.max(1, Math.sqrt((s.map.w * s.map.h) / (72 * 52)) * 0.75);
       game._neighborDistance = Math.round((scenario.neighborDistance || 24) * scale);
@@ -159,7 +195,7 @@ export class Game {
     startClaims(game); // organic territory: every settlement claims its first land (nothing otherwise)
     runPlanner(game);
     if (game.big) game.warmCaches();
-    game.log('The settlers have arrived. They will look after themselves; set goals to steer them.', 'good');
+    game.log(empty ? 'The world is empty: shape it, then send the first people (the spawn power).' : 'The settlers have arrived. They will look after themselves; set goals to steer them.', 'good');
     if (opts.sandbox) s.god = newGodState(game, true); // Sandbox: god powers are free (god.js); otherwise s.god is made by the first power used
     return game;
   }
@@ -402,6 +438,15 @@ export class Game {
   setTerrain(i, id) {
     this._ts.set(i, id);
     this.s.map.rev = (this.s.map.rev || 0) + 1;
+    this.markDirty(i % this.W, (i / this.W) | 0);
+  }
+  /** Change a tile's terrain to one that walks, drinks and is claimed exactly like the old one (the caller checks:
+   *  godwrath.js craters): the map revision stays, so whole-map caches built from those (water walk, land chunks,
+   *  territory) are not rebuilt; they would come out the same. The tile's chunk is marked changed, and
+   *  terrainDrawRev (derived, never saved) tells the map drawing the terrain changed. */
+  setTerrainKeepRev(i, id) {
+    this._ts.set(i, id);
+    this.terrainDrawRev = (this.terrainDrawRev || 0) + 1;
     this.markDirty(i % this.W, (i / this.W) | 0);
   }
   nodeIdAt(i) { const L = this.lNode, h = L.a[i]; return h ? L.ids[h] : null; }
@@ -832,7 +877,7 @@ export class Game {
   }
   /** Items that fit nowhere on the map are held (counted, shown in the UI) until space frees up. Never discarded. */
   holdOverflow(item, qty, x, y, dur) {
-    (this.s.overflow ||= []).push({ item, qty, x, y, settlement: this.currentOwner(), ...(dur !== undefined ? { dur } : {}), since: this.s.tick });
+    (this.s.overflow ||= []).push({ item, qty, x, y, settlement: this.currentOwner() || undefined, ...(dur !== undefined ? { dur } : {}), since: this.s.tick });
     this.log(`No free ground for ${qty} ${this.reg.get('item', item)?.name || item}; holding it until space frees up.`, 'warn', 'overflow:' + item, 600);
   }
   retryOverflow() {
@@ -1081,7 +1126,7 @@ export class Game {
   addStack(item, qty, x, y, dur) {
     this._holds?.clear();
     const id = this.newId('s');
-    const st = { id, item, qty, x, y, settlement: this.currentOwner() };
+    const st = { id, item, qty, x, y, settlement: this.currentOwner() || undefined }; // no owner yet (a world with no people): none
     if (dur !== undefined) st.dur = dur;
     this.s.stacks[id] = st;
     this.setStackId(this.i(x, y), id);
@@ -1189,7 +1234,10 @@ export class Game {
       case 'stack': {
         if (!reg.has('item', d.item)) return false;
         const prevActor = this.actor;
-        if (o.owner && s.settlements?.[o.owner]) this.actor = o.owner; // goods set aside from a caravan stay the seller's
+        // Its village: the outer owner (caravans, buildings, people), else the one inside the stack (a map stack set
+        // aside whole keeps its own `settlement`). Phase 11 regression: before, only the outer owner was read.
+        const own = o.owner || d.settlement;
+        if (own && s.settlements?.[own]) this.actor = own;
         let left;
         try { left = this.placeOnMap(d.item, d.qty, d.x ?? s.center.x, d.y ?? s.center.y, d.dur); } finally { this.actor = prevActor; }
         if (left > 0) { d.qty = left; return 'no free ground for it yet'; }
@@ -1221,9 +1269,14 @@ export class Game {
         if (!reg.has('item', d.item)) return false;
         const c = s.colonists[o.cid];
         if (c && !c.equip[o.slot]) { c.equip[o.slot] = d; return true; }
-        // Slot taken (or owner gone): put the item on the ground instead of losing it.
-        const p = c || { x: s.center.x, y: s.center.y };
-        const left = this.placeOnMap(d.item, 1, p.x, p.y, d.dur);
+        // Slot taken (or owner gone): put the item on the ground instead of losing it (where a dead owner died, as
+        // their village's: death.js).
+        const dead = !c && s.dead?.[o.cid];
+        const p = c || dead || { x: s.center.x, y: s.center.y };
+        const prevActor = this.actor;
+        if (dead) this.actor = dead.settlementId;
+        let left;
+        try { left = this.placeOnMap(d.item, 1, p.x, p.y, d.dur); } finally { this.actor = prevActor; }
         return left > 0 ? 'no free ground for it yet' : true;
       }
       case 'delivered': {
@@ -1400,21 +1453,33 @@ export class Game {
   }
 
   // ---------- log ----------
-  log(msg, cat = 'info', key = null, cooldown = 600) {
+  // ev (Phase 12, chronicle.js): optional event details { kind, sids, cids, at, cause, rel }; such a line gets a
+  // stable id, returned (null when the line is held back by its key or written without ev).
+  log(msg, cat = 'info', key = null, cooldown = 600, ev = null) {
     if (key) {
       const last = this.s.logKeys[key];
-      if (last !== undefined && this.s.tick - last < cooldown) return;
+      if (last !== undefined && this.s.tick - last < cooldown) return null;
       this.s.logKeys[key] = this.s.tick;
     }
-    this.s.log.push({ t: this.s.tick, msg, cat });
-    if (this.s.log.length > 500) this.s.log.splice(0, this.s.log.length - 500);
+    const e = { t: this.s.tick, msg, cat };
+    if (ev) stampEvent(this, e, ev);
+    this.s.log.push(e);
+    trimLog(this, e);
+    return e.id || null;
   }
+
+  /** Around a god power (god.js): its villages measured before; after, the petitions it answers close
+   *  (petitions.js) and its follow-up waits for its card (followup.js). */
+  beforePower(cmd) { return beforePower(this, cmd); }
+  afterPower(cmd, out, eventId, pre) { const answered = answerPetitions(this, cmd, out, eventId); afterPowerFollow(this, cmd, pre, eventId, answered); }
 
   // ---------- main loop ----------
   tick() {
     const s = this.s;
     s.tick++;
-    if (s.god) applyCommands(this); // god powers due on this tick, in id order (god.js; nothing until a power is used)
+    if (s.god) applyCommands(this);
+    if (s.disasters) { tickFire(this); if (s.disasters?.storms) tickStorms(this); if (s.disasters?.weather) tickWeather(this); }
+    if (s.tick % 100 === 0 && (s.disasters?.seeds || natureRules(this)?.spread)) tickRegrowth(this); // regrowth (regrow.js): nothing without seeds or a spread rule // tornadoes move (storm.js); fires spread and burn out (fire.js, Phase 5b; nothing until a fire starts) // god powers due on this tick, in id order (god.js; nothing until a power is used)
     if (this.big) runPlanner(this, true); // big worlds: each village on its own staggered schedule
     else if (s.tick % PLAN_INTERVAL === 0 || this.planDirty) { this.planDirty = false; runPlanner(this); }
     if (s.tick % 10 === 0) tickFarming(this, 10);
@@ -1424,13 +1489,17 @@ export class Game {
     // Daily, at the start of the day, right after the villages' diplomacy: settlers of crowded villages may
     // found a new one (founding.js; off unless the scenario has `founding`; it draws no random numbers).
     // Births come later in the day (people.js, 06:00) and see the new head-counts.
-    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); updateMarkets(this); if (this._cl) growClaims(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
+    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); tickTithes(this); tickCivLaws(this); tickUnrest(this); tickPetitions(this); tickFollowUps(this); updateMarkets(this); if (this._cl) growClaims(this); tickAging(this); tickIllness(this); tickRivalry(this); tickFallen(this); tickSpoil(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
     tickPower(this);
     tickWater(this);
     tickPeople(this);
+    if (s.tick % TICKS_PER_HOUR === 0 && Object.keys(s.colonists).length) tickMood(this); // Mood: hourly (mood.js)
     tickEducation(this);
     tickHeat(this);
     tickLOD(this); // big worlds: level of detail, abstract villages' hours, caravans
+    if (s.animals || animalSpecies(this).length) tickAnimals(this); // wild herds (animals.js, Phase 8)
+    if (s.monsters || monsterSpecies(this).length) tickMonsters(this); // wild monsters (monsters.js, Phase 8c)
+    if (s.bodies) tickBurial(this); // bodies nobody buried in time, or of distant villages (burial.js)
     if (s.contact) tickContact(this); // contact over distance: explorers and traders (scenarios with a contact block)
     const big = this.big;
     // Big worlds: only colonists of villages simulated in full, gathered from the ownership index and sorted
@@ -1444,6 +1513,7 @@ export class Game {
       tickColonist(this, c);
     }
     this.actor = null;
+    processDeaths(this); // deaths found during this tick (death.js; nothing when there are none)
   }
   step(n) { for (let k = 0; k < n; k++) this.tick(); }
 

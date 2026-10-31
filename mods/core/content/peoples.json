@@ -1,0 +1,649 @@
+{
+  "$comment": "Peoples and traits (docs/proposals/phase-peoples-and-traits.md). Every colonist and village belongs to one people; villages keep to one. Traits are personal (at most two) and children may inherit them. All effects are read through peoples.js.",
+  "people": [
+    {
+      "id": "core:hearthfolk",
+      "name": "Hearthfolk",
+      "plural": "Hearthfolk",
+      "default": true,
+      "about": "Settled farming folk of the open grasslands: the people of every classic village.",
+      "terrains": [
+        "core:grass",
+        "core:soil"
+      ],
+      "temperament": 1,
+      "food": "core:stew",
+      "traitOdds": [
+        40,
+        45,
+        15
+      ],
+      "color": "#c9a46a"
+    },
+    {
+      "id": "core:reedkin",
+      "name": "Reedkin",
+      "plural": "Reedkin",
+      "about": "Small, slight people of marshes and riverbanks: thirsty but light eaters, patient growers and cooks, slow to anger.",
+      "terrains": [
+        "core:marsh",
+        "core:shallows",
+        "core:jungle"
+      ],
+      "needs": {
+        "core:thirst": 1.3,
+        "core:hunger": 0.85
+      },
+      "work": {
+        "core:farming": 1.15,
+        "core:cooking": 1.15,
+        "core:mining": 0.8
+      },
+      "temperament": 1,
+      "food": "core:bean",
+      "namePool": "core:reedkin_names",
+      "look": {
+        "skin": [
+          "#a8b07a",
+          "#8f9a62",
+          "#7d8a5a",
+          "#9c9a6e",
+          "#6f7a4c"
+        ],
+        "hair": [
+          "#2b2a1c",
+          "#3d3b24",
+          "#4f4a2a",
+          "#5d5a3a"
+        ],
+        "pants": [
+          "#4a5a3a",
+          "#5b6a4a",
+          "#3e4a36"
+        ],
+        "styles": [
+          "long",
+          "braid",
+          "ponytail",
+          "bun",
+          "curly"
+        ],
+        "build": [
+          0.78,
+          0.98
+        ],
+        "height": [
+          0.86,
+          0.96
+        ],
+        "beard": 0.15
+      },
+      "traitOdds": [
+        40,
+        45,
+        15
+      ],
+      "color": "#6f8f4e",
+      "code": {
+        "core:forests": "protected",
+        "core:hunting": "banned"
+      }
+    },
+    {
+      "id": "core:cragborn",
+      "name": "Cragborn",
+      "plural": "Cragborn",
+      "about": "Tall, broad people of hills and snowfields: big eaters who shrug off the cold, born miners and builders, proud and quick to feud.",
+      "terrains": [
+        "core:hills",
+        "core:snow",
+        "core:gravel",
+        "core:tundra"
+      ],
+      "needs": {
+        "core:hunger": 1.2
+      },
+      "cold": 6,
+      "work": {
+        "core:mining": 1.15,
+        "core:construction": 1.15,
+        "core:farming": 0.9
+      },
+      "temperament": 4,
+      "food": "core:venison",
+      "namePool": "core:cragborn_names",
+      "look": {
+        "skin": [
+          "#b9a49a",
+          "#a88e84",
+          "#c4a491",
+          "#97817a",
+          "#c9b2a6"
+        ],
+        "hair": [
+          "#e2dccf",
+          "#c8c2b4",
+          "#b9a988",
+          "#8a7f70",
+          "#6e6458"
+        ],
+        "pants": [
+          "#4a4440",
+          "#5a4e44",
+          "#3a3a40"
+        ],
+        "styles": [
+          "short",
+          "crop",
+          "bald",
+          "braid",
+          "long"
+        ],
+        "build": [
+          1.0,
+          1.3
+        ],
+        "height": [
+          1.02,
+          1.12
+        ],
+        "beard": 0.75
+      },
+      "traitOdds": [
+        40,
+        45,
+        15
+      ],
+      "color": "#8a8f99",
+      "prefer": {
+        "core:wall": "core:stone_wall"
+      },
+      "code": {
+        "core:conscription": "militia",
+        "core:justice": "harsh"
+      }
+    },
+    {
+      "id": "core:duneshade",
+      "name": "Duneshade",
+      "plural": "Duneshade",
+      "about": "Lean people of the sands: they need little water and walk far, skilled crafters, but the cold reaches them early.",
+      "terrains": [
+        "core:sand",
+        "core:savanna"
+      ],
+      "needs": {
+        "core:thirst": 0.6
+      },
+      "cold": -4,
+      "walk": 1.1,
+      "work": {
+        "core:crafting": 1.15
+      },
+      "temperament": 3,
+      "food": "core:berry",
+      "namePool": "core:duneshade_names",
+      "look": {
+        "skin": [
+          "#9a6a3e",
+          "#8a5a34",
+          "#7a4c2c",
+          "#a8764a",
+          "#6c4228"
+        ],
+        "hair": [
+          "#1a1410",
+          "#2a1e16",
+          "#3a2a1c"
+        ],
+        "pants": [
+          "#c8b088",
+          "#b89a6e",
+          "#d4c09a",
+          "#9a7a52"
+        ],
+        "styles": [
+          "crop",
+          "braid",
+          "bun",
+          "bald",
+          "long"
+        ],
+        "build": [
+          0.8,
+          1.0
+        ],
+        "height": [
+          0.98,
+          1.08
+        ],
+        "beard": 0.35
+      },
+      "traitOdds": [
+        40,
+        45,
+        15
+      ],
+      "color": "#b5763c",
+      "code": {
+        "core:borders": "open",
+        "core:tithe": "tithe"
+      }
+    }
+  ],
+  "trait": [
+    {
+      "id": "core:brave",
+      "name": "Brave",
+      "opposite": "core:timid",
+      "weight": 10,
+      "inherit": 0.4,
+      "about": "Fights on while badly hurt, fends off wolves when wounded and is first to join a hunt party.",
+      "effects": {
+        "fightHp": 30,
+        "wolfHp": 25,
+        "party": "first"
+      }
+    },
+    {
+      "id": "core:timid",
+      "name": "Timid",
+      "opposite": "core:brave",
+      "weight": 10,
+      "inherit": 0.4,
+      "about": "Never joins a fight or a hunt party unless cornered, and flees danger from farther away.",
+      "effects": {
+        "fightHp": 101,
+        "wolfHp": 100,
+        "flee": 8,
+        "party": "never"
+      }
+    },
+    {
+      "id": "core:hardy",
+      "name": "Hardy",
+      "opposite": "core:sickly",
+      "weight": 10,
+      "inherit": 0.4,
+      "about": "Illness takes a lighter hold, wounds heal faster and the cold comes later.",
+      "effects": {
+        "illnessStrength": 0.6,
+        "heal": 1.25,
+        "cold": 2
+      }
+    },
+    {
+      "id": "core:sickly",
+      "name": "Sickly",
+      "opposite": "core:hardy",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Catches illness more easily, suffers it worse and heals slowly.",
+      "effects": {
+        "illnessChance": 1.5,
+        "illnessStrength": 1.4,
+        "heal": 0.8
+      }
+    },
+    {
+      "id": "core:wise",
+      "name": "Wise",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Learns every skill half again as fast.",
+      "effects": {
+        "learn": 1.5
+      }
+    },
+    {
+      "id": "core:diligent",
+      "name": "Diligent",
+      "opposite": "core:lazy",
+      "weight": 10,
+      "inherit": 0.4,
+      "about": "Works a tenth faster at everything.",
+      "effects": {
+        "work": 1.1
+      }
+    },
+    {
+      "id": "core:lazy",
+      "name": "Lazy",
+      "opposite": "core:diligent",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Works a tenth slower and tires a little sooner.",
+      "effects": {
+        "work": 0.9,
+        "needs": {
+          "core:energy": 1.1
+        }
+      }
+    },
+    {
+      "id": "core:greedy",
+      "name": "Greedy",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Eats a tenth more; their village drives a harder bargain (3% a greedy adult, at most 15%).",
+      "effects": {
+        "needs": {
+          "core:hunger": 1.1
+        },
+        "trade": 0.03
+      }
+    },
+    {
+      "id": "core:quick",
+      "name": "Quick",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Walks a tenth faster.",
+      "effects": {
+        "walk": 1.1
+      }
+    },
+    {
+      "id": "core:strong",
+      "name": "Strong",
+      "weight": 10,
+      "inherit": 0.4,
+      "about": "Mines, chops and builds a tenth faster.",
+      "effects": {
+        "workBy": {
+          "core:mining": 1.1,
+          "core:woodcutting": 1.1,
+          "core:construction": 1.1
+        }
+      }
+    },
+    {
+      "id": "core:kind",
+      "name": "Kind",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Tends and treats the sick and hurt a third faster.",
+      "effects": {
+        "tend": 1.3
+      }
+    },
+    {
+      "id": "core:cheerful",
+      "name": "Cheerful",
+      "opposite": "core:gloomy",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Looks on the bright side: mood +10.",
+      "effects": {
+        "mood": 10
+      }
+    },
+    {
+      "id": "core:gloomy",
+      "name": "Gloomy",
+      "opposite": "core:cheerful",
+      "weight": 8,
+      "inherit": 0.4,
+      "about": "Expects the worst: mood -10.",
+      "effects": {
+        "mood": -10
+      }
+    }
+  ],
+  "namePool": [
+    {
+      "id": "core:reedkin_names",
+      "name": "Reedkin names",
+      "names": [
+        "Nessa",
+        "Lirro",
+        "Ombel",
+        "Tavi",
+        "Sedge",
+        "Wynna",
+        "Pell",
+        "Marro",
+        "Iska",
+        "Fenn",
+        "Rill",
+        "Callo",
+        "Ebbe",
+        "Juna",
+        "Osk",
+        "Teal",
+        "Murrin",
+        "Avva",
+        "Plim",
+        "Sorrel",
+        "Brannoch",
+        "Lissa",
+        "Owie",
+        "Tamsel"
+      ],
+      "surnames": [
+        "Mudwade",
+        "Reedhollow",
+        "Stillwater",
+        "Fenmarsh",
+        "Eelbank",
+        "Mossford",
+        "Rushmere",
+        "Lowpool"
+      ]
+    },
+    {
+      "id": "core:cragborn_names",
+      "name": "Cragborn names",
+      "names": [
+        "Kord",
+        "Haska",
+        "Grum",
+        "Ulvek",
+        "Brann",
+        "Tora",
+        "Skarn",
+        "Vedda",
+        "Morrik",
+        "Halla",
+        "Durn",
+        "Ketta",
+        "Rokk",
+        "Senna",
+        "Volgar",
+        "Agna",
+        "Torvik",
+        "Brisa",
+        "Hamm",
+        "Ylva",
+        "Stenna",
+        "Garrow",
+        "Olka",
+        "Brek"
+      ],
+      "surnames": [
+        "Stonefist",
+        "Hailcrest",
+        "Frostscar",
+        "Ironridge",
+        "Snowmantle",
+        "Cragwell",
+        "Boulderkin",
+        "Highcairn"
+      ]
+    },
+    {
+      "id": "core:duneshade_names",
+      "name": "Duneshade names",
+      "names": [
+        "Azar",
+        "Sefi",
+        "Kemra",
+        "Tahl",
+        "Imra",
+        "Naveh",
+        "Rusa",
+        "Oshen",
+        "Daleh",
+        "Mirsa",
+        "Qadi",
+        "Zeph",
+        "Hanu",
+        "Leth",
+        "Samra",
+        "Ivo",
+        "Tesh",
+        "Amal",
+        "Kesh",
+        "Nuri",
+        "Bahra",
+        "Sula",
+        "Ender",
+        "Faro"
+      ],
+      "surnames": [
+        "Sandwalker",
+        "Dunecrest",
+        "Sunveil",
+        "Ashgrove",
+        "Mirage",
+        "Dryspring",
+        "Saltwind",
+        "Emberstep"
+      ]
+    }
+  ],
+  "template": [
+    {
+      "id": "core:reed_house",
+      "name": "Reed house",
+      "kind": "home",
+      "weight": 1,
+      "people": [
+        "core:reedkin"
+      ],
+      "layout": [
+        "#######",
+        "#B.T.B#",
+        "#d.C.d#",
+        "###D###",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:roundhouse",
+      "name": "Stone roundhouse",
+      "kind": "home",
+      "weight": 1,
+      "people": [
+        "core:cragborn"
+      ],
+      "layout": [
+        " ##### ",
+        "##B.B##",
+        "#.....#",
+        "#d.T.d#",
+        "##BC.##",
+        " ##D## ",
+        "   _   "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    },
+    {
+      "id": "core:courtyard_house",
+      "name": "Courtyard house",
+      "kind": "home",
+      "weight": 1,
+      "people": [
+        "core:duneshade"
+      ],
+      "layout": [
+        "#########",
+        "#B..B..B#",
+        "#d..T..d#",
+        "#...C...#",
+        "####D####",
+        "    _    "
+      ],
+      "legend": {
+        "#": {
+          "slot": "core:wall"
+        },
+        "D": {
+          "build": "core:door"
+        },
+        "B": {
+          "slot": "core:bed"
+        },
+        "T": {
+          "slot": "core:table"
+        },
+        "C": {
+          "slot": "core:chair"
+        },
+        "d": {
+          "slot": "core:decor",
+          "optional": true
+        },
+        ".": {
+          "floor": true
+        },
+        "_": {
+          "clear": true
+        }
+      }
+    }
+  ]
+}

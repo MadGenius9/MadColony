@@ -3,13 +3,15 @@ import { tapHasWater, isWaterNode } from '../water.js';
 import { TICKS_PER_DAY, MOVE_TICKS } from '../constants.js';
 import { octile } from '../util.js';
 import { newJob } from './jobs.js';
+import { modsOf } from '../peoples.js';
+import { rationOf, hoursOf, LONG_NIGHT_SEEK } from '../civlaws.js';
 
 export const GROUND_REST_RATE = 2.4;
 
 /** One tick of decay for a core:eat or core:drink need. While really asleep (a sleep job; not collapsed, cared
  *  for or carried to a medical bed) it decays at `sleepDecayMult` times its rate (default 1). */
-export function decayNeed(c, def) {
-  const mult = c.sleeping && c.job?.type === 'sleep' ? (def.sleepDecayMult ?? 1) : 1;
+export function decayNeed(c, def, g = null) {
+  const mult = (c.sleeping && c.job?.type === 'sleep' ? (def.sleepDecayMult ?? 1) : 1) * (g ? (modsOf(g, c).needs[def.id] ?? 1) * (def.behavior === 'core:eat' ? rationOf(g, c) : 1) : 1); // people and traits (peoples.js); rationing (civlaws.js)
   c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - (def.decayPerDay * mult) / TICKS_PER_DAY);
 }
 
@@ -53,6 +55,7 @@ function findFoodIn(g, c) {
   const totals = {};
   for (const st of g.mineList('stacks', c)) if (g.mine(st, c)) totals[st.item] = (totals[st.item] || 0) + g.availQty(st.id);
   let best = null, bestScore = Infinity;
+  const fav = c.people ? reg.get('people', c.people)?.food : null; // the people's favourite food (peoples.js)
   for (const st of g.mineList('stacks', c)) {
     if (!g.mine(st, c)) continue; // never eat another settlement's food
     const d = reg.get('item', st.item);
@@ -61,7 +64,7 @@ function findFoodIn(g, c) {
     const isMeal = d.tags?.includes('core:meal');
     if (!isMeal && (totals[st.item] - (reserve[st.item] || 0)) < 1) continue; // seed protection
     if (!g.canReach(c, st.x, st.y, 'on')) continue;
-    const score = octile(c.x, c.y, st.x, st.y) + (isMeal ? 0 : 40);
+    const score = octile(c.x, c.y, st.x, st.y) + (isMeal ? 0 : 40) - (d.spoilPerDay ? 30 : 0) - (st.item === fav ? 25 : 0); // eat what spoils first (Phase 8), then the favourite
     if (score < bestScore) { bestScore = score; best = st; }
   }
   return best;
@@ -71,7 +74,7 @@ export const NEED_BEHAVIORS = {
   'core:eat': {
     tick(g, c, def) {
       if (c.job?.type === 'eat' && c.job.stage === 'eat') return;
-      decayNeed(c, def);
+      decayNeed(c, def, g);
     },
     wants(g, c, def) { return c.needs[def.id] < def.seekBelow; },
     urgent(g, c, def) { return c.needs[def.id] < def.urgentBelow; },
@@ -87,11 +90,14 @@ export const NEED_BEHAVIORS = {
   'core:sleep': {
     tick(g, c, def) {
       if (c.sleeping) return; // the sleep job restores energy
-      c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - def.decayPerDay / TICKS_PER_DAY);
+      c.needs[def.id] = Math.max(0, (c.needs[def.id] ?? 1) - (def.decayPerDay * (modsOf(g, c).needs[def.id] ?? 1)) / TICKS_PER_DAY);
     },
     wants(g, c, def) {
       const v = c.needs[def.id];
-      return v < def.seekBelow || (g.isNight() && v < (def.nightSeekBelow ?? def.seekBelow));
+      if (v < def.seekBelow) return true;
+      if (!g.isNight()) return false;
+      const night = hoursOf(g, c.settlementId || g.s.playerSettlement) === 'long' ? Math.min(LONG_NIGHT_SEEK, def.nightSeekBelow ?? def.seekBelow) : (def.nightSeekBelow ?? def.seekBelow); // long hours: up later (civlaws.js)
+      return v < night;
     },
     urgent(g, c, def) { return c.needs[def.id] < def.urgentBelow; },
     makeJob(g, c, def) {
@@ -126,7 +132,7 @@ export const NEED_BEHAVIORS = {
     },
   },
   'core:drink': {
-    tick(g, c, def) { decayNeed(c, def); },
+    tick(g, c, def) { decayNeed(c, def, g); },
     wants(g, c, def) { return (c.needs[def.id] ?? 1) < def.seekBelow; },
     urgent(g, c, def) { return (c.needs[def.id] ?? 1) < def.urgentBelow; },
     makeJob(g, c, def, quiet = false) {

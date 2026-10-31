@@ -1,0 +1,746 @@
+// Phase 5b, slice 1: safe destruction (ruin.js), repair by the village, the confirm-and-warn contract (god.js), and
+// the first destructive powers: lightning and smite (godwrath.js).
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { newGame, runDays, stateText, reload, firstDifference, conservationErrors, reservationErrors, TICKS_PER_DAY } from './cloud-helpers.js';
+import { previewCommand, issueCommand } from '../src/sim/god.js';
+import { destroyStructure } from '../src/sim/ruin.js';
+import { peopleCensus } from '../src/sim/godspawn.js';
+import { encodePlanner } from '../src/sim/plancodec.js';
+
+const sandbox = () => newGame({ seed: 4242, sandbox: true });
+const at = (c) => ({ x: Math.round(c.x), y: Math.round(c.y) });
+
+test('destructive powers are refused until confirmed; the preview lists the warnings first', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const c = g.colonists()[0];
+  const p = previewCommand(g, 'lightning', at(c));
+  assert.equal(p.ok, false);
+  assert.equal(p.needsConfirm, true);
+  assert.equal(p.preview.destructive, true);
+  assert.ok(p.preview.warnings.some((w) => w.startsWith('Killed:') && w.includes(c.name) && w.includes('your village')), JSON.stringify(p.preview.warnings));
+  assert.equal(p.preview.warnings.at(-1), 'This cannot be undone.');
+  assert.equal(issueCommand(g, 'lightning', at(c)).ok, false, 'not queued without confirm');
+  assert.equal(issueCommand(g, 'lightning', { ...at(c), confirm: 'yes' }).ok, false, 'confirm must be true');
+  const ok = issueCommand(g, 'lightning', { ...at(c), confirm: true });
+  assert.equal(ok.ok, true);
+  delete g.s.god.queue[0].args.confirm; // a tampered command: refused when applied
+  g.tick();
+  assert.equal(g.s.god.log.at(-1).result.ok, false);
+  assert.match(g.s.god.log.at(-1).result.reason, /not confirmed/);
+  assert.ok(g.s.colonists[c.id], 'nobody was hurt');
+});
+
+test('lightning kills whoever stands on the tile and burns those beside it', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const start = g.colonists().length;
+  const c = g.colonists()[0];
+  assert.equal(issueCommand(g, 'lightning', { ...at(c), confirm: true }).ok, true);
+  g.tick();
+  assert.equal(g.s.colonists[c.id], undefined);
+  assert.equal(g.s.dead[c.id].text, 'was struck by lightning');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(peopleCensus(g, start).ok, true);
+});
+
+test('smite: the named person dies', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const c = g.colonists()[1];
+  const p = previewCommand(g, 'smite', { colonistId: c.id });
+  assert.ok(p.preview.warnings[0].includes(c.name));
+  assert.equal(issueCommand(g, 'smite', { colonistId: c.id, confirm: true }).ok, true);
+  g.tick();
+  assert.equal(g.s.dead[c.id].text, 'was smitten by the gods');
+});
+
+test('destroying a home part keeps every count exact, and the village rebuilds it', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 6);
+  const home = Object.values(g.s.homes).find((h) => h.complete);
+  assert.ok(home, 'a finished home');
+  const p = g.s.projects[home.projectId];
+  const wall = p.parts.map((id) => g.s.structures[id]).find((st) => st.built && g.bDef(st).category === 'wall');
+  assert.ok(wall);
+  const part = destroyStructure(g, wall.id, { reason: 'divine', why: 'A test' });
+  assert.equal(g.s.structures[wall.id], undefined);
+  assert.ok(part && !part.built && part.def === wall.def && part.x === wall.x && part.y === wall.y, 'the part is back, unbuilt');
+  assert.equal(home.complete, false, 'no shelter until it is rebuilt');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.doesNotThrow(() => encodePlanner(g, { strict: true }), 'no saved plan holds the destroyed wall');
+  runDays(g, 3);
+  assert.ok(g.s.structures[part.id]?.built, 'rebuilt');
+  assert.equal(home.complete, true, 'complete again');
+});
+
+test('destroying every building of a village, one by one, keeps items and reservations exact and saves identical', () => {
+  let g = newGame({ seed: 4242 });
+  runDays(g, 8);
+  const ids = Object.values(g.s.structures).filter((st) => st.built).map((st) => st.id).sort();
+  assert.ok(ids.length > 20);
+  let k = 0;
+  for (const id of ids) {
+    if (!g.s.structures[id]) continue;
+    destroyStructure(g, id, { reason: k % 2 ? 'fire' : null, why: 'A test' });
+    if (++k % 5 === 0) {
+      g.step(50);
+      assert.deepEqual(conservationErrors(g), [], `after ${k}`);
+      assert.deepEqual(reservationErrors(g), [], `after ${k}`);
+    }
+  }
+  g.step(TICKS_PER_DAY);
+  const b = reload(g);
+  g.step(TICKS_PER_DAY); b.step(TICKS_PER_DAY);
+  assert.equal(firstDifference(stateText(g), stateText(b)), null);
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('lightning burns a wooden building it hits; its goods are consumed as burned', () => {
+  const g = sandbox();
+  runDays(g, 6);
+  const st = Object.values(g.s.structures).find((x) => x.built && x.def === 'core:campfire') || Object.values(g.s.structures).find((x) => x.built && g.bDef(x).category === 'wall');
+  const p = previewCommand(g, 'lightning', { x: st.x, y: st.y, confirm: true });
+  assert.ok(p.ok, p.reason);
+  issueCommand(g, 'lightning', { x: st.x, y: st.y, confirm: true });
+  g.tick();
+  const burned = !g.s.structures[st.id];
+  assert.equal(burned, p.preview.warnings.some((w) => /burns down/.test(w)), 'the preview said what would happen');
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('powers replay identically and survive a save and load', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 2);
+    const [a, b] = g.colonists();
+    issueCommand(g, 'smite', { colonistId: a.id, confirm: true });
+    if (cut) g = reload(g);
+    g.step(10);
+    issueCommand(g, 'lightning', { ...at(b), confirm: true });
+    if (cut) g = reload(g);
+    runDays(g, 1);
+    return g;
+  };
+  assert.equal(stateText(run(false)), stateText(run(true)));
+});
+
+// ---------------- slice 2: fire ----------------
+import { readAllMods } from '../tools/fsmods.js';
+import { buildRegistry } from '../src/sim/content/modloader.js';
+/** The core rules with firefighting off (fightReach 0, distantPut 0): fires burn as before slice 6c. */
+let NO_FF = null;
+function noFirefighting() {
+  if (NO_FF) return NO_FF;
+  const mods = readAllMods(), core = mods.find((m) => m.manifest.id === 'core');
+  const gr = core.files['content/god.json'].godRules.find((r) => r.id === 'core:god');
+  gr.wrath = { ...(gr.wrath || {}), fire: { ...(gr.wrath?.fire || {}), fightReach: 0, distantPut: 0 } };
+  return (NO_FF = buildRegistry(mods, ['core']).registry);
+}
+import { tileFlammable, isBurning, fireRules } from '../src/sim/fire.js';
+import { serializeGame, loadGame } from './cloud-helpers.js';
+
+/** The tile with the most trees round it (radius 3) near the player's village: a small wood. */
+function wood(g) {
+  const c = g.s.settlements[g.s.playerSettlement].center;
+  let best = null, bn = -1;
+  for (const n of Object.values(g.s.nodes)) {
+    if (n.def !== 'core:pine' || Math.hypot(n.x - c.x, n.y - c.y) > 30) continue;
+    let k = 0;
+    for (const m of Object.values(g.s.nodes)) if (m.def === 'core:pine' && Math.abs(m.x - n.x) <= 3 && Math.abs(m.y - n.y) <= 3) k++;
+    if (k > bn) { bn = k; best = n; }
+  }
+  return best;
+}
+
+test('fire: refused where nothing can burn; it spreads through a wood, never past the cap, and burns out', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const water = (() => { for (let i = 0; i < g.W * g.H; i++) if (tileFlammable(g, i).f <= 0 && !g.isPassable(i % g.W, Math.floor(i / g.W))) return { x: i % g.W, y: Math.floor(i / g.W) }; return null; })();
+  if (water) assert.match(previewCommand(g, 'fire', { ...water, confirm: true }).reason, /nothing there can burn/);
+  const t = wood(g);
+  const before = Object.values(g.s.nodes).filter((n) => n.def === 'core:pine').length;
+  assert.equal(issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true }).ok, true);
+  g.tick();
+  assert.ok(isBurning(g, g.i(t.x, t.y)));
+  let most = 0;
+  for (let d = 0; d < 6 && Object.keys(g.s.disasters.fires).length; d++) for (let k = 0; k < 24; k++) { g.step(100); most = Math.max(most, Object.keys(g.s.disasters.fires).length); }
+  assert.equal(Object.keys(g.s.disasters.fires).length, 0, 'burned out within 6 days');
+  assert.ok(most <= fireRules(g).maxTiles);
+  assert.ok(Object.values(g.s.nodes).filter((n) => n.def === 'core:pine').length < before, 'trees burned');
+  assert.ok(Object.keys(g.s.disasters.scorched).length > 0, 'scorched ground');
+  assert.equal(tileFlammable(g, g.i(t.x, t.y)).f, 0, 'scorched ground does not burn again soon');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+});
+
+test('fire: a burning wooden home part is lost and rebuilt; stone in it is left on the ground; people flee and get burns', () => {
+  const g = newGame({ seed: 4242, sandbox: true, registry: noFirefighting() }); // the burn-out path (slice 6c fights fires)
+  runDays(g, 6);
+  const home = Object.values(g.s.homes).find((h) => h.complete);
+  const p = g.s.projects[home.projectId];
+  const wall = p.parts.map((id) => g.s.structures[id]).find((st) => st.built && g.bDef(st).category === 'wall' && tileFlammable(g, g.i(st.x, st.y)).f > 0);
+  assert.ok(wall, 'a wooden wall');
+  const c = g.colonists()[0];
+  c.x = wall.x; c.y = wall.y + 1; // someone right next to it
+  assert.equal(issueCommand(g, 'fire', { x: wall.x, y: wall.y, confirm: true }).ok, true);
+  g.step(30);
+  assert.ok(c.job?.type === 'flee' || c.health?.injuries?.some((i) => i.kind === 'burn'), 'they run, or are already burned');
+  g.step(fireRules(g).burnTicks + 50);
+  assert.equal(g.s.structures[wall.id], undefined, 'the wall burned');
+  assert.equal(home.complete, false);
+  assert.deepEqual(conservationErrors(g), []);
+  for (let d = 0; d < 12 && !home.complete; d++) runDays(g, 1); // rebuilt within days (how many depends on the work)
+  assert.equal(home.complete, true, 'rebuilt');
+});
+
+test('lightning on a tree starts a fire', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  assert.ok(previewCommand(g, 'lightning', { x: t.x, y: t.y, confirm: true }).preview.fire);
+  issueCommand(g, 'lightning', { x: t.x, y: t.y, confirm: true });
+  g.tick();
+  assert.ok(isBurning(g, g.i(t.x, t.y)));
+});
+
+test('fire: saved mid-fire, the game continues identically; a malformed fire is refused; no fire, no state', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 1);
+    const t = wood(g);
+    issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+    for (let h = 1; h <= 12; h++) { g.step(100); if (cut.includes(h)) g = reload(g); }
+    return g;
+  };
+  const a = run([]), b = run([2, 5]);
+  assert.equal(firstDifference(stateText(a), stateText(b)), null);
+  assert.equal(stateText(a), stateText(b));
+  const bad = JSON.parse(serializeGame(a));
+  bad.state.disasters.fires['99999999'] = 0;
+  assert.throws(() => loadGame(a.reg, JSON.stringify(bad)), /disasters/);
+  const c = newGame({ seed: 4242 });
+  runDays(c, 1);
+  assert.equal(c.s.disasters, undefined);
+});
+
+// ---------------- review fixes (slice 1) ----------------
+test('a destroyed bed is rebuilt for its owner', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 6);
+  const bed = Object.values(g.s.structures).find((st) => st.built && st.owner && g.bDef(st)?.bed && g.s.colonists[st.owner]?.bedId === st.id);
+  assert.ok(bed, 'an owned bed');
+  const who = bed.owner;
+  const part = destroyStructure(g, bed.id, { reason: null, why: 'A test' });
+  assert.equal(part.owner, who);
+  assert.equal(g.s.colonists[who].bedId, part.id);
+  runDays(g, 3);
+  assert.ok(g.s.structures[part.id]?.built, 'rebuilt');
+  assert.equal(g.s.structures[part.id].owner, who, 'still theirs');
+});
+
+test('nobody is smitten twice in one tick; non-destructive powers accept confirm', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const c = g.colonists()[0];
+  issueCommand(g, 'smite', { colonistId: c.id, confirm: true });
+  issueCommand(g, 'smite', { colonistId: c.id, confirm: true });
+  g.tick();
+  assert.equal(g.s.god.log.filter((e) => e.type === 'smite' && e.result.ok).length, 1);
+  assert.equal(issueCommand(g, 'omen', { text: 'hi', confirm: true }).ok, true);
+});
+
+// ---------------- slice 4: meteor and earthquake ----------------
+import { quakeParts } from '../src/sim/godwrath.js';
+
+/** A tile on the player's first home: the target of the tests below. */
+function homeTile(g) {
+  const h = Object.values(g.s.homes).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const st = g.s.projects[h.projectId].parts.map((id) => g.s.structures[id]).find(Boolean);
+  return { h, x: st.x, y: st.y };
+}
+
+test('meteor: a crater where a home stood; people in it die, the home is gone and its people are homeless', () => {
+  const g = sandbox();
+  runDays(g, 3);
+  const start = g.colonists().length;
+  const { h, x, y } = homeTile(g);
+  const pid = h.projectId, owners = [...h.owners];
+  const victim = g.colonists()[0];
+  victim.x = x; victim.y = y; // standing in the crater
+  const p = previewCommand(g, 'meteor', { x, y });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => w.startsWith('Killed:') && w.includes(victim.name)), JSON.stringify(p.preview.warnings));
+  assert.ok(p.preview.warnings.some((w) => /building parts? of your village destroyed/.test(w)));
+  assert.ok(p.preview.warnings.some((w) => w.startsWith('The ground becomes a crater')));
+  const ironBefore = g.s.ledger.byReason['created:divine']?.['core:iron'] || 0;
+  const ww = g.waterWalk(), rev = g.s.map.rev;
+  assert.equal(issueCommand(g, 'meteor', { x, y, confirm: true }).ok, true);
+  g.tick();
+  const r = g.s.god.log.at(-1).result;
+  // The crater keeps the map revision: the water walk kept is the one a fresh build gives.
+  assert.equal(g.s.map.rev, rev);
+  delete g._waterWalk; g._drink = null;
+  const fresh = g.waterWalk();
+  assert.deepEqual([...fresh.dist], [...ww.dist]);
+  assert.deepEqual([...fresh.from], [...ww.from]);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(g.s.dead[victim.id].text, 'was crushed by a falling star');
+  assert.equal(g.terrainAt(g.i(x, y)), 'core:crater');
+  assert.equal(g.s.homes[h.id], undefined, 'the home is gone');
+  assert.equal(g.s.projects[pid].status, 'cancelled');
+  assert.deepEqual(g.s.projects[pid].parts, []);
+  // Its people are homeless, or already moved into a free bed of another home (here: the victim's).
+  for (const id of owners) if (g.s.colonists[id]) {
+    const c = g.s.colonists[id];
+    assert.notEqual(c.homeId, h.id);
+    if (c.homeId) assert.ok(g.s.homes[c.homeId] && g.s.structures[c.bedId]?.owner === c.id);
+    else assert.equal(c.bedId, null);
+  }
+  for (let yy = y - 2; yy <= y + 2; yy++) for (let xx = x - 2; xx <= x + 2; xx++) {
+    if (!g.inB(xx, yy) || g.terrainAt(g.i(xx, yy)) !== 'core:crater') continue;
+    const i = g.i(xx, yy);
+    assert.ok(!g.structIdAt(i) && !g.nodeIdAt(i) && !g.cropIdAt(i) && g.footIdAt(i) !== pid, `tile ${xx},${yy} is clear`);
+  }
+  assert.ok(r.iron > 0 && (g.s.ledger.byReason['created:divine']['core:iron'] - ironBefore) === r.iron, 'meteoric iron is created through the ledger');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.equal(peopleCensus(g, start).ok, true);
+  // Nothing is rebuilt in the crater, the village carries on, and the game saves and loads identically.
+  runDays(g, 4);
+  assert.equal(g.structAt(x, y), null);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+test('earthquake: parts collapse (wooden more often than stone), goods fall, villages rebuild, all counts exact', () => {
+  const g = sandbox();
+  runDays(g, 3);
+  const { x, y } = homeTile(g);
+  const p = previewCommand(g, 'quake', { x, y });
+  assert.ok(p.preview.warnings.some((w) => /in the area may collapse/.test(w)), JSON.stringify(p.preview.warnings));
+  const before = Object.values(g.s.structures).filter((st) => st.built && Math.hypot(st.x - x, st.y - y) <= 12).map((st) => st.id);
+  assert.equal(issueCommand(g, 'quake', { x, y, confirm: true }).ok, true);
+  g.tick();
+  const r = g.s.god.log.at(-1).result;
+  assert.equal(r.ok, true);
+  assert.ok(r.collapsed > 0, JSON.stringify(r));
+  assert.equal(before.filter((id) => !g.s.structures[id]).length, r.collapsed);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  const unbuilt = () => Object.values(g.s.structures).filter((st) => !st.built && g.s.projects[st.projectId]?.homeId).length;
+  assert.ok(unbuilt() > 0, 'home parts come back unbuilt');
+  runDays(g, 6);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+  // Stone stands better than wood (the chances, which the draws follow).
+  // Stone stands better than wood: at the same distance a stone wall's chance is lower. Graves never fall.
+  const Q = { radius: 12, collapse: 0.6, sturdy: 0.35, wound: [10, 35] };
+  const wall = (def) => { const st = g.addStructure(def, 2, 2, { built: true }); const c = quakeParts(g, 2, 2, Q).find((q) => q.st.id === st.id)?.chance; g.removeStructure(st.id); return c; };
+  assert.ok(wall('core:stone_wall') < wall('core:wood_wall'), `${wall('core:stone_wall')} < ${wall('core:wood_wall')}`);
+  const grave = g.addStructure('core:grave', 2, 2, { built: true, grave: { cid: 'x', name: 'X', tick: 0 } });
+  assert.equal(quakeParts(g, 2, 2, Q).some((q) => q.st.id === grave.id), false);
+  g.removeStructure(grave.id);
+});
+
+test('meteor and earthquake replay identically across a save and load', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 3);
+    const { x, y } = homeTile(g);
+    issueCommand(g, 'quake', { x: x + 4, y, confirm: true });
+    if (cut) g = reload(g);
+    g.step(50);
+    issueCommand(g, 'meteor', { x, y, confirm: true });
+    if (cut) g = reload(g);
+    g.step(30);
+    if (cut) g = reload(g);
+    runDays(g, 1);
+    return g;
+  };
+  assert.equal(stateText(run(false)), stateText(run(true)));
+});
+
+test('a grave destroyed by a meteor: the record of the dead keeps the burial, not the grave', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const c = g.colonists()[0];
+  issueCommand(g, 'smite', { colonistId: c.id, confirm: true });
+  runDays(g, 2);
+  const gid = g.s.dead[c.id].graveId;
+  assert.ok(gid && g.s.structures[gid], 'buried in a grave');
+  const st = g.s.structures[gid];
+  assert.equal(issueCommand(g, 'meteor', { x: st.x, y: st.y, confirm: true }).ok, true);
+  g.tick();
+  assert.equal(g.s.structures[gid], undefined);
+  assert.equal(g.s.dead[c.id].graveId, undefined);
+  assert.ok(g.s.dead[c.id].buried >= 0);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+// ---------------- slice 5: tornado ----------------
+import { stormRules } from '../src/sim/storm.js';
+
+/** A tornado heading east, starting 12 tiles west of the player's village centre, through the village. */
+function tornadoArgs(g) {
+  const c = g.s.settlements[g.s.playerSettlement].center;
+  return { x: c.x - 12, y: c.y, dir: 0 };
+}
+const storms = (g) => Object.values(g.s.disasters?.storms || {});
+
+test('tornado: the preview shows its exact path; it tears up trees, throws goods, tears down wooden parts, hurts people once', () => {
+  const g = sandbox();
+  runDays(g, 3);
+  const a = tornadoArgs(g);
+  const p = previewCommand(g, 'tornado', a);
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => /wooden building parts? of your village in its path/.test(w)), JSON.stringify(p.preview.warnings));
+  assert.equal(previewCommand(g, 'tornado', { ...a, dir: 8 }).ok, false);
+  const goodsBefore = Object.values(g.s.stacks).reduce((n, st) => n + st.qty, 0);
+  const partsBefore = new Set(Object.keys(g.s.structures));
+  const woodBefore = g.s.ledger.byReason['created:divine']?.['core:wood'] || 0;
+  assert.equal(issueCommand(g, 'tornado', { ...a, confirm: true }).ok, true);
+  const where = [], hits = new Map();
+  for (let t = 0; t < 600; t++) {
+    g.tick();
+    const st = storms(g)[0];
+    if (st && where.at(-1)?.n !== st.n) where.push({ n: st.n, x: st.x, y: st.y });
+    if (st) { assert.equal(new Set(st.hit).size, st.hit.length, 'nobody is hurt twice'); hits.set('max', Math.max(hits.get('max') || 0, st.hit.length)); }
+  }
+  // It stood where the preview said, step by step, and died away (no state left).
+  const path = p.preview.path;
+  for (const w of where) if (w.n < path.length) assert.deepEqual([w.x, w.y], path[w.n]);
+  assert.equal(g.s.disasters.storms, undefined);
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /The tornado has died away/);
+  // Trees: their wood was created through the ledger; wooden parts were torn down and are rebuilt as sites.
+  assert.ok((g.s.ledger.byReason['created:divine']?.['core:wood'] || 0) > woodBefore, 'felled trees gave wood');
+  const torn = [...partsBefore].filter((id) => !g.s.structures[id]);
+  assert.ok(torn.length > 0, 'some wooden parts were torn down');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.ok(goodsBefore > 0);
+  assert.ok(hits.get('max') > 0, 'someone in the village was hurt');
+  runDays(g, 3);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+});
+
+test('tornado: saved mid-storm the game continues identically; a malformed storm is refused; at most maxStorms', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 2);
+    issueCommand(g, 'tornado', { ...tornadoArgs(g), confirm: true });
+    for (let k = 1; k <= 8; k++) { g.step(60); if (cut.includes(k)) g = reload(g); }
+    return g;
+  };
+  const a = run([]), b = run([1, 3, 4]);
+  assert.equal(firstDifference(stateText(a), stateText(b)), null);
+  const mid = (() => { const g = sandbox(); runDays(g, 2); issueCommand(g, 'tornado', { ...tornadoArgs(g), confirm: true }); g.step(30); return g; })();
+  const text = serializeGame(mid);
+  const bad = JSON.parse(text);
+  Object.values(bad.state.disasters.storms)[0].d = 9;
+  assert.throws(() => loadGame(mid.reg, JSON.stringify(bad)), /tornado/);
+  const stuck = JSON.parse(text);
+  Object.values(stuck.state.disasters.storms)[0].next = 1e15; // would never move nor end
+  assert.throws(() => loadGame(mid.reg, JSON.stringify(stuck)), /tornado/);
+  const old = JSON.parse(text);
+  old.saveFormat = 23; delete old.state.disasters.storms;
+  assert.doesNotThrow(() => loadGame(mid.reg, JSON.stringify(old)));
+  for (let k = 1; k < stormRules(mid).maxStorms; k++) assert.equal(issueCommand(mid, 'tornado', { x: 5 + k, y: 5, confirm: true }).ok, true);
+  mid.tick();
+  assert.equal(storms(mid).length, stormRules(mid).maxStorms);
+  assert.match(previewCommand(mid, 'tornado', { x: 5, y: 9, confirm: true }).reason, /too many storms/);
+});
+
+// ---------------- slice 6a: rain and drought ----------------
+import { weatherAt, weatherRules } from '../src/sim/weather.js';
+import { ignite } from '../src/sim/fire.js';
+
+/** The crops' total growth now (unripe crops). */
+const growing = (g) => Object.values(g.s.crops).filter((c) => c.growth < 1);
+
+test('drought: crops in it stop growing and wither; it ends on time; saves and loads identically', () => {
+  const g = sandbox();
+  runDays(g, 10);
+  const crops = growing(g);
+  assert.ok(crops.length > 10, 'a field is growing');
+  const c0 = crops[0];
+  const p = previewCommand(g, 'drought', { x: c0.x, y: c0.y });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings.some((w) => /growing crops? of your village stop growing/.test(w)), JSON.stringify(p.preview.warnings));
+  assert.equal(issueCommand(g, 'drought', { x: c0.x, y: c0.y, confirm: true }).ok, true);
+  g.tick();
+  assert.equal(weatherAt(g, c0.x, c0.y), 'drought');
+  const before = new Map(growing(g).filter((c) => weatherAt(g, c.x, c.y) === 'drought').map((c) => [c.id, c.growth]));
+  assert.ok(before.size > 0);
+  g.step(600);
+  for (const [id, gr] of before) if (g.s.crops[id]) assert.ok(g.s.crops[id].growth < gr, 'it withers, not grows');
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, Math.ceil(weatherRules(g).drought.days));
+  assert.equal(g.s.disasters.weather, undefined, 'the drought is over');
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /The drought is over/);
+});
+
+test('rain: puts a fire out and nothing catches in it; crops grow faster; not destructive', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+  g.step(300);
+  const burning = Object.keys(g.s.disasters.fires).length;
+  assert.ok(burning > 0);
+  const p = previewCommand(g, 'rain', { x: t.x, y: t.y });
+  assert.equal(p.ok, true, p.reason);
+  assert.ok(!p.preview.destructive);
+  assert.equal(issueCommand(g, 'rain', { x: t.x, y: t.y }).ok, true);
+  g.step(30);
+  assert.equal(Object.keys(g.s.disasters.fires).length, 0, 'the rain put it out');
+  const dry = Object.values(g.s.nodes).find((n) => n.def === 'core:pine' && weatherAt(g, n.x, n.y) === 'rain' && tileFlammable(g, g.i(n.x, n.y)).f > 0);
+  assert.ok(dry, 'an unburned tree in the rain');
+  assert.equal(ignite(g, g.i(dry.x, dry.y)), false, 'nothing catches in the rain');
+  assert.deepEqual(conservationErrors(g), []);
+  // Growth: the same field with and without rain.
+  const grow = (rain) => {
+    const h = sandbox();
+    runDays(h, 9);
+    for (let d = 0; d < 20 && !growing(h).length; d++) runDays(h, 1); // the first field growing
+    const c = growing(h)[0];
+    if (rain) { issueCommand(h, 'rain', { x: c.x, y: c.y }); }
+    h.step(400);
+    return h.s.crops[c.id]?.growth ?? 1;
+  };
+  assert.ok(grow(true) > grow(false));
+});
+
+test('weather: a malformed area is refused on load; old saves load; at most maxAreas', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  issueCommand(g, 'rain', { x: 10, y: 10 });
+  g.tick();
+  const text = serializeGame(g);
+  const bad = JSON.parse(text);
+  Object.values(bad.state.disasters.weather)[0].kind = 'snow';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /weather/);
+  const old = JSON.parse(text);
+  old.saveFormat = 24; delete old.state.disasters.weather;
+  assert.doesNotThrow(() => loadGame(g.reg, JSON.stringify(old)));
+  for (let k = 1; k < weatherRules(g).maxAreas; k++) issueCommand(g, 'rain', { x: 10 + k, y: 10 });
+  g.tick();
+  assert.match(previewCommand(g, 'rain', { x: 30, y: 30 }).reason, /too many weather areas/);
+});
+
+// ---------------- slice 6b: plague ----------------
+const plagueCases = (g, sid) => g.owned('colonists', sid).filter((c) => c.health?.injuries?.some((i) => i.kind === 'sickness' && i.illness === 'core:plague' && !i.over));
+
+test('plague: a share of the village falls ill, it spreads even without illness rules, runs its course, all counted', () => {
+  const g = sandbox(); // a classic world: no scenario illness rules
+  runDays(g, 2);
+  const sid = g.s.playerSettlement, start = g.colonists().length;
+  const p = previewCommand(g, 'plague', { settlementId: sid });
+  assert.equal(p.needsConfirm, true);
+  assert.ok(p.preview.warnings[0].startsWith('Fall ill with plague:'), JSON.stringify(p.preview.warnings));
+  assert.equal(previewCommand(g, 'plague', { settlementId: 'nowhere' }).ok, false);
+  assert.equal(issueCommand(g, 'plague', { settlementId: sid, confirm: true }).ok, true);
+  g.tick();
+  const first = plagueCases(g, sid).length;
+  assert.equal(first, p.preview.ill);
+  assert.ok(g.s.disasters.plague.until > g.s.tick);
+  let most = first;
+  for (let d = 0; d < 3; d++) { runDays(g, 1); most = Math.max(most, plagueCases(g, sid).length + Object.keys(g.s.dead || {}).length); }
+  assert.ok(most > first, 'it spread to others in the village');
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, 12);
+  assert.equal(plagueCases(g, sid).length, 0, 'it has run its course');
+  assert.equal(g.s.disasters.plague, undefined);
+  assert.equal(peopleCensus(g, start).ok, true);
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('plague: a malformed plague state is refused on load; nobody left to catch it is refused', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const sid = g.s.playerSettlement;
+  issueCommand(g, 'plague', { settlementId: sid, confirm: true });
+  g.tick();
+  const bad = JSON.parse(serializeGame(g));
+  bad.state.disasters.plague.until = 'soon';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /plague/);
+  for (const c of g.owned('colonists', sid)) (c.immune ||= {})['core:plague'] = g.s.tick + 1e6;
+  for (const c of g.owned('colonists', sid)) for (const i of c.health?.injuries || []) if (i.kind === 'sickness') i.over = true;
+  assert.match(previewCommand(g, 'plague', { settlementId: sid, confirm: true }).reason, /nobody there can catch it/);
+});
+
+test('drought: nobody sows into it (no seed wasted on crops that would only wither); fire is refused in rain', () => {
+  const sown = (drought) => {
+    const g = sandbox();
+    runDays(g, 10);
+    const c = growing(g)[0];
+    const before = Object.values(g.s.ledger.byReason['consumed:sow'] || {}).reduce((a, b) => a + b, 0);
+    if (drought) { issueCommand(g, 'drought', { x: c.x, y: c.y, confirm: true }); }
+    runDays(g, 3);
+    return Object.values(g.s.ledger.byReason['consumed:sow'] || {}).reduce((a, b) => a + b, 0) - before;
+  };
+  assert.ok(sown(true) <= sown(false), 'a drought does not burn the seed stock');
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  issueCommand(g, 'rain', { x: t.x, y: t.y });
+  g.tick();
+  assert.match(previewCommand(g, 'fire', { x: t.x, y: t.y, confirm: true }).reason, /raining/);
+});
+
+// ---------------- slice 6c: firefighting ----------------
+/** A fire set on a built part of the player's first home. */
+function homeFire(g) {
+  const h = Object.values(g.s.homes).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+  const st = g.s.projects[h.projectId].parts.map((id) => g.s.structures[id]).find((s) => s?.built);
+  issueCommand(g, 'fire', { x: st.x, y: st.y, confirm: true });
+  g.tick();
+  return st;
+}
+
+test('firefighting: the village fights a fire at a home and puts it out; fighters do not flee; counts exact', () => {
+  const g = sandbox();
+  runDays(g, 4);
+  homeFire(g);
+  let fought = false, outAt = null;
+  for (let t = 0; t < 2400 && outAt === null; t += 10) {
+    g.step(10);
+    for (const c of g.colonists()) if (c.job?.type === 'firefight') { fought = true; assert.notEqual(c.job.type, 'flee'); }
+    if (!Object.keys(g.s.disasters.fires).length) outAt = g.s.tick;
+  }
+  assert.ok(fought, 'someone fought the fire');
+  assert.ok(outAt !== null, 'the fire is out within a day');
+  assert.match(g.s.log.map((e) => e.msg).join('\n'), /put out a fire/);
+  assert.deepEqual(conservationErrors(g), []);
+  assert.deepEqual(reservationErrors(g), []);
+});
+
+test('firefighting: saved mid-fight, the game continues identically', () => {
+  const run = (cut) => {
+    let g = sandbox();
+    runDays(g, 4);
+    homeFire(g);
+    for (let k = 1; k <= 6; k++) {
+      g.step(40);
+      if (k === 1) assert.ok(g.colonists().some((c) => c.job?.type === 'firefight'), 'someone is mid-fight at the first save');
+      if (cut.includes(k)) g = reload(g);
+    }
+    return g;
+  };
+  const a = run([]), b = run([1, 2, 4]);
+  assert.equal(firstDifference(stateText(a), stateText(b)), null);
+});
+
+test('firefighting saves buildings: the same fire with and without it', () => {
+  const left = (registry) => {
+    const g = newGame({ seed: 7, sandbox: true, ...(registry ? { registry } : {}) });
+    runDays(g, 4);
+    homeFire(g);
+    for (let t = 0; t < 4800 && Object.keys(g.s.disasters.fires).length; t += 25) g.step(25);
+    return Object.values(g.s.structures).filter((s) => s.built).length;
+  };
+  assert.ok(left(null) > left(noFirefighting()) + 10, 'far more stands when the village fights the fire');
+});
+
+test('firefighting waits for needs: someone hungry and thirsty eats and drinks, not fights', () => {
+  const g = sandbox();
+  runDays(g, 4);
+  homeFire(g);
+  const c = g.colonists()[0];
+  for (const def of g.reg.all('need')) if (def.id === 'core:hunger' || def.id === 'core:thirst') c.needs[def.id] = 0.05;
+  // While a need is urgent they are never pulled off to the fire; once fed and watered they may fight it.
+  const urgent = (id) => (c.needs[id] ?? 1) < g.reg.get('need', id).urgentBelow;
+  let foughtNeedy = 0;
+  for (let t = 0; t < 300; t++) { g.tick(); if (c.job?.type === 'firefight' && (urgent('core:hunger') || urgent('core:thirst'))) foughtNeedy++; }
+  assert.equal(foughtNeedy, 0, 'not pulled off to the fire while hungry or thirsty');
+  assert.ok((c.needs['core:hunger'] ?? 1) > 0.05 || (c.needs['core:thirst'] ?? 1) > 0.05, 'they saw to a need');
+});
+
+// ---------------- slice 6d: regrowth ----------------
+import { natureRules } from '../src/sim/regrow.js';
+
+test('regrowth: a burned wood grows back from its seeds, young trees grow up; classic games have no spread', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  assert.equal(natureRules(g), null, 'no spread rule in a classic world');
+  const t = wood(g);
+  issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+  runDays(g, 2);
+  const seeds = Object.keys(g.s.disasters.seeds || {}).length;
+  assert.ok(seeds > 0, 'burned trees left seeds');
+  assert.equal(stateText(reload(g)), stateText(g));
+  runDays(g, Math.ceil(fireRules(g).scorchDays) + 1);
+  const young = Object.values(g.s.nodes).filter((n) => n.young);
+  assert.ok(young.length > 0, 'young trees sprouted once the scorch marks faded');
+  assert.ok(young.every((n) => n.empty && n.chunks === 0), 'young trees cannot be cut yet');
+  assert.equal(stateText(reload(g)), stateText(g));
+  for (let d = 0; d < 120 && young.some((n) => g.s.nodes[n.id]?.young); d += 5) runDays(g, 5); // slower in winter
+  for (const n of young) if (g.s.nodes[n.id]) { assert.equal(g.s.nodes[n.id].young, undefined, 'grown up'); assert.ok(g.s.nodes[n.id].chunks > 0); }
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('regrowth: a malformed seed is refused on load; old saves load', () => {
+  const g = sandbox();
+  runDays(g, 1);
+  const t = wood(g);
+  issueCommand(g, 'fire', { x: t.x, y: t.y, confirm: true });
+  runDays(g, 1);
+  const text = serializeGame(g);
+  const bad = JSON.parse(text);
+  Object.values(bad.state.disasters.seeds)[0].at = 'later';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /seed/);
+  const old = JSON.parse(text);
+  old.saveFormat = 25; delete old.state.disasters.seeds;
+  assert.doesNotThrow(() => loadGame(g.reg, JSON.stringify(old)));
+});
+
+test('regrowth: forests spread where the scenario says, only beside their kind, deterministically', () => {
+  const mods = readAllMods(), core = mods.find((m) => m.manifest.id === 'core');
+  for (const sc of core.files['content/setup.json'].scenario) if (sc.id === 'core:standard') sc.nature = { spread: [{ node: 'core:pine', perDay: 0.5, radius: 2, maxNear: 9, minNear: 3 }] };
+  const registry = buildRegistry(mods, ['core']).registry;
+  const run = (cut) => {
+    let g = newGame({ seed: 4242, registry, scenario: 'core:standard' });
+    for (let d = 1; d <= 4; d++) { runDays(g, 1); if (cut && d === 2) g = reload(g); }
+    return g;
+  };
+  const g = run(false);
+  const young = Object.values(g.s.nodes).filter((n) => n.young && n.def === 'core:pine');
+  assert.ok(young.length > 0, 'young pines appeared');
+  for (const n of young) {
+    let near = 0;
+    for (let y = n.y - 2; y <= n.y + 2; y++) for (let x = n.x - 2; x <= n.x + 2; x++) if (g.inB(x, y) && g.nodeAt(x, y)?.def === 'core:pine' && !(x === n.x && y === n.y)) near++;
+    assert.ok(near >= 1, 'beside other pines (3 when it seeded; some may be cut since)');
+  }
+  assert.equal(stateText(run(true)), stateText(g));
+});
+
+test('review fixes: the homeless fight fires; a tree does not sprout under someone', () => {
+  const g = sandbox();
+  runDays(g, 4);
+  for (const c of g.colonists()) c.needs['core:shelter'] = 0; // as if every home had burned
+  homeFire(g);
+  let fought = false;
+  for (let t = 0; t < 600 && !fought; t++) { g.tick(); fought = g.colonists().some((c) => c.job?.type === 'firefight'); }
+  assert.ok(fought, 'low shelter does not keep people from the fire');
+  // A seed due on a tile where someone stands waits.
+  const h = sandbox();
+  runDays(h, 1);
+  const c = h.colonists()[0], ctr = h.s.settlements[h.s.playerSettlement].center;
+  const free = (i) => !h.nodeIdAt(i) && !h.structIdAt(i) && !h.zoneAt(i) && !h.footIdAt(i) && !h.stackIdAt(i) && !h.cropIdAt(i) && h.isPassable(i % h.W, (i / h.W) | 0);
+  let i = -1;
+  for (let r = 6; r < 20 && i < 0; r++) for (let dx = -r; dx <= r && i < 0; dx++) { const j = h.i(ctr.x + dx, ctr.y + r); if (free(j)) i = j; }
+  assert.ok(i >= 0, 'a free tile near the village');
+  const x = i % h.W, y = (i / h.W) | 0;
+  h.s.disasters ||= { fires: {}, scorched: {} };
+  h.s.disasters.seeds = { [i]: { def: 'core:pine', at: h.s.tick } };
+  for (let t = 0; t < 120; t++) { c.x = x; c.y = y; c.mv = null; h.tick(); }
+  assert.equal(h.nodeIdAt(i), null, 'no tree grew under them');
+  assert.ok(h.s.disasters.seeds?.[i], 'the seed waits');
+});

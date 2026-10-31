@@ -5,13 +5,20 @@ import { findSite, placedCells, tileUsable } from '../construction.js';
 import { parseTemplate } from '../content/templates.js';
 import { settlementOf } from '../research.js';
 import { templatesProviding } from './needs.js';
+import { peopleOfSettlement } from '../peoples.js';
 
 const bedsOf = (t) => t.capacity ?? parseTemplate(t).cells.filter((c) => c.spec?.slot === 'core:bed').length;
 
 /** Templates to try for an intent, best first, in a stable order. */
 export function candidateTemplates(g, sid, intent, templateUnlocked, templateCost) {
   if (intent.kind === 'home') {
-    const caps = g.reg.all('template').filter((t) => t.kind === 'home' && templateUnlocked(g, sid, t)).map((t) => ({ t, cap: bedsOf(t) }));
+    // Home styles (Peoples and traits): a template naming peoples is only for them, and a people's own style
+    // comes first whenever one fits the beds needed.
+    const folk = peopleOfSettlement(g, sid);
+    const all = g.reg.all('template').filter((t) => t.kind === 'home' && (!t.people || t.people.includes(folk)) && templateUnlocked(g, sid, t)).map((t) => ({ t, cap: bedsOf(t) }));
+    const own = all.filter((x) => x.t.people && x.cap <= intent.need);
+    const generic = all.filter((x) => !x.t.people);
+    const caps = own.length ? own : generic.length ? generic : all;
     if (!caps.length) return [];
     let fit = caps.filter((x) => x.cap <= intent.need);
     if (!fit.length) { const min = Math.min(...caps.map((y) => y.cap)); fit = caps.filter((x) => x.cap === min); }

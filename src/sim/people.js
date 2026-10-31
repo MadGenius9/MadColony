@@ -13,9 +13,16 @@
 // child takes the free bed and records the two adults as its parents. Existing colonists in older saves
 // become adults; nothing else in an old save changes.
 import { TICKS_PER_DAY } from './constants.js';
-import { makeLook } from './appearance.js';
-import { namePoolOf, surnameOf, uniqueName } from './names.js';
+import { inheritLook } from './appearance.js';
+import { namePoolOf, surnameOf, uniqueName, usedNames } from './names.js';
+import { startAge, ageNow } from './life.js';
 import { blessingOf } from './god.js';
+import { peopleOfSettlement, inheritTraits, paletteOf } from './peoples.js';
+import { civLawOf, hoursOf, CHILD_WORK } from './civlaws.js';
+/** School hours (education.js EDU.school, 8-15), here to keep people.js free of education.js. */
+const inSchoolHours = (g) => { const h = (g.s.tick % TICKS_PER_DAY) / (TICKS_PER_DAY / 24); return h >= 8 && h < 15; };
+import { growthOf } from './worldlaws.js';
+import { moodBirth } from './mood.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
 
@@ -33,7 +40,15 @@ export const needsCare = (g, c) => !!stageOf(g, c)?.needsCare;
 export const mayFight = (g, c) => stageOf(g, c)?.fights !== false;
 /** May this colonist do this kind of work at their stage? */
 export function mayDoWork(g, c, workTypeId) {
-  const st = stageOf(g, c);
+  const st = stageOf(g, c), sid = c.settlementId || g.s.playerSettlement;
+  // Civilization laws (civlaws.js): a curfew stops outdoor work at night; compulsory schooling keeps children
+  // at their studies in school hours; child labour lets children haul and farm too.
+  if (g.isNight() && hoursOf(g, sid) === 'curfew' && g.reg.get('workType', workTypeId)?.outdoor) return false;
+  if (st?.workTypes && st.attendsSchool) {
+    const law = civLawOf(g, sid, 'core:schooling');
+    if (law === 'compulsory' && inSchoolHours(g) && workTypeId !== 'core:study') return false;
+    if (law === 'child_labour' && CHILD_WORK.includes(workTypeId)) return true;
+  }
   return !st?.workTypes || st.workTypes.includes(workTypeId);
 }
 /** Age in game days since birth (children), or null for adults without a recorded birth. */
@@ -43,7 +58,7 @@ export function ageLabel(g, c) {
   const st = stageOf(g, c);
   if (!isAdult(g, c)) return `${st.name}, ${Math.floor(ageDays(g, c) || 0)} day(s) old`;
   const yearDays = g.reg.get('worldgen', g.s.worldgenId)?.climate?.yearDays || 30;
-  const yrs = (c.ageYears ?? 30) + Math.max(0, g.s.tick - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY);
+  const yrs = (c.ageYears ?? 30) + Math.max(0, ageNow(g, c) - (c.ageTick ?? g.s.tick)) / (yearDays * TICKS_PER_DAY); // the Ageless law stops it (life.js)
   return `${st.name}, ${Math.floor(yrs)}`;
 }
 
@@ -51,7 +66,7 @@ export function ageLabel(g, c) {
 export function ensureAdult(g, c) {
   if (c.stage) return;
   c.stage = adultStage(g)?.id || 'core:adult';
-  c.ageYears ??= 20 + (hash(c.id) % 26);
+  c.ageYears ??= startAge(g, c.id) ?? 20 + (hash(c.id) % 26); // scenarios with aging rules spread ages wider (life.js)
   c.ageTick ??= g.s.tick;
   c.quals ||= g.reg.get('qualification', 'core:schooled') ? ['core:schooled'] : []; // they grew up elsewhere and had schooling
 }
@@ -94,7 +109,7 @@ function considerBirths(g, sid) {
   const bedsOf = (h) => (s.projects[h.projectId]?.parts || []).map((id) => s.structures[id]).filter((b) => b?.built && g.bDef(b)?.bed && !g.bDef(b).medical);
   const isFree = (b) => !b.owner || !s.colonists[b.owner];
   for (const home of homes) {
-    if (s.tick - (home.lastBirth ?? -1e9) < BIRTH.gapDays * TICKS_PER_DAY) continue;
+    if (s.tick - (home.lastBirth ?? -1e9) < (BIRTH.gapDays / growthOf(g)) * TICKS_PER_DAY) continue; // the Fast growth law halves the gap
     const beds = bedsOf(home);
     const adults = beds.map((b) => s.colonists[b.owner]).filter((c) => c && isAdult(g, c));
     if (adults.length < 2) continue;
@@ -105,7 +120,7 @@ function considerBirths(g, sid) {
     if (!bed) continue;
     // A divine blessing (godboons.js) multiplies the chance; the same single draw either way.
     const bl = g.s.god ? blessingOf(g, sid) : null;
-    if (!g.rng.chance(bl ? Math.min(1, BIRTH.chancePerDay * bl.growth) : BIRTH.chancePerDay)) continue;
+    if (!g.rng.chance(Math.min(1, BIRTH.chancePerDay * (bl ? bl.growth : 1) * growthOf(g) * moodBirth(adults[0], adults[1])))) continue; // the Fast growth law doubles it (worldlaws.js); the parents' mood (mood.js)
     birth(g, sid, where, bed, adults.slice(0, 2));
     home.lastBirth = s.tick;
     return; // one birth per settlement per day at most
@@ -115,8 +130,9 @@ function considerBirths(g, sid) {
 function birth(g, sid, home, bed, parents) {
   const s = g.s;
   const id = 'c' + s.nextId++;
-  const pool = namePoolOf(g, 'Wren');
-  const used = new Set(Object.values(s.colonists).map((c) => c.name));
+  const folk = peopleOfSettlement(g, sid); // villages keep to one people, so the parents share it
+  const pool = namePoolOf(g, 'Wren', folk); // the people's names (peoples.js), else the scenario's
+  const used = usedNames(s); // the living and the dead (death.js)
   const free = pool.names.filter((n) => !used.has(n));
   // One rng draw either way (as before); a surname (a parent's first) when the first name is taken.
   const first = free.length ? free[g.rng.int(free.length)] : pool.names[g.rng.int(pool.names.length)];
@@ -127,12 +143,13 @@ function birth(g, sid, home, bed, parents) {
   const nd = {};
   for (const n of g.reg.all('need')) nd[n.id] = 1;
   s.colonists[id] = {
-    id, settlementId: sid, name, color: parents[0].color, look: makeLook(`${s.seed}:born:${id}`),
+    id, settlementId: sid, name, color: parents[0].color, look: inheritLook(`${s.seed}:born:${id}`, parents[0].look, parents[1]?.look, paletteOf(g, folk)), // each part from a parent
     x: bed.x, y: bed.y, mv: null, skills: sk, xp: {}, needs: nd, carry: null, equip: { tool: null, weapon: null },
     homeId: home.id, bedId: bed.id, job: null, workOff: {}, lastWork: null, sleeping: true,
     idle: 0, status: { goal: 'Newborn', action: 'Sleeping', target: '', blocker: '' }, workCount: {},
     stage: stages(g)[0].id, bornTick: s.tick, parents: parents.map((p) => p.id), quals: [], education: 0, health: { injuries: [] },
   };
+  if (folk) { s.colonists[id].people = folk; s.colonists[id].traits = inheritTraits(g, `${s.seed}:${id}`, parents, folk); }
   g.ownAdd('colonists', s.colonists[id]);
   bed.owner = id;
   home.owners.push(id);

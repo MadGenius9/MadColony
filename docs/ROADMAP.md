@@ -40,6 +40,23 @@ signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases co
    greedy, wise, sickly, ...) that change behaviour; peoples can be spawned with god powers.
 6. **World laws** (new): settings toggled during play, e.g. no wars, no aging, fast growth, endless plague,
    peaceful animals.
+6b. **Civilization laws** (owner, 2026-10-28): laws that villages and kingdoms keep and change (conscription,
+   curfews, rationing, taxes or tithes, borders, schooling, hunting and forest protection, punishments, ...),
+   chosen by their people, temperament and rulers, with reasons; kingdoms set laws for their members. Its own
+   phase and design note, right after World laws (which are the gods' world switches).
+6c. **Mood** (owner, 2026-10-29): each person's mood from needs, home, food, grief, traits, their people and
+   their village's laws (each law option has a mood value), with effects (work speed, unrest, villages
+   changing laws or people leaving) and reasons. Its own phase and design note, after Civilization laws.
+6d. **Phases 11–16** (owner, 2026-10-29), after Mood and before the scale target. Each has its own section
+   below.
+   - **11** integration and reliability;
+   - **12** connected world chronicle;
+   - **13** need-driven prayers and petitions (the first slice of worship);
+   - **14** intervention follow-through;
+   - **15** village memories and traditions;
+   - **16** playtesting and balance.
+   The macro god-simulator direction holds: villages manage themselves; the player shapes the world and
+   watches consequences.
 7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
    performance work needed.
 Then Phase 3, Phase 4 and the rest, as written below.
@@ -494,16 +511,83 @@ and room lighting stay parked. *Already built:* water, wells, lighting, running 
 seasonal crops; lamps and taps are civic intents (pipes and power poles stay direct projects on purpose:
 they are network paths, not single buildings).
 
-### Phase 5: death, illness and the end of combat
+### Phase 5: death, illness and the end of combat (Done in the cloud copy, 2026-10-26)
 Death (wounds, starvation, dehydration, cold, illness, old age) with burial, mourning and inheritance;
 contagious illness spreading within and between villages along trade routes; surgery; permanent injuries;
 wars can be lost (abandoned ruins or absorption); population growth and decline balanced over 100 days.
 *Already built:* health, injuries, medical care, combat stages 1-3, births.
+Design note: `docs/proposals/phase-5-death-and-collapse.md` (the user said "go" on 2026-10-26; the four open
+questions were not answered, so the note's proposals are the working defaults).
 
-### Phase 5b: god powers, part 2 (destructive)
+- **Done:** slice 1a, death (commit `fe413b7` and the review fixes after it). At 0% health for 6 hours a collapsed
+  colonist dies, in full and distant villages alike; at 0% they heal only with care (tending, a medical bed, a
+  dressed or cleaned wound; in a distant village anyone else on their feet). The dead leave `s.colonists` for
+  `s.dead`; jobs, beds, homes, training and plans are cleared; goods are put down where they died; the people
+  ledger counts deaths. Save format 15. Classic 40-day and seed 4242 runs unchanged. Results: design note,
+  "Slice 1a".
+- **Done:** slice 1b, bodies, burial and mourning (commit `7e48fac`). Bodies carried to a village graveyard by
+  carers and buried in named graves (distant villages at once; after 3 days by the village anyway); close family
+  grieve 2 days (work ×0.85). Save format 16. Classic runs unchanged. Results: design note, "Slice 1b".
+- **Done:** slice 2, cold and old age (scenario `life` block, Vast and Living worlds). Hypothermia for the exposed
+  below −2 °C (asleep or collapsed outdoors, the homeless away from a fire; rooms +6 °C; distant villages: a
+  finished home shelters); founding waits for warmer weather; elders from 50 work at 80%, old-age deaths from 60.
+  Vast seed 7, 100 days: 25 → 119 people, 2 deaths of old age, none from cold. Classic runs unchanged. Results:
+  design note, "Slice 2".
+- **Done:** slice 3, contagious illness (content type `illness`, scenario `illness` block, Vast and Living worlds):
+  outbreaks, spread at home and in the village, along deliveries, caravans and traders, medicine slows it,
+  immunity; deaths through the slice 1a rules. Save format 17. Vast seed 7, 100 days: 9 outbreaks, 48 cases, 8
+  between villages. Classic runs unchanged. Results: design note, "Slice 3".
+- **Done:** slice 4, lasting injuries and surgery: deep wounds (≥ 30%) healed without surgery leave a lame leg or
+  a crippled hand (slower work of some kinds); surgery in a medical bed mends them by skill. Save format 18.
+  Classic runs unchanged. Results: design note, "Slice 4".
+- **Done:** slice 5a, rivalry and AI war declarations (scenario `war` block, Vast world): pressing borders and
+  near rivals lower relations daily by temperament; rivals who never fought do not cool; a stronger AI village
+  declares war at −50 (on the player only after a threat and a day). Save format 19. Vast seed 7: first wars
+  around day 98. Classic runs unchanged. Results: design note, "Slice 5a".
+- **Done:** slice 5b, battles between distant villages (daily, in aggregate, wounds through the health rules) and
+  AI peace (the weaker side after 4 days, any war after 20). Save format 20. Vast seed 7, 150 days: 14 wars in
+  progress at day 150, population still growing (191). Results: design note, "Slice 5b".
+- **Done:** slice 6a, fallen villages and ruins (commit `3b7231a`, all games): a village with nobody left falls,
+  its ruins stay, it drops out of trade, diplomacy, planning, contact and the village cap, a fallen capital's
+  kingdom passes to its largest member, its land is released after 20 days. Save format 21. Plus review fixes to
+  slices 4–5b (wars start only by declaration in war games, war start dates for every war, markers cleared at
+  peace). Results: design note, "Slice 6a".
+- **Done:** slice 6b, conquest: a village with no fit fighters for 2 days is beaten; winners annex it into their
+  kingdom or (hill fort, lumber camp) sack it for tribute; the war ends. Save format 22. Vast seed 7, 150 days: 16
+  wars, 11 conquered, 1 sacked, 3 fallen. Results: design note, "Slice 6b".
+- **Done:** slice 7, balance and acceptance: World tuning (conquest at 15% strength, faster near rivalry), speed
+  fixes (ruin land release, cold checks, elder work speed). World seed 7, 300 days: 326 people, 22 wars, 2
+  conquests, 2 ruins, 869 illness cases, 16 deaths; worst tick 48 ms after day 1; 10–12% slower per tick than
+  before Phase 5 late in the run (more is simulated); classic runs unchanged. Not met: wars by day 100 on World
+  (first at about day 175), deaths of 4 causes on World (3). Results: design note, "Phase 5 acceptance summary".
+
+**Carried over from Phase 5** (not done): the player's village falling or being taken (open questions 1–2);
+scavenging ruins; a full merge on conquest; more rivalry causes; seasonal outbreaks; winter clothing; earlier wars
+on World; all UI (`docs/ui-todo.md`).
+
+### Phase 5b: god powers, part 2 (destructive) (Done in the cloud copy, 2026-10-27)
 Lightning, fire, plague, meteor and smite, each with a warning and a confirm step before anything
 destructive; built on Phase 5's death, illness and wounds, using the same command, ledger and replay rules
 as Phase 2c.
+
+- **Done:** lightning, fire (spreading, burning out, scorch marks), smite, meteor (craters), earthquake, tornado
+  (an exact path in the preview), plague, rain and drought, each destructive one refused until confirmed with
+  warnings first; safe destruction and repair by the villages (`ruin.js`); firefighting and regrowth (the
+  owner's answers to open questions 1 and 4, 2026-10-27). Save formats 23–26. Design and results:
+  `docs/proposals/phase-5b-destructive-powers.md`.
+- **Acceptance** (`tools/cloud-powers-run.mjs 40 vast 7`): all 11 power uses applied, after each a save and load
+  ran 300 ticks identically, items and people exact every day, worst tick 32 ms after day 1 (14 ms while
+  burning, 127 tiles burning at the peak); classic runs unchanged (same state hashes); bench the same as the
+  Phase 5 code measured side by side on the same machine.
+- **Carried over** (not done): craters on ground that walks or is claimed differently (forest floor, sand, hills,
+  snow, tundra, taiga, jungle) keep their terrain, because a terrain change there rebuilds the whole-map water
+  and territory data (about 0.5 s on Vast); burned land is marked scorched rather than turned to ash for the same
+  reason; buildings have no partial damage (torn down or standing); rocks do not split in an earthquake; forest
+  spread costs the Vast world about 10–15% (more trees to walk round and search: lower `perDay` in the data to
+  trade growth for speed); costs and "powers may hit your own village" stand as proposed (open questions 2–3).
+  Found in Phase 8: on the World map forest spread costs about +35% by day 50 (Phase 5 code 0.359 ms/tick,
+  Phase 5b code 0.485, same machine), mostly from region rebuilds forced by the new trees' trap checks; the
+  Phase 5b acceptance timed small maps only.
 
 ### Phase 6: government
 Village council and policies that change real decisions (food reserves, research, trade, work allocation,
@@ -520,13 +604,319 @@ together with warehouses; the coarse-route corridor parked in Phase 1 (branch
 `phase1-path-corridor-experiment`) and a path cache, to be measured again once roads change how people
 travel.
 
-### Phase 8: animals and the wild
+### Phase 8: animals and the wild (Done in the cloud copy, 2026-10-28)
 Wildlife ecology (deer and predators), hunting chain to the kitchen, horses; herds as dots zoomed out;
 population-level simulation for distant regions.
 
-### Phase 8b: god powers, part 3 (animals)
+- **Done:** deer, wolves and wild horses in every game (owner's answer 1), as herd counts far from people and
+  single animals near full-detail villages; spring births, winter losses, winter ground and winter moves,
+  drought losses; wolf packs eating deer and horses; hunting with weapons, a hunting limit of 3 (answer 5),
+  carcasses, butchering, venison, horse meat and hides; meat and carcasses spoil (answer 2); wolves as
+  dangerous as real ones to lone people, with fleeing, fending off and hunting a pack down (answer 4);
+  distant villages hunt and are raided in aggregate. Wild horses only; taming comes later (answer 3). Save
+  format 27. Design and results: `docs/proposals/phase-8-animals.md`.
+- **Acceptance** (`tools/cloud-world-run.mjs 300 world 7 25 150`):
+  - every species survives 300 days within its land (day 300: 290 wolves, 2,282 deer, 1,049 horses);
+  - 662 carcasses hunted, with meat 1.7–4.7% of raw food;
+  - the save at day 150 continued identically, and items and people were exact at every check;
+  - classic runs `forty` ac37a8f860cb8e30 and `modern` 26aff18c94590ae1 (the modern era on day 41.24).
+- **Carried over** (not done):
+  - **Speed:** after the owner chose fewer full-detail animals (herds become animals within 28 tiles of a
+    village, a hunt brings its herd near), the bench is about +5% on average against the code before Phase 8
+    (medium alone +12%, small +6%); World was +35% by day 50 before this change and has not been timed alone
+    since.
+  - **Wolves:** they decline slowly on the World map (598 at day 50 to 290 at day 300), and none killed anyone in
+    the 300-day World run; whether they should be more dangerous is open.
+  - **Distant hunting:** distant villages spend no arrows and wear no weapons on hunts; their hunting share is not
+    measured against full detail.
+
+### Phase 8b: god powers, part 3 (animals) (Done in the cloud copy, 2026-10-28)
 Spawn animals (deer, wolves, horses, later livestock) as herds or single animals, using the animal system's
 real needs and behaviour.
+
+- **Done:**
+  - the `animals` power: a new herd, or animals joining the nearest herd; wolves near a village need confirm;
+  - herds off their ground or crowded lose some and move on (all herds);
+  - a full animal ledger, with births, sends and deaths by cause checked every day (owner's answer 3);
+  - the `peaceful` switch: predators leave people alone (owner's answer 5);
+  - save format 28.
+  - Design and results: `docs/proposals/phase-8b-animal-powers.md`.
+- **Acceptance** (`tools/cloud-animalpowers-run.mjs 30 vast 7`):
+  - 9 power uses, with a save and load after each identical for 300 ticks;
+  - items, people and animals exact every day;
+  - worst tick 33 ms after day 1;
+  - 164 tests pass;
+  - classic era days unchanged;
+  - bench +4–6% overall against the code before 8b (within this machine's noise).
+- **Carried over** (not done): livestock to spawn (Phase 9); costs to revisit (owner's answer 2).
+
+### Phase 8c: wild monsters (Done in the cloud copy, 2026-10-28)
+Original wild monsters that attack villages (2026-10-24 direction, item 3), with their own design note: new
+creatures, their looks, lairs and behaviour, built on the animal system.
+
+- **Done:** the Thornback, the Gloomstalker and the Barkmaw:
+  - lairs in every game, classic too (owner's answer 1), with far roaming and regrowth after 60 days;
+  - behaviour near villages: fields, people, wooden parts;
+  - fleeing, hunt parties, carcasses and drops, clearing lairs;
+  - aggregate raids on distant villages;
+  - the `monster` and `banish` powers (answer 6);
+  - a village with 3 or fewer standing is never hurt (answer 3); peaceful does not cover monsters (answer 4);
+  - a monster ledger; save format 29.
+  - Design and results: `docs/proposals/phase-8c-wild-monsters.md`.
+- **Acceptance:**
+  - 182 tests pass;
+  - World 300 days: 2.30 ms/tick at day 300, everything counted, save and load identical, no village wiped out;
+  - classic `forty` unchanged; `modern` on day 45.5 (monster forays from day 15);
+  - bench +1–8% against the code before 8c.
+- **Carried over** (not done): monsters do not find paths (a blocked one goes home after 30 steps); "lit
+  buildings" are not checked (rooms and fire only); no use yet for the gloom eye or heartwood (answer 5); few
+  villages met a monster in the World run (forays may need tuning once the owner has played it); one 358 ms tick
+  on day 170 of the World run is not explained.
+
+### World shaping (Done in the cloud copy, 2026-10-28)
+Terrain brushes and the Blank world (2026-10-24 direction, item 4), with their own design note.
+
+- **Done:**
+  - the `shape` power: raise, lower, water, mountain, flatten, paint desert, snow or marsh (the owner's answer 1),
+    and forest, stone and ore;
+  - strokes of radius 1-8 or drags; tiles under buildings, fields, stockpiles and people are kept;
+  - brushes that block the way keep 3 tiles clear of villages and people;
+  - 0.2 favour a tile, free in Sandbox (answer 4); destructive near villages, with a confirm (answer 3);
+  - the Blank world scenarios: generated land with no people, and an open ocean with a few islands (answer 2);
+    the first village founded there is the player's.
+  - Design and results: `docs/proposals/world-shaping.md`. No new state; save format stays 29.
+- **Acceptance:**
+  - 189 tests pass; classic runs unchanged;
+  - an island raised from open sea in 56 strokes, each saved, loaded and replayed identically, then settled:
+    after 60 days 7 people, 103 buildings, no deaths, everything counted.
+- **Carried over** (not done): an incremental water walk (a terrain stroke costs 0.6 s on Vast and 1.2 s on World
+  in a running game; the owner's answer 5 accepted about 0.5 s); an exact trap check instead of the 3-tile
+  clearance; "Start life" was dropped (generated maps keep their animals and monsters).
+
+### Peoples and traits (Done in the cloud copy, 2026-10-28)
+Original peoples and personal traits (2026-10-24 direction, item 5), with their own design note.
+
+- **Done:**
+  - four peoples (the owner's answer 1): Hearthfolk (every classic village), Reedkin, Cragborn and Duneshade;
+  - each with its own needs, body, work, temperament, favourite food, names, looks and home style (reed
+    house, stone roundhouse with stone walls, courtyard house);
+  - Living and Vast worlds give each AI village the people of its land;
+  - villages keep to one people (answer 4), and feuds between peoples grow ×1.5 (answer 5);
+  - eleven traits (answer 3 added Quick, Strong and Kind) in every game, classic too (answer 2): they change
+    work, learning, walking, tending, needs, illness, healing, cold, fighting, wolves, hunt parties and trade,
+    with reasons in the statuses;
+  - children inherit people, traits and looks;
+  - `spawn` takes a people; the `trait` power (answer 6);
+  - save format 30, with old saves filled on load from hashes.
+  - Design and results: `docs/proposals/phase-peoples-and-traits.md`.
+- **Acceptance:**
+  - 205 tests pass;
+  - World 300 days on seeds 7 and 11: every people lives on, everything is counted, save and load are
+    identical, 2.33 and 2.45 ms/tick at day 300;
+  - classic eras a little later (workshops on day 6.10, modern on day 46.12);
+  - bench within 2% of the code before the phase.
+- **Carried over** (not done):
+  - a per-people ledger;
+  - Reedkin on marsh;
+  - daughter sites by land;
+  - favourite food and greed in distant and AI-to-AI trade;
+  - new materials;
+  - mixed worlds see about twice the wars: tune after play.
+
+### World laws (Done in the cloud copy, 2026-10-29)
+The gods' world switches (2026-10-24 direction, item 6), with their own design note. The owner's laws of
+civilizations are the next phase (direction item 6b).
+
+- **Done:** the free `law` power and eight laws as data:
+  - **Peace:** no new wars; running ones go on (the owner's answer 3);
+  - **Ageless:** adults stop aging, no old-age deaths, children still grow up (answer 4);
+  - **Fast growth:** ×2 (answer 5);
+  - **Plague:** none or endless, never emptying a village (answer 6);
+  - **Peaceful animals** (the Phase 8b switch);
+  - **Tame monsters**;
+  - **No spreading fire**;
+  - **Endless season:** summer or winter (answer 7).
+  - `s.worldLaws`, save format 31. Design and results: `docs/proposals/world-laws.md`.
+- **Acceptance:**
+  - 215 tests pass; classic unchanged;
+  - a 200-day Vast run setting and lifting every law: save and load identical at each change, everything
+    counted;
+  - two bugs it found are fixed: the season caches, and the plague emptying a small village.
+- **Carried over** (not done): the endless plague is harsh (tune after play); herds have no spring under an
+  endless season.
+
+### Civilization laws (Done in the cloud copy, 2026-10-29)
+Laws villages and kingdoms keep (direction item 6b, the owner's ask), with their own design note.
+
+- **Done:** nine laws as data (`civLaw`), each option with a mood value for the Mood phase:
+  - work hours; rationing; schooling; conscription; hunting; forests; borders; tithe; justice;
+  - `settlement.code`, with a 5-day wait between changes (the owner's answer 2);
+  - kingdom laws from the capital (answer 3);
+  - leanings by people and profile;
+  - AI reviews by situation (answer 7);
+  - relations drift with similar laws (answer 6);
+  - the tithe as counted gift trades (answer 4);
+  - every effect in distant villages too;
+  - save format 32.
+  - Design and results: `docs/proposals/civilization-laws.md`.
+- **Acceptance:**
+  - 229 tests pass; classic unchanged;
+  - World 300 days: everything counted, save and load identical, laws spread and change with wars and want;
+  - the law code costs nothing extra (the same speed as before with no laws); the slower late game (4.6
+    against 3.3 ms/tick at day 300) is a more warlike world.
+- **Carried over** (not done): militias make worlds more warlike (tune after play); Mood (direction 6c) is
+  next.
+
+### Mood (Done in the cloud copy: built and tested, 2026-10-30; not yet playable)
+Each person's mood from their thoughts (direction 6c), with its own design note: `docs/proposals/mood.md`
+(the owner's answers there).
+- **Built and tested:**
+  - 20 thoughts as data and an hourly mood (full and distant villages alike);
+  - the traits Cheerful and Gloomy;
+  - work speed ×0.85–1.05; the birth chance ×0.75–1.25; breaks for the miserable;
+  - unrest: AI villages repeal their most disliked law; the player gets warnings, never a forced law; a
+    miserable family may move to a village of its own people with room; unhappy families found daughters
+    first;
+  - save format 33.
+- **Acceptance:**
+  - 236 tests pass;
+  - World 300 days: everything counted, save and load identical; mood +8 to +19 on average, unrest in up to 4
+    villages during wars;
+  - 101 wars against 61 before (for Phase 11 to investigate).
+- **Not playable yet:** the UI is not in the cloud copy (UI notes in `docs/ui-todo.md`).
+
+**Status words for every phase from here on:**
+- **planned:** a design note or roadmap entry;
+- **built:** code merged on `cloud-work`;
+- **tested:** suite, runs and bench recorded in `docs/cloud-baseline.md`;
+- **playable:** checked with the real UI (only possible at home).
+- Everything done in the cloud copy so far is built and tested, not yet playable.
+
+### Phase 11: integration and reliability (the cloud part done, 2026-10-30; the build waits for home)
+Results: `docs/proposals/phase-11-integration.md`. In short:
+- the set-aside goods bug was reproduced and fixed;
+- the integration contract is `docs/integration-contract.md`;
+- baselines are recorded;
+- wars come mostly from the faster feuds between peoples (×1.5), which halve without it;
+- herds shrink mostly from winter and crowding, not hunting.
+
+The plan as written:
+Before more simulation complexity. Depends on: the home PC for the UI (back about 2026-11-08).
+- **1. A playable build:** combine the cloud simulation with the real UI. The UI (`src/ui`, `index.html`) is
+  not in the rescue copy, so the cloud part is an integration contract:
+  - every UI-facing function and field the cloud phases added (from `docs/ui-todo.md`), with its module and
+    signature;
+  - the save formats 27–33;
+  - what the UI must call (`setCivLaw`, `issueCommand('law' | 'trait' | 'shape', ...)`, `explainColonist(...).mood`).
+  The build and its testing happen at home; nothing is claimed as tested before that.
+- **2. A regression test for set-aside goods (missing mods):** a suspected bug, from reading the code
+  (`game.js tryRestore`, `save.js`).
+  - A map stack set aside on load keeps its village in the stack itself (`data.settlement`), but restoring
+    sets the owner only from the outer `owner`, which only caravan goods carry. So an AI village's goods may
+    come back as the player's or nobody's.
+  - Fuel, buffers, ammunition and carried goods set aside from a village keep no owner at all.
+  - First a test that reproduces it; then the fix.
+- **3. Performance baselines:**
+  - fixed seeds and sizes;
+  - terrain-edit latency (a shaping stroke on Vast and World) and long ticks (the worst ticks and their
+    causes);
+  - war cost (fights in full-detail villages; `nearestEnemy`, `combatDecision`) and animal cost (herds,
+    hunting), each measured on its own;
+  - comparisons only within one session, as this machine's speed varies by about 35% between days.
+- **4. Investigate war frequency and hunting limits:**
+  - why mixed worlds see twice the wars (feuds between peoples, militias);
+  - why distant villages hunt so little (one hunter a village an hour).
+  - Report first; balance changes only with the owner, never to pass a benchmark.
+- **Acceptance:** reproducible test results, a clear UI and integration status, and the remaining defects and
+  performance limits written down.
+- **Not in it:** a replacement UI; balance changes; new simulation features.
+
+### Phase 12: connected world chronicle (cloud part done)
+Builds on the existing log (`s.log`, letters, `g.log` keys). Depends on: Phase 11. Design and the owner's answers:
+[docs/proposals/phase-12-chronicle.md](proposals/phase-12-chronicle.md).
+- **Status (2026-10-30):** slices 1–3 built and tested: event ids, 26 kinds as data, 29 milestone lines,
+  retention with yearly summaries, save format 34; cause links where the game holds the cause (associations
+  labelled "followed"); filters, chains, jump targets, follow and favourites (saved), world-news notifications.
+  Slice 4 accepted: a World run finds and prints a real 4-step chain, saves and loads identically, plays the
+  same as before the phase and sends 281 notifications in 200 days across 64 villages. Not playable: the UI is
+  on the home PC (`docs/ui-todo.md`).
+- **Events:** stable ids, simulation time, the villages, people, place and category, and cause links only
+  where the simulation knows them.
+  - Examples: a law passed for a recorded reason ("few trees left near"), a war declared by rivalry, a tithe,
+    a trade refused by closed borders.
+- **Chains:** shown only from recorded links (e.g. forest depletion → protection law → timber shortage →
+  trade dispute → war). Associations without a recorded link are labelled "followed", never "caused".
+- **Filters:** village, person or family where known, kingdom, category, time. Follow and favourite
+  controls, and a jump from an event to its subject or place (UI notes).
+- **Bounded storage:**
+  - milestones kept;
+  - routine events summarised as they age;
+  - a fixed cap with a save-size check on the World run;
+  - duplicate notifications merged (the log's existing keys).
+- **Acceptance:** one real chain is understandable in the UI, survives save and load, and does not flood the
+  player.
+- **Not in it:** a second event system next to the log; invented causes.
+
+### Phase 13: need-driven prayers and petitions (cloud part done)
+Design note and results: [docs/proposals/phase-13-petitions.md](proposals/phase-13-petitions.md). Built and tested
+(2026-10-31): four kinds (hunger, drought, monster, lost woods), answered by bless, rain, banish or the forest
+brush, with caps, cooldowns and chronicle links; save format 35. Not playable: the UI is on the home PC.
+The first slice of worship. The rescue copy holds only the roadmap line "worship and favour coming from
+villages" (Later, below). A fuller worship plan, if one exists at home, is linked and its open questions left
+to the owner. Depends on: Phase 12 (petitions are chronicle events) and Mood.
+- **Petitions from real conditions:**
+  - hunger (food days), water shortage, monster danger, environmental damage (forest loss, drought);
+  - each a small data type tied to an existing power the player can answer with (rain, bless, banish,
+    shaping, peaceful animals).
+- **Shown:** who asks, the evidence (the numbers behind it), the urgency, and when it expires or stops
+  mattering.
+- **The player** answers with a power, dismisses or ignores it. No quest playstyle, no free goods, no
+  arbitrary rewards: answers act through the simulation as usual.
+- **Limits:** cooldowns, de-duplication, and a cap by population.
+- **Acceptance:** petitions arise from real conditions, resolve sensibly when things change, and persist
+  through save and load without spam.
+- **Not in it:** a full religion, favour income from villages, temples.
+
+### Phase 14: intervention follow-through (cloud part done)
+Design and results: [docs/proposals/phase-14-follow-through.md](proposals/phase-14-follow-through.md). Built and
+tested (2026-10-31): outcome cards 3 days after a power (before → after per village, labelled "changes that
+followed"), linked to the power and the prayers it answered; save format 36. Not playable: the UI is at home.
+Builds on the existing power previews and results (`s.god.log`). Depends on: Phase 12; links to Phase 13.
+- **Each power's result records:**
+  - the region affected;
+  - the immediate effects (what apply returned);
+  - a few before-and-after measures already available (food days, casualties, migration, forest cover).
+- **An outcome card** after a configurable interval: what changed, split into "recorded consequences" (what
+  the power did) and "changes that followed" (no causal claim).
+- **No alternate-outcome claims:** there is no counterfactual simulation, and none is added.
+- **Links** to the chronicle and to any petition it answered.
+- **Acceptance:** the player understands the immediate result and the later changes, with no misleading
+  claims and little tracking cost.
+- **Not in it:** counterfactual runs; per-tile history.
+
+### Phase 15: village memories and traditions (planned)
+Builds on Mood, Peoples and traits, and Civilization laws. Depends on: Phases 12 and 14 (memories cite
+events) and Mood done.
+- **Memories:** a few data types of meaningful experiences: survived a famine, defeated a monster, received
+  aid, endured a disaster. Each has a description, a duration and decay, stacking limits and modest
+  transparent effects (e.g. a mood thought, a law leaning).
+- **Traditions:** these emerge from repeated or exceptional memories, so villages of one people can grow
+  different identities. They show why they exist and link to their events.
+- **Bounded:** no runaway bonuses or penalties (caps on effects and on the number held). Deterministic across
+  save and load.
+- **Acceptance:** two villages develop different histories and traditions for understandable reasons, with
+  bounded effects.
+- **Not in it:** a religion system; duplicates of inherited traits.
+
+### Phase 16: playtesting and balance (planned)
+Depends on: Phase 11's playable build (home), and Phases 12–15.
+- **Play the features together:**
+  - can players follow events, find interventions worth making, and see results without micromanaging?
+  - long runs, save and load, deleted or destroyed subjects, expired petitions, repeated interventions,
+    event retention, missing-mod recovery.
+- **Performance** against the Phase 11 baselines, with regressions reported honestly.
+- **A short tutorial or hints** for the new controls in the existing UI style.
+- **Not in it:** new systems.
 
 ### Phase 9: livestock, clothing and the settlement plan
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
@@ -535,7 +925,9 @@ reasons.
 
 ### Later: god powers, part 4 (terrain and weather), then worship
 Once weather exists: terrain brushes (raise and lower land, dig water, plant forest) and weather powers
-(rain, drought, storms). Later still: worship and favour coming from villages.
+(rain, drought, storms). Later still: worship and favour coming from villages. (2026-10-28: the terrain brushes
+are done, see "World shaping"; rain and drought came with Phase 5b. 2026-10-29: Phase 13 is the first slice
+of worship, prayers and petitions from real needs.)
 
 ### Phase 10: leftovers, then review
 Families (partnerships, old age, more professions), contraband selling policy, scripting API for mods, zip
@@ -604,7 +996,8 @@ A village council and settlement policies that actually change decisions (food r
 - Acceptance: a settlement identifies a transport need, builds infrastructure, makes or acquires transport through the economy, and delivers real goods to another settlement unassisted.
 
 ## Larger world and animals (Phases 1 and 8)
-**There is no animal or wildlife system today**: no animals, no placeholder animal sprites.
+**Wildlife exists since Phase 8** (deer, wolves, wild horses, hunting and butchering; see Phase 8). Still open:
+taming, horses as mounts, wagons, and drawing animals in the UI (`docs/ui-todo.md`).
 1. A configurable, seeded world in regions or chunks, with lower-frequency updates for distant regions that never reset populations or history. Performance is measured before scaling up; a world map shows settlements and routes.
 2. Deer ecology (habitat, food, movement, fear, reproduction, population caps) and a complete hunting chain: policy → equipment → travel → hunt (animal health, no instant inventory) → butcher → haul → kitchen. Sustainable hunting limits as a policy.
 3. Horses: taming or acquisition, ownership, feeding, pasture or shelter, breeding.

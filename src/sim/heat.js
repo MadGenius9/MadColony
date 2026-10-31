@@ -23,15 +23,26 @@ export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
 export function climateOf(g) { return { ...DEFAULT_CLIMATE, ...(g.reg.get('worldgen', g.s.worldgenId)?.climate || {}) }; }
 
 /** The season's average temperature (°C) at a tick, without the day/night swing. */
+/** Part of the key of every cache of temperatures over a time window: the Endless season law changes them all. */
+export const seasonLawKey = (g) => g.s.worldLaws?.set?.['core:season'] || '';
+/** The day of the year's cycle the seasons follow: the real day, or under the Endless season law
+ *  (worldlaws.js) midsummer or midwinter for good (the warmest point is a quarter year in, the coldest three
+ *  quarters). Read straight from the state: O(1). */
+function seasonDay(g, tick, c) {
+  const v = g.s.worldLaws?.set?.['core:season'];
+  if (v === 'summer') return c.yearDays * 0.25;
+  if (v === 'winter') return c.yearDays * 0.75;
+  return tick / TICKS_PER_DAY;
+}
 export function seasonalTemp(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const day = tick / TICKS_PER_DAY;
+  const day = seasonDay(g, tick, c);
   return (c.summer + c.winter) / 2 - ((c.summer - c.winter) / 2) * Math.cos((2 * Math.PI * (day - c.yearDays * 0.75)) / c.yearDays);
 }
 /** Outdoor temperature (°C) at a tick: day 1 starts in spring; the coldest point is in the middle of winter. */
 export function outdoorTemp(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const day = tick / TICKS_PER_DAY;
+  const day = seasonDay(g, tick, c);
   const mean = (c.summer + c.winter) / 2, amp = (c.summer - c.winter) / 2;
   const season = mean - amp * Math.cos((2 * Math.PI * (day - c.yearDays * 0.75)) / c.yearDays);
   const hour = (tick % TICKS_PER_DAY) / TICKS_PER_HOUR;
@@ -39,7 +50,7 @@ export function outdoorTemp(g, tick = g.s.tick) {
 }
 export function seasonOf(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const d = (((tick / TICKS_PER_DAY) + c.yearDays / 8) % c.yearDays) / c.yearDays; // seasons centred on mid-summer and mid-winter
+  const d = ((seasonDay(g, tick, c) + c.yearDays / 8) % c.yearDays) / c.yearDays; // seasons centred on mid-summer and mid-winter
   return SEASONS[Math.min(3, Math.floor(d * 4))];
 }
 /** The coldest outdoor temperature over the next `days` days (planners look ahead). */
@@ -204,7 +215,7 @@ export function tickHeat(g) {
 
 /** Is it the heating season (cold now or within `days` days)? */
 export function heatSeason(g, days = 2) {
-  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) + ':' + days;
+  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) + ':' + days + ':' + seasonLawKey(g);
   g._heatSeason ||= {};
   if (g._heatSeason[k] === undefined) { let m = Infinity; const t0 = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) * (TICKS_PER_DAY / 4); for (let d = 0; d <= days; d += 0.25) m = Math.min(m, seasonalTemp(g, t0 + d * TICKS_PER_DAY)); if (Object.keys(g._heatSeason).length > 8) g._heatSeason = {}; g._heatSeason[k] = m < HEAT.coldSleep + 2; }
   return g._heatSeason[k];

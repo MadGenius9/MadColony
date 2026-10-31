@@ -23,6 +23,7 @@
     "content/firearms.json",
     "content/medicine.json",
     "content/people.json",
+    "content/illness.json",
     "content/education.json",
     "content/quarry.json",
     "content/continent.json",
@@ -31,6 +32,15 @@
     "content/machines.json",
     "content/planet.json",
     "content/vast-world.json",
+    "content/animals.json",
+    "content/monsters.json",
+    "content/shaping.json",
+    "content/peoples.json",
+    "content/laws.json",
+    "content/civlaws.json",
+    "content/mood.json",
+    "content/chronicle.json",
+    "content/petitions.json",
     "content/god.json"
   ]
 }

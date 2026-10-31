@@ -27,6 +27,10 @@ export function reconcile(g) {
     if (c.carriedBy) { const k = g.s.colonists[c.carriedBy]; if (k?.job?.type !== 'rescue' || k.job.patientId !== c.id) c.carriedBy = null; }
     if (c.medBedId && !g.s.structures[c.medBedId]?.built) c.medBedId = null;
   }
+  // Bodies (burial.js): a carrier who is no longer carrying them.
+  for (const [id, b] of Object.entries(g.s.bodies || {})) {
+    if (b.carriedBy) { const k = g.s.colonists[b.carriedBy]; if (k?.job?.type !== 'bury' || k.job.bodyId !== id) delete b.carriedBy; }
+  }
   // Station buffers whose owning job no longer exists go back on the ground.
   for (const st of Object.values(g.s.structures)) {
     if (!st.buffer?.length) continue;
