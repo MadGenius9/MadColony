@@ -225,3 +225,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Bench, the code before Phase 13 (`136f598`) against now (two rounds, ms/tick summed over the sizes): 3.137 →
   3.229 (+2.9%) and 3.066 → 3.168 (+3.3%). A small, steady cost, most likely the daily prayer check (four
   conditions per village, one counting the trees near its centre); under the 10% line.
+
+## Balance: feud and hunting (2026-10-31)
+- Full suite passes. `forty` 8345afce244873af (unchanged: workshops era day 6.46), `modern` 96a3ae6edf4692e1
+  (modern era day 46.31, as before; the full hash also carries the chronicle and prayer records).
+- World runs before and after, two seeds: `docs/proposals/balance-feud-and-hunting.md` (wars 55 → 30 on seed
+  11, 14 → 13 on seed 7 with the feud at ×1.2).

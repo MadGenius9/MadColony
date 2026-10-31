@@ -799,6 +799,9 @@ Results: `docs/proposals/phase-11-integration.md`. In short:
 - baselines are recorded;
 - wars come mostly from the faster feuds between peoples (×1.5), which halve without it;
 - herds shrink mostly from winter and crowding, not hunting.
+- **Decided 2026-10-31** (the owner left it to me): the feud between peoples is now ×1.2; hungry villages
+  hunt for twice the meat; the hunting limit is weapons, a design for later. See
+  `docs/proposals/balance-feud-and-hunting.md`.
 
 The plan as written:
 Before more simulation complexity. Depends on: the home PC for the UI (back about 2026-11-08).
