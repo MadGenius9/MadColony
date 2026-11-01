@@ -7,6 +7,7 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { droughtAt } from './weatherat.js';
 import { PROTECT_R } from './civlaws.js';
+import { addMemory, petitionPatience } from './memories.js';
 
 export const PETITION = Object.freeze({
   perPeople: 40, // the world cap: one open petition per 40 living people (at least 1)
@@ -71,7 +72,8 @@ function close(g, p, status, why, cause) {
   const what = (K?.name || p.kind).toLowerCase();
   const msg = { answered: `The gods answered ${name}'s prayer (${what})${why ? `: ${why}` : ''}.`, resolved: `${name} no longer prays (${what}): ${why}.`,
     dismissed: `The gods turned away ${name}'s prayer (${what}).`, expired: `${name}'s prayer (${what}) went unanswered${why ? ` (${why})` : ''}.` }[status];
-  g.log(msg, p.sid === s.playerSettlement ? 'god' : 'info', null, 0, { kind: 'core:petition_closed', sids: [p.sid], cause: cause || p.ev, rel: cause ? p.ev : undefined });
+  const eid = g.log(msg, p.sid === s.playerSettlement ? 'god' : 'info', null, 0, { kind: 'core:petition_closed', sids: [p.sid], cause: cause || p.ev, rel: cause ? p.ev : undefined });
+  if (status === 'answered') addMemory(g, p.sid, 'core:aid_received', eid); // Phase 15
 }
 
 /** Daily (game.js, after unrest): open petitions end or expire; new ones are raised within the limits. */
@@ -115,10 +117,11 @@ export function tickPetitions(g) {
 
 function raise(g, sid, K, c) {
   const s = g.s, S = P(g), id = `p${S.next++}`, name = s.settlements[sid].name, mine = sid === s.playerSettlement;
-  const p = { id, sid, kind: K.id, since: s.tick, until: s.tick + K.days * TICKS_PER_DAY, urgency: Math.round(c.urgency * 100) / 100, evidence: c.evidence };
+  const days = K.days * petitionPatience(g, sid); // a Devout village waits longer (memories.js)
+  const p = { id, sid, kind: K.id, since: s.tick, until: s.tick + Math.round(days * TICKS_PER_DAY), urgency: Math.round(c.urgency * 100) / 100, evidence: c.evidence };
   S.open[id] = p;
   const powers = K.answers.map((a) => a.brush ? `${a.power} (${a.brush})` : a.power).join(' or ');
-  p.ev = g.log(`${name} prays to the gods (${K.name.toLowerCase()}): ${c.text}. Answer with ${powers} within ${K.days} days.`, mine ? 'god' : 'info', null, 0,
+  p.ev = g.log(`${name} prays to the gods (${K.name.toLowerCase()}): ${c.text}. Answer with ${powers} within ${Math.round(days * 10) / 10} days.`, mine ? 'god' : 'info', null, 0,
     { kind: 'core:petition', sids: [sid], at: centreOf(g, sid) }) || undefined;
   if (!p.ev) delete p.ev;
   return p;

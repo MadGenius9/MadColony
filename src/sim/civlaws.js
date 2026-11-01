@@ -10,6 +10,7 @@
 //   (policy, attack orders) it is a direct call: the saved state keeps games deterministic.
 // - Leanings: a village's people and profile lean to options (their `code`); new villages start with them.
 import { TICKS_PER_DAY } from './constants.js';
+import { traditionCode } from './memories.js';
 
 export const CHANGE_DAYS = 5;
 
@@ -133,7 +134,7 @@ export function leaningsOf(g, sid) {
   const st = g.s.settlements?.[sid];
   const prof = st?.profile ? g.reg.get('villageProfile', st.profile) : null;
   const folk = st?.people ? g.reg.get('people', st.people) : null;
-  return { ...(folk?.code || {}), ...(prof?.code || {}) };
+  return { ...(folk?.code || {}), ...(prof?.code || {}), ...traditionCode(g, sid) }; // Phase 15: its traditions lean too
 }
 
 /** A new village's code (world start, divine): its leanings, set quietly; no waiting time is recorded. */

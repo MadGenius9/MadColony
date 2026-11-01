@@ -171,6 +171,17 @@
       "name": "A power's outcome",
       "importance": "milestone",
       "notify": "world"
+    },
+    {
+      "id": "core:memory",
+      "name": "A memory",
+      "importance": "notable"
+    },
+    {
+      "id": "core:tradition",
+      "name": "A new tradition",
+      "importance": "milestone",
+      "notify": "own"
     }
   ]
 }

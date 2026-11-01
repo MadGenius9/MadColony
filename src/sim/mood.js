@@ -14,6 +14,7 @@ import { hpOf } from './health.js';
 import { sicknessOf } from './illness.js';
 import { coldUnder } from './life.js';
 import { isEnemy } from './combat.js';
+import { memoryMood, traditionMood } from './memories.js';
 
 export const MOOD = Object.freeze({ breakChance: 0.3, breakHours: 3, breakHour: 9, happyWork: 0.05, sadWork: 0.15, min: -100, max: 100, rate: 0.1, content: 20, unhappy: -20, miserable: -50, memoryDays: 1, deathDays: 3, homeless: 0.3, hurtHp: 70, maxScars: 2 });
 
@@ -106,6 +107,9 @@ export function thoughtsOf(g, c, V = null) {
     if (V.death) add('core:death');
     if (V.crowded) add('core:crowded');
   }
+  const sid = sidOf(g, c); // Phase 15: the village's memories and traditions (memories.js)
+  add('core:memories', memoryMood(g, sid));
+  add('core:traditions', traditionMood(g, sid));
   return out;
 }
 

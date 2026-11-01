@@ -124,6 +124,9 @@ export const MIGRATIONS = {
   34() {},
   // 35 -> 36: intervention follow-through (followup.js). `s.followUps` is optional: absent means nothing waits.
   35() {},
+  // 36 -> 37: village memories and traditions (memories.js). settlement memories, memCount, traditions and famine
+  // are optional: absent means none.
+  36() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

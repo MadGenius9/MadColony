@@ -684,6 +684,14 @@ export const CONTENT_TYPES = {
     doc: 'A thought that moves a person\'s mood (mood.js, Mood): its name (shown) and value (-100..100; for core:laws the multiplier of the village laws\' moods, for core:comfort the most a comfortable home gives). When it applies is decided in mood.js by its id.',
     schema: obj({ id, name, value: req(num(-100, 100)) }),
   },
+  memory: {
+    doc: 'A village memory (memories.js, Phase 15): a meaningful experience, held `days` with a small `mood` (the Memories thought, capped); at most `stack` of the kind. Where it comes from is decided in code by its id; `powers`: god powers that cause it when they touch the village.',
+    schema: obj({ id, name, mood: req(num(-10, 10)), days: req(num(1, 1000)), stack: int(1, 8), powers: arr(str(40), { maxItems: 20 }) }),
+  },
+  tradition: {
+    doc: 'A village tradition (memories.js, Phase 15): gained once `count` memories of kind `from` were gathered over its history; kept for good. Effects: mood (the Traditions thought), code (law leanings), petitionDays (its prayers stay open this many times longer), halve (a memory kind whose mood counts half).',
+    schema: obj({ id, name, about: str(300), from: req(ref('memory')), count: req(int(1, 100)), mood: num(-5, 5), code: map({ type: 'ref', to: 'civLaw' }, str(40)), petitionDays: num(1, 3), halve: ref('memory') }),
+  },
   petitionKind: {
     doc: 'A kind of prayer (petitions.js, Phase 13): raised when a real trouble is found in a village (decided in code by its id), answered by one of its powers (answers: { power, brush? }) aimed at the village, open for days, then a cooldown before the village asks again.',
     schema: obj({ id, name, about: str(300), answers: req(arr(obj({ power: req(str(40)), brush: str(40) }), { minItems: 1, maxItems: 6 })), days: req(num(0.5, 100)), cooldownDays: req(num(0, 365)) }),

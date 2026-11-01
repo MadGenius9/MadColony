@@ -41,6 +41,7 @@
     "content/mood.json",
     "content/chronicle.json",
     "content/petitions.json",
+    "content/memories.json",
     "content/god.json"
   ]
 }
