@@ -44,7 +44,7 @@ function wanted(g, sid) {
   }
   const people = g.owned('colonists', sid);
   const children = people.filter((c) => !isAdult(g, c) && g.reg.get('lifeStage', c.stage)?.attendsSchool).length;
-  const school = Object.values(s.structures).some((b) => b.built && (b.settlement || s.playerSettlement) === sid && g.bDef(b)?.id === 'core:school_desk');
+  const school = g.owned('structures', sid).some((b) => b.built && (b.settlement || s.playerSettlement) === sid && g.bDef(b)?.id === 'core:school_desk'); // its own buildings (was every building in the world: the scale target)
   want('core:schooling', children >= MIN_CHILDREN && school, 'compulsory', 'its children should be at school', 'few children are of school age');
   const c = st.center || s.center;
   let trees = 0;
