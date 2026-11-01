@@ -123,11 +123,15 @@ export function nearestEnemy(g, c, range = COMBAT.engageRange) {
   let foes = null;
   for (const o of Object.keys(g.s.settlements || {})) if (isEnemy(g, sid, o)) (foes ||= new Set()).add(o);
   if (!foes) return null;
-  let best = null, bd = Infinity;
-  for (const o of Object.values(g.s.colonists)) {
+  // Only the enemies' people (their village indexes; was everyone in the world, for every fighter: the scale
+  // target). Ties go to the lower id number: the first in Object.values(s.colonists) order, as before.
+  let best = null, bd = Infinity, bn = Infinity;
+  for (const f of foes) for (const o of g.owned('colonists', f)) {
     if (o === c || !foes.has(sidOf(g, o)) || isDown(o)) continue;
     const d = octile(c.x, c.y, o.x, o.y);
-    if (d <= range && d < bd) { bd = d; best = o; }
+    if (d > range || d > bd) continue;
+    const n = Number(o.id.slice(1));
+    if (d < bd || n < bn) { bd = d; bn = n; best = o; }
   }
   return best;
 }

@@ -95,12 +95,12 @@ export function supplyCount(g, sid, tag) {
 /** The nearest source of one supply (a stack or a cabinet holding it), or null. */
 function findSupply(g, c, tag) {
   let best = null, bd = Infinity;
-  for (const st of Object.values(g.s.stacks)) {
+  for (const st of g.mineList('stacks', c)) { // big worlds: the village's own (the scale target); classic: all, as before
     if (!g.mine(st, c) || !medTag(g, st.item).includes(tag) || g.availQty(st.id) < 1 || !g.canReach(c, st.x, st.y, 'on')) continue;
     const d = octile(c.x, c.y, st.x, st.y);
     if (d < bd) { bd = d; best = { stackId: st.id, x: st.x, y: st.y, item: st.item, mode: 'on' }; }
   }
-  for (const b of Object.values(g.s.structures)) {
+  for (const b of g.mineList('structures', c)) {
     if (!b.built || !g.bDef(b)?.supplies || !g.mine(b, c)) continue;
     const f = (b.fuel || []).find((x) => x.qty > 0 && medTag(g, x.item).includes(tag));
     if (!f || g.isReserved('cab:' + b.id + ':' + f.item, c.id) || !g.canReach(c, b.x, b.y, 'adj')) continue;
