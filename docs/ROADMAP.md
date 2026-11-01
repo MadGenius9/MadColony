@@ -897,7 +897,10 @@ Builds on the existing power previews and results (`s.god.log`). Depends on: Pha
   claims and little tracking cost.
 - **Not in it:** counterfactual runs; per-tile history.
 
-### Phase 15: village memories and traditions (planned)
+### Phase 15: village memories and traditions (cloud part done)
+Design and results: [docs/proposals/phase-15-memories.md](proposals/phase-15-memories.md). Built and tested
+(2026-11-01): six memories from recorded events (famine, monster, aid, disaster, war endured, war won) and six
+traditions from them, with capped moods and leanings; save format 37. Not playable: the UI is at home.
 Builds on Mood, Peoples and traits, and Civilization laws. Depends on: Phases 12 and 14 (memories cite
 events) and Mood done.
 - **Memories:** a few data types of meaningful experiences: survived a famine, defeated a monster, received
