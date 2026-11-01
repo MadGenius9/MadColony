@@ -30,7 +30,7 @@
 //   settlement.noSiteAt                         tick its last site search found nothing (it waits siteRetryDays)
 import { TICKS_PER_DAY, WATER_REACH_WALK } from './constants.js';
 import { settlementOf, newResearchState, ensureSettlement } from './research.js';
-import { isAdult, BIRTH } from './people.js';
+import { isAdult, popCap } from './people.js';
 import { endJob } from './ai/ai.js';
 import { relationOf, noteMet, villageColor, availableToTrade, spareOf } from './villages.js';
 import { wantDetail, setDetail } from './lod.js';
@@ -80,7 +80,7 @@ function headCounts(g) {
 export function crowdedness(g, sid, counts = null) {
   const st = settlementOf(g, sid);
   const e = (counts || headCounts(g)).get(sid) || { pop: 0, adults: 0 };
-  const cap = g.policyFor(sid).maxPopulation ?? BIRTH.defaultCap;
+  const cap = popCap(g, sid);
   const crowded = e.pop >= cap;
   const since = st?.crowdedSince;
   const days = crowded && Number.isFinite(since) ? Math.max(0, Math.floor((g.s.tick - since) / TICKS_PER_DAY)) : 0;
@@ -646,7 +646,7 @@ export function tickFounding(g) {
   for (const sid of ids) {
     const st = s.settlements[sid];
     const e = counts.get(sid);
-    const cap = g.policyFor(sid).maxPopulation ?? BIRTH.defaultCap;
+    const cap = popCap(g, sid);
     if (e && e.pop >= cap) { if (!Number.isFinite(st.crowdedSince)) st.crowdedSince = s.tick; }
     else if (st.crowdedSince !== undefined) delete st.crowdedSince;
   }

@@ -360,6 +360,8 @@ export const CONTENT_TYPES = {
       id, name,
       colonists: req(int(1, 20)),
       people: bool(), // false: a world with no people at the start (world shaping); the first spawned village is the player's
+      // The scale target (people.js birthRules): per world size, faster births and bigger villages, e.g. { world: { chancePerDay, gapDays, maxPopulation } }.
+      growthBySize: map(str(20), obj({ chancePerDay: num(0, 1), gapDays: num(0.5, 100), maxPopulation: int(1, 500) })),
       startItems: req(qtyList()),
       namePool: req(ref('namePool')),
       skillMin: int(0, 10),

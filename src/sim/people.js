@@ -25,6 +25,17 @@ import { growthOf } from './worldlaws.js';
 import { moodBirth } from './mood.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
+/** The birth rules in force: BIRTH, with the scenario's growthBySize entry for this world's size (the scale target,
+ *  docs/proposals/scale-target.md: the World preset grows faster) as { chancePerDay, gapDays, maxPopulation }. */
+export function birthRules(g) {
+  const sc = g.reg.get('scenario', g.s.scenarioId), o = sc?.growthBySize?.[g.s.worldSize];
+  return o ? { ...BIRTH, ...o } : BIRTH;
+}
+/** Village sid's population cap: the growth override when there is one, else its policy's, else BIRTH.defaultCap. */
+export function popCap(g, sid) {
+  const B = birthRules(g);
+  return B.maxPopulation ?? g.policyFor(sid).maxPopulation ?? BIRTH.defaultCap;
+}
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 // Life stages in order, once per registry (a registry does not change after it is built): stageOf runs for every
@@ -109,7 +120,7 @@ export function tickPeople(g) {
 function considerBirths(g, sid) {
   const s = g.s;
   const people = Object.values(s.colonists).filter((c) => (c.settlementId || s.playerSettlement) === sid);
-  const cap = g.policyFor(sid).maxPopulation ?? BIRTH.defaultCap;
+  const cap = popCap(g, sid), B = birthRules(g);
   if (people.length >= cap) return;
   if ((g.ensurePlan(sid)?.foodDays ?? 0) < BIRTH.minFoodDays) return;
   const first = stages(g)[0];
@@ -125,7 +136,7 @@ function considerBirths(g, sid) {
   const bedsOf = (h) => (s.projects[h.projectId]?.parts || []).map((id) => s.structures[id]).filter((b) => b?.built && g.bDef(b)?.bed && !g.bDef(b).medical);
   const isFree = (b) => !b.owner || !s.colonists[b.owner];
   for (const home of homes) {
-    if (s.tick - (home.lastBirth ?? -1e9) < (BIRTH.gapDays / growthOf(g)) * TICKS_PER_DAY) continue; // the Fast growth law halves the gap
+    if (s.tick - (home.lastBirth ?? -1e9) < (B.gapDays / growthOf(g)) * TICKS_PER_DAY) continue; // the Fast growth law halves the gap
     const beds = bedsOf(home);
     const adults = beds.map((b) => s.colonists[b.owner]).filter((c) => c && isAdult(g, c));
     if (adults.length < 2) continue;
@@ -136,7 +147,7 @@ function considerBirths(g, sid) {
     if (!bed) continue;
     // A divine blessing (godboons.js) multiplies the chance; the same single draw either way.
     const bl = g.s.god ? blessingOf(g, sid) : null;
-    if (!g.rng.chance(Math.min(1, BIRTH.chancePerDay * (bl ? bl.growth : 1) * growthOf(g) * moodBirth(adults[0], adults[1])))) continue; // the Fast growth law doubles it (worldlaws.js); the parents' mood (mood.js)
+    if (!g.rng.chance(Math.min(1, B.chancePerDay * (bl ? bl.growth : 1) * growthOf(g) * moodBirth(adults[0], adults[1])))) continue; // the Fast growth law doubles it (worldlaws.js); the parents' mood (mood.js)
     birth(g, sid, where, bed, adults.slice(0, 2));
     home.lastBirth = s.tick;
     return; // one birth per settlement per day at most

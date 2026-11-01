@@ -6,7 +6,7 @@ import { huntableNear, farHuntable, meatOnHand, meatWanted } from './animals.js'
 import { HUNT_REACH } from './hunt.js';
 import { monsterThreats } from './slay.js';
 import { staffing, educationSummary } from './education.js';
-import { isAdult as isAdultP, BIRTH, mayDoWork } from './people.js';
+import { isAdult as isAdultP, BIRTH, mayDoWork, popCap } from './people.js';
 import { storageStatus, hubName } from './storage.js';
 import { medicalSummary } from './medical.js';
 import { isDown as isDownC } from './health.js';
@@ -258,7 +258,7 @@ function planSettlement(g, sid) {
   const growBeds = fnd?.growBeds;
   const settled = s.tick - (settlementOf(g, sid)?.founded ?? 0) >= (fnd?.growAfterDays ?? 5) * TICKS_PER_DAY;
   if (growBeds > 0 && settled) {
-    const cap = pol.maxPopulation ?? BIRTH.defaultCap;
+    const cap = popCap(g, sid);
     if (n < cap && P.foodDays >= BIRTH.minFoodDays) {
       const want = Math.min(cap, n + growBeds);
       if (want > ctx.housingTarget) { ctx.housingTarget = want; ctx.housingWhy = `Room to grow: ${n} of ${cap} people and food for ${Math.floor(P.foodDays)} days`; if (!cols.some((c) => !c.homeId)) ctx.housingUrgency = Math.min(ctx.housingUrgency, 0.6); }

@@ -86,11 +86,16 @@ if (mode === 'load') {
 } else if (mode === 'grow') {
   const cap = Number(a1) || 40, days = Number(a2) || 300, seed = Number(a3) || 7;
   const mods = readAllMods();
-  for (const m of mods) for (const [, f] of Object.entries(m.files)) for (const p of f?.villageProfile || []) if (p.policy) p.policy.maxPopulation = cap;
+  // SCALE_GROWTH='{"chancePerDay":..,"gapDays":..,"maxPopulation":..}': the World size's growthBySize (people.js) instead.
+  const G = process.env.SCALE_GROWTH ? JSON.parse(process.env.SCALE_GROWTH) : null;
+  for (const m of mods) for (const [, f] of Object.entries(m.files)) {
+    if (!G) for (const p of f?.villageProfile || []) if (p.policy) p.policy.maxPopulation = cap;
+    if (G) for (const sc of f?.scenario || []) if (sc.id === 'core:vast_world') sc.growthBySize = { world: G };
+  }
   const registry = buildRegistry(mods, ['core']).registry;
   const g = newGame({ seed, registry, scenario: 'core:vast_world', size: 'world' });
   for (let d = 25; d <= days; d += 25) {
     const r = runDays(g, 25, 'grow');
-    console.log(JSON.stringify({ mode, cap, seed, day: d, people: people(g), villages: standing(g).length, ...r, heapMB: Math.round(process.memoryUsage().heapUsed / 1e6) }));
+    console.log(JSON.stringify({ mode, cap: G || cap, seed, day: d, people: people(g), villages: standing(g).length, ...r, heapMB: Math.round(process.memoryUsage().heapUsed / 1e6) }));
   }
 } else { console.error('modes: load, grow'); process.exit(1); }
