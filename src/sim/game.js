@@ -506,8 +506,16 @@ export class Game {
     return st.built || !!this.reg.get('building', st.def)?.passable;
   }
   colonistAt(x, y, exceptId) {
-    for (const c of Object.values(this.s.colonists)) if (c.x === x && c.y === y && c.id !== exceptId) return c;
+    for (const c of this.colonistList()) if (c.x === x && c.y === y && c.id !== exceptId) return c;
     return null;
+  }
+  /** Everyone, in the order Object.values(s.colonists) gives them, as one shared array (never change it): rebuilt
+   *  only when someone is born, arrives or dies (the colonist index's count or s.nextId changes), so tile checks
+   *  do not copy the whole list each call (the scale target, 2026-11-01). Derived, never saved. */
+  colonistList() {
+    const key = `${this.s.nextId}:${this.ownIndex('colonists').n}`;
+    if (this._colList?.s !== this.s || this._colList.key !== key) this._colList = { s: this.s, key, list: Object.values(this.s.colonists) };
+    return this._colList.list;
   }
 
   /**
@@ -706,7 +714,7 @@ export class Game {
     // Someone (or a centre) on the tile, or on a blocked tile next to it: their area is read from a walkable
     // neighbour (regionOf), which may be this tile, so leave those cases to the full check.
     const close = (p) => { const d = Math.abs(p.x - x) + Math.abs(p.y - y); return d === 0 || (d === 1 && !this.isPassable(p.x, p.y)); };
-    for (const c of Object.values(this.s.colonists)) if (close(c)) return false;
+    for (const c of this.colonistList()) if (close(c)) return false;
     for (const st of Object.values(this.s.settlements)) if (close(st.center || this.s.center)) return false;
     // Building sites touching the tile (it may be the only way to stand next to them): reachable now?
     const near = [];
