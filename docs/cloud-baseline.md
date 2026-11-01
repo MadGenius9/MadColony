@@ -249,3 +249,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - (later) Grown world, 868 people, 62 villages (fast-growth run saved on day 300): 12.2 → 9.2 ms a tick; day-start
   ticks 310–510 → 240–400 ms, after the combat, medical-supply and law-review fixes. Gameplay unchanged (classic
   hashes and the World seed 11 run identical).
+
+## Spreading the peaks (2026-11-01) — proposed baselines, awaiting the owner's review
+- Full suite passes. Proposed: `forty` 370a3135216012bd (workshops day 7.39), `modern` 78fc7e9b0909c987 (modern
+  day 44.41). World seed 11, 200 days: 270 people, 46 wars declared, 57 of 64 standing; save/load identical.
+- Grown world (868 people): slowest tick 248 → 113 ms, p99 59 → 45 ms, p95 24 → 25 ms (above 16.7: steady load).
+  Details: `docs/proposals/spread-the-peaks.md`.

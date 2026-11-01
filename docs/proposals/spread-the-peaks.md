@@ -55,3 +55,31 @@ baselines only after review. This is that statement; it is the scheduler Phase 1
   hour facts) are keyed to the state and rebuilt on births, deaths and arrivals.
 - **Baselines:** the classic hashes change (the order of events changes). The new values are recorded as
   **proposed, awaiting the owner's review**, not as accepted baselines.
+
+## Results (2026-11-01)
+- **Built and tested:** `mood.js` (`moodSlot`, slot lists, the tick's village facts), `game.js` (`DAILY_JOBS`,
+  `dailyJobs(k)`); `tests/cloud-spread.test.js` (a person steps once an hour at their slot; the jobs one a tick,
+  in order, once a day; save and load inside the jobs and mid-hour continue exactly).
+- **A bug found and fixed on the way:** keeping the hour's village facts from its first slot made a game loaded
+  mid-hour read different facts (5 replay tests failed); the facts are now worked out on each slot's tick, for
+  its villages only.
+- **Three older tests** relied on the old timing and were made robust with the same assertions:
+  - the break test holds misery through hour 9;
+  - the leaving test finds where the family went (it can be the player's village, of the same people);
+  - the Gloomstalker test moves everyone else away from the lone person, not only two of them.
+- **The grown world** (868 people, 62 villages, day 300; 2 days after a day of warm-up), before → after:
+
+  | | median | p95 | p99 | p99.9 | slowest |
+  |---|---|---|---|---|---|
+  | ms a tick | 3.7 → 4.4 | 24.2 → 25.4 | 59.3 → 44.5 | 117.6 → 77 | 248 → 113 |
+
+  - The day-start tick went from 250–410 ms to 103–142 ms.
+  - **The p95 is above the 16.7 ms budget** in this grown world, before and after. That is not a spike, it is
+    steady load, and it is the next thing to find.
+- **Proposed new baselines, awaiting the owner's review** (the order of events changed):
+  - `forty` 370a3135216012bd (workshops era on day 7.39; was 6.46);
+  - `modern` 78fc7e9b0909c987 (modern era on day 44.41; was 46.31);
+  - World seed 11, 200 days: 270 people, 276 born, 30 died, 46 wars declared, 57 of 64 villages standing
+    (was 255 people, 43 wars, 62 standing); save and load identical.
+- **Growth stays off:** the grown world misses the p95 target, and the owner's Phase 18 note says not to enable
+  faster growth to hide an unmet target.
