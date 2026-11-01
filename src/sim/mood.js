@@ -52,7 +52,7 @@ export function villageFacts(g, only = null) {
   const laws = g.reg.all('civLaw');
   const recent = new Set();
   for (const d of Object.values(s.dead || {})) if (s.tick - (d.tick ?? -1e9) < MOOD.deathDays * TICKS_PER_DAY && d.settlementId) recent.add(d.settlementId);
-  const beds = only ? countBeds(g, g.owned('structures', only)) : bedCounts(g);
+  const beds = bedCounts(g); // the same counts as the village's own buildings give, cached
   for (const sid of sids) {
     if (s.settlements[sid].fallen) continue;
     // The laws' mood, from the defaults (so a village with no laws reads 0), by option; a people's own leanings
@@ -185,21 +185,22 @@ function slotLists(g) {
   }
   return c.lists;
 }
-// The village facts, worked out once an hour (at the first slot that needs them) and kept for that hour.
-const FACTS = new WeakMap();
-function hourFacts(g) {
-  const h = Math.floor(g.s.tick / TICKS_PER_HOUR);
-  let c = FACTS.get(g.s);
-  if (!c || c.h !== h) { c = { h, V: villageFacts(g) }; FACTS.set(g.s, c); }
-  return c.V;
+// The village facts for this tick's slot: worked out on the tick, only for the villages of the people stepping
+// (a few a tick), so a game loaded in the middle of the hour reads exactly what the unsaved one does.
+function tickFacts(g, ids) {
+  const V = {};
+  for (const id of ids) { const c = g.s.colonists[id], sid = c && sidOf(g, c); if (c && !(sid in V)) V[sid] = villageFacts(g, sid)[sid]; }
+  return V;
 }
 
 /** Each tick (game.js, with `slot` = the tick within the hour): the mood of the people whose slot it is moves
  *  toward its target, so everyone steps once an hour; a night on the ground is noted. Without `slot`, everyone at
  *  once (tests, tools). O(people) an hour. */
 export function tickMood(g, slot = null) {
-  const s = g.s, V = slot === null ? villageFacts(g) : hourFacts(g), night = g.isNight();
+  const s = g.s, night = g.isNight();
   const ids = slot === null ? Object.keys(s.colonists).sort() : slotLists(g)[slot];
+  if (!ids.length) return;
+  const V = slot === null ? villageFacts(g) : tickFacts(g, ids);
   for (const id of ids) {
     if (!s.colonists[id]) continue;
     const c = s.colonists[id], sid = sidOf(g, c);

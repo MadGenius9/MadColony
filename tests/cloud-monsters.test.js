@@ -136,7 +136,9 @@ test('8c near: a Gloomstalker takes a lone person outdoors at night, not two tog
   assert.equal(woundsOf(a, 'maul') + woundsOf(b, 'maul'), 0, 'two together are left alone');
   let hit = false;
   const spot = { x: m.x - 4, y: m.y }; // she stands still, alone; the others far off
-  for (let t = 0; t < 400 && !hit; t++) { a.mv = null; a.path = null; a.x = spot.x; a.y = spot.y; b.x = spot.x + 20; b.y = spot.y + 20; c.x = spot.x + 24; c.y = spot.y + 20; g.tick(); hit = woundsOf(a, 'maul') > 0; }
+  // Everyone else far off (all of them, not only b and c: the village may have more people near by at night).
+  const rest = g.colonists().filter((p) => p !== a);
+  for (let t = 0; t < 400 && !hit; t++) { a.mv = null; a.path = null; a.x = spot.x; a.y = spot.y; rest.forEach((p, i) => { p.mv = null; p.path = null; p.x = spot.x + 20 + 4 * i; p.y = spot.y + 20; }); g.tick(); hit = woundsOf(a, 'maul') > 0; }
   assert.ok(hit, 'a lone person outdoors at night is attacked');
   untilHour(g, 10);
   for (let t = 0; t < 600; t++) g.tick();
