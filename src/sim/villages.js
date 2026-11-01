@@ -411,7 +411,10 @@ export function willTrade(g, sid, other) {
 function legRemaining(g, trade, idx) {
   const leg = trade.legs[idx];
   let inTransit = 0;
-  for (const c of Object.values(g.s.colonists)) if (c.job?.type === 'trade' && c.job.tradeId === trade.id && c.job.leg === idx) inTransit += c.job.qty;
+  // Carriers are always people of the sending village: trade jobs go only to them (givers.js core:trade_deliver), and
+  // moving to another village ends a person's job first (founding.js, unrest.js). So only its people are counted
+  // (was everyone in the world, for every leg asked about; the scale target, 2026-11-01).
+  for (const c of g.owned('colonists', leg.from)) if (c.job?.type === 'trade' && c.job.tradeId === trade.id && c.job.leg === idx) inTransit += c.job.qty;
   if (g.s.caravans) for (const cv of Object.values(g.s.caravans)) if (cv.trade === trade.id && cv.leg === idx) inTransit += cv.qty; // abstract villages' caravans (lod.js)
   return { remaining: leg.qty - leg.delivered - inTransit, inTransit };
 }
