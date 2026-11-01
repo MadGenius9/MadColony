@@ -129,3 +129,28 @@ answers cached per hour) or measuring a naturally grown big world, which needs t
   twice the load test's cost for the same number of people, with a 2.9-second tick. Something builds up over
   300 days (buildings, villages, records) that the load test does not have. **Faster growth is not switched on**
   until that cost is found: the grown world is being profiled next.
+
+## 9. The grown world (868 people, 62 villages, day 300) and three more fixes (2026-11-01)
+Profiled from the saved end of the fast-growth run (`SCALE_SAVE`, then `load` with `SCALE_CACHE`):
+- **Fighters' targets** (`combat.js nearestEnemy`, 15% of the time): every person in the world was checked for
+  each fighter. Now only the people of the villages it is at war with (ties: the lower id, the old order).
+- **Medical supplies** (`medical.js findSupply`, 7%): every stack and building in the world. Now the village's
+  own (`mineList`, the same order).
+- **Law reviews at day start** (`civreview.js wanted`, the largest share of the day-start tick): every building
+  in the world was scanned for a school desk, for each village reviewed. Now the village's own buildings.
+- Gameplay unchanged each time (classic hashes; the World seed 11 run's day-200 numbers; save and load).
+
+| The grown world | Before | After |
+|---|---|---|
+| ms per tick (one day) | 12.2 | 9.2 |
+| Day-start ticks | 310–510 ms | 240–400 ms |
+
+## 10. Decision on growth, for now
+- **Faster growth stays off** for the moment. With it the World preset would reach about 870 people by day 300
+  (three times today) at about 9 ms a tick, which a 1× game can carry, but its day-start ticks of 250–400 ms are
+  visible hitches (today's World: about 110–210 ms).
+- **Next:** spread the daily jobs over the first hour instead of one tick (villages in turn, as the hourly
+  distant-village work already is), then switch on growth for the World preset
+  (`growthBySize.world`: chance 0.8, gap 2 days, cap 24, up to 3 births a village a day) and raise its village
+  limit (64) if the target of thousands still needs it. Spreading the daily jobs changes the order things happen
+  in, so it needs its own design note and new classic hashes.

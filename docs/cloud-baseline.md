@@ -246,3 +246,6 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   14.0.
 - Bench, the code before the scale work (`a20ea0e`) against now (two rounds, summed): 4.132 → 3.927 (−5%) and
   4.030 → 4.196 (+4%): within noise for normal-sized games.
+- (later) Grown world, 868 people, 62 villages (fast-growth run saved on day 300): 12.2 → 9.2 ms a tick; day-start
+  ticks 310–510 → 240–400 ms, after the combat, medical-supply and law-review fixes. Gameplay unchanged (classic
+  hashes and the World seed 11 run identical).
