@@ -466,3 +466,12 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   deaths since, trees near, monsters near). Title the table **"Changes that followed"** and show the note
   "The game does not know how much of this the power caused." Never word it as "the power saved / caused".
 - Clicking a card opens the power's chronicle chain (`chainOf(g, card.ev)`).
+
+## Phase 15: village memories and traditions
+- **Village panel:** a "Memories" list from `memoriesOf(g, sid).memories` (name, mood, days left; clicking
+  one opens its event, `ev`, in the chronicle) and "Traditions" (`.traditions`: name, about, since; "why"
+  links to the events in `why`).
+- **Inspector thoughts:** two new thoughts appear like the others: "Memories" (−6..+6) and "Traditions".
+- **Law panel (AI villages):** a law a tradition leans to shows "(tradition: Frugal)" beside the leaning.
+- **Prayers list:** a Devout village's prayer shows its longer time.
+- **News:** a new tradition in the player's village (or a followed one) notifies.
