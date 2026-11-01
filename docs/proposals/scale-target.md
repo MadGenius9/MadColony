@@ -75,3 +75,28 @@ village (trade jobs go only to them; moving village ends a job first), so only t
 3. **Target:** 3,000 people under 16.7 ms a tick on this machine (1× in the browser), checked with
    `tools/cloud-scale-run.mjs load`; then the browser at home.
 4. **Rules kept:** every speed change keeps the classic hashes and the World run identical, as these two did.
+
+## 7. Third and fourth fixes (2026-11-01, gameplay unchanged each time)
+- **Life stages** (`people.js tickPeople`): checked every person every tick, though adults never move on. Now a
+  derived list of those not yet adults (same order), rebuilt on births, deaths and arrivals, and daily.
+- **Tile checks** (`game.js colonistAt`, `cutsNothing`): copied the whole list of people on every call. Now one
+  shared list (same order), rebuilt only when someone is born, arrives or dies. A position index would be faster
+  still, but people are moved in too many places to keep one exact; not done.
+- Each change kept `forty` 8345afce244873af and `modern` 96a3ae6edf4692e1, and the World seed 11 run's day-200
+  numbers (255 people, 269 born, 38 died, 43 wars, the same traditions); save and load identical.
+
+**Load, 51 villages from day 150, after all four fixes (ms per tick):**
+| People | Before any fix | Now |
+|---|---|---|
+| 206 | 3.1 | 3.5 (this machine was slower in the last round; compare within a column) |
+| 998 | 9.0 | 8.8 |
+| 1,990 | 15.7 | 14.0 |
+| 2,859 | 21.9 | 17.6 |
+
+About 2,850 people now run at 17.6 ms a tick, close to the 16.7 ms a 1× game allows.
+
+**What is left at the top** (function self time, 2,859 people): `ensureRegions` 7% (walkable areas rebuilt as
+walls go up: inflated by the load harness, whose 2,600 homeless newcomers start a building rush), `busyStations`
+(power.js) 3.5%, garbage collection 3%, `roomAt` (heat.js) 3%, registry lookups 3% (already a single Map lookup;
+called very often). No single large cost remains; the next gains need either fewer calls (e.g. heat and power
+answers cached per hour) or measuring a naturally grown big world, which needs the owner's growth decision first.
