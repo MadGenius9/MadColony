@@ -231,3 +231,10 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   (modern era day 46.31, as before; the full hash also carries the chronicle and prayer records).
 - World runs before and after, two seeds: `docs/proposals/balance-feud-and-hunting.md` (wars 55 → 30 on seed
   11, 14 → 13 on seed 7 with the feud at ×1.2).
+
+## Phase 15 acceptance (2026-11-01)
+- Full suite passes. `forty` 8345afce244873af, `modern` 96a3ae6edf4692e1 (unchanged).
+- World seed 11, 200 days: 36 memories held, 20 villages with traditions (Proud victors 14, Wary 9), 43 wars
+  declared, 255 people; save 11.15 MB; save/load identical.
+- Bench, the code before Phase 15 (`0d49ef9`) against now (two rounds, summed): 3.781 → 3.708 (−1.9%) and
+  3.615 → 3.433 (−5.0%): within noise.
