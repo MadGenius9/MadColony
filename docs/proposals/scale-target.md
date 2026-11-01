@@ -1,6 +1,6 @@
 # Scale target: thousands of people by day 300 on the World preset
 
-Status: **measuring** (2026-11-01). Branch `cloud-work`. The roadmap's direction item 7: "thousands of people
+Status: **measured; two speed fixes done; the plan below** (2026-11-01). Branch `cloud-work`. The roadmap's direction item 7: "thousands of people
 world-wide by day 300 on the World preset; measure and plan the performance work needed". Phase 16 waits for
 the home PC, so this comes next. Tool: `tools/cloud-scale-run.mjs` (load and grow modes).
 
@@ -36,3 +36,38 @@ person looking for work (below).
 (pupils counted, teachers) went through `Object.values(s.colonists)` for each person looking for work and kept
 only their village's people: the cost grew with people × people. They now use the village's own index
 (`g.villagers(sid)`, in the same order as before, or `g.owned`), so nothing they choose changes.
+
+## 4. Second fix: trade legs
+`legRemaining` (villages.js) went over everyone in the world for every trade leg asked about (the planner, the
+trade givers, distant villages and the daily trade check all ask). Carriers are always people of the sending
+village (trade jobs go only to them; moving village ends a job first), so only that village is counted now.
+
+## 5. Results of the two fixes (gameplay unchanged)
+- Classic hashes unchanged (`forty` 8345afce244873af, `modern` 96a3ae6edf4692e1); the World seed 11 run gives
+  exactly the same day-200 numbers (255 people, 269 born, 38 died, 43 wars, the same traditions); save and load
+  identical. Tests: `tests/cloud-scale.test.js` (same people in the same order; carriers counted).
+- Load, 51 villages from day 150 (ms per tick):
+
+| People | Before | After fix 1 | After fix 2 |
+|---|---|---|---|
+| 206 | 3.1 | 2.5 | 2.5 |
+| 998 | 9.0 | 7.9 | 7.2 |
+| 1,990 | 15.7 | 14.6 | 11.7 |
+| 2,859 | 21.9 | 18.0 | 18.5 |
+
+  (This machine's speed varies; the 2,859 line did not improve with fix 2, within noise.) `villages.js` left
+  the top of the profile. What is left grows with people about linearly: `game.js` (the tick loop over everyone)
+  ~30%, `lod.js` (distant villages) ~11%, `people.js` ~9%, `heat.js`, `power.js`.
+
+## 6. The plan
+1. **The design limit first (owner's call when back):** villages cap at 6 people (12 for the player). Thousands
+   by day 300 need either bigger villages (a cap of 20–40, with the planner building for them) or many more
+   sites. The grow run (cap 40) below shows what growth alone reaches.
+2. **Speed, in order of what the profile shows:**
+   - the per-tick colonist loop in `game.js` and `people.js` (life stage and needs per person per tick): spread
+     slow-changing checks over ticks (as distant villages already do hourly);
+   - `lod.js`: distant villages' hourly work, already staggered; measure per village;
+   - `heat.js` rooms and `power.js` networks: per-structure costs that grow with buildings.
+3. **Target:** 3,000 people under 16.7 ms a tick on this machine (1× in the browser), checked with
+   `tools/cloud-scale-run.mjs load`; then the browser at home.
+4. **Rules kept:** every speed change keeps the classic hashes and the World run identical, as these two did.
