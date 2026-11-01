@@ -59,7 +59,7 @@ signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases co
    watches consequences.
 7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
    performance work needed. **Measured (2026-11-01, `docs/proposals/scale-target.md`):** speed allows about
-   2,000 people at 1× after two fixes (3,000 needs ~25% more); growth is the real limit (about 300–360 people by
+   2,850 people near 1× after four fixes (17.6 ms a tick, 16.7 allowed); growth is the real limit (about 300–360 people by
    day 300 even with village caps of 40), so reaching thousands is a design choice for the owner (births,
    starting size, immigration).
 Then Phase 3, Phase 4 and the rest, as written below.

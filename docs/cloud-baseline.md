@@ -238,3 +238,11 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   declared, 255 people; save 11.15 MB; save/load identical.
 - Bench, the code before Phase 15 (`0d49ef9`) against now (two rounds, summed): 3.781 → 3.708 (−1.9%) and
   3.615 → 3.433 (−5.0%): within noise.
+
+## Scale target speed fixes (2026-11-01)
+- Full suite passes after each fix; `forty` 8345afce244873af and `modern` 96a3ae6edf4692e1 unchanged; World seed 11
+  day-200 numbers identical (255 people, 43 wars declared).
+- Load (`tools/cloud-scale-run.mjs load`, 51 villages): 2,859 people 21.9 → 17.6 ms a tick; 1,990 people 15.7 →
+  14.0.
+- Bench, the code before the scale work (`a20ea0e`) against now (two rounds, summed): 4.132 → 3.927 (−5%) and
+  4.030 → 4.196 (+4%): within noise for normal-sized games.
