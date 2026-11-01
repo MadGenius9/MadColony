@@ -4,6 +4,8 @@
 //       not a game rule: the copies come with no goods, home, bed or job, and their villages plan for them) until each
 //       target is reached; then one game day is timed and profiled (CPU share by file). The spawn power cannot be used
 //       for this: joining a village needs free beds.
+//       SCALE_CACHE=<file>: the warmed game is saved there the first time and loaded from it after (faster experiments).
+//       SCALE_FUNCS=1: also print the 12 slowest functions (self time) of each profiled day.
 //   node tools/cloud-scale-run.mjs grow [cap=40] [days=300] [seed=7]
 //       the World game with every village's population cap raised to `cap` (the data's maxPopulation, 6 today):
 //       people, villages and ms/tick every 25 days, to see how fast growth itself can reach thousands.
@@ -13,6 +15,8 @@ import { readAllMods } from './fsmods.js';
 import { buildRegistry } from '../src/sim/content/modloader.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
 import { Session } from 'node:inspector/promises';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { serializeGame, loadGame } from '../src/sim/save.js';
 
 const [mode = 'load', a1, a2, a3] = process.argv.slice(2);
 let last = Date.now();
@@ -45,13 +49,21 @@ async function profileDay(g) {
   const dt = new Map(); profile.samples.forEach((id, i) => dt.set(id, (dt.get(id) || 0) + (profile.timeDeltas[i] || 0)));
   const byFile = {}; let total = 0;
   for (const nd of profile.nodes) { const t = dt.get(nd.id) || 0; total += t; const f = (nd.callFrame.url || '').split('/').pop() || '(other)'; byFile[f] = (byFile[f] || 0) + t; }
-  return { ...r, top: Object.entries(byFile).sort((x, y) => y[1] - x[1]).slice(0, 8).map(([f, t]) => `${f} ${((100 * t) / total).toFixed(1)}%`) };
+  let funcs;
+  if (process.env.SCALE_FUNCS) {
+    const byFn = {};
+    for (const nd of profile.nodes) { const t = dt.get(nd.id) || 0; const k = `${nd.callFrame.functionName || '(anon)'} ${(nd.callFrame.url || '').split('/').pop()}:${nd.callFrame.lineNumber + 1}`; byFn[k] = (byFn[k] || 0) + t; }
+    funcs = Object.entries(byFn).sort((x, y) => y[1] - x[1]).slice(0, 12).map(([f, t]) => `${f} ${((100 * t) / total).toFixed(1)}%`);
+  }
+  return { ...r, ...(funcs ? { funcs } : {}), top: Object.entries(byFile).sort((x, y) => y[1] - x[1]).slice(0, 8).map(([f, t]) => `${f} ${((100 * t) / total).toFixed(1)}%`) };
 }
 
 if (mode === 'load') {
   const targets = (a1 || '1000,2000,4000').split(',').map(Number), seed = Number(a2) || 7, warm = Number(a3) || 20;
-  const g = newGame({ seed, scenario: 'core:vast_world', size: 'world' });
-  runDays(g, warm, 'warm-up');
+  const cache = process.env.SCALE_CACHE;
+  let g;
+  if (cache && existsSync(cache)) { const base0 = newGame({ seed, scenario: 'core:vast_world', size: 'world' }); g = loadGame(base0.reg, readFileSync(cache, 'utf8')); }
+  else { g = newGame({ seed, scenario: 'core:vast_world', size: 'world' }); runDays(g, warm, 'warm-up'); if (cache) writeFileSync(cache, serializeGame(g)); }
   const base = await profileDay(g);
   console.log(JSON.stringify({ mode, seed, warmDays: warm, people: people(g), villages: standing(g).length, ...base }));
   for (const target of targets) {
