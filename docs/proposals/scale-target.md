@@ -113,3 +113,19 @@ answers cached per hour) or measuring a naturally grown big world, which needs t
   (below), aiming at 2,000–3,000 people by day 300, which the speed work showed fits a 1× game.
 - **Not chosen:** immigration (a new system), larger starting villages (changes the opening), a longer
   horizon (does not meet the target).
+
+### Growth experiments (World seed 7, 300 days, `tools/cloud-scale-run.mjs grow`)
+| Setting | Day 100 | Day 200 | Day 300 | ms/tick on day 300 |
+|---|---|---|---|---|
+| Today's rules | ~110 | ~220 | ~300 | ~2 |
+| Cap 40 only | 110 | 222 | 364 (26 villages) | 2.1 |
+| Chance 0.6, gap 3, cap 20 (stopped at day 100) | 159 | | | |
+| Chance 0.8, gap 2, cap 24, 3 births a village a day | 208 | 638 | **868 (62 villages)** | **15.0 (slowest tick 2.9 s)** |
+
+- **What limits growth, in order:** (1) births come from homes where a couple sleeps, each such home waiting out
+  the gap, and at most one birth a village a day (now `perDay`); (2) the beds and food newcomers need; (3) the
+  scenario's 64-village limit (`founding.maxVillages`), reached on day 250 in the last run.
+- **A warning from the last run:** a world that really grew to 868 people cost 15 ms a tick on day 300, about
+  twice the load test's cost for the same number of people, with a 2.9-second tick. Something builds up over
+  300 days (buildings, villages, records) that the load test does not have. **Faster growth is not switched on**
+  until that cost is found: the grown world is being profiled next.
