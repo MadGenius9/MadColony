@@ -106,8 +106,8 @@ test('mood: a miserable person sometimes stops work for 3 hours, sulking; the br
   let day = Math.floor(g.s.tick / TICKS_PER_DAY) + 1;
   for (let k = 0; k < 30 && !onBreak(g, c); k++, day++) {
     while (g.s.tick < day * TICKS_PER_DAY + 9 * (TICKS_PER_DAY / 24) - 1) g.tick();
-    c.mood = -90;
-    g.tick(); // this tick reaches 09:00, where the hourly mood pass may start a break
+    // Through hour 9: the person's mood step (and the break check) comes at their own tick of the hour (mood.js moodSlot).
+    for (let t = 0; t < TICKS_PER_DAY / 24 && !onBreak(g, c); t++) { c.mood = -90; g.tick(); }
   }
   assert.ok(onBreak(g, c), 'a break came within 30 days of misery');
   assert.match(g.s.log.map((e) => e.msg).join('\n'), new RegExp(`${c.name} is miserable and stops work`));
@@ -167,6 +167,8 @@ test('mood: a miserable family may leave for a village of its own people with ro
   runDays(g, 8);
   const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
   const before = { a: g.owned('colonists', a).length, b: g.owned('colonists', b).length };
+  const counts = () => Object.fromEntries(Object.keys(g.s.settlements).map((k) => [k, g.owned('colonists', k).length]));
+  const all0 = counts();
   // Room in b: free beds for the whole family (built beds no one owns), placed by hand on free ground.
   const cb = g.s.settlements[b].center;
   let placed = 0;
@@ -176,13 +178,20 @@ test('mood: a miserable family may leave for a village of its own people with ro
   }
   upset(g, a, -80, UNREST.days);
   for (const c of g.owned('colonists', b)) c.mood = 0;
+  const n0 = g.s.log.length;
   tickUnrest(g);
-  const moved = g.s.log.find((e) => /family \(\d+\) left .* miserable/.test(e.msg));
+  const moved = g.s.log.slice(n0).find((e) => /family \((\d+)\) left .* miserable/.test(e.msg)); // this pass's line only
   assert.ok(moved, 'a miserable family left for a village of its people with room');
-  const now = { a: g.owned('colonists', a).length, b: g.owned('colonists', b).length };
-  assert.ok(now.a < before.a && now.b > before.b);
-  assert.equal(now.a + now.b, before.a + before.b, 'nobody lost on the way');
-  assert.ok(g.owned('colonists', b).every((c) => c.people === g.s.settlements[b].people), 'peoples keep apart');
+  // Where they went: b (with the beds placed above) or another village of their people with room (the player's
+  // village, also Hearthfolk, can have room too, depending on the days before).
+  const all1 = counts(), size = Number(/family \((\d+)\)/.exec(moved.msg)[1]);
+  const to = Object.keys(all1).find((k) => k !== a && all1[k] > all0[k]);
+  assert.ok(to, 'they arrived somewhere');
+  assert.equal(all0[a] - all1[a], size, 'the family left a');
+  assert.equal(all1[to] - all0[to], size, 'and arrived whole');
+  assert.equal(Object.values(all1).reduce((x, y) => x + y, 0), Object.values(all0).reduce((x, y) => x + y, 0), 'nobody lost on the way');
+  assert.ok(g.owned('colonists', to).every((c) => c.people === g.s.settlements[to].people), 'peoples keep apart');
+  assert.match(moved.msg, new RegExp(`for ${g.s.settlements[to].name}`));
   assert.ok(peopleCensus(g).ok, JSON.stringify(peopleCensus(g).problems));
   assert.deepEqual(conservationErrors(g), []);
   const r = reload(g);

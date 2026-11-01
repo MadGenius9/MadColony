@@ -7,7 +7,7 @@
 //   The village facts are worked out fresh for each pass, so nothing cached can differ after a load.
 // - Saved: colonist.mood (an integer), colonist.ate { t, m (a meal), f (the people's favourite) }, colonist.rough
 //   (the tick of the last night on the ground). Old saves start at the target.
-import { TICKS_PER_DAY } from './constants.js';
+import { TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
 import { modsOf } from './peoples.js';
 import { civLawOf, leaningsOf } from './civlaws.js';
 import { hpOf } from './health.js';
@@ -169,10 +169,39 @@ export function stepToward(m, target) {
   return m + Math.sign(gap) * Math.max(1, Math.round(Math.abs(gap) * MOOD.rate));
 }
 
-/** Hourly (game.js): every person's mood moves toward its target; a night on the ground is noted. O(people). */
-export function tickMood(g) {
-  const s = g.s, V = villageFacts(g), night = g.isNight();
-  for (const id of Object.keys(s.colonists).sort()) {
+/** A person's tick within the hour for their mood step (0..TICKS_PER_HOUR-1; a hash of their id). Spreading the
+ *  hourly pass over the hour keeps hour ticks of big worlds from being much slower than the rest
+ *  (docs/proposals/spread-the-peaks.md). */
+export const moodSlot = (id) => Math.floor(draw(`moodslot:${id}`) * TICKS_PER_HOUR);
+// People by mood slot, each list sorted by id; derived, never saved; rebuilt when someone is born, arrives or dies.
+const SLOTS = new WeakMap();
+function slotLists(g) {
+  const key = `${g.s.nextId}:${g.ownIndex('colonists').n}`;
+  let c = SLOTS.get(g.s);
+  if (!c || c.key !== key) {
+    const lists = Array.from({ length: TICKS_PER_HOUR }, () => []);
+    for (const id of Object.keys(g.s.colonists).sort()) lists[moodSlot(id)].push(id);
+    c = { key, lists }; SLOTS.set(g.s, c);
+  }
+  return c.lists;
+}
+// The village facts, worked out once an hour (at the first slot that needs them) and kept for that hour.
+const FACTS = new WeakMap();
+function hourFacts(g) {
+  const h = Math.floor(g.s.tick / TICKS_PER_HOUR);
+  let c = FACTS.get(g.s);
+  if (!c || c.h !== h) { c = { h, V: villageFacts(g) }; FACTS.set(g.s, c); }
+  return c.V;
+}
+
+/** Each tick (game.js, with `slot` = the tick within the hour): the mood of the people whose slot it is moves
+ *  toward its target, so everyone steps once an hour; a night on the ground is noted. Without `slot`, everyone at
+ *  once (tests, tools). O(people) an hour. */
+export function tickMood(g, slot = null) {
+  const s = g.s, V = slot === null ? villageFacts(g) : hourFacts(g), night = g.isNight();
+  const ids = slot === null ? Object.keys(s.colonists).sort() : slotLists(g)[slot];
+  for (const id of ids) {
+    if (!s.colonists[id]) continue;
     const c = s.colonists[id], sid = sidOf(g, c);
     // A night on the ground: asleep without a bed (full detail: the sleep job; distant: no built bed at night).
     if (night && (c.job?.type === 'sleep' ? !c.job.bedId : s.settlements?.[sid]?.detail === 'abstract' && !(c.bedId && s.structures[c.bedId]?.built))) c.rough = s.tick;

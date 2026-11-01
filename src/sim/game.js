@@ -1483,10 +1483,13 @@ export class Game {
     return e.id || null;
   }
 
-  /** The day-start jobs, in order. `g._dayTimes` (an object, set by a measuring tool) collects each job's time in ms. */
-  dailyJobs() {
+  /** The day-start jobs, in order, one a tick: job k at tick k of the day (k omitted: all at once, for tools and
+   *  tests). Spread so the day's first tick is not much slower than the rest (docs/proposals/spread-the-peaks.md).
+   *  `g._dayTimes` (an object, set by a measuring tool) collects each job's time in ms. */
+  dailyJobs(k = null) {
     const T = this._dayTimes;
-    for (const [name, fn] of DAILY_JOBS) {
+    for (const [i, [name, fn]] of DAILY_JOBS.entries()) {
+      if (k !== null && i !== k) continue;
       if (name === 'growClaims' && !this._cl) continue;
       if (!T) { fn(this); continue; }
       const a = performance.now(); fn(this); T[name] = (T[name] || 0) + performance.now() - a;
@@ -1514,11 +1517,11 @@ export class Game {
     // Daily, at the start of the day, right after the villages' diplomacy: settlers of crowded villages may
     // found a new one (founding.js; off unless the scenario has `founding`; it draws no random numbers).
     // Births come later in the day (people.js, 06:00) and see the new head-counts.
-    if (s.tick % TICKS_PER_DAY === 0) this.dailyJobs();
+    if (s.tick % TICKS_PER_DAY < DAILY_JOBS.length) this.dailyJobs(s.tick % TICKS_PER_DAY); // one day-start job a tick
     tickPower(this);
     tickWater(this);
     tickPeople(this);
-    if (s.tick % TICKS_PER_HOUR === 0 && Object.keys(s.colonists).length) tickMood(this); // Mood: hourly (mood.js)
+    if (this.ownIndex('colonists').n) tickMood(this, s.tick % TICKS_PER_HOUR); // Mood: each person once an hour, at their own tick of it (mood.js)
     tickEducation(this);
     tickHeat(this);
     tickLOD(this); // big worlds: level of detail, abstract villages' hours, caravans
