@@ -5,6 +5,7 @@
 //       target is reached; then one game day is timed and profiled (CPU share by file). The spawn power cannot be used
 //       for this: joining a village needs free beds.
 //       SCALE_CACHE=<file>: the warmed game is saved there the first time and loaded from it after (faster experiments).
+//       SCALE_SAVE=<file> (grow): the world on its last day is saved there.
 //       SCALE_FUNCS=1: also print the 12 slowest functions (self time) of each profiled day.
 //   node tools/cloud-scale-run.mjs grow [cap=40] [days=300] [seed=7]
 //       the World game with every village's population cap raised to `cap` (the data's maxPopulation, 6 today):
@@ -96,6 +97,7 @@ if (mode === 'load') {
   const g = newGame({ seed, registry, scenario: 'core:vast_world', size: 'world' });
   for (let d = 25; d <= days; d += 25) {
     const r = runDays(g, 25, 'grow');
+    if (process.env.SCALE_SAVE && d === days) writeFileSync(process.env.SCALE_SAVE, serializeGame(g)); // the grown world, for profiling (load mode with SCALE_CACHE)
     console.log(JSON.stringify({ mode, cap: G || cap, seed, day: d, people: people(g), villages: standing(g).length, ...r, heapMB: Math.round(process.memoryUsage().heapUsed / 1e6) }));
   }
 } else { console.error('modes: load, grow'); process.exit(1); }
