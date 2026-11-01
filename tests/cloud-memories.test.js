@@ -112,3 +112,14 @@ test('memories: a destructive power on a village is remembered; two villages gro
   bad.state.settlements[a].traditions = [{ id: 'core:hardened' }];
   assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /memories or traditions/);
 });
+
+test('memories: a sacked village remembers the war it lost, the winner the war it won; twice makes the loser Wary', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const sid = g.s.playerSettlement;
+  addMemory(g, sid, 'core:war_endured', null);
+  addMemory(g, sid, 'core:war_endured', null);
+  assert.equal(hasTradition(g, sid, 'core:wary'), true);
+  assert.equal(leaningsOf(g, sid)['core:conscription'], 'militia', 'a Wary village leans to a militia');
+  assert.equal(memoryMood(g, sid), -4);
+});

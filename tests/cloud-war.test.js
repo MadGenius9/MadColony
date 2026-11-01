@@ -255,6 +255,9 @@ test('a village without fighters for the beaten days is conquered: annexed into 
   assert.equal(relationPeek(g, a, b).aggressor, undefined, 'the war is over');
   assert.ok(relationPeek(g, a, b).value >= 25, 'friendly under the crown');
   assert.ok(g.s.log.some((e) => /has conquered/.test(e.msg)));
+  // Phase 15 (memories.js): both remember it.
+  assert.ok(g.s.settlements[b].memories?.some((m) => m.kind === 'core:war_endured'), 'the conquered remember');
+  assert.ok(g.s.settlements[a].memories?.some((m) => m.kind === 'core:war_won'), 'and the winner');
 });
 
 test('a winner of a sacking profile takes tribute instead', () => {
@@ -271,6 +274,9 @@ test('a winner of a sacking profile takes tribute instead', () => {
   assert.equal(kOf(g, b), null, 'not annexed');
   assert.equal(relationPeek(g, a, b).aggressor, undefined, 'the war is over');
   assert.ok(g.s.log.some((e) => /has sacked/.test(e.msg)));
+  const m = g.s.settlements[b].memories?.find((x) => x.kind === 'core:war_endured');
+  assert.ok(m, 'the sacked village remembers (memories.js)');
+  assert.match(g.s.log.find((e) => e.id === m.ev)?.msg || '', /has sacked/, 'citing the sack');
 });
 
 test('the player\'s village is never beaten this way', () => {

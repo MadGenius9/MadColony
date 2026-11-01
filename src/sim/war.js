@@ -38,6 +38,7 @@ import { civLawIs } from './civlaws.js';
 /** A militia member's weapon damage where nobody equips (a spear's). */
 const MILITIA_DAMAGE = 8;
 import { lawIs } from './worldlaws.js';
+import { addMemory } from './memories.js'; // Phase 15
 
 /** The scenario's war rules, or null. */
 export function warRules(g) {
@@ -160,7 +161,8 @@ function absorb(g, loser, winner) {
   // Peace with the rest of its new kingdom too (members that had joined the war against it).
   const nk = kingdomOf(g, winner);
   if (nk) for (const m of membersOf(g, nk.id)) if (m !== winner && m !== loser && relationStatus(relationPeek(g, m, loser)) === 'hostile') makePeace(g, m, loser, `${ln} joined ${wn}'s kingdom`);
-  g.log(`${wn} has conquered ${ln}: it is now part of ${kingdomOf(g, winner) ? 'its kingdom' : 'its lands'}.`, 'warn', null, 0, { kind: 'core:conquest', sids: [winner, loser], cause });
+  const ev = g.log(`${wn} has conquered ${ln}: it is now part of ${kingdomOf(g, winner) ? 'its kingdom' : 'its lands'}.`, 'warn', null, 0, { kind: 'core:conquest', sids: [winner, loser], cause });
+  addMemory(g, loser, 'core:war_endured', ev); addMemory(g, winner, 'core:war_won', ev); // Phase 15
 }
 
 function sack(g, loser, winner, C) {
@@ -182,7 +184,8 @@ function sack(g, loser, winner, C) {
     s.trades[id] = { id, seller: loser, buyer: winner, legs, gift: true, tribute: true, relOnDone: 0, status: 'active', created: s.tick,
       deadline: g.tradeDeadline ? g.tradeDeadline(loser, winner, s.tick + 6 * TICKS_PER_DAY) : s.tick + 6 * TICKS_PER_DAY, reason: `Tribute to ${wn}` };
   }
-  g.log(`${wn} has sacked ${ln}${legs.length ? `: ${legs.length} kinds of goods go to ${wn} as tribute` : ''}.`, 'warn', null, 0, { kind: 'core:sacked', sids: [winner, loser], cause });
+  const ev = g.log(`${wn} has sacked ${ln}${legs.length ? `: ${legs.length} kinds of goods go to ${wn} as tribute` : ''}.`, 'warn', null, 0, { kind: 'core:sacked', sids: [winner, loser], cause });
+  addMemory(g, loser, 'core:war_endured', ev); addMemory(g, winner, 'core:war_won', ev); // Phase 15
 }
 
 /** Wars in progress: hostile relations with an aggressor, both villages still standing with people. */

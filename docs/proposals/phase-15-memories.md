@@ -13,6 +13,8 @@ to a village, not to people.
 | Defeated a monster | a monster slain by the village's hunt party, or a lair cleared | +3 | 20 |
 | Received aid | one of its prayers answered by a power | 0 | 30 |
 | Endured a disaster | a destructive power (lightning, fire, meteor, quake, tornado, plague, drought) touching the village | −3 | 20 |
+| Endured a war (added after the first World run) | sacked or conquered | −2 | 30 |
+| Won a war (added after the first World run) | sacked or conquered another village | +2 | 20 |
 
 - **Bounds:** at most 2 of a kind and 8 in all per village (the oldest go first); the memories' mood is one
   thought ("Memories"), capped at ±6.
@@ -27,6 +29,8 @@ A village gains a tradition once it has gathered 2 memories of one kind (counted
 | Frugal | Survived a famine ×2 | leans to rationing (an AI village rations by default, and its people do not mind it, as with any leaning) |
 | Devout | Received aid ×2 | its prayers stay open 1.5× longer |
 | Hardened | Endured a disaster ×2 | disaster memories weigh half on its mood |
+| Wary | Endured a war ×2 | leans to a militia |
+| Proud victors | Won a war ×2 | +1 mood (no war bonus, so winning does not feed more wars) |
 
 ### State (save format 37)
 `settlement.memories [{ kind, t, ev }]`, `memCount { kind: n }`, `traditions [{ id, since, ev, why }]`,
