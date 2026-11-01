@@ -58,7 +58,10 @@ signature creatures. Phase 3 and Phase 4 are paused; the WorldBox-feel phases co
    The macro god-simulator direction holds: villages manage themselves; the player shapes the world and
    watches consequences.
 7. **Scale target:** thousands of people world-wide by day 300 on the World preset; measure and plan the
-   performance work needed.
+   performance work needed. **Measured (2026-11-01, `docs/proposals/scale-target.md`):** speed allows about
+   2,000 people at 1× after two fixes (3,000 needs ~25% more); growth is the real limit (about 300–360 people by
+   day 300 even with village caps of 40), so reaching thousands is a design choice for the owner (births,
+   starting size, immigration).
 Then Phase 3, Phase 4 and the rest, as written below.
 
 **Long runs never hang silently (user, 2026-10-24).** Every command that can take over a minute (tests,

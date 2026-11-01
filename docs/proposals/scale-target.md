@@ -60,9 +60,13 @@ village (trade jobs go only to them; moving village ends a job first), so only t
   ~30%, `lod.js` (distant villages) ~11%, `people.js` ~9%, `heat.js`, `power.js`.
 
 ## 6. The plan
-1. **The design limit first (owner's call when back):** villages cap at 6 people (12 for the player). Thousands
-   by day 300 need either bigger villages (a cap of 20–40, with the planner building for them) or many more
-   sites. The grow run (cap 40) below shows what growth alone reaches.
+1. **The design limit first (owner's call when back):** growth itself is too slow for thousands by day 300.
+   The grow run (every village's cap raised from 6 to 40, World seed 7, 300 days): 40 people on day 25, 110 on
+   day 100, 222 on day 200, **364 on day 300** in 26 villages, 2.1 ms/tick. That is about 1.2 people a day
+   world-wide, close to the ~300 the normal caps give (with more, smaller villages). Births are the limit: a 25%
+   chance a day per couple, at least 6 days apart, only with a free bed and 4 days of food (`BIRTH`), in a year of
+   30 days. Thousands by day 300 needs a choice: faster births, larger starting villages, more settlers arriving
+   (immigration), or a longer horizon. Bigger village caps alone do not do it.
 2. **Speed, in order of what the profile shows:**
    - the per-tick colonist loop in `game.js` and `people.js` (life stage and needs per person per tick): spread
      slow-changing checks over ticks (as distant villages already do hourly);
