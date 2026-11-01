@@ -24,9 +24,9 @@ const inSchoolHours = (g) => { const h = (g.s.tick % TICKS_PER_DAY) / (TICKS_PER
 import { growthOf } from './worldlaws.js';
 import { moodBirth } from './mood.js';
 
-export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16 };
+export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16, perDay: 1 };
 /** The birth rules in force: BIRTH, with the scenario's growthBySize entry for this world's size (the scale target,
- *  docs/proposals/scale-target.md: the World preset grows faster) as { chancePerDay, gapDays, maxPopulation }. */
+ *  docs/proposals/scale-target.md: the World preset grows faster) as { chancePerDay, gapDays, maxPopulation, perDay }. */
 export function birthRules(g) {
   const sc = g.reg.get('scenario', g.s.scenarioId), o = sc?.growthBySize?.[g.s.worldSize];
   return o ? { ...BIRTH, ...o } : BIRTH;
@@ -121,6 +121,7 @@ function considerBirths(g, sid) {
   const s = g.s;
   const people = Object.values(s.colonists).filter((c) => (c.settlementId || s.playerSettlement) === sid);
   const cap = popCap(g, sid), B = birthRules(g);
+  let born = 0;
   if (people.length >= cap) return;
   if ((g.ensurePlan(sid)?.foodDays ?? 0) < BIRTH.minFoodDays) return;
   const first = stages(g)[0];
@@ -150,7 +151,8 @@ function considerBirths(g, sid) {
     if (!g.rng.chance(Math.min(1, B.chancePerDay * (bl ? bl.growth : 1) * growthOf(g) * moodBirth(adults[0], adults[1])))) continue; // the Fast growth law doubles it (worldlaws.js); the parents' mood (mood.js)
     birth(g, sid, where, bed, adults.slice(0, 2));
     home.lastBirth = s.tick;
-    return; // one birth per settlement per day at most
+    if (++born >= B.perDay) return; // one birth per settlement per day at most (B.perDay: the growth override)
+    if (people.length + born >= cap) return;
   }
 }
 
