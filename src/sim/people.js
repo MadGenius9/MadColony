@@ -72,9 +72,24 @@ export function ensureAdult(g, c) {
 }
 
 /** Daily: children move on through the stages; households may have a child. */
+// The people who may still move on to a later life stage (not yet adults, or with no stage yet), in the order
+// Object.values(s.colonists) gives them; derived, never saved. Rebuilt whenever someone is born, arrives or dies
+// (the colonist index's count or s.nextId changes), and each day; a child who grows up is dropped. tickPeople went over everyone
+// every tick (the scale target, 2026-11-01).
+const YOUNG = new WeakMap();
+function youngOf(g, adult) {
+  const n = g.ownIndex('colonists').n, key = `${g.s.nextId}:${n}:${Math.floor(g.s.tick / TICKS_PER_DAY)}`; // and once a day, for stages set directly
+  let y = YOUNG.get(g.s);
+  if (!y || y.key !== key) { y = { key, list: Object.values(g.s.colonists).filter((c) => !c.stage || !adult || c.stage !== adult.id) }; YOUNG.set(g.s, y); }
+  return y;
+}
+
 export function tickPeople(g) {
   const adult = adultStage(g);
-  for (const c of Object.values(g.s.colonists)) {
+  const Y = youngOf(g, adult);
+  let grown = false;
+  for (const c of Y.list) {
+    if (g.s.colonists[c.id] !== c) { grown = true; continue; } // gone (the list is rebuilt below)
     if (!c.stage) ensureAdult(g, c);
     if (adult && c.stage === adult.id) continue; // adults (the last stage) never move on: the common case, at once
     const st = stageOf(g, c);
@@ -83,9 +98,10 @@ export function tickPeople(g) {
     const next = list[list.indexOf(st) + 1];
     if (!next) continue;
     c.stage = next.id;
-    if (next === adultStage(g)) { c.ageYears = BIRTH.adultAge; c.ageTick = g.s.tick; }
+    if (next === adultStage(g)) { c.ageYears = BIRTH.adultAge; c.ageTick = g.s.tick; grown = true; }
     g.log(`${c.name} is now ${next === adultStage(g) ? 'an adult' : `a ${next.name.toLowerCase()}`}.`, 'good');
   }
+  if (grown) Y.list = Y.list.filter((c) => g.s.colonists[c.id] === c && (!adult || c.stage !== adult.id));
   if (g.s.tick % TICKS_PER_DAY !== 6 * 100) return; // births are considered once a day, in the morning
   for (const sid of Object.keys(g.s.settlements || {})) considerBirths(g, sid);
 }
