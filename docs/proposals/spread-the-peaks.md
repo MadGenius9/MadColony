@@ -31,3 +31,27 @@ not equality.
 - Tests: a person's mood steps once an hour at their own tick; each daily job runs once a day at its tick; save
   and load in the middle of the hour and of the first 15 ticks of a day give the same game.
 - The grown world's slowest ticks before and after; the World seed 11 run; classic runs; the bench.
+
+## Semantics (added after the owner's Phase 18 notes, 2026-11-01)
+The owner's appended Phase 18 asks the spreading to keep exactly-once daily and hourly work, stable ordering,
+deterministic iteration, explicit catch-up, and to say when each job reads its inputs; and to record new
+baselines only after review. This is that statement; it is the scheduler Phase 18 reuses, not a second one.
+- **Exactly once:** the game never skips a tick, so each tick k of the hour and each tick 0–14 of the day comes
+  once. A person's mood steps once an hour at `moodSlot(id)`; daily job i runs once a day at tick i.
+  - Someone born or arriving after their slot has passed this hour first steps next hour; someone who dies
+    before it is skipped. No job is lost or doubled.
+  - Before the change a new person also stepped first at the next hour tick, so at most an hour later than now.
+- **Order:** within a slot, people by id (as before, over everyone); daily jobs in their old order, one a tick.
+- **When inputs are read:**
+  - Mood reads the village facts (laws, war, recent deaths, crowding) once an hour, at the first slot that
+    needs them, and keeps them for that hour. A war declared at minute 30 shows in moods from the next hour.
+    Before, everything was read at the hour tick, so the delay is the same.
+  - Each daily job reads the world at its own tick, so job i sees the effects of jobs 0..i−1 of that day, as
+    before, plus up to i ticks of ordinary play.
+- **Catch-up:** none is needed (no skipped ticks). A save in the middle of the hour or of the day-start jobs
+  continues exactly: the timing is derived from the tick and the ids, and the caches are rebuilt on load
+  (`tests/cloud-spread.test.js`).
+- **Determinism:** the iteration order is by id; nothing reads wall-clock time. The derived caches (slot lists,
+  hour facts) are keyed to the state and rebuilt on births, deaths and arrivals.
+- **Baselines:** the classic hashes change (the order of events changes). The new values are recorded as
+  **proposed, awaiting the owner's review**, not as accepted baselines.
