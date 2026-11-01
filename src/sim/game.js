@@ -56,6 +56,9 @@ import { tickPetitions, answerPetitions } from './petitions.js'; // Phase 13: pr
 import { beforePower, afterPowerFollow, tickFollowUps } from './followup.js'; // Phase 14: follow-through
 import { tickMemories, rememberPower } from './memories.js'; // Phase 15: memories and traditions
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
+// The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
+// capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
+const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil]];
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
 const NONE = Object.freeze([]); // an empty list shared by lookups that find nothing (never changed)
@@ -1480,6 +1483,16 @@ export class Game {
     return e.id || null;
   }
 
+  /** The day-start jobs, in order. `g._dayTimes` (an object, set by a measuring tool) collects each job's time in ms. */
+  dailyJobs() {
+    const T = this._dayTimes;
+    for (const [name, fn] of DAILY_JOBS) {
+      if (name === 'growClaims' && !this._cl) continue;
+      if (!T) { fn(this); continue; }
+      const a = performance.now(); fn(this); T[name] = (T[name] || 0) + performance.now() - a;
+    }
+  }
+
   /** Around a god power (god.js): its villages measured before; after, the petitions it answers close
    *  (petitions.js) and its follow-up waits for its card (followup.js). */
   beforePower(cmd) { return beforePower(this, cmd); }
@@ -1501,7 +1514,7 @@ export class Game {
     // Daily, at the start of the day, right after the villages' diplomacy: settlers of crowded villages may
     // found a new one (founding.js; off unless the scenario has `founding`; it draws no random numbers).
     // Births come later in the day (people.js, 06:00) and see the new head-counts.
-    if (s.tick % TICKS_PER_DAY === 0) { tickFounding(this); tickKingdoms(this); tickTithes(this); tickCivLaws(this); tickUnrest(this); tickPetitions(this); tickFollowUps(this); tickMemories(this); updateMarkets(this); if (this._cl) growClaims(this); tickAging(this); tickIllness(this); tickRivalry(this); tickFallen(this); tickSpoil(this); } // kingdoms: members leave when relations with the capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built)
+    if (s.tick % TICKS_PER_DAY === 0) this.dailyJobs();
     tickPower(this);
     tickWater(this);
     tickPeople(this);

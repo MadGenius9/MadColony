@@ -29,14 +29,30 @@ export function noteMeal(g, c, item) {
   c.ate = { t: g.s.tick, m: !!d?.tags?.includes('core:meal'), f: !!fav && item === fav };
 }
 
+/** Built beds (not medical) per village. */
+function countBeds(g, list) {
+  const beds = new Map();
+  for (const b of list) if (b.built && g.bDef(b)?.bed && !g.bDef(b).medical) { const k = b.settlement || g.s.playerSettlement; beds.set(k, (beds.get(k) || 0) + 1); }
+  return beds;
+}
+// Beds per village for the whole world, kept until a building is added, removed or finished (structRev, builtRev:
+// the key power.js, water.js and lod.js already use). Derived, never saved. Counting them every hour went over
+// every building in the world (the scale target: 16 ms an hour in a world of 23,500 buildings).
+const BEDS = new WeakMap();
+function bedCounts(g) {
+  const key = `${g.structRev || 0}|${g.builtRev || 0}`;
+  let c = BEDS.get(g.s);
+  if (!c || c.key !== key) { c = { key, beds: countBeds(g, Object.values(g.s.structures)) }; BEDS.set(g.s, c); }
+  return c.beds;
+}
+
 /** Facts about every village for one pass: { sid: { laws, war, death, crowded } }. O(villages^2 + dead + buildings). */
 export function villageFacts(g, only = null) {
   const s = g.s, out = {}, all = Object.keys(s.settlements || {}).sort(), sids = only ? [only] : all;
   const laws = g.reg.all('civLaw');
   const recent = new Set();
   for (const d of Object.values(s.dead || {})) if (s.tick - (d.tick ?? -1e9) < MOOD.deathDays * TICKS_PER_DAY && d.settlementId) recent.add(d.settlementId);
-  const beds = new Map();
-  for (const b of only ? g.owned('structures', only) : Object.values(s.structures)) if (b.built && g.bDef(b)?.bed && !g.bDef(b).medical) { const k = b.settlement || s.playerSettlement; beds.set(k, (beds.get(k) || 0) + 1); }
+  const beds = only ? countBeds(g, g.owned('structures', only)) : bedCounts(g);
   for (const sid of sids) {
     if (s.settlements[sid].fallen) continue;
     // The laws' mood, from the defaults (so a village with no laws reads 0), by option; a people's own leanings
@@ -76,10 +92,20 @@ function comfortOf(g, home) {
   return Math.max(0, Math.min(val(g, 'core:comfort'), Math.round((score - 1) * 2)));
 }
 
+// The need with each behaviour, looked up once per registry (a registry never changes once built): thoughtsOf asked
+// reg.all('need'), a fresh copy of the list, four times a person an hour (the scale target).
+const NEEDS = new WeakMap();
+function needOf(g, beh) {
+  let m = NEEDS.get(g.reg);
+  if (!m) { m = new Map(); NEEDS.set(g.reg, m); }
+  if (!m.has(beh)) m.set(beh, g.reg.all('need').find((n) => n.behavior === beh));
+  return m.get(beh);
+}
+
 /** Colonist c's thoughts now: [{ id, name, value }] (V: village facts, worked out if not given). */
 export function thoughtsOf(g, c, V = null) {
   const s = g.s, out = [], add = (id, value = val(g, id)) => { if (value) out.push({ id, name: g.reg.get('thought', id)?.name || id, value }); };
-  const need = (beh) => g.reg.all('need').find((n) => n.behavior === beh);
+  const need = (beh) => needOf(g, beh);
   for (const [beh, mild, bad] of [['core:eat', 'core:hungry', 'core:starving'], ['core:drink', 'core:thirsty', 'core:parched']]) {
     const n = need(beh);
     if (!n) continue;
