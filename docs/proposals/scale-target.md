@@ -100,3 +100,16 @@ walls go up: inflated by the load harness, whose 2,600 homeless newcomers start 
 (power.js) 3.5%, garbage collection 3%, `roomAt` (heat.js) 3%, registry lookups 3% (already a single Map lookup;
 called very often). No single large cost remains; the next gains need either fewer calls (e.g. heat and power
 answers cached per hour) or measuring a naturally grown big world, which needs the owner's growth decision first.
+
+## 8. The growth decision (2026-11-01; the owner: "You decide")
+- **Why growth is slow** (a diagnostic, World seed 7 with caps raised to 40, days 20–120, per village a day):
+  on 88% of village-days a birth was possible (food for 4+ days, a couple in a home, a free bed); food stopped it
+  on 1%, no couple on 1%, no free bed on 11%. Children grow up in 18 days. So the limit is the birth rule
+  itself: a 25% chance a day, one birth a village a day at most, 6 days between births in a home: about a quarter
+  of a person a village a day.
+- **Decision:** faster births and bigger villages for the World preset only, as scenario data
+  (`growthBySize.world` in `vast-world.json`: `chancePerDay`, `gapDays`, `maxPopulation`). The classic game,
+  the neighbours scenarios and the smaller worlds keep today's rules (`BIRTH`). The values are chosen by runs
+  (below), aiming at 2,000–3,000 people by day 300, which the speed work showed fits a 1× game.
+- **Not chosen:** immigration (a new system), larger starting villages (changes the opening), a longer
+  horizon (does not meet the target).
