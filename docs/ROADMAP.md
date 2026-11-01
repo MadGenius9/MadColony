@@ -1088,3 +1088,104 @@ Ideas kept for later. None of these belongs to a phase yet; they are reviewed to
 - **Tree planting / forestry** (from the Phase 2b acceptance, 2026-10-24). In long Vast-world runs the trees
   near old villages run out, and wood is not sold at markets. Villages could plant and tend trees on their own
   land (and wood could be traded at markets) so wood stays renewable.
+
+
+---
+
+## Appended queue: new world UI and deep performance work (owner, 2026-11-01)
+
+**Status: planned only.** These phases are appended after the entire existing queue; no earlier phase,
+priority, acceptance result or parking-lot entry is replaced or reordered. This entry authorizes planning,
+not implementation or a merge to main. Work already underway under the scale target keeps its place:
+reconcile these phases with `docs/proposals/scale-target.md` and `docs/proposals/spread-the-peaks.md` at
+implementation time, credit completed work, and do not build a second scheduler or duplicate UI.
+
+### Phase 17: replacement world-focused UI (planned)
+A new, better interface for the living-world god simulator, retaining access to the existing game's depth.
+Design note first, then small reviewed slices; use the real home UI as a comparison, not an assumption that
+the rescue copy's missing UI means it never existed.
+
+- **Preserve and compare:** back up the complete home project (including untracked/ignored work) and export
+  browser saves separately. Inventory the home UI's working controls, accessibility and workflows before
+  replacing anything. Preserve the owner's already-approved icon sizes and positions unless the owner
+  explicitly changes them; document deliberate changes, never silently lose existing functionality.
+- **World first:** a large world canvas with smooth zoom from the planet to a person, readable settlements,
+  kingdoms and events; compact god-power controls with costs, targeting, previews, cancellation and clear
+  destructive-action confirmation. Panels should support observation without covering the world.
+- **Inspect and understand:** select people, creatures and villages; show needs, mood and its reasons,
+  relationships, laws, memories and traditions, with links to the recorded events behind them. Keep the
+  existing colony, production, research, diplomacy, mod and save workflows accessible.
+- **Act on real events:** petitions and a filterable chronicle with follow/favourites and jump-to-location
+  or subject; show missing/destroyed subjects gracefully. Link a power's immediate result to its later
+  outcome card, distinguishing recorded effects from changes that merely followed.
+- **Integration contract:** reconcile `docs/ui-todo.md` and `docs/integration-contract.md` with actual
+  exports/state, including save formats after 33 (37 at this planning checkpoint). Update the contract to
+  the implementation's current version, not a hard-coded historical version; keep sim and UI separate.
+- **Acceptance:** a feature-parity checklist against the home UI; before/after screenshots at the existing
+  supported desktop/narrow sizes and high DPI; keyboard/focus and readable-text checks; no console errors.
+  Check repeated clicks, cancel/back, expired petitions, removed subjects, and save/load while panels or
+  power previews are open. The owner reviews the new layout before the old UI is retired.
+- **Not claimed:** playable, faster, approved visual design or implemented by this roadmap entry.
+
+### Phase 18: deep simulation and rendering optimization (planned)
+Profile first; optimize real bottlenecks without hiding work or reducing the game's depth. Establish a
+reproducible baseline on the target home hardware/browser before choosing implementation slices, and
+measure the new UI throughout Phase 17 rather than postponing all performance checks to the end.
+
+- **Baseline matrix:** fixed commits, seeds, saves, hardware/browser, viewport/DPI and speed settings;
+  classic runs plus Vast/World at early, middle and late ages, quiet and war-heavy worlds, near/far zoom,
+  busy inspectors, chronicle/petitions, and repeated terrain strokes. Include naturally grown day-300
+  worlds with accumulated buildings/history as well as separately labelled synthetic population loads.
+- **Measure honestly:** tick and frame time p50/p95/p99/max, achieved simulation ticks per second at each
+  requested speed, daily/hourly spikes, input-to-feedback and terrain-edit latency, memory, save size and
+  save/load time. Profile sim, rendering and UI separately and together; record warm-up/start-up separately.
+  Use repeated same-session before/after runs, progress output and the existing long-run time budgets.
+- **Known reference points, not new measurements:** the November 1 scale notes report a grown world of
+  868 people/62 villages at 9.2 ms/tick with 240–400 ms day-start ticks; synthetic 2,859 people at 17.6 ms/tick
+  against a 16.7 ms 1× budget. Terrain shaping previously cost about 0.6–1.2 seconds. Rebaseline these cases
+  on the same machine before comparing; never treat the synthetic case as grown-world acceptance.
+- **Spread daily/hourly work:** finish or reuse the scale-target scheduler design rather than duplicate it.
+  Preserve exactly-once daily/hourly semantics, stable ordering, deterministic iteration and explicit
+  catch-up behavior. Specify when each job reads its inputs and how delayed work affects gameplay; do not
+  claim an order-changing scheduler preserves old hashes. Record intentional behavior changes and new
+  baselines only after review. Do not enable faster growth merely to mask an unmet hitch target.
+- **Targeted improvements:** profile entity/ownership queries, spatial lookups, cache invalidation and
+  expensive world passes; investigate incremental terrain/water updates. For rendering/UI, measure culling,
+  level-of-detail drawing, cached layers, text/icon work, panel updates and event-list virtualization.
+  Rendering shortcuts must not alter authoritative simulation, conservation or the recorded world history.
+- **Acceptance gates (planned targets):** first reproduce the baseline, then reduce grown-world daily/hourly
+  p95/p99 spike cost by at least 50% on the same workload and hardware, with no worse maximum. Target
+  steady-state tick p95 at or below the existing 16.7 ms 1× budget; explicitly flag workloads that miss it.
+  Target combined browser frame p95 <= 16.7 ms and p99 <= 33.3 ms at 1× on the agreed reference machine,
+  not separate budgets that each consume the whole frame. Allocate sim/render/UI shares from the profile.
+  Terrain-stroke p95 end-to-end latency should fall by at least 50% from its measured baseline, with
+  immediate targeting/feedback at p95 <= 100 ms; do not report early feedback as completed terrain work.
+  Publish absolute results and maxima alongside percentages. Any target revision requires an explained,
+  reviewed trade-off, not a silent redefinition of success.
+- **No fake speedups:** no disabling mood, wars, animals, petitions, history or conservation checks; no
+  smaller worlds, capped-away people, dropped jobs, changed seeds or slower simulated time presented as
+  equivalent speed gains. Any approximation or changed game rule needs a separate explicit decision.
+  Fix or explain/review regressions above the existing 10% guardrail in unaffected baseline cases.
+
+### Phase 19: integrated acceptance and safe promotion (planned)
+Prove the replacement UI and optimized simulation work together before retiring the old build or changing
+main. This is a final gate for Phases 17–18, not a claim that Phase 16 or earlier integration is complete.
+
+- **Safe integration:** inspect the actual home checkout, remotes, branch and ancestry; preserve unpushed
+  work and create a separate integration branch from the complete home version. If the rescue repository
+  has unrelated history, review/import its delta from the rescue baseline rather than blindly forcing an
+  unrelated-history merge. Never replace the home folder with the incomplete rescue snapshot.
+- **Reliability:** run the full applicable home and cloud suites, conservation checks, classic runs and
+  representative long worlds. Verify old-save migrations, missing-mod recovery and ownership, deterministic
+  command replay and identical save/load continuation. Specifically save/reload halfway through staggered
+  daily/hourly work and around boundaries; prove no skipped or duplicated jobs and correct cache rebuilds.
+- **Real play:** exercise world navigation, inspections, powers, destructive confirms/cancel, petitions,
+  chronicle links and outcomes with repeated/interrupted flows, destroyed subjects and large histories.
+  Verify new and old saves on the integrated UI; compare against the preserved home build.
+- **Performance sign-off:** publish Phase 18's baseline matrix and percentile/maximum results for both
+  naturally grown and synthetic scale, including render/UI costs and failed targets. A lower average alone
+  is not acceptance; visible stalls and latency must be reported.
+- **Promotion:** provide the reviewed diff, feature-parity checklist, test results, performance report,
+  remaining limitations and rollback path. Only after owner review and explicit approval push/open the
+  appropriate draft PR and merge into the intended main; assess existing PR #1 rather than blindly merging
+  it or discarding it. Keep the old UI/backup available until the replacement passes acceptance.
