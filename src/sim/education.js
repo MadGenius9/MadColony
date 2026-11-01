@@ -201,7 +201,7 @@ export const EDUCATION_DRIVERS = {
       if (j.stage === 'go') { const r = go(g, c, j, spot.x, spot.y, g.bDef(desk).name); if (r !== 'arrived') return r === 'moving' ? 'running' : r; j.stage = 'work'; }
       if (!inHours(g, role === 'lectern' ? EDU.college : EDU.school)) return 'done';
       practice(g, c, 'core:teach', 'core:teaching');
-      const n = Object.values(g.s.colonists).filter((o) => (o.job?.type === 'study' || o.job?.type === 'train') && g.s.structures[o.job.deskId]?.projectId === desk.projectId && o.job.stage === 'work').length;
+      const n = g.owned('colonists', sidOf(g, c)).filter((o) => (o.job?.type === 'study' || o.job?.type === 'train') && g.s.structures[o.job.deskId]?.projectId === desk.projectId && o.job.stage === 'work').length;
       c.status.action = role === 'lectern' ? `Instructing (${n} trainee${n === 1 ? '' : 's'})` : `Teaching (${n} pupil${n === 1 ? '' : 's'})`;
       j.idle = n ? 0 : (j.idle || 0) + 1;
       return ++j.session >= EDU.teachSession || j.idle > 120 ? 'done' : 'running';
@@ -242,7 +242,7 @@ export const EDUCATION_DRIVERS = {
 export function educationSummary(g, sid) {
   const kids = pupils(g, sid);
   const atSchool = kids.filter((c) => c.job?.type === 'study');
-  const teachers = Object.values(g.s.colonists).filter((c) => sidOf(g, c) === sid && c.job?.type === 'teach');
+  const teachers = g.villagers(sid).filter((c) => sidOf(g, c) === sid && c.job?.type === 'teach');
   const tr = g.s.settlements[sid]?.training;
   return {
     pupils: kids.length, atSchool: atSchool.length, teachers: teachers.map((t) => t.name),

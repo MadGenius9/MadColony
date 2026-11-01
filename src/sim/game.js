@@ -392,6 +392,9 @@ export class Game {
   }
   /** Settlement sid's own entities of a collection, as a new array in Object.values order. */
   owned(coll, sid) { const m = this.ownIndex(coll).get(sid); return m ? [...m.values()] : []; }
+  /** The people of village sid in the order Object.values(s.colonists) gives them (by id number): for loops that
+   *  went over everyone in the world to find one village's people (the scale target, 2026-11-01). */
+  villagers(sid) { return this.owned('colonists', sid).sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)); }
   ownAdd(coll, e) {
     const ix = this._own?.[coll];
     if (!ix) return;

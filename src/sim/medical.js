@@ -157,7 +157,7 @@ export const MEDICAL_GIVERS = {
       const { free } = medicalBeds(g, sid);
       if (!free.length) return [];
       const out = [];
-      for (const p of Object.values(g.s.colonists)) {
+      for (const p of g.villagers(sid)) { // the village's people only (was everyone in the world)
         if (p.id === c.id || sidOf(g, p) !== sid || !isDown(p) || p.medBedId || p.carriedBy) continue;
         const key = 'patient:' + p.id;
         if (g.isReserved(key, c.id) || g.isBlocked(key) || !g.canReach(c, p.x, p.y, 'adj')) continue;
@@ -182,7 +182,7 @@ export const MEDICAL_GIVERS = {
       if (isDown(c)) return [];
       const sid = sidOf(g, c);
       const out = [];
-      for (const p of Object.values(g.s.colonists)) {
+      for (const p of g.villagers(sid)) { // the village's people only (was everyone in the world)
         if (sidOf(g, p) !== sid || p.carriedBy) continue;
         const needs = treatmentNeeds(g, p);
         if (!needs.length) continue;

@@ -387,7 +387,7 @@ export const GIVERS = {
       // Contact scenarios (contact.tendRange): no one walks out to a patient far from home (a scout who
       // collapsed on a long walk would pull carer after carer away from the village).
       const tendRange = contactRules(g)?.tendRange, home = tendRange !== undefined ? settlementOf(g, mySid)?.center : null;
-      for (const p of Object.values(g.s.colonists)) {
+      for (const p of g.villagers(mySid)) { // the village's people only (was everyone in the world)
         if (p.id === c.id || (p.settlementId || g.s.playerSettlement) !== mySid) continue;
         if (home && octile(home.x, home.y, p.x, p.y) > tendRange) continue;
         const need = careNeed(g, p);
@@ -471,7 +471,7 @@ export const GIVERS = {
       if (CR?.scoutNeeds !== undefined) {
         for (const nd of g.reg.all('need')) if ((nd.behavior === 'core:eat' || nd.behavior === 'core:drink' || nd.behavior === 'core:sleep') && (c.needs[nd.id] ?? 1) <= CR.scoutNeeds) return [];
       }
-      if (g.colonists().some((o) => o.settlementId === sid && o.job?.type === 'scout')) return [];
+      if (g.owned('colonists', sid).some((o) => o.settlementId === sid && o.job?.type === 'scout')) return []; // the village's people only
       const unmet = Object.values(g.s.settlements).filter((o) => o.id !== sid && o.center && !relationPeek(g, sid, o.id).contact
         && (CR?.scoutRange === undefined || octile(st.center.x, st.center.y, o.center.x, o.center.y) <= CR.scoutRange))
         .sort((a, b) => Math.hypot(a.center.x - st.center.x, a.center.y - st.center.y) - Math.hypot(b.center.x - st.center.x, b.center.y - st.center.y));
@@ -557,7 +557,7 @@ export const GIVERS = {
       const tech = g.reg.get('tech', R.tech);
       if (!st0 || !tech) return out;
       if ((st0.research.priorities?.[tech.field] ?? 2) <= 0 || st0.research.done.includes(tech.id)) return out; // switched Off since the last plan
-      const busy = [...(g.big ? g.mineList('colonists', c) : g.colonists())].filter((o) => o.id !== c.id && o.job?.type === 'research' && o.settlementId === c.settlementId).length;
+      const busy = g.owned('colonists', c.settlementId || g.s.playerSettlement).filter((o) => o.id !== c.id && o.job?.type === 'research' && o.settlementId === c.settlementId).length; // the village's people only
       if (busy >= (g.policyFor(c.settlementId).maxResearchers ?? 2)) return out;
       for (const station of g.mineList('structures', c)) {
         if (!station.built || !g.bDef(station)?.research || !g.mine(station, c)) continue;
