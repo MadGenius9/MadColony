@@ -208,6 +208,10 @@ test('8c fight: a lone person runs from a Barkmaw; an armed party slays it and i
   let cleared = false;
   for (let t = 0; t < 6 * 2400 && !cleared; t++) { g.tick(); cleared = !!lair.cleared; }
   assert.ok(cleared, 'its lair was cleared');
+  // Phase 15: the village remembers both (memories.js), and twice makes a tradition.
+  const sidM = g.s.playerSettlement;
+  assert.equal((g.s.settlements[sidM].memCount || {})['core:monster_defeated'], 2, 'the slaying and the clearing are remembered');
+  assert.ok(g.s.settlements[sidM].traditions?.some((t) => t.id === 'core:hunters_pride'), 'Hunters\' pride');
   assert.ok(monsterCensus(g).ok, monsterCensus(g).problems.join('; '));
   assert.deepEqual(conservationErrors(g), []);
 });

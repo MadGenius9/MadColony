@@ -19,6 +19,7 @@ import { killMonster, woundMonster, standing, homeOf } from './monsters.js';
 import { isAdult } from './people.js';
 import { modsOf } from './peoples.js';
 import { lawIs } from './worldlaws.js';
+import { addMemory } from './memories.js'; // Phase 15
 
 const SEE = 10, THREAT = 40, HOLD = 7, PARTY = 8, GIVE_UP = 1500, CLEAR_R = 60, CLEAR_WORK = 300;
 const byId = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
