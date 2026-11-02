@@ -92,6 +92,12 @@ test('roads: a village lays a stretch of road toward its busiest cell, with its 
   // A busy cell a little way off (as if many walked there).
   const k = `${Math.floor((c.x + 14) / ROAD.cell)},${Math.floor(c.y / ROAD.cell)}`;
   st.traffic = { [k]: ROAD.busy + 10 };
+  // A small village lays no roads.
+  assert.ok(g.owned('colonists', sid).length < ROAD.minPeople);
+  assert.equal(planRoads(g, g.plans[sid], sid), 0, 'too few people for roads');
+  // Enough people (copies of the first, standing at home): it does.
+  const src = g.owned('colonists', sid)[0];
+  while (g.owned('colonists', sid).length < ROAD.minPeople) { const id = 'c' + g.s.nextId++; const cp = JSON.parse(JSON.stringify(src)); Object.assign(cp, { id, job: null, mv: null, homeId: null, bedId: null, carry: null, equip: { tool: null, weapon: null } }); g.s.colonists[id] = cp; g.ownAdd('colonists', cp); }
   const n = planRoads(g, g.plans[sid], sid);
   assert.ok(n > 0 && n <= ROAD.segment, `a stretch started (${n})`);
   const line = g.s.log.at(-1);

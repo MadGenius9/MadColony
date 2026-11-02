@@ -288,7 +288,8 @@ function search(g, sx, sy, tx, ty, mode, maxNodes, x0, y0, ww, wh, B) {
   if (P >= 0xffff) throw new Error('too many terrain kinds');
   const costOf = new Float64Array(P + 1), passT = new Uint8Array(P);
   let minCost = 1; // the cheapest walkable ground on the map (roads: Phase 7), so the octile estimate never overstates
-  for (let k = 0; k < P; k++) { const t = g.terrainDefOf(k); costOf[k + 1] = t.moveCost || 1; passT[k] = t.passable ? 1 : 0; if (t.passable && costOf[k + 1] < minCost) minCost = costOf[k + 1]; }
+  const cnt = g._ts.cnt; // only terrains with tiles on the map now (tiles.js): a loaded game must estimate as the running one does
+  for (let k = 0; k < P; k++) { const t = g.terrainDefOf(k); costOf[k + 1] = t.moveCost || 1; passT[k] = t.passable ? 1 : 0; if (t.passable && costOf[k + 1] < minCost && (!cnt || cnt[k] > 0)) minCost = costOf[k + 1]; }
   // (impassable terrain is known without asking isPassable, which would say the same)
   const tileCost = (i, x, y) => { // i: window index; x, y: map position
     const t = tag[i];

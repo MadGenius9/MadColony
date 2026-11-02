@@ -30,7 +30,9 @@ export const roadsOf = (g, sid) => g.owned('structures', sid).filter((b) => b.bu
 // lays roads, ROAD.segment tiles at a time, along the path from its centre toward its busiest cell at least
 // ROAD.far tiles away, once that cell reaches ROAD.busy; one batch at a time, at most ROAD.max road tiles.
 
-export const ROAD = Object.freeze({ cell: 4, sample: 10, cells: 400, decay: 0.9, busy: 40, far: 8, segment: 8, max: 120 });
+// minPeople: a village smaller than this lays no roads (a small colony's stone and work matter more elsewhere: in
+// the classic 5-person game roads delayed the modern era by 8 days).
+export const ROAD = Object.freeze({ cell: 4, sample: 10, cells: 400, decay: 0.9, busy: 40, far: 8, segment: 8, max: 120, minPeople: 8 });
 
 /** Every ROAD.sample ticks (game.js): walking people of full-detail villages add to their village's traffic. */
 export function countTraffic(g) {
@@ -61,7 +63,7 @@ const roadOpen = (g, x, y, sid) => g.inB(x, y) && tileUsable(g, x, y, sid) && g.
 /** The planner (planner.js planSettlement): maybe lay the next stretch of road. Returns the tiles started, or 0. */
 export function planRoads(g, P, sid) {
   const s = g.s, st = s.settlements?.[sid], T = st?.traffic;
-  if (!T || st.fallen) return 0;
+  if (!T || st.fallen || g.owned('colonists', sid).length < ROAD.minPeople) return 0;
   const tpl = g.reg.get('template', 'core:road_run'), roadTerrain = g.reg.get('building', 'core:road')?.road?.terrain;
   if (!tpl || !roadTerrain) return 0;
   const mine = g.owned('structures', sid).filter((b) => g.bDef(b)?.road);

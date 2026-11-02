@@ -81,6 +81,10 @@ export class TerrainStore {
       if (t !== prev || pk < 0) { prev = t; pk = this.code(t); }
       this.idx[i] = pk;
     }
+    // Tiles per palette index (derived, never saved): which terrains are on the map now, whatever the palette once
+    // held (path.js: the cheapest walkable ground present, so a loaded game reads the same as the running one).
+    this.cnt = new Array(this.pal.length).fill(0);
+    for (let i = 0; i < n; i++) this.cnt[this.idx[i]]++;
     this.rev = 0; // bumped when the palette grows (cached per-palette tables are rebuilt)
   }
   code(id) {
@@ -90,11 +94,12 @@ export class TerrainStore {
       if (k === 256 && this.idx instanceof Uint8Array) this.idx = Uint16Array.from(this.idx);
       if (k === 65536) throw new Error('more than 65536 terrain kinds');
       this.pal.push(id); this.ix.set(id, k); this.rev++;
+      if (this.cnt) this.cnt.push(0);
     }
     return k;
   }
   get(i) { return this.pal[this.idx[i]]; }
-  set(i, id) { this.idx[i] = this.code(id); }
+  set(i, id) { const k = this.code(id); this.cnt[this.idx[i]]--; this.cnt[k]++; this.idx[i] = k; }
   /** A plain array of terrain ids (for writing saves). */
   toArray() {
     const n = this.n, out = new Array(n), pal = this.pal, idx = this.idx;
