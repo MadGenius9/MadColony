@@ -1,6 +1,6 @@
 # Phase 6: government
 
-Status: **design** (2026-11-02; the owner: "You decide and keep going"). Branch `cloud-work`. The roadmap's
+Status: **cloud part done** (2026-11-02; built and tested, not playable until the UI is wired at home; the owner: "You decide and keep going"). Branch `cloud-work`. The roadmap's
 Phase 6: "Village council and policies that change real decisions (food reserves, research, trade, work
 allocation, public building), leadership and succession, laws and taxation; kingdoms get a ruler and
 succession; member villages can rebel with visible causes." It extends what exists. It is not a second law
@@ -99,3 +99,30 @@ changes laws (laws keep their own review).
   - classic runs unchanged (`forty` 9151d4cab0134351, `modern` 17120b8380963d4a: no AI villages in them);
   - World seed 11, 200 days: 195 council decisions, 281 people (was 270), 60 of 64 standing (was 57), 25 wars
     declared (was 46; wars swing between runs); save and load identical.
+
+### Slice 3: rebellion (built and tested, 2026-11-02)
+- `src/sim/rebellion.js`: `grievancesOf`, `grievanceScore`, `tickRebellion` (daily job).
+- Grievances, each a recorded fact:
+  - tithes in the last 30 days (`tithe.js` now keeps the last 5 dates in `settlement.tithePaid`), 1 each, up to
+    3;
+  - unrest, 2;
+  - a war it was pulled into for the kingdom, 2;
+  - a capital of another people, 1;
+  - relations with the capital below 0 (1) or below −10 (2).
+- At 5 the most aggrieved AI member rises: a `core:rebellion` milestone (world news) naming its grievances, it
+  leaves the kingdom and relations with the capital fall by 15.
+- At most one rebellion a kingdom every 20 days (`kingdom.rebelled`). The capital and the player's village never
+  rise on their own (the player's grievances are shown).
+- Tests: `tests/cloud-rebellion.test.js`.
+
+### Slice 4: acceptance (World seed 11, 200 days, 2026-11-02)
+- Full suite passes. Classic hashes unchanged from slice 1 (`forty` 9151d4cab0134351, `modern` 17120b8380963d4a,
+  proposed, awaiting review): no kingdoms or AI villages in them.
+- World run:
+  - 3 rebellions;
+  - 11 villages left kingdoms (all causes);
+  - 19 new leaders, 2 new rulers;
+  - 193 council decisions;
+  - 279 people, 62 of 64 villages standing, 7 kingdoms, 29 wars declared;
+  - save and load identical.
+- **Not playable** until the UI is wired at home (`docs/ui-todo.md`).

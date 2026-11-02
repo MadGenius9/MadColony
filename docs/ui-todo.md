@@ -484,3 +484,6 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Phase 6, slice 2 (the council):** the village panel lists the council's decisions (the `core:policy` events)
   and the current policy beside the profile's ("Food kept: 6 days (usually 4)"). For the player's village,
   "The council advises: …" from `councilAdvice(g, sid)`, never applied automatically.
+- **Phase 6, slice 3 (rebellion):** a kingdom member's panel lists its grievances (`grievancesOf(g, sid)`, with
+  their weights against the threshold of 5). A rebellion is world news naming them. For the player's village, a
+  warning when its grievances near the threshold (it never rebels by itself).
