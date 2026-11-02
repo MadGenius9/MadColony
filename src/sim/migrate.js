@@ -127,6 +127,9 @@ export const MIGRATIONS = {
   // 36 -> 37: village memories and traditions (memories.js). settlement memories, memCount, traditions and famine
   // are optional: absent means none.
   36() {},
+  // 37 -> 38: leaders (leaders.js). settlement leader and leaderSince, kingdom ruler are optional: absent, a leader is
+  // chosen at the next daily check (quietly: a first leader is not news).
+  37() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

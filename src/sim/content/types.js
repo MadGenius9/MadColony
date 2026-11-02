@@ -629,6 +629,7 @@ export const CONTENT_TYPES = {
       namePool: ref('namePool'), // its own names (default: the scenario's)
       prefer: map({ type: 'tag' }, ref('building')), // slot tag -> the building it builds there when unlocked and affordable (construction.js)
       code: map({ type: 'ref', to: 'civLaw' }, str(40)), // the civilization laws its villages lean to (civlaws.js)
+      leader: { type: 'enum', values: ['eldest', 'wisest', 'bravest'] }, // how its villages choose a leader (leaders.js, Phase 6)
       look: obj({ // its own palette (default: today's, appearance.js)
         skin: arr(color, { minItems: 1 }), hair: arr(color, { minItems: 1 }), pants: arr(color, { minItems: 1 }),
         styles: arr({ type: 'enum', values: ['short', 'crop', 'long', 'bun', 'ponytail', 'curly', 'bald', 'braid', 'mohawk'] }, { minItems: 1 }),

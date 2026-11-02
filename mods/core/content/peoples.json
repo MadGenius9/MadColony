@@ -12,6 +12,7 @@
         "core:soil"
       ],
       "temperament": 1,
+      "leader": "eldest",
       "food": "core:stew",
       "traitOdds": [
         40,
@@ -40,6 +41,7 @@
         "core:mining": 0.8
       },
       "temperament": 1,
+      "leader": "wisest",
       "food": "core:bean",
       "namePool": "core:reedkin_names",
       "look": {
@@ -110,6 +112,7 @@
         "core:farming": 0.9
       },
       "temperament": 4,
+      "leader": "bravest",
       "food": "core:venison",
       "namePool": "core:cragborn_names",
       "look": {
@@ -181,6 +184,7 @@
         "core:crafting": 1.15
       },
       "temperament": 3,
+      "leader": "eldest",
       "food": "core:berry",
       "namePool": "core:duneshade_names",
       "look": {

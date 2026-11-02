@@ -182,6 +182,18 @@
       "name": "A new tradition",
       "importance": "milestone",
       "notify": "own"
+    },
+    {
+      "id": "core:leader",
+      "name": "A new leader",
+      "importance": "notable",
+      "notify": "own"
+    },
+    {
+      "id": "core:ruler",
+      "name": "A new ruler",
+      "importance": "milestone",
+      "notify": "world"
     }
   ]
 }

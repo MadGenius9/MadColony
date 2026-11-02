@@ -459,6 +459,7 @@ function validateSettlements(s, format, bad, inB) {
     if (st.code !== undefined && (!isObj(st.code) || Object.entries(st.code).some(([k, v]) => !SAFE_ID.test(k) || !isStr(v, 40)))) bad(`${L} has an invalid code of laws`); // format 32 (civlaws.js)
     if (st.codeSince !== undefined && (!isObj(st.codeSince) || Object.entries(st.codeSince).some(([k, t]) => !SAFE_ID.test(k) || !isInt(t) || t < 0 || t > s.tick))) bad(`${L} has invalid law dates`); // format 32
     if (st.codeEv !== undefined && (!isObj(st.codeEv) || Object.entries(st.codeEv).some(([k, v]) => !SAFE_ID.test(k) || !isEvId(v)))) bad(`${L} has invalid law events`); // format 34
+    if ((st.leader !== undefined && !isStr(st.leader, 64)) || (st.leaderSince !== undefined && (!isInt(st.leaderSince) || st.leaderSince > s.tick))) bad(`${L} has an invalid leader`); // format 38
     if ((st.memories !== undefined && (!Array.isArray(st.memories) || st.memories.length > 8 || st.memories.some((m) => !isObj(m) || !isStr(m.kind, 100) || !isInt(m.t) || m.t > s.tick || (m.ev !== undefined && !isEvId(m.ev))))) || (st.memCount !== undefined && (!isObj(st.memCount) || Object.entries(st.memCount).some(([k, n]) => !isStr(k, 100) || !isInt(n) || n < 0))) || (st.traditions !== undefined && (!Array.isArray(st.traditions) || st.traditions.length > 3 || st.traditions.some((t) => !isObj(t) || !isStr(t.id, 100) || !isInt(t.since) || (t.ev !== undefined && !isEvId(t.ev)) || (t.why !== undefined && (!Array.isArray(t.why) || t.why.length > 8 || !t.why.every(isEvId)))))) || (st.famine !== undefined && (!isInt(st.famine) || st.famine > s.tick))) bad(`${L} has invalid memories or traditions`); // format 37
     for (const f of ['founded', 'crowdedSince', 'lastFounding', 'noSiteAt']) if (st[f] !== undefined && (!isNum(st[f]) || st[f] < 0)) bad(`${L} has an invalid ${f} time`);
     if (st.training !== undefined && st.training !== null && (!isObj(st.training) || !isStr(st.training.cid, 64) || !isStr(st.training.qual, 100) || !isNum(st.training.progress))) bad(`${L} has invalid training data`);
@@ -571,6 +572,7 @@ function validateKingdoms(s, ids, bad, cut) {
     if (!isStr(kd.color, 32) || !/^#[0-9a-fA-F]{3,8}$/.test(kd.color)) { bad(`${L} has an invalid colour`); break; }
     if (!isNum(kd.founded) || kd.founded < 0) { bad(`${L} has an invalid founding time`); break; }
     if (typeof kd.capital !== 'string' || !ids.has(kd.capital)) { bad(`${L} has a capital that does not exist`); break; }
+    if (kd.ruler !== undefined && !isStr(kd.ruler, 64)) { bad(`${L} has an invalid ruler`); break; } // format 38
     if (s.settlements[kd.capital]?.kingdom !== k) { bad(`${L}: its capital "${cut(kd.capital)}" is not in it (the capital's kingdom must be "${cut(k)}")`); break; }
   }
   for (const [k, st] of Object.entries(s.settlements || {})) {
