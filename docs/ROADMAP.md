@@ -606,7 +606,9 @@ get a ruler and succession; member villages can rebel with visible causes. *Also
 storage-hub growth moved onto civic intents, and civic budgets (per-category project caps as views over
 existing stock, never a second inventory), since public-building policy decides them.
 
-### Phase 7: roads and transport
+### Phase 7: roads and transport (design in the cloud copy, 2026-11-02)
+Design: [docs/proposals/phase-7-roads.md](proposals/phase-7-roads.md): roads as a terrain laid by work, planned from
+foot traffic; wagons and cargo in later slices.
 Roads from real travel demand within and between villages; walking, then horses and wagons, then vehicles
 via research; cargo tracked from loading to delivery; roads visible zoomed out. Larger buildings only as
 needed for warehouses and factories. *Also open here:* storage reorganisation (category zones, safe moves)
