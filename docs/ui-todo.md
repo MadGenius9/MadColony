@@ -493,3 +493,5 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   needs a `road` terrain style: a packed-earth band that joins neighbouring road tiles, visible zoomed out.
 - **The road building** (`core:road`) under construction shows as a marked-out tile; once built the terrain is
   what is drawn (the building need not be drawn over it).
+- **Phase 7, slice 2:** a village's foot traffic can be shown as a heat overlay (`settlement.traffic`, cells of 4×4
+  tiles); the log line "laying a road … where they walk most" can centre the map on the first tile (`at`).

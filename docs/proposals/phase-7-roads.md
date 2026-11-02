@@ -79,3 +79,33 @@ intent like taps, or a god-power-like tool).
   - a road turns its tile into road and the old ground comes back;
   - on even ground a path ignores the row before the road and follows it after;
   - save and load; old and bad saves; the ledger stays whole.
+
+### Slice 2: foot traffic and roads within a village (built and tested, 2026-11-02)
+- **Built:**
+  - `roads.js`: `countTraffic` (every 10 ticks: full-detail villages' walking people by 4×4 cell, in
+    `settlement.traffic`, at most 400 cells), `fadeTraffic` (daily, 10%) and `planRoads` (from the planner, after
+    plumbing);
+  - a village of 8 or more people lays up to 8 road tiles along the path from its centre toward its busiest
+    cell at least 8 tiles away, once that cell reaches 40;
+  - one stretch at a time, at most 120 road tiles, with a log line and a `core:road` event giving the count.
+- **Two problems found and fixed:**
+  - **Paths differed after save and load once roads had been removed.** The path estimate's cheapest ground came
+    from the terrain palette, which keeps a terrain after its last tile is gone, while a loaded game's palette
+    holds only what is there. The terrain store now counts tiles per terrain (derived), and the estimate uses only
+    the terrains present. A replay test (`tests/cloud-wrath.test.js`) caught it.
+  - **Roads slowed the classic 5-person colony:** the modern era came on day 52.03 instead of 44.41, as the roads
+    took stone and work. Hence the minimum of 8 people. With it the classic eras are back exactly (workshops
+    day 7.39, modern day 44.41).
+- **A test that became sensitive:** the firefighting test (fire at the first home, seed 4242) failed once roads
+  were laid in that colony: the fire was not out within a day. At the second home it went out at the same time
+  with and without roads, and road tiles do not burn. So it is not a clear effect of roads; it is now moot for
+  that colony (under 8 people), and noted here, not hidden.
+- **Checks:**
+  - full suite passes;
+  - classic hashes (they include the traffic counts), proposed: `forty` 95e985761d5b0e93, `modern`
+    a6fd2f92a207fffc;
+  - World seed 11, 200 days: 270 people; save and load identical.
+- **Roads in that World run:** 3 tiles by day 25 and 6 by day 200, in 2 villages. AI villages are capped at 6
+  people, under the minimum, so in today's worlds roads are rare. Roads between villages (slice 3) and bigger
+  villages (the scale target's growth decision) are what would make them common. The 3 early tiles were enough
+  to set this sensitive world on another course (66 wars declared against 29 before, 3.3 ms a tick on day 200).
