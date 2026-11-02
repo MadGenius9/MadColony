@@ -19,27 +19,28 @@ function openRow(g, n) {
   return null;
 }
 
-test('roads: a built road turns its tile into road (quicker to walk); removing it brings the old ground back', () => {
+test('roads: a step onto a built road is quicker; the ground stays as it was; removing the road ends it', () => {
   const g = newGame({ seed: 4242 });
   runDays(g, 1);
   const [p] = openRow(g, 1);
-  const old = g.terrainAt(p.x, p.y).id, cost = g.stepCost(p.x, p.y);
+  const old = g.terrainAt(p.x, p.y).id, cost = g.stepCost(p.x, p.y), rev = g.s.map.rev;
   const st = g.addStructure('core:road', p.x, p.y, { settlement: g.s.playerSettlement });
-  assert.equal(g.terrainAt(p.x, p.y).id, old, 'nothing until it is built');
+  assert.equal(g.stepCost(p.x, p.y), cost, 'nothing until it is built');
   g.ledgerAdd('created', 'core:stone', 1, 'test'); // the stone it is built from (kept in the ledger)
   st.delivered = { 'core:stone': 1 };
   completeStructure(g, st, null);
-  assert.equal(g.terrainAt(p.x, p.y).id, 'core:dirt_road');
-  assert.equal(st.under, old);
-  assert.ok(g.stepCost(p.x, p.y) < cost, 'quicker to walk');
+  assert.equal(g.stepCost(p.x, p.y), 0.6, 'quicker to walk');
+  assert.equal(g.terrainAt(p.x, p.y).id, old, 'the ground is unchanged');
+  assert.equal(g.s.map.rev, rev, 'no terrain change (the water maps and paths are not redone)');
+  assert.equal(g.moveCost(p.x, p.y), cost, 'path searches weigh it as before');
   assert.ok(g.isPassable(p.x, p.y));
   assert.equal(roadsOf(g, g.s.playerSettlement).length, 1);
   g.removeStructure(st.id);
-  assert.equal(g.terrainAt(p.x, p.y).id, old, 'the old ground is back');
+  assert.equal(g.stepCost(p.x, p.y), cost, 'gone: a plain step again');
   assert.deepEqual(conservationErrors(g), []);
 });
 
-test('roads: walking on a road is quicker, while path searches weigh it as plain ground; a road saves and loads; old saves load', () => {
+test('roads: paths are the same with roads; roads save and load; old saves load', () => {
   const g = newGame({ seed: 4242 });
   runDays(g, 1);
   const row = openRow(g, 8);
@@ -47,25 +48,17 @@ test('roads: walking on a road is quicker, while path searches weigh it as plain
   const a = row[0], b = row.at(-1);
   const before = JSON.stringify(findPath(g, a.x, a.y - 1, b.x, b.y - 1));
   for (const p of row) { const st = g.addStructure('core:road', p.x, p.y, { settlement: g.s.playerSettlement, built: false }); g.ledgerAdd('created', 'core:stone', 1, 'test'); st.delivered = { 'core:stone': 1 }; completeStructure(g, st, null); }
-  assert.ok(row.every((p) => g.terrainAt(p.x, p.y).id === 'core:dirt_road'));
-  // A step onto the road takes 0.6 of a plain step (jobs.js uses stepCost); path searches still count it as 1, so
-  // they are as quick as before and the path on even ground is the same one.
-  assert.equal(g.stepCost(a.x, a.y), 0.6);
-  assert.equal(g.moveCost(a.x, a.y), 1);
-  assert.equal(g.stepCost(a.x, a.y - 1), g.moveCost(a.x, a.y - 1), 'other ground: as before');
+  assert.ok(row.every((p) => g.stepCost(p.x, p.y) === 0.6));
   assert.equal(JSON.stringify(findPath(g, a.x, a.y - 1, b.x, b.y - 1)), before, 'the same path');
   const r = reload(g);
   assert.equal(stateText(r), stateText(g));
-  assert.ok(row.every((p) => r.terrainAt(p.x, p.y).id === 'core:dirt_road'), 'the road is saved');
+  assert.ok(row.every((p) => r.stepCost(p.x, p.y) === 0.6), 'the road is saved');
   runDays(g, 1); runDays(r, 1);
   assert.equal(stateText(r), stateText(g));
   const old = JSON.parse(serializeGame(g));
-  for (const st of Object.values(old.state.structures)) delete st.under;
+  for (const st of Object.values(old.state.settlements)) delete st.traffic;
   old.saveFormat = 38;
   assert.ok(loadGame(g.reg, JSON.stringify(old)));
-  const bad = JSON.parse(serializeGame(g));
-  Object.values(bad.state.structures).find((s) => s.under).under = 5;
-  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /road/);
 });
 
 // ---- slice 2: foot traffic and the first roads

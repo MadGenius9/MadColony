@@ -58,7 +58,7 @@ import { tickMemories, rememberPower } from './memories.js'; // Phase 15: memori
 import { tickLeaders } from './leaders.js'; // Phase 6: leaders and succession
 import { tickCouncil } from './council.js'; // Phase 6: the village council
 import { tickRebellion } from './rebellion.js'; // Phase 6: rebellion
-import { liftRoad, countTraffic, fadeTraffic, ROAD } from './roads.js'; // Phase 7: roads
+import { countTraffic, fadeTraffic, ROAD } from './roads.js'; // Phase 7: roads
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
@@ -505,8 +505,13 @@ export class Game {
     return true;
   }
   moveCost(x, y) { return this.terrainAt(x, y).moveCost || 1; }
-  /** How long a step onto (x, y) takes, as a share of a plain step: the terrain's stepCost (roads), else its moveCost. */
-  stepCost(x, y) { const t = this.terrainAt(x, y); return t.stepCost ?? (t.moveCost || 1); }
+  /** How long a step onto (x, y) takes, as a share of a plain step: a built road's `road.step` (Phase 7, roads.js),
+   *  else the terrain's moveCost. Roads change no terrain, so path searches and the water maps never see them. */
+  stepCost(x, y) {
+    const id = this.structIdAt(this.i(x, y)), st = id && this.s.structures[id];
+    const r = st?.built && this.bDef(st)?.road;
+    return r ? r.step : this.moveCost(x, y);
+  }
   /** False on tiles where an impassable blueprint is waiting to be built (don't loiter there). */
   standable(x, y) {
     const id = this.structIdAt(this.i(x, y));
@@ -842,7 +847,6 @@ export class Game {
   }
   removeStructure(id) {
     const st = this.s.structures[id]; if (!st) return;
-    if (st.under) liftRoad(this, st); // Phase 7: a road's old ground comes back (roads.js)
     delete this.s.structures[id];
     this.ownDel('structures', st); this.structRev = (this.structRev || 0) + 1; this.structsChanged(st, false);
     if (this.structIdAt(this.i(st.x, st.y)) === id) this.setStructId(this.i(st.x, st.y), null);

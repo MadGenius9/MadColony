@@ -4,7 +4,6 @@ import { parseTemplate, rotateCell, rotateVec, rotatedSize, slotCandidates, temp
 import { octile } from './util.js';
 import { isUnlocked } from './research.js';
 import { peopleOfSettlement } from './peoples.js';
-import { layRoad } from './roads.js'; // Phase 7
 
 const ORDER = { door: 0, furniture: 1, station: 1, wall: 2 };
 
@@ -254,7 +253,6 @@ export function completeStructure(g, st, c) {
   const def = g.bDef(st);
   st.built = true;
   g.builtRev = (g.builtRev || 0) + 1; // derived: lod.js trap memo
-  if (def.road) layRoad(g, st); // Phase 7: its tile becomes road (roads.js)
   for (const cost of def.cost) {
     const have = st.delivered[cost.item] || 0;
     g.consume(cost.item, Math.min(have, cost.qty), 'construct');

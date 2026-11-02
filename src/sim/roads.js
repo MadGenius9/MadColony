@@ -1,27 +1,12 @@
-// Roads (Phase 7, docs/proposals/phase-7-roads.md, slice 1). A road is a one-tile, walkable building (data: a
-// building with `road: { terrain }`). When it is built, its tile becomes the road terrain, which is cheaper to walk
-// (moveCost), so every path search already prefers it; the old terrain is kept on the building (st.under, saved:
-// format 39) and comes back when the road is removed (game.js removeStructure). Nothing in the path code changes.
+// Roads (Phase 7, docs/proposals/phase-7-roads.md). A road is a one-tile, walkable building (data: a building with
+// `road: { step }`); a step onto a built road takes `step` of a plain step (game.js stepCost, read by the walking
+// step). Roads change no terrain, so path searches, the walkable areas and the water maps never see them (an earlier
+// version made the tile a road terrain: every road laid made the whole-map water field be worked out again, 41% of a
+// World run's time with 1,200 roads). Roads are laid where people already walk, so their paths use them anyway.
 import { findPath } from './path.js';
 import { createProject, tileUsable } from './construction.js';
 import { hasPact, completedTradesBetween } from './villages.js';
 import { TICKS_PER_DAY } from './constants.js';
-
-/** Construction finished a road (construction.js completeStructure): its tile becomes road. */
-export function layRoad(g, st) {
-  const R = g.bDef(st)?.road;
-  if (!R || !g.reg.get('terrain', R.terrain)) return;
-  const i = g.i(st.x, st.y), now = g.terrainAt(st.x, st.y)?.id;
-  if (!now || now === R.terrain) return;
-  st.under = now;
-  g.setTerrain(i, R.terrain);
-}
-
-/** A road is removed (game.js removeStructure): its tile's old ground comes back. */
-export function liftRoad(g, st) {
-  if (!st.under || !g.reg.get('terrain', st.under)) return;
-  g.setTerrain(g.i(st.x, st.y), st.under);
-}
 
 /** Built road tiles of village sid (for plans and the UI). */
 export const roadsOf = (g, sid) => g.owned('structures', sid).filter((b) => b.built && g.bDef(b)?.road);
@@ -66,14 +51,14 @@ const roadOpen = (g, x, y, sid) => g.inB(x, y) && tileUsable(g, x, y, sid) && g.
 export function planRoads(g, P, sid) {
   const s = g.s, st = s.settlements?.[sid];
   if (!st || st.fallen) return 0;
-  const tpl = g.reg.get('template', 'core:road_run'), roadTerrain = g.reg.get('building', 'core:road')?.road?.terrain;
-  if (!tpl || !roadTerrain) return 0;
+  const tpl = g.reg.get('template', 'core:road_run');
+  if (!tpl) return 0;
   const mine = g.owned('structures', sid).filter((b) => g.bDef(b)?.road);
   if (mine.some((b) => !b.built) || mine.length >= ROAD.max) return 0; // one stretch at a time; a cap
-  return planLocalRoad(g, sid, st, tpl, roadTerrain, mine) || planTradeRoad(g, sid, st, tpl, roadTerrain, mine);
+  return planLocalRoad(g, sid, st, tpl, mine) || planTradeRoad(g, sid, st, tpl, mine);
 }
 
-function planLocalRoad(g, sid, st, tpl, roadTerrain, mine) {
+function planLocalRoad(g, sid, st, tpl, mine) {
   const s = g.s, T = st.traffic;
   if (!T || g.owned('colonists', sid).length < ROAD.minPeople) return 0;
   const c = st.center || s.center;
@@ -89,7 +74,6 @@ function planLocalRoad(g, sid, st, tpl, roadTerrain, mine) {
   const tiles = [];
   for (const p of path) {
     if (tiles.length >= Math.min(ROAD.segment, ROAD.max - mine.length)) break;
-    if (g.terrainAt(p.x, p.y).id === roadTerrain) continue; // already road
     if (roadOpen(g, p.x, p.y, sid)) tiles.push(p);
   }
   if (!tiles.length) return 0;
@@ -106,7 +90,7 @@ function planLocalRoad(g, sid, st, tpl, roadTerrain, mine) {
 export const TRADE_ROAD = Object.freeze({ trades: 3, range: 160, everyDays: 3, nodes: 60000 });
 const hash = (str) => { let h = 2166136261; for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
 
-function planTradeRoad(g, sid, st, tpl, roadTerrain, mine) {
+function planTradeRoad(g, sid, st, tpl, mine) {
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
   if ((day + (hash(sid) % TRADE_ROAD.everyDays)) % TRADE_ROAD.everyDays) return 0;
   const c = st.center || s.center;
@@ -127,7 +111,6 @@ function planTradeRoad(g, sid, st, tpl, roadTerrain, mine) {
     const tiles = [];
     for (const p of path) {
       if (tiles.length >= Math.min(ROAD.segment, ROAD.max - mine.length)) break;
-      if (g.terrainAt(p.x, p.y).id === roadTerrain) continue; // already road (theirs or ours)
       if (g.claimOk(sid, p.x, p.y) && roadOpen(g, p.x, p.y, sid)) tiles.push(p);
     }
     if (!tiles.length) continue;

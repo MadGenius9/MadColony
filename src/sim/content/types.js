@@ -79,7 +79,7 @@ export const CONTENT_TYPES = {
   },
   terrain: {
     doc: 'Ground type.',
-    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), stepCost: num(0.2, 5), drinkable: bool(), flammable: num(0, 1), render: terrainLook }), // stepCost (Phase 7, roads): the time a step takes, if not moveCost; path searches still weigh moveCost
+    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), drinkable: bool(), flammable: num(0, 1), render: terrainLook }),
   },
   item: {
     doc: 'Anything that can lie on the ground, be stored, carried, eaten, crafted or equipped.',
@@ -173,7 +173,7 @@ export const CONTENT_TYPES = {
       // Water: a drinking source (well: clean), or part of a water network: pump (units per hour, needs power),
       // storage (units held), tap (a drinking point fed by the network), pipe (connects neighbours).
       water: obj({ clean: bool(), pump: num(0.1, 10000), storage: int(1, 100000), tap: bool(), pipe: bool() }),
-      road: obj({ terrain: req(ref('terrain')) }), // Phase 7 (roads.js): when built, its tile becomes this terrain; the old ground comes back when it goes
+      road: obj({ step: req(num(0.2, 1)) }), // Phase 7 (roads.js): a built road makes a step onto its tile take this share of a plain step
       light: obj({ radius: req(num(1, 20)) }),
       education: obj({ role: req({ type: 'enum', values: ['teacher', 'desk', 'lectern', 'bench'] }) }), // schools (teacher, desk) and lecture halls (lectern, bench)
       // Heating: warms the room it stands in (output: °C per hour for a 10-tile room) while that room is below
