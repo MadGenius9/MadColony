@@ -505,6 +505,8 @@ export class Game {
     return true;
   }
   moveCost(x, y) { return this.terrainAt(x, y).moveCost || 1; }
+  /** How long a step onto (x, y) takes, as a share of a plain step: the terrain's stepCost (roads), else its moveCost. */
+  stepCost(x, y) { const t = this.terrainAt(x, y); return t.stepCost ?? (t.moveCost || 1); }
   /** False on tiles where an impassable blueprint is waiting to be built (don't loiter there). */
   standable(x, y) {
     const id = this.structIdAt(this.i(x, y));

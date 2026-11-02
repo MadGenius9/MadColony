@@ -79,7 +79,7 @@ export const CONTENT_TYPES = {
   },
   terrain: {
     doc: 'Ground type.',
-    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), drinkable: bool(), flammable: num(0, 1), render: terrainLook }),
+    schema: obj({ id, name, color: req(color), passable: req(bool()), buildable: req(bool()), fertility: req(num(0, 3)), moveCost: num(0.5, 5), stepCost: num(0.2, 5), drinkable: bool(), flammable: num(0, 1), render: terrainLook }), // stepCost (Phase 7, roads): the time a step takes, if not moveCost; path searches still weigh moveCost
   },
   item: {
     doc: 'Anything that can lie on the ground, be stored, carried, eaten, crafted or equipped.',

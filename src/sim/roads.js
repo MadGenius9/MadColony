@@ -100,7 +100,7 @@ function planLocalRoad(g, sid, st, tpl, roadTerrain, mine) {
 
 // ---------- trade roads (slice 3) ----------
 // A village with a trade pact and at least TRADE_ROAD.trades completed trades with a partner within TRADE_ROAD.range
-// tiles lays its own part of a road toward it: up to ROAD.segment tiles a stretch, on its own land, starting from its
+// tiles lays its own part of a road toward it (toward one partner only, the one it trades with most): up to ROAD.segment tiles a stretch, on its own land, starting from its
 // centre. No minimum of people (a trade road serves both villages). Looked at on one day in TRADE_ROAD.everyDays
 // (by village, from the tick: no saved state), as the long path search is not cheap.
 export const TRADE_ROAD = Object.freeze({ trades: 3, range: 160, everyDays: 3, nodes: 60000 });
@@ -110,10 +110,18 @@ function planTradeRoad(g, sid, st, tpl, roadTerrain, mine) {
   const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
   if ((day + (hash(sid) % TRADE_ROAD.everyDays)) % TRADE_ROAD.everyDays) return 0;
   const c = st.center || s.center;
+  // Toward one partner only: the one it has traded with most (ties: the lower id), so roads do not fan out to every
+  // pact partner (a World run laid 2,000 road tiles in 175 days that way).
+  let pick = null;
   for (const o of Object.keys(s.settlements).sort()) {
     const ot = s.settlements[o];
-    if (o === sid || ot.fallen || !ot.center || !hasPact(g, sid, o) || completedTradesBetween(g, sid, o) < TRADE_ROAD.trades) continue;
-    if (Math.hypot(ot.center.x - c.x, ot.center.y - c.y) > TRADE_ROAD.range) continue;
+    if (o === sid || ot.fallen || !ot.center || !hasPact(g, sid, o)) continue;
+    const n = completedTradesBetween(g, sid, o);
+    if (n < TRADE_ROAD.trades || Math.hypot(ot.center.x - c.x, ot.center.y - c.y) > TRADE_ROAD.range) continue;
+    if (!pick || n > pick.n) pick = { o, n };
+  }
+  for (const o of pick ? [pick.o] : []) {
+    const ot = s.settlements[o];
     const path = findPath(g, c.x, c.y, ot.center.x, ot.center.y, 'adj', TRADE_ROAD.nodes);
     if (!path?.length) continue;
     const tiles = [];

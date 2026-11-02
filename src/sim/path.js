@@ -287,9 +287,7 @@ function search(g, sx, sy, tx, ty, mode, maxNodes, x0, y0, ww, wh, B) {
   const tidx = g._ts.idx, P = g.terrainPalette.length;
   if (P >= 0xffff) throw new Error('too many terrain kinds');
   const costOf = new Float64Array(P + 1), passT = new Uint8Array(P);
-  let minCost = 1; // the cheapest walkable ground on the map (roads: Phase 7), so the octile estimate never overstates
-  const cnt = g._ts.cnt; // only terrains with tiles on the map now (tiles.js): a loaded game must estimate as the running one does
-  for (let k = 0; k < P; k++) { const t = g.terrainDefOf(k); costOf[k + 1] = t.moveCost || 1; passT[k] = t.passable ? 1 : 0; if (t.passable && costOf[k + 1] < minCost && (!cnt || cnt[k] > 0)) minCost = costOf[k + 1]; }
+  for (let k = 0; k < P; k++) { const t = g.terrainDefOf(k); costOf[k + 1] = t.moveCost || 1; passT[k] = t.passable ? 1 : 0; }
   // (impassable terrain is known without asking isPassable, which would say the same)
   const tileCost = (i, x, y) => { // i: window index; x, y: map position
     const t = tag[i];
@@ -354,7 +352,7 @@ function search(g, sx, sy, tx, ty, mode, maxNodes, x0, y0, ww, wh, B) {
       if (!(tn & 2) || ng < gsA[ni]) {
         gsA[ni] = ng; tag[ni] = tn | 2; came[ni] = cur;
         const hx = Math.abs(nx - tx), hy = Math.abs(ny - ty); // the octile heuristic
-        const hd = (Math.max(hx, hy) + 0.414 * Math.min(hx, hy)) * minCost; // x1 unless the map has ground cheaper than 1 (roads)
+        const hd = Math.max(hx, hy) + 0.414 * Math.min(hx, hy);
         const fk = ng + (on ? hd : Math.max(0, hd - 1));
         // push
         if (n === hk.length) { const k2 = new Float64Array(n * 2), v2 = new Int32Array(n * 2); k2.set(hk); v2.set(hv); hk = k2; hv = v2; }

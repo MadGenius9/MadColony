@@ -116,7 +116,7 @@ export function travel(g, c, job, tx, ty, mode, what) {
   }
   c.path.shift();
   const diag = n.x !== c.x && n.y !== c.y;
-  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round((MOVE_TICKS * (diag ? 1.41 : 1) * g.moveCost(n.x, n.y)) / modsOf(g, c).walk)) }; // quick people and walkers (peoples.js)
+  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round((MOVE_TICKS * (diag ? 1.41 : 1) * g.stepCost(n.x, n.y)) / modsOf(g, c).walk)) }; // quick people and walkers (peoples.js)
   c.x = n.x; c.y = n.y;
   return false;
 }

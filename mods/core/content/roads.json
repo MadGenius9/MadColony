@@ -1,7 +1,7 @@
 {
   "$comment": "Roads (docs/proposals/phase-7-roads.md, src/sim/roads.js): a road is a one-tile building laid by work; when it is built its tile becomes the road terrain (cheaper to walk), and the old ground comes back when the road is removed.",
   "terrain": [
-    { "id": "core:dirt_road", "name": "Dirt road", "color": "#9a8463", "passable": true, "buildable": false, "fertility": 0, "moveCost": 0.6, "render": { "style": "gravel" } }
+    { "id": "core:dirt_road", "name": "Dirt road", "color": "#9a8463", "passable": true, "buildable": false, "fertility": 0, "moveCost": 1, "stepCost": 0.6, "render": { "style": "gravel" } }
   ],
   "building": [
     { "id": "core:road", "name": "Dirt road", "category": "furniture", "passable": true, "cost": [{ "item": "core:stone", "qty": 1 }], "work": 20, "skill": "core:construction", "road": { "terrain": "core:dirt_road" }, "color": "#9a8463", "render": { "shape": "pipe" } }

@@ -19,11 +19,11 @@ function openRow(g, n) {
   return null;
 }
 
-test('roads: a built road turns its tile into road (cheaper to walk); removing it brings the old ground back', () => {
+test('roads: a built road turns its tile into road (quicker to walk); removing it brings the old ground back', () => {
   const g = newGame({ seed: 4242 });
   runDays(g, 1);
   const [p] = openRow(g, 1);
-  const old = g.terrainAt(p.x, p.y).id, cost = g.moveCost(p.x, p.y);
+  const old = g.terrainAt(p.x, p.y).id, cost = g.stepCost(p.x, p.y);
   const st = g.addStructure('core:road', p.x, p.y, { settlement: g.s.playerSettlement });
   assert.equal(g.terrainAt(p.x, p.y).id, old, 'nothing until it is built');
   g.ledgerAdd('created', 'core:stone', 1, 'test'); // the stone it is built from (kept in the ledger)
@@ -31,7 +31,7 @@ test('roads: a built road turns its tile into road (cheaper to walk); removing i
   completeStructure(g, st, null);
   assert.equal(g.terrainAt(p.x, p.y).id, 'core:dirt_road');
   assert.equal(st.under, old);
-  assert.ok(g.moveCost(p.x, p.y) < cost, 'cheaper to walk');
+  assert.ok(g.stepCost(p.x, p.y) < cost, 'quicker to walk');
   assert.ok(g.isPassable(p.x, p.y));
   assert.equal(roadsOf(g, g.s.playerSettlement).length, 1);
   g.removeStructure(st.id);
@@ -39,24 +39,21 @@ test('roads: a built road turns its tile into road (cheaper to walk); removing i
   assert.deepEqual(conservationErrors(g), []);
 });
 
-test('roads: paths prefer a road; a road saves and loads; old saves load', () => {
+test('roads: walking on a road is quicker, while path searches weigh it as plain ground; a road saves and loads; old saves load', () => {
   const g = newGame({ seed: 4242 });
   runDays(g, 1);
   const row = openRow(g, 8);
   assert.ok(row, 'open ground for a road');
   const a = row[0], b = row.at(-1);
-  const onRoad = (path) => (path || []).filter((p) => row.some((q) => q.x === p.x && q.y === p.y)).length;
-  const n0 = onRoad(findPath(g, a.x, a.y - 1, b.x, b.y - 1)); // tiles of the future road it uses before the road
+  const before = JSON.stringify(findPath(g, a.x, a.y - 1, b.x, b.y - 1));
   for (const p of row) { const st = g.addStructure('core:road', p.x, p.y, { settlement: g.s.playerSettlement, built: false }); g.ledgerAdd('created', 'core:stone', 1, 'test'); st.delivered = { 'core:stone': 1 }; completeStructure(g, st, null); }
   assert.ok(row.every((p) => g.terrainAt(p.x, p.y).id === 'core:dirt_road'));
-  // From the tile above one end to the tile above the other: the straight way is the row above; with the road
-  // (0.6 a step against 1) the path steps down onto it.
-  const pathAbove = () => findPath(g, a.x, a.y - 1, b.x, b.y - 1);
-  assert.ok(g.isPassable(a.x, a.y - 1) && g.isPassable(b.x, b.y - 1));
-  const n1 = onRoad(pathAbove());
-  assert.ok(n1 >= row.length - 3, `the path follows the road (${n1} of ${row.length} tiles)`);
-  assert.ok(n0 <= 2, `before the road the path keeps to the row above (${n0} tiles of the row)`);
-  assert.ok(n1 > n0, `the road draws it down (${n0} -> ${n1})`);
+  // A step onto the road takes 0.6 of a plain step (jobs.js uses stepCost); path searches still count it as 1, so
+  // they are as quick as before and the path on even ground is the same one.
+  assert.equal(g.stepCost(a.x, a.y), 0.6);
+  assert.equal(g.moveCost(a.x, a.y), 1);
+  assert.equal(g.stepCost(a.x, a.y - 1), g.moveCost(a.x, a.y - 1), 'other ground: as before');
+  assert.equal(JSON.stringify(findPath(g, a.x, a.y - 1, b.x, b.y - 1)), before, 'the same path');
   const r = reload(g);
   assert.equal(stateText(r), stateText(g));
   assert.ok(row.every((p) => r.terrainAt(p.x, p.y).id === 'core:dirt_road'), 'the road is saved');
