@@ -487,3 +487,9 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Phase 6, slice 3 (rebellion):** a kingdom member's panel lists its grievances (`grievancesOf(g, sid)`, with
   their weights against the threshold of 5). A rebellion is world news naming them. For the player's village, a
   warning when its grievances near the threshold (it never rebels by itself).
+
+## Phase 7, slice 1: roads
+- **Draw roads:** a road tile has the terrain `core:dirt_road` (its own colour #9a8463; style `gravel` for now). It
+  needs a `road` terrain style: a packed-earth band that joins neighbouring road tiles, visible zoomed out.
+- **The road building** (`core:road`) under construction shows as a marked-out tile; once built the terrain is
+  what is drawn (the building need not be drawn over it).

@@ -58,3 +58,24 @@ corridor (to be measured again after roads).
 ## Open points the UI must settle at home
 How roads are drawn (a terrain style `road`), and whether the player can order a road by hand (a civic
 intent like taps, or a god-power-like tool).
+
+## Results
+### Slice 1: roads as a terrain laid by work (built and tested, 2026-11-02)
+- **Built:**
+  - `mods/core/content/roads.json`: the terrain `core:dirt_road` (move cost 0.6), the building `core:road` (1
+    stone, 20 work, walkable) and the template `core:road_run`;
+  - `src/sim/roads.js`: `layRoad` on completion, `liftRoad` on removal, `roadsOf`;
+  - `building.road` in the schema; `structure.under` saved (format 39).
+- **Changed from the design:** the old ground is kept on the road building (`st.under`), not in `s.roads`. A road
+  is a building like a water pipe, so it fits projects and ownership as they are.
+- **A bug found:** the path search's octile estimate assumed every step costs at least 1, so with ground cheaper
+  than 1 it could miss the cheaper road route. The test showed a path ignoring a whole road.
+  - The estimate is now scaled by the cheapest walkable terrain on the map.
+  - The palette holds only terrains present, so the scale stays 1 until a road is laid and every current game is
+    unchanged: classic hashes as before (`forty` 9151d4cab0134351, `modern` 17120b8380963d4a), and the World
+    seed 11 run identical.
+  - Searches in worlds with roads explore a little more; slice 5 measures it.
+- **Tests:** `tests/cloud-roads.test.js`:
+  - a road turns its tile into road and the old ground comes back;
+  - on even ground a path ignores the row before the road and follows it after;
+  - save and load; old and bad saves; the ledger stays whole.
