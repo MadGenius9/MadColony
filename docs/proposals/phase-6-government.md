@@ -80,3 +80,22 @@ changes laws (laws keep their own review).
 - In that run: 23 successions and 4 new rulers in 200 days.
 - **Full hashes** (they include the new fields), proposed with the spreading baselines, awaiting review:
   `forty` 9151d4cab0134351, `modern` 17120b8380963d4a.
+
+### Slice 2: the council (built and tested, 2026-11-02)
+- `src/sim/council.js`: `councilAdvice` (what the council would do; the player's village only gets this),
+  `councilReview` (one village), `tickCouncil` (daily job; each AI village every 10 days at its own offset).
+- Policies moved:
+  - the food reserve (`foodDays`, 2–10);
+  - the wood and stone kept in store (×1.5 steps, up to 3× the profile's, back down after plenty).
+- Each step is a log line and a `core:policy` chronicle event with its reason. A step from a famine links to
+  that famine's memory. The profile's policy object is never edited in place: `settlement.policy` is replaced.
+- State: `settlement.council` (plenty counters), in format 38.
+- Researchers and work allocation are not moved in this slice: there is no clean signal for them yet.
+- Tests: `tests/cloud-council.test.js` (a famine raises the reserve, with its cause; the bound; plenty twice
+  lowers it; waiting buildings raise the wood target; the player's village only gets advice; the profile's
+  object untouched; save and load; bad state refused).
+- **Checks:**
+  - full suite passes;
+  - classic runs unchanged (`forty` 9151d4cab0134351, `modern` 17120b8380963d4a: no AI villages in them);
+  - World seed 11, 200 days: 195 council decisions, 281 people (was 270), 60 of 64 standing (was 57), 25 wars
+    declared (was 46; wars swing between runs); save and load identical.

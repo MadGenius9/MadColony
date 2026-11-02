@@ -481,3 +481,6 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   name opens the person. A small crown on the leader's portrait.
 - **Kingdom panel:** "Ruled by … from …" (`rulerOf(g, kid)`).
 - **News:** a new ruler is world news; a new leader of the player's village (or a followed one) notifies.
+- **Phase 6, slice 2 (the council):** the village panel lists the council's decisions (the `core:policy` events)
+  and the current policy beside the profile's ("Food kept: 6 days (usually 4)"). For the player's village,
+  "The council advises: …" from `councilAdvice(g, sid)`, never applied automatically.
