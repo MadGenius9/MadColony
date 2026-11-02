@@ -194,6 +194,11 @@
       "name": "A new ruler",
       "importance": "milestone",
       "notify": "world"
+    },
+    {
+      "id": "core:policy",
+      "name": "A council decision",
+      "importance": "notable"
     }
   ]
 }
