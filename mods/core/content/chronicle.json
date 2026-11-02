@@ -199,6 +199,12 @@
       "id": "core:policy",
       "name": "A council decision",
       "importance": "notable"
+    },
+    {
+      "id": "core:rebellion",
+      "name": "A rebellion",
+      "importance": "milestone",
+      "notify": "world"
     }
   ]
 }
