@@ -489,9 +489,10 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   warning when its grievances near the threshold (it never rebels by itself).
 
 ## Phase 7, slice 1: roads
-- **Draw roads:** a road tile has the terrain `core:dirt_road` (its own colour #9a8463; style `gravel` for now). It
-  needs a `road` terrain style: a packed-earth band that joins neighbouring road tiles, visible zoomed out.
-- **The road building** (`core:road`) under construction shows as a marked-out tile; once built the terrain is
-  what is drawn (the building need not be drawn over it).
+- **Draw roads:** a road is a walkable building (`core:road`, colour #9a8463; no terrain change). Draw a built one
+  as a packed-earth band that joins neighbouring road tiles, visible zoomed out; one under construction as a
+  marked-out tile.
 - **Phase 7, slice 2:** a village's foot traffic can be shown as a heat overlay (`settlement.traffic`, cells of 4×4
   tiles); the log line "laying a road … where they walk most" can centre the map on the first tile (`at`).
+- **Phase 7, slice 3:** trade roads ("laying a road toward X (a trade pact, N trades)") join villages; the
+  diplomacy panel can show whether a road links two partners.

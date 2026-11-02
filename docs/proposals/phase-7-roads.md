@@ -109,3 +109,33 @@ intent like taps, or a god-power-like tool).
   people, under the minimum, so in today's worlds roads are rare. Roads between villages (slice 3) and bigger
   villages (the scale target's growth decision) are what would make them common. The 3 early tiles were enough
   to set this sensitive world on another course (66 wars declared against 29 before, 3.3 ms a tick on day 200).
+
+### Slice 3: trade roads, and roads changed to change no terrain (built and tested, 2026-11-02)
+- **Trade roads** (`roads.js planTradeRoad`):
+  - a village with a trade pact and at least 3 completed trades with a partner within 160 tiles lays its own
+    part of a road toward it, up to 8 tiles a stretch, on its own land, from its centre;
+  - toward one partner only, the one it trades with most; no minimum of people;
+  - looked at on one day in three, by village, from the tick (no saved state);
+  - `completedTradesBetween` is now exported from villages.js.
+- **The first World run with trade roads went badly, and showed two design faults:**
+  - **A slowdown from 2.7 to 16 ms a tick by day 175** (the run timed out).
+    - First cause: the path estimate scaled to road ground (0.6) made every search explore more. Undone:
+      `path.js` and `tiles.js` are back to the rescue copy.
+    - That was not all. A profile of the world on day 150 (1,194 roads) found **41% of the time in the
+      whole-map water-distance field** (`terrainDistanceField`, `drinkSpots`, `waterWalk`): every road laid changed
+      the terrain, so the field was worked out again.
+  - **Too many roads:** toward every pact partner, 2,182 tiles by day 175.
+- **The design now:**
+  - a road changes no terrain; it is a walkable building whose `road.step` (0.6) is the time a step onto it takes
+    (`game.js stepCost`, read by the walking step);
+  - terrain, path searches, walkable areas and the water maps never see roads, and paths are exactly as without
+    them;
+  - roads are laid where people already walk, so they are used;
+  - the road terrain, `structure.under` and the construction and removal hooks are gone; format 39 now holds only
+    `settlement.traffic`.
+- **Checks:**
+  - full suite passes; classic hashes unchanged from slice 2 (`forty` 95e985761d5b0e93, `modern`
+    a6fd2f92a207fffc, proposed);
+  - World seed 11, 200 days: 2,106 road tiles in 56 villages (most of them trade roads), 249 people, **3.0 ms a
+    tick on day 200** (the usual for this world), save and load identical.
+- **Not done:** distant villages' caravans faster on roads (they travel abstractly); wagons (slice 4).
