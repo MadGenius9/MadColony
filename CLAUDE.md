@@ -21,3 +21,6 @@ design note in docs/proposals/<phase>.md. The next phase is Phase 5 (see the 202
 Every command that can take over a minute runs with a time limit (e.g. `timeout 600 node ...`) and prints
 progress at least every 10 s; runs over 2 minutes go in the background; only one heavy run at a time. On a
 timeout: read the output tail, rerun once alone, then a smaller version, and report what got stuck.
+
+## Shared editing rules
+@AGENTS.md
