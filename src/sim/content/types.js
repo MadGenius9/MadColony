@@ -173,6 +173,7 @@ export const CONTENT_TYPES = {
       // Water: a drinking source (well: clean), or part of a water network: pump (units per hour, needs power),
       // storage (units held), tap (a drinking point fed by the network), pipe (connects neighbours).
       water: obj({ clean: bool(), pump: num(0.1, 10000), storage: int(1, 100000), tap: bool(), pipe: bool() }),
+      road: obj({ terrain: req(ref('terrain')) }), // Phase 7 (roads.js): when built, its tile becomes this terrain; the old ground comes back when it goes
       light: obj({ radius: req(num(1, 20)) }),
       education: obj({ role: req({ type: 'enum', values: ['teacher', 'desk', 'lectern', 'bench'] }) }), // schools (teacher, desk) and lecture halls (lectern, bench)
       // Heating: warms the room it stands in (output: °C per hour for a 10-tile room) while that room is below

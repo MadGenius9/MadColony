@@ -129,6 +129,7 @@ export function validateSave(save) {
     if (e.dur !== undefined && !isNum(e.dur)) bad(`item stack "${k}" has an invalid durability`);
   });
   ent('structures', 'building', (e, k) => {
+    if (e.under !== undefined && !isStr(e.under, 100)) bad(`building "${k}" has an invalid ground under its road`); // format 39
     if (!isStr(e.def, 100)) bad(`building "${k}" has no definition id`);
     if (typeof e.built !== 'boolean') bad(`building "${k}" has no built flag`);
     if (!isObj(e.delivered) || Object.values(e.delivered).some((q) => !isInt(q) || q < 0)) bad(`building "${k}" has invalid delivered materials`);

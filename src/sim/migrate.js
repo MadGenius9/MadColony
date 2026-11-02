@@ -131,6 +131,8 @@ export const MIGRATIONS = {
   // settlement council are optional: absent, a leader is chosen at the next daily check (quietly: a first leader is
   // not news) and the council starts counting.
   37() {},
+  // 38 -> 39: roads (roads.js). structure.under (the ground under a road) is optional: absent, there is no road.
+  38() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

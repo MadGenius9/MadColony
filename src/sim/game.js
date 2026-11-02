@@ -58,6 +58,7 @@ import { tickMemories, rememberPower } from './memories.js'; // Phase 15: memori
 import { tickLeaders } from './leaders.js'; // Phase 6: leaders and succession
 import { tickCouncil } from './council.js'; // Phase 6: the village council
 import { tickRebellion } from './rebellion.js'; // Phase 6: rebellion
+import { liftRoad } from './roads.js'; // Phase 7: roads
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
@@ -839,6 +840,7 @@ export class Game {
   }
   removeStructure(id) {
     const st = this.s.structures[id]; if (!st) return;
+    if (st.under) liftRoad(this, st); // Phase 7: a road's old ground comes back (roads.js)
     delete this.s.structures[id];
     this.ownDel('structures', st); this.structRev = (this.structRev || 0) + 1; this.structsChanged(st, false);
     if (this.structIdAt(this.i(st.x, st.y)) === id) this.setStructId(this.i(st.x, st.y), null);
