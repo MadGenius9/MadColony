@@ -595,7 +595,9 @@ as Phase 2c.
   Phase 5b code 0.485, same machine), mostly from region rebuilds forced by the new trees' trap checks; the
   Phase 5b acceptance timed small maps only.
 
-### Phase 6: government
+### Phase 6: government (design in the cloud copy, 2026-11-02)
+Design: [docs/proposals/phase-6-government.md](proposals/phase-6-government.md). Extends civilization laws, policies,
+kingdoms, mood and the chronicle.
 Village council and policies that change real decisions (food reserves, research, trade, work allocation,
 public building), leadership and succession, laws and taxation; kingdoms (capitals exist since Phase 2)
 get a ruler and succession; member villages can rebel with visible causes. *Also open here (from civic planning):* decor, renovation and
