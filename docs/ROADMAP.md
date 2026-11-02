@@ -508,7 +508,10 @@ storage), slice 5 (factories with delivery areas), slice 6 (abstract production 
 generator sizing for distant villages). Machines come 11–16 days after Electricity in the seed 4242 run
 (iron is short), not "a few days" as planned.
 
-### Phase 4: finish utilities (scale-relevant only)
+### Phase 4: finish utilities (scale-relevant only) (review done in the cloud copy, 2026-11-02)
+Review: [docs/proposals/phase-4-utilities-review.md](proposals/phase-4-utilities-review.md). Heating and water are cheap at
+scale and already work for distant villages; two small leftovers are proposed for Phase 18. Phase 3's slices 5–6
+wait for its design note (home only); its slice 4, power storage, looks done (batteries are in the code).
 Review water, plumbing and heating for cost at scale and add abstract versions for distant villages. Cooling
 and room lighting stay parked. *Already built:* water, wells, lighting, running water, seasons and heating,
 seasonal crops; lamps and taps are civic intents (pipes and power poles stay direct projects on purpose:
