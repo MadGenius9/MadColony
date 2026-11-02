@@ -205,6 +205,11 @@
       "name": "A rebellion",
       "importance": "milestone",
       "notify": "world"
+    },
+    {
+      "id": "core:road",
+      "name": "A road",
+      "importance": "routine"
     }
   ]
 }

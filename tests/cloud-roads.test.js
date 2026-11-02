@@ -69,3 +69,47 @@ test('roads: paths prefer a road; a road saves and loads; old saves load', () =>
   Object.values(bad.state.structures).find((s) => s.under).under = 5;
   assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /road/);
 });
+
+// ---- slice 2: foot traffic and the first roads
+import { countTraffic, fadeTraffic, planRoads, ROAD } from '../src/sim/roads.js';
+
+test('roads: walking people are counted by cell; the counts fade; distant villages are not counted', () => {
+  const g = newGame({ seed: 7, scenario: 'core:vast_world', size: 'vast' });
+  runDays(g, 2);
+  const me = g.s.playerSettlement, far = Object.keys(g.s.settlements).find((k) => g.s.settlements[k].detail === 'abstract');
+  assert.ok(Object.keys(g.s.settlements[me].traffic || {}).length > 0, 'the player\'s village counted its walkers');
+  if (far) assert.equal(g.s.settlements[far].traffic, undefined, 'a distant village counts nothing');
+  const T = g.s.settlements[me].traffic, k = Object.keys(T)[0], v = T[k];
+  fadeTraffic(g);
+  assert.equal(g.s.settlements[me].traffic[k] ?? 0, Math.floor(v * ROAD.decay));
+  assert.ok(Object.keys(T).length <= ROAD.cells);
+});
+
+test('roads: a village lays a stretch of road toward its busiest cell, with its reason; one stretch at a time', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const sid = g.s.playerSettlement, st = g.s.settlements[sid], c = st.center;
+  // A busy cell a little way off (as if many walked there).
+  const k = `${Math.floor((c.x + 14) / ROAD.cell)},${Math.floor(c.y / ROAD.cell)}`;
+  st.traffic = { [k]: ROAD.busy + 10 };
+  const n = planRoads(g, g.plans[sid], sid);
+  assert.ok(n > 0 && n <= ROAD.segment, `a stretch started (${n})`);
+  const line = g.s.log.at(-1);
+  assert.equal(line.kind, 'core:road');
+  assert.match(line.msg, /laying a road \(\d+ sections?\) where they walk most \(\d+ walkers counted there\)/);
+  const roads = Object.values(g.s.structures).filter((b) => b.def === 'core:road');
+  assert.equal(roads.length, n);
+  assert.equal(planRoads(g, g.plans[sid], sid), 0, 'not another while this one is unbuilt');
+  // Below the threshold: nothing.
+  for (const b of roads) g.removeStructure(b.id);
+  st.traffic = { [k]: ROAD.busy - 1 };
+  assert.equal(planRoads(g, g.plans[sid], sid), 0);
+  // Saves and loads; bad counts are refused.
+  st.traffic = { [k]: 12 };
+  const r = reload(g);
+  assert.deepEqual(r.s.settlements[sid].traffic, st.traffic);
+  const bad = JSON.parse(serializeGame(g));
+  bad.state.settlements[sid].traffic = { nonsense: 3 };
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /traffic/);
+  assert.ok(typeof countTraffic === 'function');
+});

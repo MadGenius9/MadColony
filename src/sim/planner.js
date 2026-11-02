@@ -31,6 +31,7 @@ import { marketRules } from './markets.js';
 import { legRemaining, relationPeek, relationStatus } from './villages.js';
 import { LOD, stagger, planOffset } from './lod.js';
 import { travelRules, reachTest, nodesInReach, SLOW_WORK } from './ai/trips.js';
+import { planRoads } from './roads.js'; // Phase 7
 
 export function emptyPlan() {
   return {
@@ -352,6 +353,7 @@ function planSettlement(g, sid) {
   for (const [it, q] of Object.entries(ammoNeed)) D.push({ item: it, qty: q, urgency: 0.35, why: 'Ammunition for armed colonists' });
   planLighting(g, P, sid);
   planPlumbing(g, P, sid);
+  planRoads(g, P, sid); // Phase 7: roads where people walk most (roads.js)
   planHeating(g, P, sid, D);
   planMedical(g, P, sid, D, cols);
   planEducation(g, P, sid);

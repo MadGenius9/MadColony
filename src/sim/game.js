@@ -58,11 +58,11 @@ import { tickMemories, rememberPower } from './memories.js'; // Phase 15: memori
 import { tickLeaders } from './leaders.js'; // Phase 6: leaders and succession
 import { tickCouncil } from './council.js'; // Phase 6: the village council
 import { tickRebellion } from './rebellion.js'; // Phase 6: rebellion
-import { liftRoad } from './roads.js'; // Phase 7: roads
+import { liftRoad, countTraffic, fadeTraffic, ROAD } from './roads.js'; // Phase 7: roads
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
-const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil], ['tickLeaders', tickLeaders], ['tickCouncil', tickCouncil], ['tickRebellion', tickRebellion]];
+const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil], ['tickLeaders', tickLeaders], ['tickCouncil', tickCouncil], ['tickRebellion', tickRebellion], ['fadeTraffic', fadeTraffic]];
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
 const NONE = Object.freeze([]); // an empty list shared by lookups that find nothing (never changed)
@@ -1538,6 +1538,7 @@ export class Game {
     if (this.big) runPlanner(this, true); // big worlds: each village on its own staggered schedule
     else if (s.tick % PLAN_INTERVAL === 0 || this.planDirty) { this.planDirty = false; runPlanner(this); }
     if (s.tick % 10 === 0) tickFarming(this, 10);
+    if (s.tick % ROAD.sample === 0) countTraffic(this); // Phase 7: where people walk (roads.js)
     if (s.tick % 50 === 0 && s.overflow?.length) this.retryOverflow();
     if (s.tick % 600 === 0 && s.orphans?.length) this.restoreOrphans();
     if (s.tick % 50 === 0) tickVillages(this);
