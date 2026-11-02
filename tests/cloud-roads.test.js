@@ -5,6 +5,7 @@ import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservat
 import { completeStructure } from '../src/sim/construction.js';
 import { roadsOf } from '../src/sim/roads.js';
 import { findPath } from '../src/sim/path.js';
+import { relationOf } from '../src/sim/villages.js';
 
 /** A straight row of open ground near the village centre, with even ground (move cost 1) on it and in the row
  *  above (so only a road makes the row cheaper): [{ x, y }] of length n, or null. */
@@ -118,4 +119,37 @@ test('roads: a village lays a stretch of road toward its busiest cell, with its 
   bad.state.settlements[sid].traffic = { nonsense: 3 };
   assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /traffic/);
   assert.ok(typeof countTraffic === 'function');
+});
+
+// ---- slice 3: trade roads
+import { TRADE_ROAD } from '../src/sim/roads.js';
+import { TICKS_PER_DAY } from '../src/sim/constants.js';
+
+test('roads: villages with a trade pact and trades between them lay their part of a road toward each other', () => {
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 2);
+  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  const rel = relationOf(g, a, b);
+  rel.contact = true;
+  const key = [a, b].sort().join('|');
+  const plan = () => { for (let d = 0; d < TRADE_ROAD.everyDays; d++) { const n = planRoads(g, g.plans[a], a); if (n) return n; g.s.tick += TICKS_PER_DAY; } return 0; };
+  // No pact: nothing.
+  rel.tradesDone = TRADE_ROAD.trades;
+  assert.equal(plan(), 0, 'no pact, no trade road');
+  // A pact but too few trades: nothing.
+  (g.s.treaties ||= {})[key] = { kind: 'tradePact', a: [a, b].sort()[0], b: [a, b].sort()[1], since: g.s.tick, lastTrade: g.s.tick };
+  rel.tradesDone = TRADE_ROAD.trades - 1;
+  assert.equal(plan(), 0, 'too few trades');
+  // A pact and enough trades: a stretch, on its own land, with the reason.
+  rel.tradesDone = TRADE_ROAD.trades;
+  const n = plan();
+  assert.ok(n > 0, 'a stretch of trade road');
+  const roads = Object.values(g.s.structures).filter((x) => x.def === 'core:road' && x.settlement === a);
+  assert.equal(roads.length, n);
+  assert.ok(roads.every((x) => g.claimOk(a, x.x, x.y)), 'on its own land');
+  const line = g.s.log.at(-1);
+  assert.equal(line.kind, 'core:road');
+  assert.deepEqual(line.sids, [a, b].sort());
+  assert.match(line.msg, /laying a road toward .* \(\d+ sections?; a trade pact, \d+ trades\)/);
+  assert.ok(g.owned('colonists', a).length < 8, 'no minimum of people for a trade road');
 });

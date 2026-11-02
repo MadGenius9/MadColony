@@ -896,6 +896,7 @@ function completedTradesBetween(g, a, b, done = null) {
   return Object.values(g.s.trades || {}).filter((t) => t.status === 'done' && ((t.seller === a && t.buyer === b) || (t.seller === b && t.buyer === a))).length
     + (relationPeek(g, a, b).tradesDone || 0);
 }
+export { completedTradesBetween }; // roads.js: trade roads
 /** Completed trades per pair (relKey), counted once: for the daily pass over every pair (aiDiplomacy). */
 function completedTradeCounts(g) {
   const m = new Map();

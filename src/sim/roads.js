@@ -4,6 +4,8 @@
 // format 39) and comes back when the road is removed (game.js removeStructure). Nothing in the path code changes.
 import { findPath } from './path.js';
 import { createProject, tileUsable } from './construction.js';
+import { hasPact, completedTradesBetween } from './villages.js';
+import { TICKS_PER_DAY } from './constants.js';
 
 /** Construction finished a road (construction.js completeStructure): its tile becomes road. */
 export function layRoad(g, st) {
@@ -62,12 +64,18 @@ const roadOpen = (g, x, y, sid) => g.inB(x, y) && tileUsable(g, x, y, sid) && g.
 
 /** The planner (planner.js planSettlement): maybe lay the next stretch of road. Returns the tiles started, or 0. */
 export function planRoads(g, P, sid) {
-  const s = g.s, st = s.settlements?.[sid], T = st?.traffic;
-  if (!T || st.fallen || g.owned('colonists', sid).length < ROAD.minPeople) return 0;
+  const s = g.s, st = s.settlements?.[sid];
+  if (!st || st.fallen) return 0;
   const tpl = g.reg.get('template', 'core:road_run'), roadTerrain = g.reg.get('building', 'core:road')?.road?.terrain;
   if (!tpl || !roadTerrain) return 0;
   const mine = g.owned('structures', sid).filter((b) => g.bDef(b)?.road);
   if (mine.some((b) => !b.built) || mine.length >= ROAD.max) return 0; // one stretch at a time; a cap
+  return planLocalRoad(g, sid, st, tpl, roadTerrain, mine) || planTradeRoad(g, sid, st, tpl, roadTerrain, mine);
+}
+
+function planLocalRoad(g, sid, st, tpl, roadTerrain, mine) {
+  const s = g.s, T = st.traffic;
+  if (!T || g.owned('colonists', sid).length < ROAD.minPeople) return 0;
   const c = st.center || s.center;
   let best = null;
   for (const k of Object.keys(T).sort()) {
@@ -88,4 +96,37 @@ export function planRoads(g, P, sid) {
   for (const p of tiles) createProject(g, tpl, { x: p.x, y: p.y, rot: 0 }, { urgency: 0.3, why: 'Road', owner: sid });
   g.log(`The colonists of ${st.name} are laying a road (${tiles.length} section${tiles.length === 1 ? '' : 's'}) where they walk most (${best.n} walkers counted there).`, 'build', null, 0, { kind: 'core:road', sids: [sid], at: tiles[0] });
   return tiles.length;
+}
+
+// ---------- trade roads (slice 3) ----------
+// A village with a trade pact and at least TRADE_ROAD.trades completed trades with a partner within TRADE_ROAD.range
+// tiles lays its own part of a road toward it: up to ROAD.segment tiles a stretch, on its own land, starting from its
+// centre. No minimum of people (a trade road serves both villages). Looked at on one day in TRADE_ROAD.everyDays
+// (by village, from the tick: no saved state), as the long path search is not cheap.
+export const TRADE_ROAD = Object.freeze({ trades: 3, range: 160, everyDays: 3, nodes: 60000 });
+const hash = (str) => { let h = 2166136261; for (const ch of String(str)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
+
+function planTradeRoad(g, sid, st, tpl, roadTerrain, mine) {
+  const s = g.s, day = Math.floor(s.tick / TICKS_PER_DAY);
+  if ((day + (hash(sid) % TRADE_ROAD.everyDays)) % TRADE_ROAD.everyDays) return 0;
+  const c = st.center || s.center;
+  for (const o of Object.keys(s.settlements).sort()) {
+    const ot = s.settlements[o];
+    if (o === sid || ot.fallen || !ot.center || !hasPact(g, sid, o) || completedTradesBetween(g, sid, o) < TRADE_ROAD.trades) continue;
+    if (Math.hypot(ot.center.x - c.x, ot.center.y - c.y) > TRADE_ROAD.range) continue;
+    const path = findPath(g, c.x, c.y, ot.center.x, ot.center.y, 'adj', TRADE_ROAD.nodes);
+    if (!path?.length) continue;
+    const tiles = [];
+    for (const p of path) {
+      if (tiles.length >= Math.min(ROAD.segment, ROAD.max - mine.length)) break;
+      if (g.terrainAt(p.x, p.y).id === roadTerrain) continue; // already road (theirs or ours)
+      if (g.claimOk(sid, p.x, p.y) && roadOpen(g, p.x, p.y, sid)) tiles.push(p);
+    }
+    if (!tiles.length) continue;
+    for (const p of tiles) createProject(g, tpl, { x: p.x, y: p.y, rot: 0 }, { urgency: 0.3, why: 'Trade road', owner: sid });
+    const n = completedTradesBetween(g, sid, o);
+    g.log(`The colonists of ${st.name} are laying a road toward ${ot.name} (${tiles.length} section${tiles.length === 1 ? '' : 's'}; a trade pact, ${n} trades).`, 'build', null, 0, { kind: 'core:road', sids: [sid, o], at: tiles[0] });
+    return tiles.length;
+  }
+  return 0;
 }
