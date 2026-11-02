@@ -255,3 +255,14 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   day 44.41). World seed 11, 200 days: 270 people, 46 wars declared, 57 of 64 standing; save/load identical.
 - Grown world (868 people): slowest tick 248 → 113 ms, p99 59 → 45 ms, p95 24 → 25 ms (above 16.7: steady load).
   Details: `docs/proposals/spread-the-peaks.md`.
+
+## Diff guard review of the cloud work (2026-11-02, `npm run check-diff`)
+- `--base 81b7774 --head HEAD` (Phase 12 onward): 85 files, 0 requiring review, after one repair:
+  `mods/core/content/mood.json` had been reserialized in Phase 15 (line endings changed); its CRLF bytes are
+  restored and only the two added thoughts remain.
+- `--base f59ef7d --head HEAD` (the whole rescue copy): 180 files, 2 flagged as "mixed line endings increased":
+  `src/sim/kingdoms.js` and `.claude/agents/verifier.md`.
+  - Both were already mixed in the rescue copy: a CRLF block, then an LF block (kingdoms.js 104 + 105 lines,
+    verifier.md 27 + 4).
+  - The added lines follow the block they sit in; no line has an ending different from both its neighbours.
+  - Reviewed, left as they are: changing them would be the churn the rules forbid.
