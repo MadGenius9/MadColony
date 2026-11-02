@@ -83,15 +83,35 @@ export function pupils(g, sid) {
 
 // ---------------- daily upkeep ----------------
 /** Practice earns qualifications; founders count as schooled; colleges get a trainee when staff are short. */
+// The qualifications earned by practice, in registry order, once per registry (a registry never changes once built):
+// tickEducation copied the whole list for every person every hour (the scale target).
+const PRACTISED = new WeakMap();
+function practiceQuals(g) {
+  let l = PRACTISED.get(g.reg);
+  if (!l) PRACTISED.set(g.reg, (l = g.reg.all('qualification').filter((q) => q.practice)));
+  return l;
+}
+// Does village sid have a built lecture hall? Kept until a building is added, removed or finished (structRev,
+// builtRev, as power.js and water.js); derived, never saved. Asked of every village every hour.
+const HALLS = new WeakMap();
+function hasHall(g, sid) {
+  const key = `${g.structRev || 0}|${g.builtRev || 0}`;
+  let c = HALLS.get(g.s);
+  if (!c || c.key !== key) { c = { key, by: new Map() }; HALLS.set(g.s, c); }
+  if (!c.by.has(sid)) c.by.set(sid, g.owned('structures', sid).some((b) => b.built && roleOf(g, b) === 'lectern'));
+  return c.by.get(sid);
+}
+
 export function tickEducation(g) {
   if (g.s.tick % 100) return;
   const s = g.s;
   const schooled = g.reg.get('qualification', 'core:schooled');
+  const practised = practiceQuals(g);
   for (const c of Object.values(s.colonists)) {
     if (schooled && isAdult(g, c) && (c.bornTick === undefined || c.bornTick === null) && !hasQual(c, schooled.id)) c.quals = [...qualsOf(c), schooled.id]; // grew up elsewhere
     if (!isAdult(g, c)) continue;
-    for (const q of g.reg.all('qualification')) {
-      if (!q.practice || hasQual(c, q.id)) continue;
+    for (const q of practised) {
+      if (hasQual(c, q.id)) continue;
       if ((c.skills[q.practice.skill] || 0) >= q.practice.level) grantQual(g, c, q.id, 'practice');
     }
   }
@@ -106,8 +126,7 @@ function assignTrainee(g, sid) {
     if (!c || hasQual(c, tr.qual) || !isAdult(g, c)) st.training = null;
     else return;
   }
-  const hall = g.owned('structures', sid).some((b) => b.built && roleOf(g, b) === 'lectern');
-  if (!hall) return;
+  if (!hasHall(g, sid)) return;
   const short = staffing(g, sid).filter((x) => x.short > 0 && g.reg.get('qualification', x.qual)?.course);
   if (!short.length) return;
   const q = g.reg.get('qualification', short[0].qual);

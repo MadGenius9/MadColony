@@ -35,15 +35,18 @@ function countBeds(g, list) {
   for (const b of list) if (b.built && g.bDef(b)?.bed && !g.bDef(b).medical) { const k = b.settlement || g.s.playerSettlement; beds.set(k, (beds.get(k) || 0) + 1); }
   return beds;
 }
-// Beds per village for the whole world, kept until a building is added, removed or finished (structRev, builtRev:
-// the key power.js, water.js and lod.js already use). Derived, never saved. Counting them every hour went over
-// every building in the world (the scale target: 16 ms an hour in a world of 23,500 buildings).
+// Built beds per village, kept until a building is added, removed or finished (structRev, builtRev: the key
+// power.js, water.js and lod.js already use); derived, never saved. Each village is recounted from its own
+// buildings only when it is asked about after a change (the whole world was recounted at every change: about 4% of
+// a big world's ticks paid 16 ms for it; the scale target).
 const BEDS = new WeakMap();
-function bedCounts(g) {
+function bedsOf(g, sid) {
   const key = `${g.structRev || 0}|${g.builtRev || 0}`;
   let c = BEDS.get(g.s);
-  if (!c || c.key !== key) { c = { key, beds: countBeds(g, Object.values(g.s.structures)) }; BEDS.set(g.s, c); }
-  return c.beds;
+  if (!c) { c = new Map(); BEDS.set(g.s, c); }
+  let e = c.get(sid);
+  if (!e || e.key !== key) { e = { key, n: countBeds(g, g.owned('structures', sid)).get(sid) || 0 }; c.set(sid, e); }
+  return e.n;
 }
 
 /** Facts about every village for one pass: { sid: { laws, war, death, crowded } }. O(villages^2 + dead + buildings). */
@@ -52,7 +55,7 @@ export function villageFacts(g, only = null) {
   const laws = g.reg.all('civLaw');
   const recent = new Set();
   for (const d of Object.values(s.dead || {})) if (s.tick - (d.tick ?? -1e9) < MOOD.deathDays * TICKS_PER_DAY && d.settlementId) recent.add(d.settlementId);
-  const beds = bedCounts(g); // the same counts as the village's own buildings give, cached
+
   for (const sid of sids) {
     if (s.settlements[sid].fallen) continue;
     // The laws' mood, from the defaults (so a village with no laws reads 0), by option; a people's own leanings
@@ -63,7 +66,7 @@ export function villageFacts(g, only = null) {
       code, lean: leaningsOf(g, sid),
       war: all.some((o) => o !== sid && isEnemy(g, sid, o)),
       death: recent.has(sid),
-      crowded: g.owned('colonists', sid).length > (beds.get(sid) || 0),
+      crowded: g.owned('colonists', sid).length > bedsOf(g, sid),
     };
   }
   return out;

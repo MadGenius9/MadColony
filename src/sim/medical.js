@@ -82,7 +82,10 @@ export function treatmentNeeds(g, c) {
 /** Medical beds of a settlement, and who occupies them. */
 export function medicalBeds(g, sid) {
   const beds = g.owned('structures', sid).filter((st) => st.built && g.bDef(st)?.medical);
-  const used = new Set(Object.values(g.s.colonists).map((c) => c.medBedId).filter(Boolean));
+  // Who lies in these beds (anyone; usually the village's own): the shared list of everyone, only when there are
+  // beds (it copied every person's bed into a new set at each call, for every village planned: the scale target).
+  const used = new Set();
+  if (beds.length) { const ids = new Set(beds.map((b) => b.id)); for (const c of g.colonistList()) if (c.medBedId && ids.has(c.medBedId)) used.add(c.medBedId); }
   return { beds, free: beds.filter((b) => !used.has(b.id) && !g.isReserved('medbed:' + b.id)), used };
 }
 /** Count of an item kind (by tag) available to a settlement: stockpile stacks and medicine cabinets. */
