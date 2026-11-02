@@ -844,12 +844,34 @@ export class Game {
   addCrop(defId, x, y, fieldId) {
     const id = this.newId('p');
     this.s.crops[id] = { id, def: defId, x, y, growth: 0, fieldId };
+    this.cropAdded(this.s.crops[id]);
     this.setCropId(this.i(x, y), id);
     return this.s.crops[id];
+  }
+  /** Crops by the village owning their field, each list in the order Object.values(s.crops) gives them; derived,
+   *  never saved; built on first use, then kept up to date as crops come and go (the planner's growing-food count
+   *  went over every crop in the world for each plan: the scale target). */
+  cropsBy(sid) {
+    if (!this._cropsBy || this._cropsBy.s !== this.s) {
+      const by = new Map();
+      for (const cr of Object.values(this.s.crops)) { const k = this.s.fields?.[cr.fieldId]?.settlement || this.s.playerSettlement; let l = by.get(k); if (!l) by.set(k, (l = [])); l.push(cr); }
+      this._cropsBy = { s: this.s, by };
+    }
+    return this._cropsBy.by.get(sid) || [];
+  }
+  cropAdded(cr) {
+    if (!this._cropsBy || this._cropsBy.s !== this.s) return;
+    const k = this.s.fields?.[cr.fieldId]?.settlement || this.s.playerSettlement, by = this._cropsBy.by;
+    let l = by.get(k); if (!l) by.set(k, (l = [])); l.push(cr);
+  }
+  cropGone(cr) {
+    if (!this._cropsBy || this._cropsBy.s !== this.s) return;
+    for (const l of this._cropsBy.by.values()) { const i = l.indexOf(cr); if (i >= 0) { l.splice(i, 1); return; } }
   }
   removeCrop(id) {
     const c = this.s.crops[id]; if (!c) return;
     delete this.s.crops[id];
+    this.cropGone(c);
     if (this.cropIdAt(this.i(c.x, c.y)) === id) this.setCropId(this.i(c.x, c.y), null);
   }
 
@@ -1262,7 +1284,7 @@ export class Game {
         if (!reg.has('crop', d.def)) return false;
         const i = at(d.x, d.y); if (i < 0) return 'outside the map';
         if (this.cropIdAt(i) || this.nodeIdAt(i) || this.structIdAt(i)) return 'its tile is occupied';
-        s.crops[d.id] = d; this.setCropId(i, d.id); return true;
+        s.crops[d.id] = d; this.setCropId(i, d.id); this.cropAdded(d); return true;
       }
       case 'field': {
         if (!reg.has('crop', d.crop)) return false;

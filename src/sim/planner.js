@@ -221,8 +221,8 @@ function planSettlement(g, sid) {
     if (reg.itemHasTag(it, 'core:meal')) P.mealCount += q;
   }
   let growNutr = 0;
-  for (const cr of Object.values(s.crops)) {
-    if (!own(s.fields[cr.fieldId])) continue;
+  for (const cr of g.cropsBy(sid)) { // its own fields' crops, in the order Object.values(s.crops) gives them (game.js)
+    if (s.crops[cr.id] !== cr || !own(s.fields[cr.fieldId])) continue;
     const d = reg.get('crop', cr.def);
     if (d) for (const h of d.harvest) growNutr += h.qty * (reg.get('item', h.item)?.nutrition || 0);
   }
