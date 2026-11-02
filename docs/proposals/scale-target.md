@@ -154,3 +154,38 @@ Profiled from the saved end of the fast-growth run (`SCALE_SAVE`, then `load` wi
   (`growthBySize.world`: chance 0.8, gap 2 days, cap 24, up to 3 births a village a day) and raise its village
   limit (64) if the target of thousands still needs it. Spreading the daily jobs changes the order things happen
   in, so it needs its own design note and new classic hashes.
+
+## 11. The grown world's steady load (2026-11-02)
+After the spreading (`docs/proposals/spread-the-peaks.md`), the grown world's p95 tick stayed near 24–25 ms,
+above the 16.7 ms budget. Which ticks are slow (2 days, 609 of 4,800 ticks over 16.7 ms):
+- **Minute 0 of each hour** averaged 46 ms. Its jobs, timed alone:
+  - education 9.9 ms (now 5.1);
+  - village upkeep (`tickVillages`) 4.7 ms;
+  - regrowth 3.7 ms;
+  - farming 2.6 ms (every 10 ticks).
+- **About 20 other minutes** averaged 12–21 ms. These are distant villages replanning. Each distant village
+  plans every 600 ticks at its own offset, so with 62 villages about every tenth tick carries a plan:
+  - one plan costs 7.7 ms on average and up to 27 ms for a 24-person village;
+  - inside it, `planSettlement` itself takes 15%, the plumbing route search 10% (`pipePath`, a search of up to
+    4,000 tiles when a water network is not joined), and `medicalBeds` 3%.
+- **Hours 0, 6, 12 and 18** have more slow ticks: the 6-hour planning cycle.
+
+**Fixed (same answers, gameplay unchanged):**
+- education's qualification list is looked up once;
+- lecture halls are cached on `structRev|builtRev`;
+- mood's bed counts recount only the village asked about;
+- `medicalBeds` no longer copies everyone's bed into a set.
+
+The classic hashes stay the proposed ones (`forty` 370a3135216012bd, `modern` 78fc7e9b0909c987), and the World
+seed 11 run is identical.
+
+**Result:** the p95 did not move beyond noise (24–25.5 ms). It is set by the planner's cost per distant village,
+not by the hourly jobs.
+
+**Next options for the planner** (each needs care, and possibly the owner's Phase 18 review):
+- (a) make one plan cheaper: profile `planSettlement`'s body, and remember a failed pipe search until the ground
+  near the network changes;
+- (b) split a distant village's plan over several ticks;
+- (c) plan distant villages less often (a behaviour change).
+
+Growth stays off until the grown world meets its target.
