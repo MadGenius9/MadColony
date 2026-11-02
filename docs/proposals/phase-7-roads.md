@@ -169,3 +169,22 @@ intent like taps, or a god-power-like tool).
     e60c658d08cab7f1 (proposed) because researchers twice pick Wheelwrighting, for 15 to 30 ticks each time,
     before a goal switches them away.
 - **Not done:** horses (taming is Phase 9); faster caravans for distant villages.
+
+### Slice 5: acceptance (2026-11-02)
+- **World seed 11, 200 days** (`tools/cloud-world-run.mjs 200 world 11 25 100`, which now also counts carts):
+  - 241 people in 67 villages; 1,978 road tiles built in 49 villages (23 planned), most of them trade roads;
+  - 2.6 ms a tick on day 200 (2.1 on day 175), worst tick 565 ms;
+  - the save on day 100 loaded identically and ran a day identically; no conservation errors.
+  - **0 handcarts:** AI villages are capped at 6 people, so none reaches the 8 adults that want carts. Carts are
+    built and tested, but are not seen in today's worlds until villages grow (the growth decision in
+    `scale-target.md`).
+- **Bench** (`tools/bench.js`, defaults, two runs each, against 774aa2b, the code before Phase 7):
+  - ms/tick +5% to +8% for most sizes; large with 5 villages −3%;
+  - small with 3 villages +13% in the first pair; 4 more pairs gave +9% on average (0.366 to 0.400 ms).
+  - The bench worlds lay a road or two (built 168 against 167). The rest is the foot-traffic count every 10 ticks
+    and the road lookup in each step.
+  - This is under the 10% bar, and is recorded here.
+- **Travel times:** a step onto a road takes 0.6 of a plain step. Roads are laid along the paths people take, so
+  those paths are 40% quicker where they are paved. No before-and-after timing of whole trips was measured.
+- **Path cache and corridor:** roads change no path, so the corridor question is the same as in Phase 1 and stays
+  parked.

@@ -606,9 +606,21 @@ get a ruler and succession; member villages can rebel with visible causes. *Also
 storage-hub growth moved onto civic intents, and civic budgets (per-category project caps as views over
 existing stock, never a second inventory), since public-building policy decides them.
 
-### Phase 7: roads and transport (design in the cloud copy, 2026-11-02)
-Design: [docs/proposals/phase-7-roads.md](proposals/phase-7-roads.md): roads as a terrain laid by work, planned from
-foot traffic; wagons and cargo in later slices.
+### Phase 7: roads and transport (Done in the cloud copy, 2026-11-02; the UI is home work)
+Design and results: [docs/proposals/phase-7-roads.md](proposals/phase-7-roads.md).
+
+- **Done:**
+  - roads are walkable buildings (`road.step` 0.6) and change no terrain;
+  - villages of 8 or more lay them from their foot traffic; villages with a trade pact and 3 trades lay them
+    toward their main partner;
+  - handcarts (Wheelwrighting): several piles a trip, slow off roads;
+  - save formats 39 and 40.
+- **Acceptance** (World seed 11, 200 days): 1,978 road tiles in 49 villages, 2.6 ms a tick on day 200, save and
+  load identical; 0 carts (no village there has 8 adults and the research). Bench +6–9% against the code before
+  Phase 7, under the 10% bar. Proposed classic hashes: `forty` 95e985761d5b0e93, `modern` e60c658d08cab7f1.
+- **Carried over:** horses and vehicles; faster distant caravans on roads; storage and warehouses; the path
+  cache and corridor (not needed: roads do not change paths).
+
 Roads from real travel demand within and between villages; walking, then horses and wagons, then vehicles
 via research; cargo tracked from loading to delivery; roads visible zoomed out. Larger buildings only as
 needed for warehouses and factories. *Also open here:* storage reorganisation (category zones, safe moves)
