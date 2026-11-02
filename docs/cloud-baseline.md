@@ -260,9 +260,10 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - `--base 81b7774 --head HEAD` (Phase 12 onward): 85 files, 0 requiring review, after one repair:
   `mods/core/content/mood.json` had been reserialized in Phase 15 (line endings changed); its CRLF bytes are
   restored and only the two added thoughts remain.
-- `--base f59ef7d --head HEAD` (the whole rescue copy): 180 files, 2 flagged as "mixed line endings increased":
-  `src/sim/kingdoms.js` and `.claude/agents/verifier.md`.
-  - Both were already mixed in the rescue copy: a CRLF block, then an LF block (kingdoms.js 104 + 105 lines,
-    verifier.md 27 + 4).
-  - The added lines follow the block they sit in; no line has an ending different from both its neighbours.
-  - Reviewed, left as they are: changing them would be the churn the rules forbid.
+- `--base f59ef7d --head HEAD` (the whole rescue copy): 180 files; two "mixed line endings increased" findings,
+  both fixed (each file was already a CRLF block followed by an LF block in the rescue copy):
+  - `src/sim/kingdoms.js`: one line in the LF block (line 105, the `joinKingdom` call, edited in Phase 5) had been
+    rewritten with CRLF; it is LF again.
+  - `.claude/agents/verifier.md`: the cloud paragraph added at its end (lines 32–36) was LF in a file that is
+    otherwise CRLF but for its 4-line tail; those added lines are now CRLF, and the original lines are untouched.
+  - After the fixes: 180 files, 0 requiring review.
