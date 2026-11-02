@@ -475,3 +475,9 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Law panel (AI villages):** a law a tradition leans to shows "(tradition: Frugal)" beside the leaning.
 - **Prayers list:** a Devout village's prayer shows its longer time.
 - **News:** a new tradition in the player's village (or a followed one) notifies.
+
+## Phase 6, slice 1: leaders
+- **Village panel:** "Led by Ulla (the eldest) since day 12" (`leaderOf(g, sid)`: name, rule, since); clicking the
+  name opens the person. A small crown on the leader's portrait.
+- **Kingdom panel:** "Ruled by … from …" (`rulerOf(g, kid)`).
+- **News:** a new ruler is world news; a new leader of the player's village (or a followed one) notifies.

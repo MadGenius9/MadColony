@@ -66,3 +66,17 @@ changes laws (laws keep their own review).
 3. Rebellion with grievances; tests.
 4. Acceptance: a World run (leaders change, policies move for clear reasons, rebellions are rare and
    explained), save and load, classic runs, bench, docs and UI notes.
+
+## Results
+### Slice 1: leaders and succession (built and tested, 2026-11-02)
+- `src/sim/leaders.js`: `chooseLeader`, `tickLeaders` (daily, the last day-start job), `leaderOf`, `rulerOf`.
+- `people.leader` in `peoples.json`: Hearthfolk and Duneshade the eldest, Reedkin the wisest, Cragborn the
+  bravest. Chronicle kinds `core:leader` (news for the player's village) and `core:ruler` (world news). Save
+  format 38.
+- Tests: `tests/cloud-leaders.test.js`.
+- **Gameplay unchanged** (leaders decide nothing yet): the hash without the log and the new fields is equal to
+  the code before (`forty` daf1398fa99f1205), and the World seed 11 run's day-200 numbers are identical (270
+  people, 46 wars declared, the same traditions).
+- In that run: 23 successions and 4 new rulers in 200 days.
+- **Full hashes** (they include the new fields), proposed with the spreading baselines, awaiting review:
+  `forty` 9151d4cab0134351, `modern` 17120b8380963d4a.
