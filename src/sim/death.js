@@ -99,7 +99,7 @@ export function killColonist(g, c, kind = null, opts = {}) {
   try {
     const x = Math.round(c.x), y = Math.round(c.y);
     if (c.carry) { g.placeItems(c.carry.item, c.carry.qty, x, y, c.carry.dur); c.carry = null; }
-    for (const slot of ['tool', 'weapon']) {
+    for (const slot of ['tool', 'weapon', 'cart']) {
       const e = c.equip?.[slot];
       if (e) { g.placeItems(e.item, 1, x, y, e.dur); c.equip[slot] = null; }
     }

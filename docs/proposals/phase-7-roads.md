@@ -139,3 +139,33 @@ intent like taps, or a god-power-like tool).
   - World seed 11, 200 days: 2,106 road tiles in 56 villages (most of them trade roads), 249 people, **3.0 ms a
     tick on day 200** (the usual for this world), save and load identical.
 - **Not done:** distant villages' caravans faster on roads (they travel abstractly); wagons (slice 4).
+
+### Slice 4: handcarts (built and tested, 2026-11-02)
+- **Built:**
+  - content (`roads.json`):
+    - the tech Wheelwrighting (industry, after Ironworking, 2600 research);
+    - the item `core:handcart` (equipment slot `cart`: carry 3, offRoad 1.25, durability 400);
+    - the recipe "Make handcart" (workbench: 16 wood, 3 iron).
+  - a third equipment slot, `equip.cart` (format 40; absent means none, so new colonists and old saves are
+    unchanged). It is counted in the census and in inventoryOf, dropped at death, and set aside on load if its
+    mod is gone.
+  - a hauler with a cart:
+    - carries `carry` × the usual load (`carryLimit(item, c)`, still at most a stack);
+    - on a stockpile haul, also takes up to 3 more piles of the same item within 6 tiles (`moreLoads`, each one
+      reserved; haul job `more`, `loads`). Loose piles are small (at most 12 in the classic colony on day 1), so a
+      higher limit alone did nothing; this was found by the test.
+  - each trip wears the cart by one; worn out, it leaves the ledger as worn.
+  - loaded, a step off a road takes 1.25 times as long, and a road step is the same as without a cart (`stepCost`),
+    so carts pay where there are roads.
+  - the planner (`cartWants`): a full-detail village of at least 8 adults wants one cart for every 6 adults. The
+    carts go first to people who already have one, then by id, and never to anyone with hauling switched off. The
+    reason shown is "A handcart for P to haul with".
+- **Cargo:** a load stays in the colonist's `carry`, as before (the census counts it once), so there is no new
+  cargo store to keep in step.
+- **Checks:**
+  - 5 tests in `tests/cloud-carts.test.js`;
+  - `forty` unchanged (95e985761d5b0e93);
+  - `modern`: the same techs on the same ticks and the modern era on day 44.41. The hash changes to
+    e60c658d08cab7f1 (proposed) because researchers twice pick Wheelwrighting, for 15 to 30 ticks each time,
+    before a goal switches them away.
+- **Not done:** horses (taming is Phase 9); faster caravans for distant villages.

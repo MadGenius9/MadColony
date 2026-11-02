@@ -267,3 +267,10 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   - `.claude/agents/verifier.md`: the cloud paragraph added at its end (lines 32–36) was LF in a file that is
     otherwise CRLF but for its 4-line tail; those added lines are now CRLF, and the original lines are untouched.
   - After the fixes: 180 files, 0 requiring review.
+
+## Phase 7 proposed baselines (2026-11-02, awaiting the owner's review)
+- Roads (slices 2–3; the classic colony counts foot traffic but lays no roads): `forty` 95e985761d5b0e93
+  (workshops era on day 7.39), `modern` a6fd2f92a207fffc (modern era on day 44.41).
+- Handcarts (slice 4): `forty` unchanged; `modern` e60c658d08cab7f1. The techs and their ticks are the same and
+  the modern era still starts on day 44.41. Researchers twice pick the new Wheelwrighting tech, for 15 to 30 ticks
+  each time, before a goal switches them away. A save diff shows nothing else.

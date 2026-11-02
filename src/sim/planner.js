@@ -31,7 +31,7 @@ import { marketRules } from './markets.js';
 import { legRemaining, relationPeek, relationStatus } from './villages.js';
 import { LOD, stagger, planOffset } from './lod.js';
 import { travelRules, reachTest, nodesInReach, SLOW_WORK } from './ai/trips.js';
-import { planRoads } from './roads.js'; // Phase 7
+import { planRoads, cartWants } from './roads.js'; // Phase 7
 
 export function emptyPlan() {
   return {
@@ -339,6 +339,7 @@ function planSettlement(g, sid) {
     }
   }
   for (const sp of ctx.spares) D.push(sp);
+  for (const d of cartWants(g, sid, cols.filter((c) => isAdultP(g, c)), P.stock)) D.push(d); // handcarts for haulers (roads.js)
   // Carcasses spoil: their meat (or hide) is wanted at once, so they are butchered (Phase 8).
   for (const [it, q] of Object.entries(P.stock)) {
     if (q <= 0 || !reg.get('item', it)?.tags?.includes('core:carcass')) continue;

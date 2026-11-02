@@ -24,6 +24,7 @@ import { droughtAt } from '../weatherat.js';
 import { modsOf } from '../peoples.js';
 import { rationOf, RATION } from '../civlaws.js';
 import { noteMeal, moodWork } from '../mood.js';
+import { wearCart } from '../roads.js';
 
 const UNTREATED_ILLNESS = 0.03; // chance per drink of untreated water
 const POWER_WAIT = 300; // ticks a colonist waits at an unpowered machine before giving up for now
@@ -116,7 +117,7 @@ export function travel(g, c, job, tx, ty, mode, what) {
   }
   c.path.shift();
   const diag = n.x !== c.x && n.y !== c.y;
-  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round((MOVE_TICKS * (diag ? 1.41 : 1) * g.stepCost(n.x, n.y)) / modsOf(g, c).walk)) }; // quick people and walkers (peoples.js)
+  c.mv = { fx: c.x, fy: c.y, t: 0, dur: Math.max(1, Math.round((MOVE_TICKS * (diag ? 1.41 : 1) * g.stepCost(n.x, n.y, c)) / modsOf(g, c).walk)) }; // quick people and walkers (peoples.js)
   c.x = n.x; c.y = n.y;
   return false;
 }
@@ -156,18 +157,25 @@ function roughIfBedTooFar(g, c, j) {
 export const DRIVERS = {
   // Haul a stack to the stockpile or to a construction site.
   haul: {
-    valid(g, c, j) { return j.stage === 'dst' ? !!c.carry : !!g.s.stacks[j.stackId]; },
+    valid(g, c, j) { return j.stage === 'dst' ? !!c.carry : !!g.s.stacks[j.stackId] || !!(j.loads && c.carry); },
     tick(g, c, j) {
       const itemName = g.reg.get('item', j.item)?.name || j.item;
       if (j.stage === 'src') {
         const st = g.s.stacks[j.stackId];
+        if (!st && j.loads && c.carry) { g.release(j, (x) => x.k === 'q' && x.key === j.stackId); j.stage = 'dst'; return 'running'; } // a further pile for the cart is gone: on with what is loaded
         if (!st) return { fail: `${itemName} is no longer there` };
         const r = go(g, c, j, st.x, st.y, 'on', itemName);
         if (r !== 'arrived') return r === 'moving' ? 'running' : r;
         g.release(j, (x) => x.k === 'q' && x.key === j.stackId);
         const got = g.takeFromStack(j.stackId, j.qty);
-        if (!got || got.qty <= 0) return { fail: `${itemName} is no longer there` };
-        c.carry = got;
+        if (j.loads && c.carry) { if (got?.qty > 0) c.carry.qty += got.qty; } // a further pile onto the cart (roads.js moreLoads)
+        else {
+          if (!got || got.qty <= 0) return { fail: `${itemName} is no longer there` };
+          c.carry = got;
+          if (c.equip.cart) wearCart(g, c); // each trip wears the cart a little (roads.js)
+        }
+        const next = j.more?.shift();
+        if (next) { j.stackId = next.stackId; j.qty = next.qty; j.loads = (j.loads || 1) + 1; return 'running'; }
         j.stage = 'dst';
         return 'running';
       }

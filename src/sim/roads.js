@@ -7,6 +7,80 @@ import { findPath } from './path.js';
 import { createProject, tileUsable } from './construction.js';
 import { hasPact, completedTradesBetween } from './villages.js';
 import { TICKS_PER_DAY } from './constants.js';
+import { isUnlocked } from './research.js';
+
+// ---------- handcarts (slice 4) ----------
+// A handcart is an item with `equipment: { slot: 'cart', carry, offRoad }`, researched and made at the workbench
+// (data, roads.json). A hauler with one carries `carry` times the usual load (game.js carryLimit; still at most a
+// stack), and each load picked up wears it by one; a loaded step off a road takes `offRoad` times as long (game.js
+// stepCost), so carts pay where there are roads. Loose goods lie in small piles, so a hauler with a cart taking a
+// pile to the stockpile also picks up up to CART.stops more piles of the same item within CART.reach tiles of it
+// (moreLoads; each reserved), as long as the load and the room where it goes allow (haul job `more`). The cart and
+// its load are the colonist's (census, inventoryOf):
+// nothing is duplicated. A full-detail village of at least CART.minPeople adults wants a cart for every
+// CART.perPeople adults; they go first to those who already have one, then by id.
+export const CART = Object.freeze({ minPeople: 8, perPeople: 6, urgency: 0.3, reach: 6, stops: 3 });
+
+/** A hauler with a cart takes stack st to the stockpile in job: reserve up to `left` more of its item from other
+ *  loose piles near it (job.more [{ stackId, qty }], nearest first, then by id). Piles with a durability are left. */
+export function moreLoads(g, job, st, left, c) {
+  if (left <= 0 || st.dur !== undefined) return;
+  const near = [];
+  for (const x of g.stacksByItem().get(st.item) || []) {
+    if (x === st || x.dur !== undefined || Math.max(Math.abs(x.x - st.x), Math.abs(x.y - st.y)) > CART.reach) continue;
+    if (!g.mine(x, c) || (g.isStockpile(x.x, x.y) && !g.footIdAt(g.i(x.x, x.y))) || g.isBlocked('stack:' + x.id) || g.availQty(x.id) <= 0) continue;
+    near.push(x);
+  }
+  near.sort((a, b) => Math.max(Math.abs(a.x - st.x), Math.abs(a.y - st.y)) - Math.max(Math.abs(b.x - st.x), Math.abs(b.y - st.y)) || (a.id < b.id ? -1 : 1));
+  for (const x of near) {
+    if (left <= 0 || (job.more ||= []).length >= CART.stops) break;
+    if (!g.canReach(c, x.x, x.y, 'on')) continue;
+    const q = Math.min(left, g.availQty(x.id));
+    if (!g.reserveQty(job, x.id, q)) continue;
+    job.more.push({ stackId: x.id, qty: q });
+    left -= q;
+  }
+  if (!job.more?.length) delete job.more;
+}
+
+/** The equipment of c's cart (carry, offRoad, durability), or null. */
+export const cartOf = (g, c) => { const e = c?.equip?.cart; return e ? g.reg.get('item', e.item)?.equipment || null : null; };
+
+/** A load was picked up with a cart: it wears by one, and is gone at zero. */
+export function wearCart(g, c) {
+  const e = c.equip.cart;
+  e.dur = (e.dur ?? 1) - 1;
+  if (e.dur > 0) return;
+  const name = g.reg.get('item', e.item)?.name || e.item;
+  g.consume(e.item, 1, 'wear');
+  c.equip.cart = null;
+  g.log(`${c.name}'s ${name} wore out.`, 'warn');
+}
+
+/** The cart village sid can make (an unlocked recipe) or has in stock that carries the most, or null. */
+export function bestCart(g, sid, stock = {}) {
+  let best = null;
+  for (const it of g.reg.all('item')) {
+    if (it.equipment?.slot !== 'cart') continue;
+    if (!(stock[it.id] > 0) && !(g.reg.idx.recipesFor[it.id] || []).some((r) => isUnlocked(g, sid, 'recipe', r.id))) continue;
+    if (!best || (it.equipment.carry || 1) > (best.equipment.carry || 1)) best = it;
+  }
+  return best;
+}
+
+/** The planner's wants for carts (planner.js): one demand per adult who should get one (equipFor, slot 'cart'). */
+export function cartWants(g, sid, adults, stock) {
+  if (g.s.settlements?.[sid]?.detail === 'abstract' || adults.length < CART.minPeople) return [];
+  const cart = bestCart(g, sid, stock);
+  if (!cart) return [];
+  const pool = adults.filter((c) => !c.workOff?.['core:haul']).sort((a, b) => (!!b.equip.cart) - (!!a.equip.cart) || (a.id < b.id ? -1 : 1));
+  const out = [];
+  for (const c of pool.slice(0, Math.floor(adults.length / CART.perPeople))) {
+    if (c.equip.cart || (c.job?.type === 'equip' && c.job.slot === 'cart')) continue;
+    out.push({ item: cart.id, qty: 1, urgency: CART.urgency, why: `A ${cart.name.toLowerCase()} for ${c.name} to haul with`, equipFor: c.id, slot: 'cart' });
+  }
+  return out;
+}
 
 /** Built road tiles of village sid (for plans and the UI). */
 export const roadsOf = (g, sid) => g.owned('structures', sid).filter((b) => b.built && g.bDef(b)?.road);

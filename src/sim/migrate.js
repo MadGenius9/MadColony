@@ -133,6 +133,8 @@ export const MIGRATIONS = {
   37() {},
   // 38 -> 39: roads (roads.js). settlement.traffic (where its people walk) is optional: absent, nothing counted yet.
   38() {},
+  // 39 -> 40: handcarts (roads.js). A colonist's equip.cart is optional: absent means no cart.
+  39() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

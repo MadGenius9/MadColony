@@ -496,3 +496,9 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   tiles); the log line "laying a road … where they walk most" can centre the map on the first tile (`at`).
 - **Phase 7, slice 3:** trade roads ("laying a road toward X (a trade pact, N trades)") join villages; the
   diplomacy panel can show whether a road links two partners.
+- **Phase 7, slice 4: handcarts.** A colonist can hold a cart in a third equipment slot, `equip.cart`
+  (`core:handcart`, after the Wheelwrighting research). The colonist panel shows it beside the tool and weapon,
+  with its wear (`dur` of 400 trips). Draw a person with a cart pulling it; a loaded cart shows its goods. A haul
+  job with several piles (`job.loads`, `job.more`) can say "Hauling N piles of X". The planner's reason "A handcart
+  for P to haul with" shows like the tool reasons. The tech's text says why carts pay on roads (slower off them,
+  loaded).

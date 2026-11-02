@@ -58,7 +58,7 @@ import { tickMemories, rememberPower } from './memories.js'; // Phase 15: memori
 import { tickLeaders } from './leaders.js'; // Phase 6: leaders and succession
 import { tickCouncil } from './council.js'; // Phase 6: the village council
 import { tickRebellion } from './rebellion.js'; // Phase 6: rebellion
-import { countTraffic, fadeTraffic, ROAD } from './roads.js'; // Phase 7: roads
+import { countTraffic, fadeTraffic, ROAD, cartOf } from './roads.js'; // Phase 7: roads
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
@@ -506,11 +506,13 @@ export class Game {
   }
   moveCost(x, y) { return this.terrainAt(x, y).moveCost || 1; }
   /** How long a step onto (x, y) takes, as a share of a plain step: a built road's `road.step` (Phase 7, roads.js),
-   *  else the terrain's moveCost. Roads change no terrain, so path searches and the water maps never see them. */
-  stepCost(x, y) {
+   *  else the terrain's moveCost (times a loaded cart's `offRoad` for c). Roads change no terrain, so path searches
+   *  and the water maps never see them. */
+  stepCost(x, y, c) {
     const id = this.structIdAt(this.i(x, y)), st = id && this.s.structures[id];
     const r = st?.built && this.bDef(st)?.road;
-    return r ? r.step : this.moveCost(x, y);
+    if (r) return r.step;
+    return c?.carry && c.equip.cart ? this.moveCost(x, y) * (cartOf(this, c)?.offRoad || 1) : this.moveCost(x, y); // a loaded cart is slow off the road
   }
   /** False on tiles where an impassable blueprint is waiting to be built (don't loiter there). */
   standable(x, y) {
@@ -1197,7 +1199,7 @@ export class Game {
     }
     return out;
   }
-  carryLimit(item) { return Math.min(CARRY_LIMIT, this.reg.get('item', item)?.stackLimit ?? 1); }
+  carryLimit(item, c) { return Math.min(CARRY_LIMIT * (c?.equip.cart ? cartOf(this, c)?.carry || 1 : 1), this.reg.get('item', item)?.stackLimit ?? 1); } // a hauler's cart carries more (roads.js)
 
   /** Every item instance that exists, wherever it is. Used for conservation checks and the UI. */
   census() {
@@ -1208,6 +1210,7 @@ export class Game {
       if (col.carry) add(col.carry.item, col.carry.qty);
       if (col.equip.tool) add(col.equip.tool.item, 1);
       if (col.equip.weapon) add(col.equip.weapon.item, 1);
+      if (col.equip.cart) add(col.equip.cart.item, 1);
       if (col.ammo) add(col.ammo.item, col.ammo.qty);
     }
     for (const st of Object.values(this.s.structures)) {
