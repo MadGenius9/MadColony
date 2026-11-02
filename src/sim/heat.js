@@ -70,6 +70,11 @@ const isBoundary = (g, x, y) => { const st = g.structAt(x, y); if (!st || !st.bu
  *  per-tile array on every wall change cost 12 MB and several ms a time on the largest maps.) */
 export function rooms(g) {
   if (g._rooms && g._rooms.v === g.pathVersion) return g._rooms;
+  // Walls and doors change only when a building is added, removed, finished or renovated (structRev, builtRev):
+  // with neither moved, the walls are as before, without going over them all again (the scale target: a big world's
+  // paths change many times a day, from felled trees and the like).
+  const sk = `${g.structRev || 0}|${g.builtRev || 0}`;
+  if (g._rooms && g._rooms.sk === sk) { g._rooms.v = g.pathVersion; return g._rooms; }
   // Rooms depend only on where built walls and doors stand. Most path changes (a tree felled, a rock
   // mined, a bed built) leave those alone: then the old rooms are kept. When walls do change, only the
   // areas touching the changed tiles are flooded again (a room can only change there).
@@ -89,7 +94,7 @@ export function rooms(g) {
     walls.push(i);
     if (!work.wall[i]) same = false;
   }
-  if (same && walls.length === work.walls.length) { R0.v = g.pathVersion; return R0; }
+  if (same && walls.length === work.walls.length) { R0.v = g.pathVersion; R0.sk = sk; return R0; }
   const wall = work.wall;
   const changed = [], now = new Set(walls);
   for (const i of walls) if (!wall[i]) changed.push(i);
@@ -147,7 +152,7 @@ export function rooms(g) {
     list.sort((a, b) => Number(a.key) - Number(b.key));
   }
   for (let k = 0; k < list.length; k++) for (const i of list[k].tiles) roomAt[i] = k;
-  g._rooms = { v: g.pathVersion, work, roomAt, rooms: list };
+  g._rooms = { v: g.pathVersion, sk, work, roomAt, rooms: list };
   return g._rooms;
 }
 /** The room at a tile, or null outdoors. */
