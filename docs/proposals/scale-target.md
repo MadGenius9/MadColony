@@ -189,3 +189,35 @@ not by the hourly jobs.
 - (c) plan distant villages less often (a behaviour change).
 
 Growth stays off until the grown world meets its target.
+
+## 12. Finding the slow ticks directly, and three more fixes (2026-11-02)
+A new measurement: one continuous profile of a day, with each slow tick's start and end recorded, counting only
+the samples inside ticks over 16.7 ms (`slowattr`, scratch tool). Inside the slow ticks:
+- the planner was 30% (distant villages' plans);
+- villagers deciding what to do, 27%;
+- distant villages' hours, 16%;
+- rooms (heat.js), 8%;
+- mood, 7%.
+
+The fixes, same answers each time:
+- **Machine checks** (`power.js machineBusy`, from `powerAt` for each powered building a plan checks): every
+  person in the world → the machine's village only (station jobs go only to its own people).
+- **Growing food in a plan** (`planner.js`): every crop in the world for each plan → `g.cropsBy(sid)`, lists by
+  village in `Object.values` order (the sums are identical), updated as crops come and go.
+- **Rooms** (`heat.js rooms`): every wall and door re-read at each path change → skipped when no building was
+  added, removed, finished or renovated (`structRev|builtRev`).
+
+After each one the classic hashes were the proposed ones and the World seed 11 run was identical.
+
+**The grown world** (868 people, 62 villages, day 300; 2 days after a day of warm-up):
+
+| ms a tick | before the spreading | after it | now |
+|---|---|---|---|
+| median | 3.7 | 4.4 | 4.4 |
+| p95 | 24.2 | 25.4 | **20.3** |
+| p99 | 59.3 | 44.5 | **37.8** |
+| p99.9 | 117.6 | 77 | **55.9** |
+| slowest | 248 | 113 | **85** |
+
+The p95 is still above 16.7 ms. What is left inside slow ticks is villagers' decisions, the rest of the planner
+and distant villages' hours: spread-out costs with no single cause left above a few percent.
