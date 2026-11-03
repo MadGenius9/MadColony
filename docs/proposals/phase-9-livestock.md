@@ -115,5 +115,19 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 - **Tests:** `tests/cloud-clothing.test.js`, 5 tests. In the end-to-end test (Living world, seed 5), hides placed
   on day 6 are tanned once the nights near the cold line: the rack was built on day 14, 2 coats were worn on day
   17 and 4 by day 23.
-- **Found on the way:** in the Living world with seed 7, the player's village dies of thirst by day 15, with
-  or without this slice. This is looked into separately below.
+- **Found on the way (not this slice; a balance finding for Phase 16):** in the Living world with seed 7, the
+  player's 5-person village is gone by day 15, with or without this slice. Six died: four of thirst, one of
+  hunger, one of an infected wolf bite.
+  - The rescue copy (f59ef7d) survives that seed with 7 people. A bisect lands on the Phase 8 change that makes
+    herds individual animals within 28 tiles (bec256c), but survival flips back and forth across later commits,
+    so the cause is not one broken change. It is a world sensitive to timing.
+  - **What happens:** from day 2, three wolf packs (13 wolves) about 30 tiles out raid the village. Nobody there
+    has a weapon. People keep running from wolves ("Run from the wolves") instead of reaching the lake, go down
+    from thirst, and die.
+  - Meanwhile the planner's hunting note still reads "Hunting deer (a herd of 11, 31 tiles away)", so the raiding
+    packs are not among the herds it would hunt (they are just outside its reach). And with no weapons, nobody
+    could hunt them.
+  - **Possible fixes, for the owner to weigh:** let thirsty or hungry people finish a drink unless a wolf is right
+    there; count raiding packs at the edge of the hunting reach; arm a raided village's first hunters with a
+    spear before anything else; make packs that are being run from tire of a village. None is made here: each
+    changes wolf balance, and Phase 8's answers set it.
