@@ -14,6 +14,7 @@ import { validDisc } from './contact.js';
 import { drawTraits, defaultPeople, withTrait, MAX_TRAITS } from './peoples.js';
 import { mendLaws } from './worldlaws.js';
 import { mendCode } from './civlaws.js';
+import { validateLivestock } from './livestock.js';
 
 export class SaveError extends Error {
   constructor(message, problems = []) { super(message); this.problems = problems; }
@@ -107,6 +108,7 @@ export function validateSave(save) {
   if (s.disasters !== undefined) validateDisasters(s, bad); // format 23
   if (s.animals !== undefined) validateAnimals(s, bad, save.saveFormat); // format 27
   if (s.monsters !== undefined) validateMonsters(s, bad); // format 29
+  if (s.livestock !== undefined) validateLivestock(s, bad); // format 42 (livestock.js)
   if (s.worldLaws !== undefined) validateWorldLaws(s, bad); // format 31
   validateChronicle(s, bad); // format 34
   if (s.petitions !== undefined) validatePetitions(s, bad); // format 35
@@ -651,6 +653,10 @@ export function loadGame(reg, saveOrText) {
   for (const [id, n] of Object.entries(s.nodes)) if (!reg.has('node', n.def)) { q('node', n); delete s.nodes[id]; }
   for (const [id, h] of Object.entries(s.animals?.herds || {})) if (!reg.has('animal', h.sp)) delete s.animals.herds[id]; // a species whose mod is gone: its herds go (animals hold no items)
   for (const sp of Object.keys(s.animals?.ledger || {})) if (!reg.has('animal', sp)) delete s.animals.ledger[sp]; // and its ledger
+  if (s.livestock) { // tame animals of a species whose mod is gone go too, with their ledger (livestock.js)
+    for (const [id, a] of Object.entries(s.livestock.list)) if (!reg.has('animal', a.sp)) delete s.livestock.list[id];
+    for (const by of Object.values(s.livestock.ledger)) for (const sp of Object.keys(by)) if (!reg.has('animal', sp)) delete by[sp];
+  }
   if (s.monsters) { // a monster species whose mod is gone: its monsters, lairs and ledger go
     for (const [id, m] of Object.entries(s.monsters.list)) if (!reg.has('monster', m.sp)) { delete s.monsters.list[id]; if (s.monsters.lairs[m.lair]?.monster === id) s.monsters.lairs[m.lair].monster = null; }
     for (const [id, l] of Object.entries(s.monsters.lairs)) if (!reg.has('monster', l.sp)) delete s.monsters.lairs[id];

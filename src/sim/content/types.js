@@ -142,7 +142,7 @@ export const CONTENT_TYPES = {
     doc: 'Walls, doors, furniture and work stations. Colonists place these via templates and slots.',
     schema: obj({
       id, name,
-      category: req({ type: 'enum', values: ['wall', 'door', 'furniture', 'station'] }),
+      category: req({ type: 'enum', values: ['wall', 'door', 'furniture', 'station', 'fence'] }), // fence (Phase 9, pens.js): no room boundary
       passable: req(bool()),
       cover: num(0, 0.9), // share of ranged hits it stops (default: 0.5 for walls, 0.3 for other solid buildings)
       cost: req(qtyList()),
@@ -191,8 +191,9 @@ export const CONTENT_TYPES = {
     doc: 'A small floor plan colonists can choose and build by themselves. See docs/MODDING.md for the legend format.',
     schema: obj({
       id, name,
-      kind: req({ type: 'enum', values: ['home', 'workshop', 'station'] }),
+      kind: req({ type: 'enum', values: ['home', 'workshop', 'station', 'pen'] }),
       capacity: int(0, 20),
+      pen: obj({ animals: req(int(1, 50)) }), // kind pen (Phase 9, pens.js): how many tame animals it holds
       provides: arr(ref('building')),
       layout: req(arr(str(24), { minItems: 1, maxItems: 24 })),
       legend: req(map(null, obj({
@@ -673,6 +674,7 @@ export const CONTENT_TYPES = {
       diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
       fear: obj({ people: num(0, 50), predators: num(0, 50) }),
       carcass: ref('item'), // what a kill leaves (hunting, Phase 8 slice 3)
+      tame: obj({ name: req(str(40)), plural: req(str(40)) }), // can be tamed into a pen (Phase 9, pens.js), and is then called this
       births: req(num(0, 10)), winterLoss: req(num(0, 1)), winterTerrains: arr(ref('terrain'), { minItems: 1 }), droughtLoss: num(0, 1), godCost: num(0, 1000), lostLoss: num(0, 1), crowdLoss: num(0, 1), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
       color, render,
     }),

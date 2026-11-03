@@ -33,6 +33,7 @@ import { LOD, stagger, planOffset } from './lod.js';
 import { travelRules, reachTest, nodesInReach, SLOW_WORK } from './ai/trips.js';
 import { planRoads, cartWants } from './roads.js'; // Phase 7
 import { garmentWants } from './clothing.js'; // Phase 9
+import { planPens } from './pens.js'; // Phase 9
 
 export function emptyPlan() {
   return {
@@ -357,6 +358,7 @@ function planSettlement(g, sid) {
   planLighting(g, P, sid);
   planPlumbing(g, P, sid);
   planRoads(g, P, sid); // Phase 7: roads where people walk most (roads.js)
+  planPens(g, P, sid, cols); // Phase 9: a pen for animals to tame (pens.js)
   planHeating(g, P, sid, D);
   planMedical(g, P, sid, D, cols);
   planEducation(g, P, sid);

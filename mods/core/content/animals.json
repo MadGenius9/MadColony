@@ -219,6 +219,9 @@
           "giver": "core:hunt_animals"
         },
         {
+          "giver": "core:tame_animals"
+        },
+        {
           "giver": "core:slay_monster"
         },
         {

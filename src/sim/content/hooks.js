@@ -43,6 +43,10 @@ export const GIVER_SPECS = {
     doc: 'Phase 8c: an empty, uncleared monster lair within 60 tiles of the village is cleared by one adult, so no monster grows there again.',
     params: obj({}),
   },
+  'core:tame_animals': {
+    doc: 'Phase 9: while the village has a closed pen (pens.js) with room, an adult catches a near wild animal of its species and leads it in (livestock.js); a loose one on the way is led in first.',
+    params: obj({}),
+  },
   'core:bills': {
     doc: 'Works production bills (recipes whose `workType` matches this work type) at a free station.',
     params: obj({}),

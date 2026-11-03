@@ -137,6 +137,8 @@ export const MIGRATIONS = {
   39() {},
   // 40 -> 41: clothing (clothing.js). A colonist's equip.body is optional: absent means no garment.
   40() {},
+  // 41 -> 42: livestock (livestock.js). `s.livestock` is optional: absent means no tame animals. Pens are projects.
+  41() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

@@ -210,6 +210,11 @@
       "id": "core:road",
       "name": "A road",
       "importance": "routine"
+    },
+    {
+      "id": "core:pen",
+      "name": "An animal pen",
+      "importance": "routine"
     }
   ]
 }

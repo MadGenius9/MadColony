@@ -23,6 +23,7 @@ import { HUNT_GIVERS } from '../hunt.js';
 import { SLAY_GIVERS } from '../slay.js';
 import { treeProtected } from '../civlaws.js';
 import { moreLoads } from '../roads.js';
+import { LIVESTOCK_GIVERS } from '../livestock.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or
  *  near the centre (lod.js caravanReach). If those cannot cover what is still owed, one colonist at a time per
@@ -702,4 +703,5 @@ Object.assign(GIVERS, MEDICAL_GIVERS); // rescue and treatment (medical.js)
 Object.assign(GIVERS, EDUCATION_GIVERS); // school, teaching and college (education.js)
 Object.assign(GIVERS, BURIAL_GIVERS); // carrying the dead to the graveyard (burial.js)
 Object.assign(GIVERS, HUNT_GIVERS); // hunting (hunt.js, Phase 8)
+Object.assign(GIVERS, LIVESTOCK_GIVERS); // taming into pens (livestock.js, Phase 9)
 Object.assign(GIVERS, SLAY_GIVERS); // hunt parties against monsters, clearing lairs (slay.js, Phase 8c)

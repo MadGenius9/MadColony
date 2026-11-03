@@ -516,3 +516,14 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Phase 9, slice 2:** three more wild species (`core:wild_sheep` #d8d0bc, `core:wild_cattle` #6a4a32,
   `core:wild_boar` #4e3e34), drawn like deer (herd dots zoomed out, single animals near villages), with their
   carcasses and the new meats (mutton, beef, pork) and pigskin in the item lists.
+
+## Phase 9, slice 3: pens and taming
+- **Draw fences** (`core:fence`, #8a6a44) as a low rail joining neighbouring fence tiles, and the gate
+  (`core:pen_gate`, #a07a4a) as an opening in it. A pen's 5 × 3 inside is grass.
+- **Draw tame animals** from `s.livestock.list` (`{ sp, x, y }`) like the near wild animals of their species, but
+  named by the species' `tame.name` (Sheep, Cow, Pig), and with a halter while led (`led`: the colonist).
+- **The village panel** shows the pen note (`P.penNote`: "Building a pen for cattle (a herd of 8 wild cattle, 25
+  tiles away)", "The pen for cattle is not closed yet: 6 sections to build", "The pen for cattle is ready") and the
+  animals in it with the livestock ledger (tamed, born, died by cause).
+- **Log lines:** "P caught a wild cattle for the pen." and "P brought a cow into the pen." (good news). The pen's
+  first log line has the chronicle kind `core:pen`.

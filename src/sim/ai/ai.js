@@ -14,11 +14,12 @@ import { tripChecker, farFromHome } from './trips.js';
 import { fireDanger } from '../fire.js';
 import { FIRE_DRIVERS } from '../firefight.js';
 import { HUNT_DRIVERS, wolfDanger } from '../hunt.js';
+import { LIVESTOCK_DRIVERS } from '../livestock.js';
 import { SLAY_DRIVERS, monsterDanger } from '../slay.js';
 import { hoursOf } from '../civlaws.js';
 import { onBreak } from '../mood.js';
 
-Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS, SLAY_DRIVERS);
+Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS, SLAY_DRIVERS, LIVESTOCK_DRIVERS);
 
 export function tickColonist(g, c) {
   for (const def of g.reg.all('need')) NEED_BEHAVIORS[def.behavior]?.tick(g, c, def);

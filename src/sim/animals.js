@@ -738,14 +738,15 @@ export function herdAnimals(g, hid) {
   return (nearIndex(g).byHerd.get(hid) || []).map((id) => A.list?.[id]).filter(Boolean);
 }
 
-/** An animal is killed (by a hunter): it leaves the herd, the herd runs. Returns the herd (or null). */
-export function killAnimal(g, id, fx, fy) {
+/** An animal is killed (by a hunter) or caught (`cause` 'tamed', livestock.js): it leaves the herd, the herd runs.
+ *  Returns the herd (or null). */
+export function killAnimal(g, id, fx, fy, cause = 'hunted') {
   const A = g.s.animals, a = A.list?.[id];
   if (!a) return null;
   delete A.list[id];
   nearDirty(g);
   const h = A.herds[a.herd];
-  if (h) { h.n--; died(g, h, 1, 'hunted'); h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); if (h.n < 1) { delete h.near; removeHerd(g, h.id); } }
+  if (h) { h.n--; died(g, h, 1, cause); h.alarm = g.s.tick + ALARM; h.fx = Math.round(fx); h.fy = Math.round(fy); if (h.n < 1) { delete h.near; removeHerd(g, h.id); } }
   if (!Object.keys(A.list).length) delete A.list;
   return h;
 }
@@ -758,7 +759,7 @@ export function alarmHerd(g, hid, fx, fy) {
 
 /** Herds whose centre may be within r of (x, y): those in the chunks the square round it touches (callers check
  *  the distance and sort, so the order here does not matter). */
-function herdsWithin(g, x, y, r) {
+export function herdsWithin(g, x, y, r) {
   const A = g.s.animals;
   if (!A?.herds) return [];
   const I = indexes(g), out = [];

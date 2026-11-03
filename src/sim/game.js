@@ -59,6 +59,7 @@ import { tickLeaders } from './leaders.js'; // Phase 6: leaders and succession
 import { tickCouncil } from './council.js'; // Phase 6: the village council
 import { tickRebellion } from './rebellion.js'; // Phase 6: rebellion
 import { countTraffic, fadeTraffic, ROAD, cartOf } from './roads.js'; // Phase 7: roads
+import { tickLivestock } from './livestock.js'; // Phase 9: livestock
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
@@ -1564,6 +1565,7 @@ export class Game {
     tickHeat(this);
     tickLOD(this); // big worlds: level of detail, abstract villages' hours, caravans
     if (s.animals || animalSpecies(this).length) tickAnimals(this); // wild herds (animals.js, Phase 8)
+    if (s.livestock) tickLivestock(this); // tame animals in pens (livestock.js, Phase 9)
     if (s.monsters || monsterSpecies(this).length) tickMonsters(this); // wild monsters (monsters.js, Phase 8c)
     if (s.bodies) tickBurial(this); // bodies nobody buried in time, or of distant villages (burial.js)
     if (s.contact) tickContact(this); // contact over distance: explorers and traders (scenarios with a contact block)

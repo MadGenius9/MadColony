@@ -167,3 +167,41 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
     butchers them. The workshops era comes on day 6.59 (was 7.39). The extra meat is the likely reason; this was
     not tested on its own.
   - `modern` (seed 4242) is unchanged, e60c658d08cab7f1: only deer live on that map.
+
+### Slice 3: pens and taming (built and tested, 2026-11-03)
+- **Pens** (`src/sim/pens.js`, content in `livestock.json`):
+  - a new building category, `fence`, which heat.js does not count as a room boundary (so a pen gives no shelter);
+    the template check treats fences like walls;
+  - the fence (1 wood) and the pen gate (3 wood, people pass it);
+  - the template `core:animal_pen` (kind `pen`, for 8 animals): 19 fence sections and a gate round 5 × 3 tiles of
+    cleared ground. The project is the pen; `project.pen = { sp }` names its species.
+  - **The planner** (`planPens`): a full-detail village of at least 6 people with 30 wood lays out one pen. It is
+    for the tameable species (data: `tame { name, plural }`) whose herd is nearest within 60 tiles, at a site from
+    the usual search.
+    - The reason: "A pen for cattle (a herd of 8 wild cattle, 25 tiles away)", with a log line.
+    - The state (`P.penNote`): "The pen for cattle is not closed yet: 6 sections to build" / "… is ready".
+  - **Closed** means every fence section and the gate stand built; a section removed opens it again.
+- **Taming** (`src/sim/livestock.js`, format 42 `s.livestock { next, list, ledger }`):
+  - the giver `core:tame_animals`, in the Hunting work type. While a closed pen has fewer than 2 animals, an adult
+    walks up to a near wild animal of its species (a far herd is brought near, as for hunting) and catches it
+    within 1.5 tiles.
+  - That one step takes it from its herd (wild ledger: died `tamed`) and makes a tame animal (livestock ledger:
+    `tamed`), so it happens exactly once. A herd is never taken below the hunting limit (3).
+  - The tamer leads it through the gate (it follows a step behind).
+    - If the lead is broken off, or the tamer dies, the animal waits loose, and anyone may "Lead the cow to the
+      pen".
+  - In the pen, an animal takes a step inside now and then (a hash draw; no rng), and never leaves.
+  - Tame animals are apart from the wild: no fleeing, folding or drift.
+  - Save checks; tame animals of a removed mod's species go with their ledger; old saves have none.
+- **In play** (Living world, seed 5): the pen is laid out on day 11 (the village reaches 6 people), closed on day
+  18; the first wild cow is caught on day 30; two cows graze in the pen on day 31. Both ledgers are exact
+  throughout.
+  - Taming waits 12 days after the pen is closed: it is Hunting work at urgency 0.5, and the village's people do
+    other work first. To be weighed in balance (slice 5 or Phase 16).
+- **Tests:** `tests/cloud-pens.test.js`, 3 tests: the pen and its closed check, not a room; taming exactly once,
+  both ledgers, save and load, old saves, a malformed save refused; the village in play (about 35 s).
+- **Not yet:** feed, breeding, products, distant villages' livestock (slices 4–5). In a distant village the
+  animals stand still in their pen.
+- **Checks:** full suite 307 passed; classic hashes unchanged from slice 2 (`forty` b57317ab3e4ccbc5, `modern`
+  e60c658d08cab7f1). The pen note is kept in the plan only when there is something to say: an empty note in every
+  plan had changed both hashes with no change in play.
