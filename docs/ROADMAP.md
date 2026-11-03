@@ -975,9 +975,22 @@ Once weather exists: terrain brushes (raise and lower land, dig water, plant for
 are done, see "World shaping"; rain and drought came with Phase 5b. 2026-10-29: Phase 13 is the first slice
 of worship, prayers and petitions from real needs.)
 
-### Phase 10: leftovers, then review
+### Phase 10: leftovers, then review (cloud part done, 2026-11-03)
 Families (partnerships, old age, more professions), contraband selling policy, scripting API for mods, zip
 mod packages. Then a review of the Ideas parking lot before anything else is planned.
+Design and results: [docs/proposals/phase-10-leftovers.md](proposals/phase-10-leftovers.md).
+
+- **Done:**
+  - partnerships (format 43);
+  - family housing;
+  - farmer, builder, huntsman and cook by practice;
+  - the engine half of the selling policy for controlled goods (format 44, off by default, with an outlook for
+    the UI);
+  - the Ideas parking-lot review (in the note).
+- **Home:**
+  - the scripting API (what may run, in what sandbox: the owner's decision);
+  - zip packages and mod icons;
+  - the selling policy's UI.
 
 ---
 
@@ -1092,7 +1105,7 @@ taming, horses as mounts, wagons, and drawing animals in the UI (`docs/ui-todo.m
 
 ## Families, schools and professions (first phase done; the rest in Phase 10)
 **Done:** life stages (infant, child, adult) and ages; births in households with spare beds, food and room under the population cap; infant care; children's work limits; schools built when there are children; teaching by anyone (faster with a Teacher); Basic schooling; qualifications (Teacher, Doctor, Industrial specialist) that speed up work but are never required, earned by practice or at a college built only for staff shortages.
-**Still planned:** partnerships and relationships beyond parents, family housing preferences, old age, more professions and a wider college curriculum.
+**Still planned:** a wider college curriculum. (Partnerships, family housing and four professions by practice were built in the cloud copy's Phase 10, 2026-11-03; old age in Phase 5.)
 
 ## Other technical items (Phases 1 and 10)
 - A scripting API for behaviour mods. Today, data mods can only compose registered behaviours; uploaded JavaScript is never run.

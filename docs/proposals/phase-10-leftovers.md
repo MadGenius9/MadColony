@@ -144,3 +144,32 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
   smuggles and keeps to the restricted cap; `any` sells on a black market; `keep` respected; saved; a bad policy
   refused; old saves off.
 - **Home:** the UI to pick the policy, showing `sellOutlook` first (the roadmap's condition).
+
+### Slice 5: acceptance, and the Ideas parking-lot review (2026-11-03)
+- **World seed 11, 200 days** (`tools/cloud-world-run.mjs 200 world 11 25 100`, now with couples and professions):
+  - 308 people in 65 villages; 336 born; 34 couples on day 200;
+  - professions: 82 farmers, 80 cooks, 63 industrial specialists, 59 builders, 11 huntsmen;
+  - 3.1 ms a tick on day 200; worst tick 326 ms (170 ms in the Phase 9 run of the same seed; not looked into);
+  - the save on day 100 loaded and ran on identically; no conservation errors.
+  - The Phase 9 run of this seed had 244 people on day 200. Couples sharing homes leave more spare beds for births,
+    which may account for it, but that was not tested on its own.
+- **Bench** (`tools/bench.js`, defaults, two runs each, against cb22712, the start of Phase 10): small −9%/+4%,
+  medium +4%/+6%, large +4%/+6%. Under the 10% bar.
+- **Ideas parking lot, reviewed** (for the owner; nothing new is started from it):
+
+  | Idea | Where it stands | Suggestion |
+  |---|---|---|
+  | Cooling (air conditioning, cold storage) | Not built. The room temperature model exists (heat.js), and food spoils (spoil.js). | A small, self-contained phase: cold rooms slow spoiling. |
+  | Lighting inside rooms | Not built. Roofs are cosmetic, so a room is never dark by day. | Wait for real roofs (UI and building work at home). |
+  | Multiroom interiors | Not built. | Keep parked. The street experiment (Phase 9, slice 6) found nothing that needs denser or bigger buildings yet. |
+  | Multiple races | Done as Peoples and traits. | Remove from the lot. |
+  | Environmental state (fire, freezing, flooding) | Fire, burning, scorch and regrowth done (Phase 5b); cold and hypothermia done; flooding not built. | Flooding only, with a conservation and update-order design first, as the entry says. |
+  | Contact between distant villages | Done (Phase 2b). | Remove from the lot. |
+  | Organic territory borders | Done (Phase 2b). | Remove from the lot. |
+  | Tree planting / forestry | Not built. Burned woods regrow from seed (regrowth); the Forests law protects trees; nobody plants. | Worth a small phase: long World runs still run out of wood near old villages. |
+
+- **Waiting on the owner:**
+  - the scripting API (what may run, in what sandbox);
+  - zip packages and icons;
+  - the selling policy's UI;
+  - the proposed baselines: `forty` 9f293a56bce0c53c, `modern` 8e0ecba41839e932.
