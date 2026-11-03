@@ -264,3 +264,30 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
     balance point for Phase 16 (slaughter only when the pen is full, or keep more than a pair).
 - **Bench** (`tools/bench.js`, defaults, two runs each, against 81c40d6, the end of Phase 7): small +4%/+4%,
   medium −5%/+1%, large +6%/+4%. Under the 10% bar.
+
+### Slice 6: the settlement plan, first experiment (main streets): measured, not kept (2026-11-03)
+- **Tried:** each village keeps a cross of single-tile main streets through its centre (2 to 24 tiles out). New
+  buildings and fields keep off them (code in `plan.js`, the site searches in construction.js and farming.js).
+- **Measured** (classic colony, 40 days, seeds 1–4, against the code without streets):
+  - forbidding the streets: modern era not reached within 40 days on seeds 1 and 3 (35.2 and 37.1 without
+    streets); seeds 2 and 4 0.6 and 1.4 days earlier;
+  - costing them (+3 a street tile, as clearing a tree) gave exactly the same choices: the sites near the centre
+    avoid streets at that cost already.
+- **In villages of 8 or more only** (classic games unchanged), Living world, 60 days:
+
+  | Seed | Techs | Buildings | Time walking |
+  |---|---|---|---|
+  | 5, without streets | 10 | 246 | 37.7% |
+  | 5, with streets | 9 | 263 | 38.5% |
+  | 1, without streets | 12 | 300 | 37.9% |
+  | 1, with streets | 7 | 240 | 40.7% |
+
+- **Why it does not pay here:** nothing in the simulation needs a clear corridor. People walk diagonally around
+  buildings, nobody crowds or blocks, and roads already follow where people walk (Phase 7). Reserving tiles only
+  pushes buildings outward, so people walk further.
+- **Removed;** nothing of it is in the code.
+- **Open for the owner:** what the settlement plan is to buy. If it is for the player to read the town (reasons,
+  a shown plan), a plan that only explains the choices it already makes costs nothing in play. If it is to change
+  play, it needs something the plan protects against first: congestion, fire spreading between packed
+  buildings, or room to grow larger buildings. "Pens away from homes" is the one neighbouring-use rule with a
+  reason today; it can be added on its own.
