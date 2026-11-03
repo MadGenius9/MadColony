@@ -14,9 +14,14 @@
 // unfed for FEED.starve days in a row dies (ledger 'starved') and leaves its carcass (item ledger). Haulers keep
 // the trough at FEED.days days of what the pen eats, from a day before winter on. On a spring day, a pen of fed
 // animals with a pair and room has a birth with chance births × animals ÷ the days of spring (a hash draw).
-import { killAnimal, herdAnimals, bringNear, herdsWithin, HUNT_LIMIT } from './animals.js';
+// Products and slaughter (slice 4b, giver core:tend_animals, Farming): a fed animal of a species with
+// `tame.product` gives it every `everyDays` (milk, wool; `a.next` is the tick it is ready again), for `work` ticks
+// of a farmer's work next to it; shearing and milking never harm it. A pen at its room, or any pen while the
+// village is short of meat, has one animal above the breeding stock (`tame.keep`, default 2) slaughtered, the
+// youngest first: it is removed (ledger 'butchered') and its carcass made (item ledger) in the same step.
+import { killAnimal, herdAnimals, bringNear, herdsWithin, HUNT_LIMIT, meatOnHand, meatWanted } from './animals.js';
 import { pensOf, penState, PEN } from './pens.js';
-import { newJob, travel } from './ai/jobs.js';
+import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { mayDoWork } from './people.js';
 import { seasonOf, climateOf } from './heat.js';
 import { TICKS_PER_DAY } from './constants.js';
@@ -229,6 +234,74 @@ export function tickLivestockDay(g) {
     g.log(`A young ${d.tame.name.toLowerCase()} was born in the pen of ${g.s.settlements?.[p.settlement]?.name || p.settlement}.`, 'good');
   }
 }
+
+/** Is pen p's village to slaughter one of its animals now? The animal (youngest first, above the breeding
+ *  stock), or null. */
+export function toSlaughter(g, p, P) {
+  const list = penAnimals(g, p).filter((a) => insidePen(g, p, a.x, a.y)), d = g.reg.get('animal', p.pen?.sp);
+  const keep = d?.tame?.keep ?? 2;
+  if (list.length <= keep) return null;
+  const full = list.length >= capOf(g, p);
+  const meatShort = P && meatOnHand(g, P) < meatWanted(g.owned('colonists', p.settlement).length, P.foodDays);
+  return full || meatShort ? list[list.length - 1] : null;
+}
+
+export const TEND_GIVERS = {
+  'core:tend_animals': {
+    find(g, c, params, wt) {
+      const S = g.s.livestock;
+      if (!S) return [];
+      const sid = c.settlementId || g.s.playerSettlement, out = [], P = g.planOf(c);
+      for (const p of pensOf(g, sid)) {
+        const d = g.reg.get('animal', p.pen.sp), pr = d?.tame?.product;
+        const cut = toSlaughter(g, p, P);
+        if (cut && !g.isReserved(`tend:${cut.id}`, c.id)) out.push({ x: cut.x, y: cut.y, urgency: 0.6, label: `Slaughter a ${d.tame.name.toLowerCase()}`, make() {
+          const why = penAnimals(g, p).length >= capOf(g, p) ? `The pen is full (${capOf(g, p)}); ${d.tame.keep ?? 2} are kept for breeding` : 'The village is short of meat';
+          const job = newJob('husbandry', { act: 'slaughter', tame: cut.id, pen: p.id, done: 0, work: 80 }, { why, label: `Slaughter a ${d.tame.name.toLowerCase()}`, workType: wt.id, targetKey: `tend:${cut.id}` });
+          return g.reserveExcl(job, `tend:${cut.id}`, c.id) ? job : null;
+        } });
+        if (!pr) continue;
+        for (const a of penAnimals(g, p)) {
+          if (a.hungry || (a.next || 0) > g.s.tick || a === cut || !insidePen(g, p, a.x, a.y) || g.isReserved(`tend:${a.id}`, c.id)) continue;
+          out.push({ x: a.x, y: a.y, urgency: 0.5, label: `${pr.verb} a ${d.tame.name.toLowerCase()}`, make() {
+            const job = newJob('husbandry', { act: 'product', tame: a.id, pen: p.id, done: 0, work: pr.work }, { why: `${g.reg.get('item', pr.item)?.name} from the ${d.tame.plural}`, label: `${pr.verb} a ${d.tame.name.toLowerCase()}`, workType: wt.id, targetKey: `tend:${a.id}` });
+            return g.reserveExcl(job, `tend:${a.id}`, c.id) ? job : null;
+          } });
+        }
+      }
+      return out;
+    },
+  },
+};
+
+export const TEND_DRIVERS = {
+  husbandry: { // not 'tend': that is caring for the hurt (medical)
+    valid(g, c, j) { return !!g.s.livestock?.list?.[j.tame]; },
+    tick(g, c, j) {
+      const a = g.s.livestock.list[j.tame], p = g.s.projects[j.pen], d = g.reg.get('animal', a.sp);
+      if (!p) return { fail: 'The pen is gone' };
+      const r = travel(g, c, j, a.x, a.y, 'adj', `the ${d.tame.name.toLowerCase()}`);
+      if (r !== true) return r === false ? 'running' : r;
+      if (Math.max(Math.abs(a.x - c.x), Math.abs(a.y - c.y)) > 1) { c.path = null; return 'running'; } // it moved: follow
+      c.status.action = j.act === 'slaughter' ? `Slaughtering a ${d.tame.name.toLowerCase()}` : `${d.tame.product.verb === 'Milk' ? 'Milking' : 'Shearing'} a ${d.tame.name.toLowerCase()}`;
+      j.done += workSpeed(g, c, 'core:farm', 'core:farming');
+      if (j.done < j.work) return 'running';
+      practice(g, c, 'core:farm', 'core:farming');
+      if (j.act === 'slaughter') {
+        delete g.s.livestock.list[a.id];
+        const L = ledger(g, a.sid, a.sp).died; L.butchered = (L.butchered || 0) + 1;
+        if (d.carcass) g.createItems(d.carcass, 1, a.x, a.y, 'livestock');
+        g.log(`${c.name} slaughtered a ${d.tame.name.toLowerCase()} from the pen.`, 'food');
+        return 'done';
+      }
+      const pr = d.tame.product;
+      if (a.hungry || (a.next || 0) > g.s.tick) return 'done'; // not ready after all
+      a.next = g.s.tick + Math.round(pr.everyDays * TICKS_PER_DAY);
+      g.createItems(pr.item, pr.qty, c.x, c.y, 'livestock');
+      return 'done';
+    },
+  },
+};
 
 export const FEED_GIVERS = {
   'core:feed_animals': {

@@ -674,7 +674,7 @@ export const CONTENT_TYPES = {
       diet: req({ type: 'enum', values: ['graze', 'hunt'] }), prey: arr(ref('animal')),
       fear: obj({ people: num(0, 50), predators: num(0, 50) }),
       carcass: ref('item'), // what a kill leaves (hunting, Phase 8 slice 3)
-      tame: obj({ name: req(str(40)), plural: req(str(40)) }), // can be tamed into a pen (Phase 9, pens.js), and is then called this
+      tame: obj({ name: req(str(40)), plural: req(str(40)), keep: int(0, 50), product: obj({ item: req(ref('item')), qty: req(int(1, 100)), everyDays: req(num(0.5, 365)), work: req(int(1, 10000)), verb: req(str(40)) }) }), // can be tamed into a pen (Phase 9, pens.js, livestock.js), and is then called this; keep: breeding stock never slaughtered (default 2); product: what a fed one gives, every everyDays, for work ticks (verb: 'Milk', 'Shear')
       births: req(num(0, 10)), winterLoss: req(num(0, 1)), winterTerrains: arr(ref('terrain'), { minItems: 1 }), droughtLoss: num(0, 1), godCost: num(0, 1000), lostLoss: num(0, 1), crowdLoss: num(0, 1), moveHours: req(num(1, 1000)), starveDays: int(1, 1000),
       color, render,
     }),

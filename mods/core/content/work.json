@@ -37,6 +37,9 @@
           "giver": "core:harvest"
         },
         {
+          "giver": "core:tend_animals"
+        },
+        {
           "giver": "core:sow"
         },
         {

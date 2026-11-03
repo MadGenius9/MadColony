@@ -43,6 +43,10 @@ export const GIVER_SPECS = {
     doc: 'Phase 8c: an empty, uncleared monster lair within 60 tiles of the village is cleared by one adult, so no monster grows there again.',
     params: obj({}),
   },
+  'core:tend_animals': {
+    doc: 'Phase 9: milks, shears (a tame species\' `product`, every `everyDays` from each fed animal) and slaughters animals in the village\'s pens: one above the breeding stock (`keep`) when the pen is full, or when meat is short (livestock.js).',
+    params: obj({}),
+  },
   'core:feed_animals': {
     doc: 'Phase 9: keeps a pen\'s trough at 3 days of fodder (items tagged core:fodder) for the animals its grass does not feed (all of them in winter, from a day before), carried in from the nearest stack (livestock.js).',
     params: obj({}),

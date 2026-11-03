@@ -4,7 +4,7 @@
 // without it wears it by one (health.js); worn out, it leaves the ledger as worn. In scenarios with cold rules, a
 // full-detail village wants a garment for each bare adult once the next CLOTHING.days days get within
 // CLOTHING.ahead °C of the cold line: as many as its stock can make (no demand for hides it cannot get), the
-// homeless first, then by id.
+// warmest garments first, the homeless first, then by id.
 import { lifeRules } from './life.js';
 import { coldestAhead } from './heat.js';
 import { isUnlocked } from './research.js';
@@ -39,16 +39,18 @@ function obtainable(g, sid, item, stock, depth = 2) {
   return (stock[item] || 0) + best;
 }
 
-/** The warmest garment village sid can have now, with how many it can have: { item, n }, or null. */
-export function bestGarment(g, sid, stock = {}) {
-  let best = null;
+/** The garments village sid can have now, warmest first (then by id), with how many of each: [{ item, n }]. */
+export function garmentsOnHand(g, sid, stock = {}) {
+  const out = [];
   for (const it of g.reg.all('item')) {
     if (it.equipment?.slot !== 'body') continue;
     const n = obtainable(g, sid, it.id, stock);
-    if (n > 0 && (!best || (it.equipment.warmth || 0) > (best.item.equipment.warmth || 0))) best = { item: it, n };
+    if (n > 0) out.push({ item: it, n });
   }
-  return best;
+  return out.sort((a, b) => (b.item.equipment.warmth || 0) - (a.item.equipment.warmth || 0) || (a.item.id < b.item.id ? -1 : 1));
 }
+/** The warmest garment village sid can have now, with how many: { item, n }, or null. */
+export const bestGarment = (g, sid, stock = {}) => garmentsOnHand(g, sid, stock)[0] || null;
 
 /** The planner's wants for garments (planner.js): one demand per adult who should get one (equipFor, slot 'body'). */
 export function garmentWants(g, sid, adults, stock) {
@@ -58,9 +60,11 @@ export function garmentWants(g, sid, adults, stock) {
   if (g._coldAhead.t >= R.below + CLOTHING.ahead) return []; // the coming days are mild
   const bare = adults.filter((c) => !c.equip.body && !(c.job?.type === 'equip' && c.job.slot === 'body'));
   if (!bare.length) return [];
-  const best = bestGarment(g, sid, stock);
-  if (!best) return [];
   bare.sort((a, b) => (!!a.homeId) - (!!b.homeId) || (a.id < b.id ? -1 : 1));
-  const name = best.item.name.toLowerCase();
-  return bare.slice(0, best.n).map((c) => ({ item: best.item.id, qty: 1, urgency: CLOTHING.urgency, why: `A ${name} for ${c.name} against the cold`, equipFor: c.id, slot: 'body' }));
+  const out = [];
+  for (const { item, n } of garmentsOnHand(g, sid, stock)) { // the warmest first, then the next for the rest
+    const name = item.name.toLowerCase();
+    for (const c of bare.splice(0, n)) out.push({ item: item.id, qty: 1, urgency: CLOTHING.urgency, why: `A ${name} for ${c.name} against the cold`, equipFor: c.id, slot: 'body' });
+  }
+  return out;
 }

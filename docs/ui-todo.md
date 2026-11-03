@@ -531,3 +531,7 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   a hungry animal (`hungry` days) drawn thin with a warning when it reaches 3 of the 5 days it can last. Log lines
   "A cow starved in the pen of V." (warning) and "A young cow was born in the pen of V." (good). The hauling
   label "Feed the cattle".
+- **Phase 9, slices 4b–4c:** farm work labels "Milk a cow", "Shear a sheep", "Slaughter a cow" with their reasons
+  ("The pen is full (8); 2 are kept for breeding", "The village is short of meat"); an animal's next product time
+  (`next`) on its hover card ("Ready to shear in 4 days"). New items milk, wool, yarn and the wool coat; new
+  stations the spinning wheel (#9a7a54) and the loom (#8a6a48).

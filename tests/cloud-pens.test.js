@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservationErrors } from './cloud-helpers.js';
 import { createProject, findSite, completeStructure } from '../src/sim/construction.js';
 import { pensOf, penState, PEN } from '../src/sim/pens.js';
-import { tameInto, penAnimals, penInterior, livestockCensus, tickLivestockDay, penEats, FEED } from '../src/sim/livestock.js';
+import { tameInto, penAnimals, penInterior, livestockCensus, tickLivestockDay, penEats, FEED, toSlaughter } from '../src/sim/livestock.js';
 import { issueCommand } from '../src/sim/god.js';
 import { animalCensus, bringNear, herdAnimals } from '../src/sim/animals.js';
 import { roomAt } from '../src/sim/heat.js';
@@ -171,4 +171,47 @@ test('births: a fed pair in spring has young, up to the pen\'s room; saved and l
   assert.equal(stateText(r), stateText(g));
   runDays(g, 1); runDays(r, 1);
   assert.equal(stateText(r), stateText(g));
+});
+
+test('products: fed cows are milked every two days and sheep sheared; neither is harmed', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  law(g, 'summer');
+  const cows = builtPen(g, 'core:wild_cattle');
+  stock(g, cows, 'core:wild_cattle', 2);
+  const made = (it) => g.s.ledger.byReason['created:livestock']?.[it] || 0;
+  for (let t = 0; t < 3 * TICKS_PER_DAY && made('core:milk') < 4; t++) g.tick();
+  assert.ok(made('core:milk') >= 4, `both cows milked (${made('core:milk')} milk)`);
+  assert.equal(penAnimals(g, cows).length, 2, 'milking harms none');
+  assert.ok(penAnimals(g, cows).every((a) => a.next > g.s.tick - TICKS_PER_DAY), 'each has a time it is ready again');
+  const milked = made('core:milk');
+  g.step(TICKS_PER_DAY / 2);
+  assert.equal(made('core:milk'), milked, 'not again before two days');
+  const sheep = builtPen(g, 'core:wild_sheep');
+  stock(g, sheep, 'core:wild_sheep', 2);
+  for (let t = 0; t < 3 * TICKS_PER_DAY && made('core:wool') < 6; t++) g.tick();
+  assert.equal(made('core:wool'), 6, 'two sheep, three wool each');
+  assert.equal(penAnimals(g, sheep).length, 2, 'shearing never kills a sheep');
+  assert.ok(livestockCensus(g).ok);
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('slaughter: a full pen loses one above the breeding stock, exactly once; a pair is never slaughtered', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  law(g, 'summer');
+  const pigs = builtPen(g, 'core:wild_boar');
+  stock(g, pigs, 'core:wild_boar', 8);
+  const P = g.planOf({ settlementId: g.s.playerSettlement });
+  assert.equal(toSlaughter(g, pigs, P)?.id, penAnimals(g, pigs).at(-1).id, 'full: the youngest');
+  const sid = g.s.playerSettlement;
+  for (let t = 0; t < 2 * TICKS_PER_DAY && !g.s.livestock.ledger[sid]['core:wild_boar'].died.butchered; t++) g.tick();
+  assert.equal(g.s.livestock.ledger[sid]['core:wild_boar'].died.butchered, 1, 'one slaughtered');
+  assert.equal(penAnimals(g, pigs).length, 7);
+  assert.equal(g.s.ledger.byReason['created:livestock']['core:boar_carcass'], 1, 'its carcass made once');
+  assert.ok(livestockCensus(g).ok);
+  assert.deepEqual(conservationErrors(g), []);
+  const pair = builtPen(g, 'core:wild_cattle');
+  stock(g, pair, 'core:wild_cattle', 2);
+  assert.equal(toSlaughter(g, pair, { foodDays: 0 }), null, 'the breeding pair is kept even when meat is short');
 });

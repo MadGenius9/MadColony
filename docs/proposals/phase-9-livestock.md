@@ -225,3 +225,23 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 - **Tests:** 3 more in `tests/cloud-pens.test.js`: grass and trough, starving with carcasses; haulers carry fodder
   in during winter (booked as fodder); births in spring, saved and loaded identically.
 - **Checks:** full suite 310 passed; classic hashes unchanged (`forty` b57317ab3e4ccbc5, `modern` e60c658d08cab7f1).
+
+### Slices 4b–4c: milk, wool, slaughter, wool clothing (built and tested, 2026-11-03)
+- **Products** (`tame.product` in data; the giver `core:tend_animals` in Farming, job `husbandry`):
+  - a fed cow gives 2 milk every 2 days ("Milk a cow", 60 ticks of work);
+  - a fed sheep gives 3 wool every 10 days ("Shear a sheep", 120 ticks);
+  - neither is harmed. `a.next` is the tick it is ready again. Milk is raw food (spoils fast); wool a material.
+- **Slaughter:**
+  - a pen at its room (8), or any pen while the village is short of meat (the hunting rule's measure), has one
+    animal above the breeding stock (`tame.keep`, 2) slaughtered, the youngest first;
+  - removing it (ledger `butchered`) and making its carcass (item ledger 'livestock') happen in the same step,
+    once; the carcass is butchered at the butcher's table as usual.
+- **Wool clothing** (`clothing.json`): the spinning wheel (2 wool → 1 yarn) and the loom (4 yarn → a wool coat:
+  warmth 9 °C, 900 hours). The planner now asks for the warmest coats it can make, then the next warmest for the
+  rest (`garmentsOnHand`).
+- **A bug caught on the way:** the first name of the tending job, `tend`, was already the job of caring for the
+  hurt (medical); registering it replaced the doctors' job, and the clothing play test failed. It is `husbandry`
+  now; no other job type name is shared.
+- **Tests:** 2 more in `cloud-pens.test.js` (milking and shearing harm none and wait their days; a full pen loses
+  exactly one to slaughter, never the breeding pair), 1 more in `cloud-clothing.test.js` (warmest first).
+- **Checks:** full suite 313 passed; classic hashes unchanged (`forty` b57317ab3e4ccbc5, `modern` e60c658d08cab7f1).

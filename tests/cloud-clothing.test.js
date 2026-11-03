@@ -108,3 +108,14 @@ test('clothing: as winter comes, a village with hides tans them, makes coats and
   assert.ok(g.s.log.some((e) => /equipped a Leather coat/.test(e.msg)));
   assert.deepEqual(conservationErrors(g), []);
 });
+
+test('clothing: wool coats are warmer; the planner asks for the warmest it can make, then leather for the rest', () => {
+  const g = newGame({ seed: 7, scenario: 'core:living_world' });
+  const sid = g.s.playerSettlement;
+  winter(g);
+  assert.ok(g.reg.get('item', 'core:wool_coat').equipment.warmth > g.reg.get('item', COAT).equipment.warmth);
+  const person = (n) => ({ id: `c${String(n).padStart(2, '0')}`, name: `P${n}`, homeId: 'h1', equip: { tool: null, weapon: null } });
+  const four = [0, 1, 2, 3].map(person);
+  const w = garmentWants(g, sid, four, { 'core:wool': 8, 'core:hide': 4 }); // 8 wool: 4 yarn: 1 wool coat; 4 hides: 2 leather coats
+  assert.deepEqual(w.map((d) => [d.equipFor, d.item]), [['c00', 'core:wool_coat'], ['c01', COAT], ['c02', COAT]]);
+});
