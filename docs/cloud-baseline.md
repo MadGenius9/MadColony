@@ -280,3 +280,7 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Wild sheep, cattle and boar (slice 2): `forty` b57317ab3e4ccbc5 (the default map gains 14 wild cattle, which
   the colony hunts; workshops era on day 6.59, was 7.39); `modern` unchanged, e60c658d08cab7f1 (only deer on that
   map).
+
+## Phase 10 proposed baselines (2026-11-03, awaiting the owner's review)
+- Partnerships (slice 1): `forty` 3f9025f579d6a2d9, `modern` 987ed5c0f0482498. The era days are unchanged; the
+  saved partner fields alone change the hashes.

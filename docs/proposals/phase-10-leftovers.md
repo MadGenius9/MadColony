@@ -68,3 +68,21 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
 5. Acceptance, then the Ideas parking-lot review (a list for the owner, not new work).
 
 ## Results
+### Slice 1: partnerships (built and tested, 2026-11-03)
+- **Built:**
+  - `src/sim/family.js` (`partnerOf`, `closeKin`, `liking`, `tickPartners`, a new daily job after
+    `tickLivestockDay`);
+  - the optional colonist and dead `partner` (format 43, save checks);
+  - births name a couple living in the home as the parents (`people.js`; the chance and its rng draw are
+    unchanged);
+  - grief counts a partner (`burial.js`);
+  - the chronicle kind `core:partners` (routine).
+- **In play:** Living world, seed 5: 26 of 51 people partnered after 18 days.
+- **Tests:** `tests/cloud-family.test.js`, 4 tests: pairs both ways within a village, never close family; a partner's
+  death frees the other and brings grief; save and load identical, old saves unpartnered, a bad field refused; a
+  couple named as the parents of a child born in their home.
+- **Changed test:** `cloud-spread.test.js` "the day-start jobs run one a tick" now watches the first 30 ticks of the
+  day instead of 20: there are 21 day-start jobs. Same assertions.
+- **Classic runs** (intended change, proposed): the era days are the same as before (`forty` workshops 6.59;
+  `modern` 7.27 / 14.55 / 18.75 / 44.41). The hashes change by the partner fields: `forty` 3f9025f579d6a2d9,
+  `modern` 987ed5c0f0482498. Full suite 320 passed.

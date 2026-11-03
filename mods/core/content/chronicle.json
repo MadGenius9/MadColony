@@ -215,6 +215,11 @@
       "id": "core:pen",
       "name": "An animal pen",
       "importance": "routine"
+    },
+    {
+      "id": "core:partners",
+      "name": "New partners",
+      "importance": "routine"
     }
   ]
 }

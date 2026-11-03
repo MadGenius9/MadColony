@@ -7,7 +7,8 @@
 // Childhood is compressed: a child grows up in a few game days rather than years (data: untilDays), so
 // the cycle can be seen in play. Adults have an age in years that grows one year per game year.
 //
-// How children arrive: there is no romance or relationship system. A household (a finished home whose
+// How children arrive (partners, family.js, are named as the parents when a couple lives in the home; they do not
+// change the chance). A household (a finished home whose
 // beds have at least two adult residents and one free bed) in a settlement with enough food and room
 // under its population cap may have a child, at most once every few days per home (BIRTH below). The
 // child takes the free bed and records the two adults as its parents. Existing colonists in older saves
@@ -23,6 +24,7 @@ import { civLawOf, hoursOf, CHILD_WORK } from './civlaws.js';
 const inSchoolHours = (g) => { const h = (g.s.tick % TICKS_PER_DAY) / (TICKS_PER_DAY / 24); return h >= 8 && h < 15; };
 import { growthOf } from './worldlaws.js';
 import { moodBirth } from './mood.js';
+import { partnerOf } from './family.js';
 
 export const BIRTH = { chancePerDay: 0.25, minFoodDays: 4, gapDays: 6, defaultCap: 12, adultAge: 16, perDay: 1 };
 /** The birth rules in force: BIRTH, with the scenario's growthBySize entry for this world's size (the scale target,
@@ -139,8 +141,10 @@ function considerBirths(g, sid) {
   for (const home of homes) {
     if (s.tick - (home.lastBirth ?? -1e9) < (B.gapDays / growthOf(g)) * TICKS_PER_DAY) continue; // the Fast growth law halves the gap
     const beds = bedsOf(home);
-    const adults = beds.map((b) => s.colonists[b.owner]).filter((c) => c && isAdult(g, c));
+    let adults = beds.map((b) => s.colonists[b.owner]).filter((c) => c && isAdult(g, c));
     if (adults.length < 2) continue;
+    const couple = adults.find((a) => partnerOf(g, a) && adults.includes(partnerOf(g, a))); // a couple living here are the parents (family.js)
+    if (couple) adults = [couple, partnerOf(g, couple), ...adults.filter((a) => a !== couple && a !== partnerOf(g, couple))];
     // The child sleeps in the family's home if a bed is free there, otherwise in any free bed of the village.
     let where = beds.find(isFree) ? home : null;
     let bed = where ? beds.find(isFree) : null;

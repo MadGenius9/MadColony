@@ -84,7 +84,7 @@ export function mourn(g, c) {
   const s = g.s, until = s.tick + BURIAL.griefDays * TICKS_PER_DAY;
   for (const o of Object.values(s.colonists).sort((a, b) => byId(a.id, b.id))) {
     if (o === c) continue;
-    const family = (c.homeId && o.homeId === c.homeId) || c.parents?.includes(o.id) || o.parents?.includes(c.id);
+    const family = (c.homeId && o.homeId === c.homeId) || c.parents?.includes(o.id) || o.parents?.includes(c.id) || (c.partner && c.partner === o.id); // a partner too (family.js)
     if (!family) continue;
     o.grief = { until, for: c.name, work: BURIAL.griefWork }; // jobs.js workSpeed reads it; health.js drops it once over
   }

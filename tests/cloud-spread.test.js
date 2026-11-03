@@ -27,7 +27,7 @@ test('spread: the day-start jobs run one a tick, in order, once a day', () => {
   const seen = [];
   while (g.s.tick % TICKS_PER_DAY !== TICKS_PER_DAY - 1) g.tick(); // the next tick is the day's first
   g._dayTimes = {};
-  for (let t = 0; t < 20; t++) {
+  for (let t = 0; t < 30; t++) { // 21 day-start jobs since Phase 10 (one a tick): all within the first 30 ticks
     const before = Object.keys(g._dayTimes).length;
     g.tick();
     const keys = Object.keys(g._dayTimes);
@@ -35,7 +35,7 @@ test('spread: the day-start jobs run one a tick, in order, once a day', () => {
   }
   assert.deepEqual(seen.slice(0, 3), [[0, 'tickFounding'], [1, 'tickKingdoms'], [2, 'tickTithes']]);
   assert.ok(seen.every(([t], i) => i === 0 || t > seen[i - 1][0]), 'one a tick, in order');
-  assert.ok(seen.at(-1)[0] < 20);
+  assert.ok(seen.at(-1)[0] < 30);
   const once = { ...g._dayTimes };
   for (let t = 0; t < TICKS_PER_DAY - 40; t++) g.tick();
   assert.deepEqual(Object.keys(g._dayTimes), Object.keys(once), 'nothing more the rest of the day');

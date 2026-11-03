@@ -535,3 +535,8 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   ("The pen is full (8); 2 are kept for breeding", "The village is short of meat"); an animal's next product time
   (`next`) on its hover card ("Ready to shear in 4 days"). New items milk, wool, yarn and the wool coat; new
   stations the spinning wheel (#9a7a54) and the loom (#8a6a48).
+
+## Phase 10, slice 1: partnerships
+- **The colonist panel and hover card** name the partner (`partner`, a colonist id; the dead keep theirs) beside
+  the parents, with a link to select them. The family list (parents, children, siblings) gains the partner.
+- **Log line** "A and B of V are now partners." (good news, chronicle kind `core:partners`, routine).

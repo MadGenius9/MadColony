@@ -139,6 +139,8 @@ export const MIGRATIONS = {
   40() {},
   // 41 -> 42: livestock (livestock.js). `s.livestock` is optional: absent means no tame animals. Pens are projects.
   41() {},
+  // 42 -> 43: partnerships (family.js). colonist and dead `partner` are optional: absent means unpartnered.
+  42() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

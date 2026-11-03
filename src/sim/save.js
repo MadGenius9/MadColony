@@ -148,6 +148,7 @@ export function validateSave(save) {
     if (!isObj(e.skills) || Object.values(e.skills).some((v) => !isNum(v))) bad(`colonist "${k}" has invalid skills`);
     if (!isObj(e.needs) || Object.values(e.needs).some((v) => !isNum(v))) bad(`colonist "${k}" has invalid needs`);
     if (!isObj(e.equip)) bad(`colonist "${k}" has no equipment slots`);
+    if (e.partner !== undefined && !isStr(e.partner, 64)) bad(`colonist "${k}" has an invalid partner`); // format 43 (family.js)
     if (e.carry !== null && e.carry !== undefined && (!isObj(e.carry) || !isStr(e.carry.item, 100) || !isInt(e.carry.qty) || e.carry.qty < 1)) bad(`colonist "${k}" is carrying something invalid`);
     if (e.job !== null && e.job !== undefined && (!isObj(e.job) || !isStr(e.job.type, 40) || !Array.isArray(e.job.res ?? []))) bad(`colonist "${k}" has an invalid job`);
     if (isObj(e.job) && e.job.unmet !== undefined && (!isObj(e.job.unmet) || Object.values(e.job.unmet).some((t) => !isNum(t) || t > s.tick))) bad(`colonist "${k}" has an invalid job (unmet needs)`);
@@ -320,6 +321,7 @@ function validateDead(s, bad) {
     if (d.origin !== undefined && d.origin !== 'divine') { bad(`the record of the dead "${k}" has an unknown origin`); return; }
     if ((d.buried !== undefined && (!isInt(d.buried) || d.buried > s.tick)) || (d.graveId !== undefined && !isStr(d.graveId, 64))) { bad(`the record of the dead "${k}" has an invalid burial`); return; } // format 16
     if (d.parents !== undefined && (!Array.isArray(d.parents) || d.parents.length > 4 || d.parents.some((p) => !isStr(p, 64)))) { bad(`the record of the dead "${k}" has invalid parents`); return; }
+    if (d.partner !== undefined && !isStr(d.partner, 64)) { bad(`the record of the dead "${k}" has an invalid partner`); return; } // format 43 (family.js)
     if ((d.people !== undefined && !isStr(d.people, 100)) || (d.traits !== undefined && (!Array.isArray(d.traits) || d.traits.length > MAX_TRAITS || d.traits.some((t) => !isStr(t, 100))))) { bad(`the record of the dead "${k}" has an invalid people or traits`); return; } // format 30
   }
 }
