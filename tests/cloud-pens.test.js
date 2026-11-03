@@ -215,3 +215,27 @@ test('slaughter: a full pen loses one above the breeding stock, exactly once; a 
   stock(g, pair, 'core:wild_cattle', 2);
   assert.equal(toSlaughter(g, pair, { foodDays: 0 }), null, 'the breeding pair is kept even when meat is short');
 });
+
+test('distant villages: the pen is fed from the village stock, gives its products into it, in aggregate', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const sid = g.s.playerSettlement, st = g.s.settlements[sid];
+  const p = builtPen(g, 'core:wild_cattle');
+  stock(g, p, 'core:wild_cattle', 2);
+  g.ledgerAdd('created', 'core:potato', 30, 'test');
+  g.placeItems('core:potato', 30, st.center.x, st.center.y);
+  const potatoes = () => Object.values(g.s.stacks).filter((s) => s.item === 'core:potato').reduce((a, s) => a + s.qty, 0);
+  const before = potatoes();
+  law(g, 'winter');
+  const was = st.detail;
+  st.detail = 'abstract'; // as a distant village (nobody walks there)
+  for (let d = 0; d < 6; d++) tickLivestockDay(g);
+  assert.ok(penAnimals(g, p).every((a) => !a.hungry), 'fed through six winter days');
+  assert.equal(before - potatoes(), 12 + (p.feed || 0), 'two a day taken from its stock (and what is left in the trough)');
+  law(g, 'summer');
+  for (let d = 0; d < 3; d++) tickLivestockDay(g);
+  assert.ok((g.s.ledger.byReason['created:livestock']?.['core:milk'] || 0) >= 4, 'milk into its stock');
+  if (was === undefined) delete st.detail; else st.detail = was;
+  assert.ok(livestockCensus(g).ok);
+  assert.deepEqual(conservationErrors(g), []);
+});

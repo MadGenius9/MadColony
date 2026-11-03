@@ -245,3 +245,22 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 - **Tests:** 2 more in `cloud-pens.test.js` (milking and shearing harm none and wait their days; a full pen loses
   exactly one to slaughter, never the breeding pair), 1 more in `cloud-clothing.test.js` (warmest first).
 - **Checks:** full suite 313 passed; classic hashes unchanged (`forty` b57317ab3e4ccbc5, `modern` e60c658d08cab7f1).
+
+### Slice 5: distant villages' livestock, and the livestock acceptance (2026-11-03)
+- **Distant villages** (`livestock.js fillTrough`, `tendFar`): nobody walks there, so once a day the trough is
+  filled from the village's stacks (booked as fodder), products ready go into its stock, and the slaughter rule is
+  applied, in aggregate. Their animals stand still. They keep the pens they have and lay out no new ones. Before
+  this, a village with a pen that became distant would have lost its animals to the first winter. Test: a pen fed
+  through six winter days from its stock, then milked into it.
+- **World seed 11, 200 days** (`tools/cloud-world-run.mjs 200 world 11 25 100`, now with a livestock summary):
+  - 2 pens, both closed (the first by day 25);
+  - 2 wild sheep tamed (by day 50), 1 lamb born, 1 sheep slaughtered when meat was short: 2 sheep on day 200;
+  - 244 people in 64 villages; 2.7 ms a tick on day 200; the save on day 100 loaded and ran on identically; no
+    conservation errors;
+  - 17 coats worn on day 200, 6 frozen to death.
+  - **Livestock is rare in today's worlds:** AI villages are capped at 6 people, and pens need 6 people in a
+    full-detail village. As with carts, it waits on the growth decision (`scale-target.md`).
+  - Slaughtering whenever meat is short keeps a pen at its breeding pair: the one lamb was slaughtered at once. A
+    balance point for Phase 16 (slaughter only when the pen is full, or keep more than a pair).
+- **Bench** (`tools/bench.js`, defaults, two runs each, against 81c40d6, the end of Phase 7): small +4%/+4%,
+  medium −5%/+1%, large +6%/+4%. Under the 10% bar.

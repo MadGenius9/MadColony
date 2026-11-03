@@ -100,6 +100,7 @@ for (let d = 1; d <= days; d++) {
       roads: (() => { const r = Object.values(g.s.structures).filter((b) => b.def === 'core:road'); const by = {}; for (const b of r) if (b.built) by[b.settlement] = (by[b.settlement] || 0) + 1; return { built: r.filter((b) => b.built).length, planned: r.filter((b) => !b.built).length, villages: Object.keys(by).length }; })(),
       carts: Object.values(g.s.colonists).filter((c) => c.equip.cart).length, // handcarts in use (Phase 7, slice 4)
       coats: Object.values(g.s.colonists).filter((c) => c.equip.body).length, // garments worn (Phase 9, slice 1)
+      livestock: (() => { const L = g.s.livestock, pens = Object.values(g.s.projects).filter((p) => p.pen); const by = {}, led = {}; for (const a of Object.values(L?.list || {})) by[a.sp.replace('core:wild_', '')] = (by[a.sp.replace('core:wild_', '')] || 0) + 1; for (const v of Object.values(L?.ledger || {})) for (const [sp, x] of Object.entries(v)) { const k = sp.replace('core:wild_', ''); led[k] ||= { tamed: 0, born: 0, died: {} }; led[k].tamed += x.tamed; led[k].born += x.born; for (const [c, n] of Object.entries(x.died)) led[k].died[c] = (led[k].died[c] || 0) + n; } return { pens: pens.length, closed: pens.filter((p) => p.parts.every((id) => g.s.structures[id]?.built)).length, animals: by, ledger: led }; })(), // Phase 9, slices 3-5
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;

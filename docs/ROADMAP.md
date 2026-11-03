@@ -948,10 +948,26 @@ Depends on: Phase 11's playable build (home), and Phases 12–15.
 - **A short tutorial or hints** for the new controls in the existing UI style.
 - **Not in it:** new systems.
 
-### Phase 9: livestock, clothing and the settlement plan
+### Phase 9: livestock, clothing and the settlement plan (clothing and livestock done in the cloud copy, 2026-11-03)
 Cows, pigs and sheep with enclosures and care; wool and leather clothing chains; a settlement plan
 (reserved road corridors, plots, farmland, expansion space) replacing nearest-good-spot site choice, with
-reasons.
+reasons. Design and results: [docs/proposals/phase-9-livestock.md](proposals/phase-9-livestock.md).
+
+- **Done (slices 1–5):**
+  - leather and wool coats against the cold (a `body` slot, format 41);
+  - wild sheep, cattle and boar;
+  - fenced pens with a closed check, and taming into them (format 42);
+  - fodder, starving and spring births;
+  - milk, wool and slaughter above the breeding stock;
+  - distant villages' pens in aggregate.
+- **Proposed classic hashes:** `forty` b57317ab3e4ccbc5, `modern` e60c658d08cab7f1.
+- **Open:**
+  - the settlement plan (slices 6–7);
+  - hay as a crop;
+  - mounts;
+  - balance points: taming waits about 12 days after a pen is closed; slaughter when meat is short keeps a pen at
+    its pair;
+  - the wolf finding in the note (Living world seed 7).
 
 ### Later: god powers, part 4 (terrain and weather), then worship
 Once weather exists: terrain brushes (raise and lower land, dig water, plant forest) and weather powers

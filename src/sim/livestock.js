@@ -19,6 +19,9 @@
 // of a farmer's work next to it; shearing and milking never harm it. A pen at its room, or any pen while the
 // village is short of meat, has one animal above the breeding stock (`tame.keep`, default 2) slaughtered, the
 // youngest first: it is removed (ledger 'butchered') and its carcass made (item ledger) in the same step.
+// Distant villages (slice 5): nobody walks there, so once a day the trough is filled from the village's stock,
+// products go into its stock, and the slaughter rule is applied, in aggregate. Distant villages do not lay out
+// new pens; they keep the ones they have.
 import { killAnimal, herdAnimals, bringNear, herdsWithin, HUNT_LIMIT, meatOnHand, meatWanted } from './animals.js';
 import { pensOf, penState, PEN } from './pens.js';
 import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
@@ -210,6 +213,8 @@ export function tickLivestockDay(g) {
     const p = g.s.projects[pid], list = byPen.get(pid);
     if (!p) continue;
     let grass = seasonOf(g) === 'Winter' ? 0 : grazeOf(g, p);
+    const far = g.s.settlements?.[p.settlement]?.detail === 'abstract';
+    if (far) fillTrough(g, p, penEats(g, p, list.length)); // a distant village feeds from its stock, in aggregate
     for (const a of list) {
       const inside = insidePen(g, p, a.x, a.y);
       if (inside && grass > 0) { grass--; a.hungry = 0; continue; }
@@ -224,6 +229,7 @@ export function tickLivestockDay(g) {
     }
     if (p.feed === 0) delete p.feed;
     const live = list.filter((a) => S.list[a.id]), d = g.reg.get('animal', p.pen?.sp);
+    if (far && d) tendFar(g, p, d, live);
     if (!d || seasonOf(g) !== 'Spring' || live.length < 2 || live.length >= capOf(g, p) || live.some((a) => a.hungry)) continue;
     const chance = Math.min(1, ((d.births || 0) * live.length) / Math.max(1, climateOf(g).yearDays / 4));
     if ((hash(`${g.s.seed}:birth:${pid}:${day}`) % 10000) / 10000 >= chance) continue;
@@ -244,6 +250,38 @@ export function toSlaughter(g, p, P) {
   const full = list.length >= capOf(g, p);
   const meatShort = P && meatOnHand(g, P) < meatWanted(g.owned('colonists', p.settlement).length, P.foodDays);
   return full || meatShort ? list[list.length - 1] : null;
+}
+
+/** A distant village (tickLivestockDay): fodder from its stacks (lowest id first) into pen p's trough, up to need. */
+function fillTrough(g, p, need) {
+  if ((p.feed || 0) >= need) return;
+  for (const it of g.reg.itemsWithTag('core:fodder')) {
+    for (const st of g.owned('stacks', p.settlement).filter((x) => x.item === it).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+      const q = Math.min(g.availQty(st.id), need - (p.feed || 0));
+      if (q <= 0) continue;
+      const got = g.takeFromStack(st.id, q);
+      if (!got?.qty) continue;
+      p.feed = (p.feed || 0) + got.qty;
+      g.consume(it, got.qty, 'fodder');
+      if (p.feed >= need) return;
+    }
+  }
+}
+
+/** A distant village, once a day: its fed animals give what is ready into its stock, and one is slaughtered when
+ *  the rule says so (as the tending job would). */
+function tendFar(g, p, d, live) {
+  const ctr = g.s.settlements?.[p.settlement]?.center || g.s.center, pr = d.tame?.product;
+  if (pr) for (const a of live) {
+    if (a.hungry || (a.next || 0) > g.s.tick) continue;
+    a.next = g.s.tick + Math.round(pr.everyDays * TICKS_PER_DAY);
+    g.createItems(pr.item, pr.qty, ctr.x, ctr.y, 'livestock', undefined, true);
+  }
+  const cut = toSlaughter(g, p, g.planOf({ settlementId: p.settlement }));
+  if (!cut) return;
+  delete g.s.livestock.list[cut.id];
+  const L = ledger(g, cut.sid, cut.sp).died; L.butchered = (L.butchered || 0) + 1;
+  if (d.carcass) g.createItems(d.carcass, 1, ctr.x, ctr.y, 'livestock', undefined, true);
 }
 
 export const TEND_GIVERS = {
