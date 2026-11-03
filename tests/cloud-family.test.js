@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame } from './cloud-helpers.js';
 import { tickPartners, partnerOf, closeKin, PARTNER } from '../src/sim/family.js';
 import { killColonist } from '../src/sim/death.js';
+import { assignHome, homeBeds } from '../src/sim/construction.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
 
 const pairs = (g) => Object.values(g.s.colonists).filter((c) => c.partner && partnerOf(g, c));
@@ -70,4 +71,29 @@ test('partners: a couple sharing a home are named as the parents of a child born
   }
   assert.ok(child, 'a child of a couple');
   assert.ok(PARTNER.chance > 0);
+});
+
+test('housing: a home takes the partner of someone living there first, and couples move in together', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 6);
+  const sid = g.s.playerSettlement;
+  const home = Object.values(g.s.homes).filter((h) => h.complete && (h.settlement || sid) === sid).sort((a, b) => homeBeds(g, b).length - homeBeds(g, a).length)[0];
+  assert.ok(home && homeBeds(g, home).filter((b) => b.built).length >= 2, 'a finished home with two beds');
+  const vacate = (c) => { const b = g.s.structures[c.bedId]; if (b) b.owner = null; const h = g.s.homes[c.homeId]; if (h) h.owners = h.owners.filter((x) => x !== c.id); c.homeId = null; c.bedId = null; };
+  const people = g.owned('colonists', sid).slice().sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
+  for (const c of people) { vacate(c); delete c.partner; }
+  for (const b of homeBeds(g, home)) b.owner = null;
+  // The last two in id order are a couple; the plain order would house the first two.
+  const [x, y] = people.slice(-2);
+  x.partner = y.id; y.partner = x.id;
+  assignHome(g, home);
+  const inside = people.filter((c) => c.homeId === home.id).map((c) => c.id);
+  assert.ok(inside.includes(x.id) && inside.includes(y.id), `the couple moved in together (${inside.join(', ')})`);
+  // With the couple's partner already inside, she or he comes first.
+  for (const c of people) vacate(c);
+  for (const b of homeBeds(g, home)) b.owner = null;
+  const bed = homeBeds(g, home).find((b) => b.built);
+  bed.owner = x.id; x.bedId = bed.id; x.homeId = home.id; home.owners.push(x.id);
+  assignHome(g, home);
+  assert.equal(y.homeId, home.id, 'the partner joins first');
 });

@@ -3,7 +3,7 @@
 // died: { cause: n } } } } }. They are apart from the wild animals (animals.js never sees them: no fleeing, no
 // folding into a herd count, no drift).
 // Taming: a hunter of a village with a closed pen (pens.js) walks up to a near wild animal of the pen's species
-// and catches it within TAME.catch tiles. In that one step the wild animal leaves its herd (the wild ledger books
+// and catches it within TAME.catch tiles (a rope's reach: at 1.5 tiles a fleeing cow was hardly ever caught). In that one step the wild animal leaves its herd (the wild ledger books
 // it as died 'tamed') and a tame one is made (this ledger books it as tamed): exactly once. The tamer then leads it
 // through the gate into the pen (`led`: it follows the tamer step by step). If the lead is broken off, the animal
 // waits where it is, loose, and anyone may lead it in. In the pen, each animal moves a step inside every
@@ -29,7 +29,7 @@ import { mayDoWork } from './people.js';
 import { seasonOf, climateOf } from './heat.js';
 import { TICKS_PER_DAY } from './constants.js';
 
-export const TAME = Object.freeze({ catch: 1.5, giveUp: 1500, pair: 2, every: 10 });
+export const TAME = Object.freeze({ catch: 3, giveUp: 1500, pair: 2, every: 10 });
 export const FEED = Object.freeze({ starve: 5, days: 3, graze: 6 });
 
 const hash = (str) => {
@@ -136,7 +136,7 @@ export const LIVESTOCK_GIVERS = {
         const ctr = g.s.settlements?.[sid]?.center || g.s.center;
         for (const h of herdsWithin(g, ctr.x, ctr.y, PEN.reach)) { // the herds round the village only
           if (h.sp !== p.pen.sp || h.n <= HUNT_LIMIT || Math.hypot(h.x - ctr.x, h.y - ctr.y) > PEN.reach || g.isReserved(`tame:${h.id}`, c.id) || g.isBlocked(`tame:${sid}:${h.id}`)) continue;
-          out.push({ x: h.x, y: h.y, urgency: 0.5, label: `Tame a ${d.tame.name.toLowerCase()}`, far: { x: h.x, y: h.y }, make() {
+          out.push({ x: h.x, y: h.y, urgency: 0.9, label: `Tame a ${d.tame.name.toLowerCase()}`, far: { x: h.x, y: h.y }, make() {
             const job = newJob('tame', { stage: 'catch', pen: p.id, herd: h.id, target: null, gx: null, gy: null, started: g.s.tick }, { why: `Two ${d.tame.plural} for the pen`, label: `Tame a ${d.tame.name.toLowerCase()}`, workType: wt.id, targetKey: `tame:${sid}:${h.id}` });
             if (!g.reserveExcl(job, `tame:${h.id}`, c.id)) return null;
             bringNear(g, h.id); // a far herd becomes animals to catch

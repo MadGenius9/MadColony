@@ -4,6 +4,7 @@ import { parseTemplate, rotateCell, rotateVec, rotatedSize, slotCandidates, temp
 import { octile } from './util.js';
 import { isUnlocked } from './research.js';
 import { peopleOfSettlement } from './peoples.js';
+import { partnerOf } from './family.js';
 
 const ORDER = { door: 0, furniture: 1, station: 1, wall: 2 };
 
@@ -309,12 +310,19 @@ export function homeBeds(g, home) {
 export function assignHome(g, home) {
   const beds = homeBeds(g, home).filter((b) => b.built);
   const sid = home.settlement || g.s.playerSettlement;
-  const homeless = g.colonists().filter((c) => !c.homeId && (c.settlementId || g.s.playerSettlement) === sid);
+  const all = g.colonists().filter((c) => !c.homeId && (c.settlementId || g.s.playerSettlement) === sid);
+  // Families first (Phase 10, family.js): someone whose partner or parent lives here, then homeless couples (each
+  // followed at once by the other), then the rest, each in the usual order.
+  const here = (c) => partnerOf(g, c)?.homeId === home.id || !!c.parents?.some((id) => g.s.colonists[id]?.homeId === home.id);
+  const couple = (c) => !c.homeId && !partnerOf(g, c)?.homeId && !!partnerOf(g, c);
+  const homeless = [...all.filter(here), ...all.filter((c) => !here(c) && couple(c)), ...all.filter((c) => !here(c) && !couple(c))];
   const names = [];
   for (const bed of beds) {
     if (bed.owner && g.s.colonists[bed.owner]) continue;
     const c = homeless.shift();
     if (!c) break;
+    const p = partnerOf(g, c), k = p ? homeless.indexOf(p) : -1;
+    if (k > 0) { homeless.splice(k, 1); homeless.unshift(p); } // the partner next
     bed.owner = c.id;
     c.bedId = bed.id;
     c.homeId = home.id;

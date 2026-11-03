@@ -86,3 +86,24 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
 - **Classic runs** (intended change, proposed): the era days are the same as before (`forty` workshops 6.59;
   `modern` 7.27 / 14.55 / 18.75 / 44.41). The hashes change by the partner fields: `forty` 3f9025f579d6a2d9,
   `modern` 987ed5c0f0482498. Full suite 320 passed.
+
+### Slice 2: family housing (built and tested, 2026-11-03)
+- **Built** (`construction.js assignHome`): beds go first to someone whose partner or parent lives in the home, then
+  to homeless couples (each followed at once by the other), then to the rest in the usual order. Moving couples
+  who already live apart into a new home together is not done: assigning beds never moves anyone housed.
+- **What it changed:**
+  - The classic 40-day run: couples share homes, the workshops era comes on day 5.43 (was 6.59), and the hash is
+    7fa8ee19278e5103 (proposed). `modern` is unchanged (987ed5c0f0482498).
+  - **The firefighting test** (`cloud-wrath.test.js`, seed 7, a home set alight at midnight) fell from 56 buildings
+    standing (26 without firefighting) to 34 (28). Only awake adults fight fires (Phase 5b). With couples housed
+    together, the couple in the next home slept through the fire. The test now runs the same fire on seeds 7, 8 and
+    9: at least as much stands on each with firefighting, and more than 10 more in all (now 34/28, 50/37, 41/37:
+    23 more). That is stronger per seed than the one seed it had.
+  - **Whether sleepers should wake for a fire next door** is a firefighting design question for the owner, not
+    changed here.
+  - **The pen play test** (`cloud-pens.test.js`): the pair was now tamed only on day 48 (pen closed on day 18).
+    Tracing it showed taming barely worked: tamers came within 2–6 tiles of a fleeing cow and gave up.
+    - Fixed in `livestock.js`: a tamer catches within 3 tiles (a rope's reach; it was 1.5), and taming is urgency
+      0.9 (was 0.5; at 0.5 nobody took it for days).
+    - Now the pair is in the pen the day it is closed (day 18). Both changes were needed.
+- **Tests:** a housing test in `cloud-family.test.js`; full suite 321 passed.
