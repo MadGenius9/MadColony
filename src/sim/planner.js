@@ -2,7 +2,7 @@
 // content graph (stock -> in-flight production -> recipes/stations -> gatherable nodes -> crops), and
 // starts projects (homes, stations, fields, stockpile growth). It never moves a colonist itself; it
 // publishes `g.plan` (wants, bills, clear list, equipment needs, goal explanations) for job givers.
-import { huntableNear, farHuntable, meatOnHand, meatWanted } from './animals.js';
+import { huntableNear, farHuntable, meatOnHand, meatWanted, herdsWithin } from './animals.js';
 import { HUNT_REACH } from './hunt.js';
 import { monsterThreats } from './slay.js';
 import { staffing, educationSummary } from './education.js';
@@ -298,11 +298,16 @@ function planSettlement(g, sid) {
   const herdsNear = !ctr || !s.animals ? [] : s.settlements?.[sid]?.detail === 'abstract' ? farHuntable(g, ctr.x, ctr.y, HUNT_REACH, sid) : huntableNear(g, ctr.x, ctr.y, HUNT_REACH); // distant villages hunt far herds (lod.js); full ones near or far; both out to HUNT_REACH, as lod.js and hunt.js hunt (40 for distant ones until 2026-10-31)
   const huntLaw = huntAllowed(g, sid, P.foodDays); // the Hunting law (civlaws.js)
   const meatShort = huntLaw && meatOnHand(g, P) < meatWanted(cols.length, P.foodDays); // twice as much when food is short
-  if (herdsNear.length && meatShort) {
+  // A pack that attacked a full-detail village (h.raids) is hunted down whatever the meat (hunt.js); its hunters
+  // are armed for it, urgently. Distant villages list raiders in farHuntable; full ones look for them here.
+  const raiders = !ctr || !s.animals || s.animals.peaceful || s.settlements?.[sid]?.detail === 'abstract' ? [] : herdsWithin(g, ctr.x, ctr.y, HUNT_REACH)
+    .filter((h) => h.raids?.[sid] > s.tick && reg.get('animal', h.sp)?.diet === 'hunt').map((h) => ({ h, d: reg.get('animal', h.sp), dist: Math.hypot(h.x - ctr.x, h.y - ctr.y), raid: true }))
+    .filter((t) => t.dist <= HUNT_REACH).sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
+  if ((herdsNear.length && meatShort) || raiders.length) {
     const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
     for (const c of pool.slice(0, 2)) hunterIds.add(c.id);
   }
-  const raid = herdsNear.find((t) => t.raid);
+  const raid = herdsNear.find((t) => t.raid) || raiders[0];
   // Monsters (Phase 8c, slay.js): while one threatens the village, its fightGroup best hunters get a weapon if they
   // have none (a hunt party needs that many armed).
   const threat = s.monsters && s.settlements?.[sid]?.detail !== 'abstract' ? monsterThreats(g, sid)[0] : null, td = threat && reg.get('monster', threat.sp);
@@ -337,7 +342,7 @@ function planSettlement(g, sid) {
     }
     if (hunterIds.has(c.id) && !c.equip.weapon && !guardItem && !ctx.armAll) {
       const wid = bestAvailableWeapon(g, sid, P.stock);
-      if (wid && !fetching('weapon', wid)) D.push({ item: wid, qty: 1, urgency: 0.5, why: `A ${iname(g, wid)} for ${c.name} to hunt with`, equipFor: c.id, slot: 'weapon' });
+      if (wid && !fetching('weapon', wid)) D.push({ item: wid, qty: 1, urgency: raid ? 1 : 0.5, why: raid ? `A ${iname(g, wid)} for ${c.name} to hunt down the ${raid.d.plural || raid.d.name}` : `A ${iname(g, wid)} for ${c.name} to hunt with`, equipFor: c.id, slot: 'weapon' });
     }
   }
   for (const sp of ctx.spares) D.push(sp);

@@ -291,3 +291,20 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
   play, it needs something the plan protects against first: congestion, fire spreading between packed
   buildings, or room to grow larger buildings. "Pens away from homes" is the one neighbouring-use rule with a
   reason today; it can be added on its own.
+
+### Fix: full-detail villages arm against a pack that attacked them (2026-11-03)
+- **The gap** (from the wolf finding above): the planner's branch for raiding packs never ran for villages simulated
+  in full; it only listed grazing herds for them.
+- **Now** (`planner.js`, hunting): for a full-detail village it also lists packs within the hunting reach (60
+  tiles) that attacked it (`h.raids`), nearest first. Then:
+  - its two best hunters are armed whatever the meat (Phase 8's rule: a pack that attacked is hunted down whatever
+    the meat);
+  - the weapon order is urgent (1, was 0.5), with the reason "A Fire-hardened spear for Zev to hunt down the
+    wolves";
+  - the note reads "Hunting down the wolves that attacked the village".
+  - Not while the wild is peaceful (god powers).
+- **Living world, seed 7:** spears are made on day 4 and taken up. On day 16 the village has 6 people and nobody has
+  died; before the fix all six had died by day 15. Seeds 1 and 5 are unchanged in outcome (8 and 7 people, no
+  deaths).
+- **Classic hashes unchanged** (no wolves near those colonies). Full suite 316 passed. Tests:
+  `tests/cloud-raids.test.js` (the note and the urgent weapon order; seed 7 survives to day 16).
