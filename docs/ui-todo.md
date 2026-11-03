@@ -540,3 +540,5 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **The colonist panel and hover card** name the partner (`partner`, a colonist id; the dead keep theirs) beside
   the parents, with a link to select them. The family list (parents, children, siblings) gains the partner.
 - **Log line** "A and B of V are now partners." (good news, chronicle kind `core:partners`, routine).
+- **Phase 10, slice 3:** four more professions shown like the others (Farmer, Builder, Huntsman, Cook) in the colonist
+  panel's profession line, with the speed bonus on hover.

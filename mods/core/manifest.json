@@ -45,6 +45,7 @@
     "content/roads.json",
     "content/clothing.json",
     "content/livestock.json",
+    "content/professions.json",
     "content/god.json"
   ]
 }

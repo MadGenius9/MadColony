@@ -286,3 +286,5 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   saved partner fields alone change the hashes.
 - Family housing (slice 2): `forty` 7fa8ee19278e5103 (workshops era on day 5.43, was 6.59: couples share
   homes); `modern` unchanged, 987ed5c0f0482498.
+- Professions (slice 3): `forty` 9f293a56bce0c53c (workshops on day 6.64), `modern` 8e0ecba41839e932 (modern era
+  on day 43.04, was 44.41).

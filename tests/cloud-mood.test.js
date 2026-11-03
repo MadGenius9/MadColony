@@ -165,7 +165,12 @@ test('mood: unrest makes an AI village repeal its most disliked law (not one it 
 test('mood: a miserable family may leave for a village of its own people with room; everyone stays counted', () => {
   const g = newGame({ seed: 7, scenario: 'core:neighbours', size: 'large', villages: 2 });
   runDays(g, 8);
-  const [a, b] = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  // The village that leaves: an AI village where nobody is down or in a sick bed (a family with someone down never
+  // leaves: unrest.js), the other one the place it can go.
+  const ais = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort();
+  const well = (k) => g.owned('colonists', k).every((c) => !c.health?.down && !c.carriedBy && !c.medBedId);
+  const a = ais.find(well), b = ais.find((k) => k !== a);
+  assert.ok(a && b, 'an AI village where everyone is well, and another');
   const before = { a: g.owned('colonists', a).length, b: g.owned('colonists', b).length };
   const counts = () => Object.fromEntries(Object.keys(g.s.settlements).map((k) => [k, g.owned('colonists', k).length]));
   const all0 = counts();

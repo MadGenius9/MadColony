@@ -1,0 +1,9 @@
+{
+  "$comment": "Phase 10, slice 3 (docs/proposals/phase-10-leftovers.md): professions earned by practice, with the qualification machinery of education.js. Each speeds up its own work and is never required. Reaching the skill level is the whole of it; there is no course.",
+  "qualification": [
+    { "id": "core:farmer", "name": "Farmer", "workTypes": ["core:farm"], "speed": 1.2, "practice": { "skill": "core:farming", "level": 7 }, "description": "Knows the fields: sows, harvests and tends animals faster." },
+    { "id": "core:builder", "name": "Builder", "workTypes": ["core:construct"], "speed": 1.2, "practice": { "skill": "core:construction", "level": 7 }, "description": "Builds and repairs faster." },
+    { "id": "core:huntsman", "name": "Huntsman", "workTypes": ["core:hunt"], "speed": 1.2, "practice": { "skill": "core:hunting", "level": 6 }, "description": "Tracks, hunts and tames faster." },
+    { "id": "core:cook", "name": "Cook", "workTypes": ["core:cook"], "speed": 1.2, "practice": { "skill": "core:cooking", "level": 7 }, "description": "Cooks and butchers faster." }
+  ]
+}

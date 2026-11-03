@@ -107,3 +107,19 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
       0.9 (was 0.5; at 0.5 nobody took it for days).
     - Now the pair is in the pen the day it is closed (day 18). Both changes were needed.
 - **Tests:** a housing test in `cloud-family.test.js`; full suite 321 passed.
+
+### Slice 3: more professions (built and tested, 2026-11-03)
+- **Built** (`mods/core/content/professions.json`, data only, with the qualification machinery of education.js):
+  - farmer (Farming 7: farm work ×1.2, also milking and shearing);
+  - builder (Construction 7: building ×1.2);
+  - huntsman (Hunting 6: hunting ×1.2);
+  - cook (Cooking 7: cooking and butchering ×1.2).
+
+  All are earned by practice and never required; the log says "P is now a qualified Farmer through practice".
+- **Classic runs** (intended change, proposed): `forty` 9f293a56bce0c53c (workshops on day 6.64, was 5.43 after
+  slice 2); `modern` 8e0ecba41839e932 (modern era on day 43.04, was 44.41).
+- **Changed test:** `cloud-mood.test.js`, "a miserable family may leave". On day 8 the first AI village's only
+  family now has someone down, and such a family never leaves. The test picks the AI village where nobody is down
+  as the one that leaves, and asserts that one exists. Same assertions after that.
+- **Tests:** a professions test in `cloud-family.test.js` (earned at the skill level, not below; the right work
+  only). Full suite: 321 passed, plus the changed mood test.

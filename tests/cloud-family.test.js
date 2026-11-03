@@ -97,3 +97,23 @@ test('housing: a home takes the partner of someone living there first, and coupl
   assignHome(g, home);
   assert.equal(y.homeId, home.id, 'the partner joins first');
 });
+
+test('professions: farmer, builder, huntsman and cook are earned by practice and speed up their own work only', async () => {
+  const { qualSpeed, tickEducation } = await import('../src/sim/education.js');
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const c = Object.values(g.s.colonists)[0];
+  const want = { 'core:farmer': ['core:farming', 7, 'core:farm'], 'core:builder': ['core:construction', 7, 'core:construct'], 'core:huntsman': ['core:hunting', 6, 'core:hunt'], 'core:cook': ['core:cooking', 7, 'core:cook'] };
+  c.quals = (c.quals || []).filter((q) => !want[q]); // from a fresh start (founders may begin skilled enough)
+  for (const [skill, level] of Object.values(want)) c.skills[skill] = Math.min(c.skills[skill] || 0, level - 1);
+  for (const [q, [skill, level, wt]] of Object.entries(want)) {
+    assert.equal(g.reg.get('qualification', q).practice.level, level);
+    g.step(200);
+    assert.ok(!(c.quals || []).includes(q), `not ${q} below level ${level}`);
+    c.skills[skill] = level;
+    for (let t = 0; t < 200 && !(c.quals || []).includes(q); t++) { g.tick(); }
+    assert.ok((c.quals || []).includes(q), `${q} earned at ${skill} ${level}`);
+    assert.ok(qualSpeed(g, c, wt) >= 1.2, `${q} speeds ${wt}`);
+  }
+  assert.equal(qualSpeed(g, c, 'core:research'), 1, 'not other work');
+});
