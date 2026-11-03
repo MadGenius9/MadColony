@@ -15,6 +15,7 @@
 import { TICKS_PER_DAY } from './constants.js';
 import { tempAt, roomAt, outdoorTemp, climateOf, coldestAhead } from './heat.js';
 import { modsOf } from './peoples.js';
+import { warmthOf } from './clothing.js';
 import { lawIs, lawSince, onLawChange } from './worldlaws.js';
 
 /** The scenario's life rules, or null. */
@@ -35,11 +36,12 @@ const hash = (str) => {
   return h >>> 0;
 };
 
-/** tickHealth: how much colder than the cold rule it is where `c` stands (°C under it), or 0. */
-export function coldUnder(g, c) {
+/** tickHealth: how much colder than the cold rule it is where `c` stands (°C under it), or 0. `bare`: as if c
+ *  wore no garment. */
+export function coldUnder(g, c, bare = false) {
   const R = lifeRules(g)?.cold;
   if (!R) return 0;
-  const below = R.below - modsOf(g, c).cold; // the cold sets in later for the Cragborn and the hardy (peoples.js)
+  const below = R.below - modsOf(g, c).cold - (bare || !c.equip?.body ? 0 : warmthOf(g, c)); // later for the Cragborn and the hardy (peoples.js), and for the warmly dressed (clothing.js)
   // Not freezing outdoors: nobody is cold (rooms drift toward the outdoors, so they are warmer or close to it).
   // The outdoor temperature once per tick (derived).
   if (g._outT?.tick !== g.s.tick) g._outT = { tick: g.s.tick, t: outdoorTemp(g) };

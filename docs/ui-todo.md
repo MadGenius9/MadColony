@@ -502,3 +502,14 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   job with several piles (`job.loads`, `job.more`) can say "Hauling N piles of X". The planner's reason "A handcart
   for P to haul with" shows like the tool reasons. The tech's text says why carts pay on roads (slower off them,
   loaded).
+
+## Phase 9, slice 1: clothing
+- **The colonist panel** shows a fourth equipment slot, `equip.body` (a garment: `core:leather_coat`), with its
+  warmth ("+6 °C against the cold") and its wear (`dur`, hours of cold left). Draw a person wearing a coat in
+  the coat's colour.
+- **The hover card's cold line:** when someone is cold, say how far the coat moved the line ("would be freezing
+  without the coat").
+- **New station:** the tanning rack (`core:tanning_rack`, colour #8a6a4a, a table shape) with its recipe "Tan a
+  hide" (1 hide → 2 leather); the workbench gains "Make leather coat" (4 leather).
+- **The planner's reason** "A leather coat for P against the cold" shows like the tool reasons. The log line
+  "P's leather coat wore out." is a warning.

@@ -92,12 +92,13 @@ export const CONTENT_TYPES = {
       spoilPerDay: num(0, 1), // Phase 8 (spoil.js): this share of every stack and load spoils each day
       fuel: num(0, 100), // burn-time multiplier when used as generator fuel (default 1)
       equipment: obj({
-        slot: req({ type: 'enum', values: ['tool', 'weapon', 'cart'] }),
+        slot: req({ type: 'enum', values: ['tool', 'weapon', 'cart', 'body'] }),
         workBoost: map({ type: 'ref', to: 'workType' }, num(0.1, 10)),
         durability: req(int(1, 1000000)),
         damage: num(0, 1000),
         range: num(1, 40), cooldown: int(1, 10000), accuracy: num(0, 1), ammo: ref('item'), // weapons
         carry: num(1, 10), offRoad: num(1, 3), // carts (Phase 7, roads.js): load × carry; a loaded step off a road × offRoad
+        warmth: num(0, 40), // garments (Phase 9, clothing.js): °C the cold line moves down for the wearer
       }),
       render: itemLook,
       flammable: num(0, 1), // Phase 5b: how readily it burns (fire, lightning); default 0

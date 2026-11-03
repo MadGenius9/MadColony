@@ -98,3 +98,22 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 7. Acceptance: World run, classic runs, bench, docs and UI notes.
 
 ## Results
+### Slice 1: leather clothing (built and tested, 2026-11-03)
+- **Built:**
+  - `mods/core/content/clothing.json`: leather, the leather coat (slot `body`, warmth 6 °C, 600 hours of
+    cold), the tanning rack (12 wood) and its spot, "Tan a hide" (1 hide → 2 leather) and "Make leather coat"
+    (4 leather, at the workbench). There is no research.
+  - `src/sim/clothing.js`:
+    - `warmthOf`;
+    - `wearBody`: worn by the hour while it keeps out the cold; worn out, it is booked as worn;
+    - `bestGarment`: how many can be had from stock, through recipes two steps deep;
+    - `garmentWants`: only with cold rules, only when the next 3 days come within 4 °C of the cold line, at
+      most what the stock can make, the homeless first, then by id.
+  - `life.js coldUnder(g, c, bare)`: the garment's warmth moves the line down; `bare` asks as if without it.
+  - `health.js`: wear while the bare line would bite.
+  - the `body` slot (format 41) in the census, inventoryOf, death drops and missing-mod recovery.
+- **Tests:** `tests/cloud-clothing.test.js`, 5 tests. In the end-to-end test (Living world, seed 5), hides placed
+  on day 6 are tanned once the nights near the cold line: the rack was built on day 14, 2 coats were worn on day
+  17 and 4 by day 23.
+- **Found on the way:** in the Living world with seed 7, the player's village dies of thirst by day 15, with
+  or without this slice. This is looked into separately below.

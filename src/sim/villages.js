@@ -638,6 +638,7 @@ export function inventoryOf(g, sid) {
     if (c.equip.tool) add(c.equip.tool.item, 1);
     if (c.equip.weapon) add(c.equip.weapon.item, 1);
     if (c.equip.cart) add(c.equip.cart.item, 1);
+    if (c.equip.body) add(c.equip.body.item, 1);
     if (c.ammo) add(c.ammo.item, c.ammo.qty);
   }
   for (const st of Object.values(g.s.structures)) {

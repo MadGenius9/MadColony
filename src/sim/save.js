@@ -685,7 +685,7 @@ export function loadGame(reg, saveOrText) {
   }
   s.overflow = s.overflow.filter((o) => reg.has('item', o.item) || (q('stack', { id: `s_orph_over_${o.item}_${o.qty}`, item: o.item, qty: o.qty, x: o.x, y: o.y }, o.settlement ? { owner: o.settlement } : {}), false));
   for (const c of Object.values(s.colonists)) {
-    for (const slot of ['tool', 'weapon', 'cart']) {
+    for (const slot of ['tool', 'weapon', 'cart', 'body']) {
       const e = c.equip?.[slot];
       if (e && !reg.has('item', e.item)) { s.orphans.push({ kind: 'equip', cid: c.id, slot, data: e, since: s.tick }); c.equip[slot] = null; }
     }

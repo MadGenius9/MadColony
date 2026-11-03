@@ -8,6 +8,7 @@
 import { tickInfection, healFactor, bedFactor, scarFrom, MED } from './medical.js';
 import { TICKS_PER_HOUR } from './constants.js';
 import { coldUnder, lifeRules } from './life.js';
+import { wearBody } from './clothing.js';
 import { tickSickness } from './illness.js';
 import { modsOf } from './peoples.js';
 
@@ -78,6 +79,7 @@ export function tickHealth(g, c, force = false) {
   if (energy && (c.needs[energy.id] ?? 1) <= 0.01 && !c.sleeping) injure(g, c, 'exhaustion', HEALTH.exhaustPerHour * frac, 'Collapsing from exhaustion', true);
   const cold = coldUnder(g, c); // scenarios with cold rules (life.js): degrees below the freezing line where they are
   if (cold > 0) injure(g, c, 'hypothermia', lifeRules(g).cold.perHour * cold * frac, 'Freezing', true);
+  if (c.equip.body && coldUnder(g, c, true) > 0) wearBody(g, c, frac); // the garment keeps out the cold, and wears (clothing.js)
   if (c.grief && c.grief.until <= g.s.tick) delete c.grief; // mourning is over (burial.js)
   if (!c.health?.injuries?.length) return;
   tickInfection(g, c, frac);

@@ -1,0 +1,17 @@
+{
+  "$comment": "Clothing (docs/proposals/phase-9-livestock.md, src/sim/clothing.js): a garment is equipment in the body slot; its warmth (degrees) moves the cold line down for its wearer, and every hour the wearer would be cold without it wears it by one. Leather comes from hides at a tanning rack.",
+  "item": [
+    { "id": "core:leather", "name": "Leather", "color": "#8b5a2b", "stackLimit": 40, "tags": ["core:material"], "render": { "shape": "sack", "icon": "sack" }, "value": 4 },
+    { "id": "core:leather_coat", "name": "Leather coat", "color": "#7a4e2a", "stackLimit": 1, "value": 18, "equipment": { "slot": "body", "warmth": 6, "durability": 600 }, "render": { "shape": "sack", "icon": "sack" } }
+  ],
+  "building": [
+    { "id": "core:tanning_rack", "name": "Tanning rack", "category": "station", "passable": false, "cost": [{ "item": "core:wood", "qty": 12 }], "work": 140, "skill": "core:construction", "interaction": [0, 1], "color": "#8a6a4a", "render": { "shape": "table" } }
+  ],
+  "template": [
+    { "id": "core:tannery_spot", "name": "Tanning spot", "kind": "station", "provides": ["core:tanning_rack"], "layout": ["T", "."], "legend": { "T": { "build": "core:tanning_rack" }, ".": { "floor": true } } }
+  ],
+  "recipe": [
+    { "id": "core:tan_hide", "name": "Tan a hide", "station": "core:tanning_rack", "workType": "core:craft", "inputs": [{ "item": "core:hide", "qty": 1 }], "outputs": [{ "item": "core:leather", "qty": 2 }], "work": 180, "skill": "core:crafting" },
+    { "id": "core:make_leather_coat", "name": "Make leather coat", "station": "core:workbench", "workType": "core:craft", "inputs": [{ "item": "core:leather", "qty": 4 }], "outputs": [{ "item": "core:leather_coat", "qty": 1 }], "work": 300, "skill": "core:crafting" }
+  ]
+}

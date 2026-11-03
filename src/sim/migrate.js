@@ -135,6 +135,8 @@ export const MIGRATIONS = {
   38() {},
   // 39 -> 40: handcarts (roads.js). A colonist's equip.cart is optional: absent means no cart.
   39() {},
+  // 40 -> 41: clothing (clothing.js). A colonist's equip.body is optional: absent means no garment.
+  40() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

@@ -43,6 +43,7 @@
     "content/petitions.json",
     "content/memories.json",
     "content/roads.json",
+    "content/clothing.json",
     "content/god.json"
   ]
 }

@@ -32,6 +32,7 @@ import { legRemaining, relationPeek, relationStatus } from './villages.js';
 import { LOD, stagger, planOffset } from './lod.js';
 import { travelRules, reachTest, nodesInReach, SLOW_WORK } from './ai/trips.js';
 import { planRoads, cartWants } from './roads.js'; // Phase 7
+import { garmentWants } from './clothing.js'; // Phase 9
 
 export function emptyPlan() {
   return {
@@ -340,6 +341,7 @@ function planSettlement(g, sid) {
   }
   for (const sp of ctx.spares) D.push(sp);
   for (const d of cartWants(g, sid, cols.filter((c) => isAdultP(g, c)), P.stock)) D.push(d); // handcarts for haulers (roads.js)
+  for (const d of garmentWants(g, sid, cols.filter((c) => isAdultP(g, c)), P.stock)) D.push(d); // coats against the cold (clothing.js)
   // Carcasses spoil: their meat (or hide) is wanted at once, so they are butchered (Phase 8).
   for (const [it, q] of Object.entries(P.stock)) {
     if (q <= 0 || !reg.get('item', it)?.tags?.includes('core:carcass')) continue;

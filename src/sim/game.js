@@ -1211,6 +1211,7 @@ export class Game {
       if (col.equip.tool) add(col.equip.tool.item, 1);
       if (col.equip.weapon) add(col.equip.weapon.item, 1);
       if (col.equip.cart) add(col.equip.cart.item, 1);
+      if (col.equip.body) add(col.equip.body.item, 1);
       if (col.ammo) add(col.ammo.item, col.ammo.qty);
     }
     for (const st of Object.values(this.s.structures)) {

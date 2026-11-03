@@ -54,6 +54,7 @@ test('cold: only the exposed feel it — asleep outdoors yes, up and about no, s
   toWinterNight(g);
   const c = g.colonists().find((x) => x.homeId);
   const keep = { x: c.x, y: c.y, sleeping: c.sleeping, homeId: c.homeId };
+  const coat = c.equip.body; c.equip.body = null; // exposure without clothing (a coat moves the line: cloud-clothing.test.js)
   const at = openTile(g);
   assert.ok(at, 'an open tile');
   Object.assign(c, at, { sleeping: false });
@@ -64,6 +65,7 @@ test('cold: only the exposed feel it — asleep outdoors yes, up and about no, s
   c.homeId = null; c.sleeping = false;
   assert.equal(coldUnder(g, c), out, 'the homeless feel it even awake');
   Object.assign(c, keep);
+  c.equip.body = coat;
 });
 
 test('cold: a homeless person by a fire gets the shelter bonus', () => {
