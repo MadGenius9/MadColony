@@ -136,3 +136,14 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
     there; count raiding packs at the edge of the hunting reach; arm a raided village's first hunters with a
     spear before anything else; make packs that are being run from tire of a village. None is made here: each
     changes wolf balance, and Phase 8's answers set it.
+- **World seed 11, 200 days** (`tools/cloud-world-run.mjs 200 world 11 25 100`, which now also counts coats):
+  - coats worn: 3 on day 75, 9 on day 100, 16 on day 150 and 20 on day 200, among 280 people;
+  - 8 froze to death by day 200, against 6 in the Phase 7 run of the same seed. That world went differently from
+    day 75 on (280 people against 241), so the two counts are not a before-and-after comparison, and coats are
+    not shown here to save lives.
+  - It is not known from this run whether those who froze were in distant villages. People there get no coats
+    (nobody equips there).
+  - 3.0 ms a tick on day 200; the save on day 100 loaded and ran on identically; no conservation errors.
+- **Classic runs:** `forty` 95e985761d5b0e93 and `modern` e60c658d08cab7f1, both unchanged (no cold rules there).
+- **Changed test:** `cloud-life.test.js` "only the exposed feel it" now takes off the colonist's coat (the village
+  makes coats as winter comes), with the same assertions.

@@ -99,6 +99,7 @@ for (let d = 1; d <= days; d++) {
       memories: (() => { const live = st.filter((x) => !x.fallen); const tr = {}; for (const x of live) for (const t of x.traditions || []) tr[t.id.replace('core:', '')] = (tr[t.id.replace('core:', '')] || 0) + 1; return { held: live.reduce((n, x) => n + (x.memories?.length || 0), 0), withTradition: live.filter((x) => x.traditions?.length).length, traditions: tr }; })(),
       roads: (() => { const r = Object.values(g.s.structures).filter((b) => b.def === 'core:road'); const by = {}; for (const b of r) if (b.built) by[b.settlement] = (by[b.settlement] || 0) + 1; return { built: r.filter((b) => b.built).length, planned: r.filter((b) => !b.built).length, villages: Object.keys(by).length }; })(),
       carts: Object.values(g.s.colonists).filter((c) => c.equip.cart).length, // handcarts in use (Phase 7, slice 4)
+      coats: Object.values(g.s.colonists).filter((c) => c.equip.body).length, // garments worn (Phase 9, slice 1)
       heapMB: Math.round(process.memoryUsage().heapUsed / 1e6), cons: cons.length, peopleOk: pc.ok, animalsOk: ac.ok, monstersOk: mc.ok, monsters: monsterSummary(g),
     }));
     windowMs = 0; windowTicks = 0; worst = 0;
