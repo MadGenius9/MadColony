@@ -124,9 +124,14 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
   - **What happens:** from day 2, three wolf packs (13 wolves) about 30 tiles out raid the village. Nobody there
     has a weapon. People keep running from wolves ("Run from the wolves") instead of reaching the lake, go down
     from thirst, and die.
-  - Meanwhile the planner's hunting note still reads "Hunting deer (a herd of 11, 31 tiles away)", so the raiding
-    packs are not among the herds it would hunt (they are just outside its reach). And with no weapons, nobody
-    could hunt them.
+  - The planner orders a spear for a hunter from day 1 ("A Fire-hardened spear for Zev to hunt with"). The
+    workbench is built and the spear needs 5 wood and 1 stone, but nobody makes it in 6 days: the people spend
+    their time running. Without a weapon, nobody can hunt the packs down.
+  - **A gap in the planner (planner.js, hunting):** for villages simulated in full, it lists only grazing herds
+    (`huntableNear`). So its branch for packs that attacked the village never runs there: the note "Hunting
+    down the wolves that attacked the village" and arming hunters even when meat is not short. It runs only for
+    distant villages (`farHuntable`). The hunters' own job list does hunt raiding packs (hunt.js), once someone
+    has a weapon. Fixing this alone would not have saved this village, since a spear was already ordered.
   - **Possible fixes, for the owner to weigh:** let thirsty or hungry people finish a drink unless a wolf is right
     there; count raiding packs at the edge of the hunting reach; arm a raided village's first hunters with a
     spear before anything else; make packs that are being run from tire of a village. None is made here: each
