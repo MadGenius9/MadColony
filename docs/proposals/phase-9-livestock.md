@@ -147,3 +147,23 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 - **Classic runs:** `forty` 95e985761d5b0e93 and `modern` e60c658d08cab7f1, both unchanged (no cold rules there).
 - **Changed test:** `cloud-life.test.js` "only the exposed feel it" now takes off the colonist's coat (the village
   makes coats as winter comes), with the same assertions.
+
+### Slice 2: wild sheep, cattle and boar (built and tested, 2026-11-03)
+- **Built** (`mods/core/content/livestock.json`, data only):
+  - three grazing species, placed, grown, moved and hunted like deer:
+    - wild sheep on hills, mountains and tundra;
+    - wild cattle on grass, savanna and soil (rarer, stronger);
+    - wild boar in forests and marsh;
+  - their carcasses, butchered at the butcher's table: sheep → 5 mutton + 1 hide; cow → 12 beef + 2 hides; boar →
+    7 pork + 1 pigskin;
+  - pigskin → 1 leather at the tanning rack.
+  - Wolves now also hunt sheep and boar (two lines in `animals.json`); cattle are too big for a pack.
+- **Living world, seed 7, day 0:** 83 wild sheep, 30 wild cattle and 64 wild boar, beside 349 deer, 69 horses and
+  42 wolves.
+- **Tests:** `tests/cloud-livestock.test.js`, 3 tests: terrains, prey, recipes, the animal ledger exact for 6 days,
+  save and load identical. Full suite 304 passed.
+- **Classic runs** (an intended change, proposed for review):
+  - `forty` b57317ab3e4ccbc5. The default map now has 14 wild cattle beside its 23 deer; the colony hunts and
+    butchers them. The workshops era comes on day 6.59 (was 7.39). The extra meat is the likely reason; this was
+    not tested on its own.
+  - `modern` (seed 4242) is unchanged, e60c658d08cab7f1: only deer live on that map.

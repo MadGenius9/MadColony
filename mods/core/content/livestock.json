@@ -1,0 +1,23 @@
+{
+  "$comment": "Phase 9 (docs/proposals/phase-9-livestock.md), slice 2: wild sheep, cattle and boar, the herds livestock will be tamed from. Placed, grown and hunted like deer (animals.js); butchered at the butcher's table. Pigskin and hides tan into leather (clothing.json).",
+  "animal": [
+    { "id": "core:wild_sheep", "name": "Wild sheep", "plural": "wild sheep", "herd": [4, 10], "terrains": ["core:hills", "core:mountain", "core:tundra"], "density": 0.8, "cap": 24, "health": 25, "speed": 1.2, "diet": "graze", "fear": { "people": 8, "predators": 10 }, "births": 0.4, "winterLoss": 0.004, "godCost": 2, "winterTerrains": ["core:hills"], "droughtLoss": 0.04, "moveHours": 7, "color": "#d8d0bc", "carcass": "core:sheep_carcass" },
+    { "id": "core:wild_cattle", "name": "Wild cattle", "plural": "wild cattle", "herd": [4, 10], "terrains": ["core:grass", "core:savanna", "core:soil"], "density": 0.3, "cap": 12, "health": 70, "speed": 1.1, "diet": "graze", "fear": { "people": 6, "predators": 8 }, "births": 0.25, "winterLoss": 0.005, "godCost": 3, "winterTerrains": ["core:grass", "core:savanna"], "droughtLoss": 0.05, "moveHours": 8, "color": "#6a4a32", "carcass": "core:cattle_carcass" },
+    { "id": "core:wild_boar", "name": "Wild boar", "plural": "wild boar", "herd": [3, 8], "terrains": ["core:forest_floor", "core:taiga", "core:marsh"], "density": 0.6, "cap": 18, "health": 45, "speed": 1.2, "diet": "graze", "fear": { "people": 6, "predators": 8 }, "births": 0.5, "winterLoss": 0.005, "godCost": 2, "winterTerrains": ["core:forest_floor", "core:taiga"], "droughtLoss": 0.04, "moveHours": 6, "color": "#4e3e34", "carcass": "core:boar_carcass" }
+  ],
+  "item": [
+    { "id": "core:mutton", "name": "Mutton", "color": "#a8443a", "stackLimit": 60, "nutrition": 0.2, "spoilPerDay": 0.1, "tags": ["core:food", "core:raw_food", "core:meat"], "render": { "shape": "basket", "icon": "produce" }, "value": 2 },
+    { "id": "core:beef", "name": "Beef", "color": "#9a2e2a", "stackLimit": 60, "nutrition": 0.2, "spoilPerDay": 0.1, "tags": ["core:food", "core:raw_food", "core:meat"], "render": { "shape": "basket", "icon": "produce" }, "value": 2.2 },
+    { "id": "core:pork", "name": "Pork", "color": "#c06a5a", "stackLimit": 60, "nutrition": 0.2, "spoilPerDay": 0.1, "tags": ["core:food", "core:raw_food", "core:meat"], "render": { "shape": "basket", "icon": "produce" }, "value": 2 },
+    { "id": "core:pigskin", "name": "Pigskin", "color": "#c8a088", "stackLimit": 30, "tags": ["core:material"], "render": { "shape": "sack", "icon": "sack" }, "value": 2.5 },
+    { "id": "core:sheep_carcass", "name": "Sheep carcass", "color": "#c8bca8", "stackLimit": 1, "spoilPerDay": 0.2, "tags": ["core:carcass"], "render": { "shape": "sack", "icon": "sack" }, "value": 8 },
+    { "id": "core:cattle_carcass", "name": "Cattle carcass", "color": "#6a4a32", "stackLimit": 1, "spoilPerDay": 0.2, "tags": ["core:carcass"], "render": { "shape": "sack", "icon": "sack" }, "value": 16 },
+    { "id": "core:boar_carcass", "name": "Boar carcass", "color": "#5a4638", "stackLimit": 1, "spoilPerDay": 0.2, "tags": ["core:carcass"], "render": { "shape": "sack", "icon": "sack" }, "value": 10 }
+  ],
+  "recipe": [
+    { "id": "core:butcher_sheep", "name": "Butcher a sheep", "station": "core:butcher_table", "workType": "core:cook", "inputs": [{ "item": "core:sheep_carcass", "qty": 1 }], "outputs": [{ "item": "core:mutton", "qty": 5 }, { "item": "core:hide", "qty": 1 }], "work": 110, "skill": "core:cooking", "fromStock": true },
+    { "id": "core:butcher_cattle", "name": "Butcher a cow", "station": "core:butcher_table", "workType": "core:cook", "inputs": [{ "item": "core:cattle_carcass", "qty": 1 }], "outputs": [{ "item": "core:beef", "qty": 12 }, { "item": "core:hide", "qty": 2 }], "work": 180, "skill": "core:cooking", "fromStock": true },
+    { "id": "core:butcher_boar", "name": "Butcher a boar", "station": "core:butcher_table", "workType": "core:cook", "inputs": [{ "item": "core:boar_carcass", "qty": 1 }], "outputs": [{ "item": "core:pork", "qty": 7 }, { "item": "core:pigskin", "qty": 1 }], "work": 130, "skill": "core:cooking", "fromStock": true },
+    { "id": "core:tan_pigskin", "name": "Tan a pigskin", "station": "core:tanning_rack", "workType": "core:craft", "inputs": [{ "item": "core:pigskin", "qty": 1 }], "outputs": [{ "item": "core:leather", "qty": 1 }], "work": 140, "skill": "core:crafting" }
+  ]
+}

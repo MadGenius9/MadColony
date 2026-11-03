@@ -56,7 +56,9 @@
       "diet": "hunt",
       "prey": [
         "core:deer",
-        "core:wild_horse"
+        "core:wild_horse",
+        "core:wild_sheep",
+        "core:wild_boar"
       ],
       "fear": {
         "people": 0,

@@ -513,3 +513,6 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   hide" (1 hide → 2 leather); the workbench gains "Make leather coat" (4 leather).
 - **The planner's reason** "A leather coat for P against the cold" shows like the tool reasons. The log line
   "P's leather coat wore out." is a warning.
+- **Phase 9, slice 2:** three more wild species (`core:wild_sheep` #d8d0bc, `core:wild_cattle` #6a4a32,
+  `core:wild_boar` #4e3e34), drawn like deer (herd dots zoomed out, single animals near villages), with their
+  carcasses and the new meats (mutton, beef, pork) and pigskin in the item lists.

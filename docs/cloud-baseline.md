@@ -274,3 +274,9 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 - Handcarts (slice 4): `forty` unchanged; `modern` e60c658d08cab7f1. The techs and their ticks are the same and
   the modern era still starts on day 44.41. Researchers twice pick the new Wheelwrighting tech, for 15 to 30 ticks
   each time, before a goal switches them away. A save diff shows nothing else.
+
+## Phase 9 proposed baselines (2026-11-03, awaiting the owner's review)
+- Clothing (slice 1): both unchanged (no cold rules in classic games).
+- Wild sheep, cattle and boar (slice 2): `forty` b57317ab3e4ccbc5 (the default map gains 14 wild cattle, which
+  the colony hunts; workshops era on day 6.59, was 7.39); `modern` unchanged, e60c658d08cab7f1 (only deer on that
+  map).

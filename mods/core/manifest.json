@@ -44,6 +44,7 @@
     "content/memories.json",
     "content/roads.json",
     "content/clothing.json",
+    "content/livestock.json",
     "content/god.json"
   ]
 }
