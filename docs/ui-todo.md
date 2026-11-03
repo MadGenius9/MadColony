@@ -542,3 +542,8 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Log line** "A and B of V are now partners." (good news, chronicle kind `core:partners`, routine).
 - **Phase 10, slice 3:** four more professions shown like the others (Farmer, Builder, Huntsman, Cook) in the colonist
   panel's profession line, with the speed bonus on hover.
+- **Phase 10, slice 4 (selling policy):** in the trade panel, a choice "Sell controlled goods: by hand only (default)
+  / lawfully / on black markets too", with "keep N of each". Before the player picks, a table from
+  `sellOutlook(g, item)` for each controlled item they hold: each village's law, price ×, the watch's attention
+  and what a unit adds, and the seizure chance. Trades made by the policy carry the reason "Your selling policy
+  (…)".

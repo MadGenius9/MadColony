@@ -123,3 +123,24 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
   as the one that leaves, and asserts that one exists. Same assertions after that.
 - **Tests:** a professions test in `cloud-family.test.js` (earned at the skill level, not below; the right work
   only). Full suite: 321 passed, plus the changed mood test.
+
+### Slice 4: the selling policy for controlled goods, engine half (built and tested, 2026-11-03)
+- **Built** (`src/sim/selling.js`, format 44 `settlement.sellPolicy { mode, keep }`, a daily job):
+  - `setSellPolicy(g, mode, keep)`: `off` (the default; no field), `lawful` (only where legal or restricted) or
+    `any` (black markets too); `keep` units of each controlled item are never sold.
+  - `tickSelling`: every 2 days, at most one sale, through the same `evaluateOffer` / `proposeTrade` path a
+    player's own offer takes, so laws, prices, the restricted cap, attention, seizure and closed trade apply as
+    they do.
+    - It sells the controlled item with the most to spare, to the village paying most for it.
+    - The payment is what the player's village needs most of what that village can spare, worth up to 85% of the
+      goods.
+    - The trade's reason says "Your selling policy (lawful only)" or "… (black markets too)".
+  - `sellOutlook(g, item)`: what the UI shows before the player picks. For each village met: the law, the price
+    (×1, ×1.3, ×2.2), the watch's attention now, the attention a unit adds, the chance of seizure, and whether
+    trade is open.
+- **Off by default:** classic hashes unchanged (`forty` 9f293a56bce0c53c, `modern` 8e0ecba41839e932). Full suite
+  325 passed.
+- **Tests:** `tests/cloud-selling.test.js`, 3 tests: off sells nothing and the outlook is right; lawful never
+  smuggles and keeps to the restricted cap; `any` sells on a black market; `keep` respected; saved; a bad policy
+  refused; old saves off.
+- **Home:** the UI to pick the policy, showing `sellOutlook` first (the roadmap's condition).

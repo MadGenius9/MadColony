@@ -141,6 +141,8 @@ export const MIGRATIONS = {
   41() {},
   // 42 -> 43: partnerships (family.js). colonist and dead `partner` are optional: absent means unpartnered.
   42() {},
+  // 43 -> 44: the selling policy (selling.js). settlement.sellPolicy is optional: absent means off.
+  43() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {
