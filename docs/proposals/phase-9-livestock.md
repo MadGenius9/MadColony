@@ -205,3 +205,23 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 - **Checks:** full suite 307 passed; classic hashes unchanged from slice 2 (`forty` b57317ab3e4ccbc5, `modern`
   e60c658d08cab7f1). The pen note is kept in the plan only when there is something to say: an empty note in every
   plan had changed both hashes with no change in play.
+
+### Slice 4a: feed, starving and births (built and tested, 2026-11-03)
+- **Feed** (`livestock.js tickLivestockDay`, a new daily job after `fadeTraffic`):
+  - outside winter, a pen's grass feeds up to `pen.graze` (6) animals;
+  - the others, and every animal in winter, eat a unit of fodder from the trough (`project.feed`, a count).
+  - Fodder is an item tag, `core:fodder`, given to potatoes and beans (two lines in `items.json`). Hay as a crop
+    is left for later: it would need seeds and the field planner's say.
+  - The giver `core:feed_animals` (Hauling) keeps the trough at 3 days of what the pen eats, from a day before
+    winter on, from the nearest fodder stack: "Fodder for the cattle (2 of 6 in the trough)". Fodder put in the
+    trough is booked as consumed ('fodder'), so the census stays exact.
+- **Starving:** an animal unfed for 5 days in a row dies (livestock ledger `starved`) and leaves its carcass
+  (item ledger 'livestock'), with a warning in the log.
+- **Births:** on a spring day, a pen whose animals are all fed, with at least a pair and room, has a young one
+  with chance `births × animals ÷ the days of spring` (a hash draw; ledger `born`). Cattle (0.25) bring about one
+  young per pair per spring, boar (0.5) about two.
+- **In play** (Living world, seed 5, to day 70): two cows tamed on days 30–31, fed through winter (days 49–57)
+  from a trough kept at 6, a calf born on day 62; both ledgers exact.
+- **Tests:** 3 more in `tests/cloud-pens.test.js`: grass and trough, starving with carcasses; haulers carry fodder
+  in during winter (booked as fodder); births in spring, saved and loaded identically.
+- **Checks:** full suite 310 passed; classic hashes unchanged (`forty` b57317ab3e4ccbc5, `modern` e60c658d08cab7f1).

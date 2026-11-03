@@ -148,6 +148,9 @@
           "giver": "core:haul_stockpile"
         },
         {
+          "giver": "core:feed_animals"
+        },
+        {
           "giver": "core:scout"
         }
       ],

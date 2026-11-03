@@ -527,3 +527,7 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   animals in it with the livestock ledger (tamed, born, died by cause).
 - **Log lines:** "P caught a wild cattle for the pen." and "P brought a cow into the pen." (good news). The pen's
   first log line has the chronicle kind `core:pen`.
+- **Phase 9, slice 4a:** the pen's trough (`project.feed`, fodder units) shown on the pen with "N days of feed";
+  a hungry animal (`hungry` days) drawn thin with a warning when it reaches 3 of the 5 days it can last. Log lines
+  "A cow starved in the pen of V." (warning) and "A young cow was born in the pen of V." (good). The hauling
+  label "Feed the cattle".

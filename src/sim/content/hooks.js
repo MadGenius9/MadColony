@@ -43,6 +43,10 @@ export const GIVER_SPECS = {
     doc: 'Phase 8c: an empty, uncleared monster lair within 60 tiles of the village is cleared by one adult, so no monster grows there again.',
     params: obj({}),
   },
+  'core:feed_animals': {
+    doc: 'Phase 9: keeps a pen\'s trough at 3 days of fodder (items tagged core:fodder) for the animals its grass does not feed (all of them in winter, from a day before), carried in from the nearest stack (livestock.js).',
+    params: obj({}),
+  },
   'core:tame_animals': {
     doc: 'Phase 9: while the village has a closed pen (pens.js) with room, an adult catches a near wild animal of its species and leads it in (livestock.js); a loose one on the way is led in first.',
     params: obj({}),

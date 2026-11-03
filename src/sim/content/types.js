@@ -193,7 +193,7 @@ export const CONTENT_TYPES = {
       id, name,
       kind: req({ type: 'enum', values: ['home', 'workshop', 'station', 'pen'] }),
       capacity: int(0, 20),
-      pen: obj({ animals: req(int(1, 50)) }), // kind pen (Phase 9, pens.js): how many tame animals it holds
+      pen: obj({ animals: req(int(1, 50)), graze: int(0, 50) }), // kind pen (Phase 9, pens.js, livestock.js): how many tame animals it holds, and how many its grass feeds outside winter (default 6)
       provides: arr(ref('building')),
       layout: req(arr(str(24), { minItems: 1, maxItems: 24 })),
       legend: req(map(null, obj({

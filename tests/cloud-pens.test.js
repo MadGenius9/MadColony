@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { newGame, runDays, stateText, reload, serializeGame, loadGame, conservationErrors } from './cloud-helpers.js';
 import { createProject, findSite, completeStructure } from '../src/sim/construction.js';
 import { pensOf, penState, PEN } from '../src/sim/pens.js';
-import { tameInto, penAnimals, penInterior, livestockCensus } from '../src/sim/livestock.js';
+import { tameInto, penAnimals, penInterior, livestockCensus, tickLivestockDay, penEats, FEED } from '../src/sim/livestock.js';
+import { issueCommand } from '../src/sim/god.js';
 import { animalCensus, bringNear, herdAnimals } from '../src/sim/animals.js';
 import { roomAt } from '../src/sim/heat.js';
 import { TICKS_PER_DAY } from '../src/sim/constants.js';
@@ -100,4 +101,74 @@ test('pens and taming in play: a village of six lays out a pen with its reason, 
   g.step(500);
   assert.ok(penAnimals(g, p).every((a) => penInterior(g, p).set.has(`${a.x},${a.y}`)), 'they stay inside');
   assert.deepEqual(conservationErrors(g), []);
+});
+
+/** Put n tame animals of sp in pen p (as if tamed: booked in the livestock ledger). */
+function stock(g, p, sp, n) {
+  const S = (g.s.livestock ||= { next: 1, list: {}, ledger: {} });
+  const cells = penInterior(g, p);
+  for (let k = 0; k < n; k++) {
+    const id = 'l' + S.next++, at = cells[k % cells.length];
+    S.list[id] = { id, sp, sid: p.settlement, pen: p.id, x: at.x, y: at.y, hp: 10 };
+    const L = ((S.ledger[p.settlement] ||= {})[sp] ||= { tamed: 0, born: 0, died: {} }); L.tamed++;
+  }
+}
+const law = (g, v) => { const r = issueCommand(g, 'law', { law: 'core:season', value: v }); assert.equal(r.ok, true, r.reason); g.tick(); };
+
+test('feed: grass feeds a pen outside winter; in winter the animals eat from the trough, and starve without it', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const p = builtPen(g, 'core:wild_cattle');
+  stock(g, p, 'core:wild_cattle', 2);
+  law(g, 'summer');
+  for (let d = 0; d < 6; d++) tickLivestockDay(g);
+  assert.equal(penAnimals(g, p).length, 2, 'grass feeds them in summer');
+  assert.ok(penAnimals(g, p).every((a) => !a.hungry));
+  law(g, 'winter');
+  assert.equal(penEats(g, p, 2), 2, 'in winter each eats a unit a day');
+  p.feed = 3;
+  tickLivestockDay(g);
+  assert.equal(p.feed, 1, 'two eaten from the trough');
+  tickLivestockDay(g);
+  assert.deepEqual(penAnimals(g, p).map((a) => a.hungry || 0), [0, 1], 'one fed, one hungry');
+  for (let d = 0; d < FEED.starve; d++) tickLivestockDay(g);
+  assert.equal(penAnimals(g, p).length, 0, 'unfed for five days: they starve');
+  assert.equal(g.s.livestock.ledger[g.s.playerSettlement]['core:wild_cattle'].died.starved, 2);
+  assert.equal(Object.values(g.s.stacks).filter((s) => s.item === 'core:cattle_carcass').length, 2, 'their carcasses are left');
+  assert.ok(livestockCensus(g).ok, livestockCensus(g).problems.join('; '));
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('feed: in winter haulers carry fodder into the trough, so the animals are fed', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const p = builtPen(g, 'core:wild_cattle');
+  stock(g, p, 'core:wild_cattle', 2);
+  law(g, 'winter');
+  const ctr = g.s.settlements[g.s.playerSettlement].center;
+  g.ledgerAdd('created', 'core:potato', 20, 'test');
+  g.placeItems('core:potato', 20, ctr.x, ctr.y);
+  let fed = false;
+  for (let t = 0; t < 2 * TICKS_PER_DAY && !fed; t++) { g.tick(); fed = (p.feed || 0) > 0; }
+  assert.ok(fed, 'fodder carried in');
+  assert.equal(g.s.ledger.byReason['consumed:fodder']['core:potato'], p.feed, 'what is in the trough is booked as eaten fodder');
+  g.step(2 * TICKS_PER_DAY);
+  assert.ok(penAnimals(g, p).every((a) => !a.hungry), 'fed through the winter days');
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('births: a fed pair in spring has young, up to the pen\'s room; saved and loaded identically', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const p = builtPen(g, 'core:wild_boar');
+  stock(g, p, 'core:wild_boar', 2);
+  let born = 0;
+  for (let d = 0; d < 90 && !born; d++) { g.step(TICKS_PER_DAY); born = g.s.livestock.ledger[g.s.playerSettlement]['core:wild_boar'].born; } // boar breed fastest (births 0.5)
+  assert.ok(born >= 1, 'a birth within three springs');
+  assert.ok(penAnimals(g, p).length <= 8);
+  assert.ok(livestockCensus(g).ok);
+  const r = reload(g);
+  assert.equal(stateText(r), stateText(g));
+  runDays(g, 1); runDays(r, 1);
+  assert.equal(stateText(r), stateText(g));
 });

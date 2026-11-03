@@ -10,7 +10,7 @@
     { "id": "core:pen_gate", "name": "Pen gate", "category": "fence", "passable": true, "cost": [{ "item": "core:wood", "qty": 3 }], "work": 30, "skill": "core:construction", "color": "#a07a4a", "render": { "shape": "door" } }
   ],
   "template": [
-    { "id": "core:animal_pen", "name": "Animal pen", "kind": "pen", "pen": { "animals": 8 }, "layout": ["FFFFFFF", "F.....F", "F.....F", "F.....F", "FFFGFFF"], "legend": { "F": { "build": "core:fence" }, "G": { "build": "core:pen_gate" }, ".": { "clear": true } } }
+    { "id": "core:animal_pen", "name": "Animal pen", "kind": "pen", "pen": { "animals": 8, "graze": 6 }, "layout": ["FFFFFFF", "F.....F", "F.....F", "F.....F", "FFFGFFF"], "legend": { "F": { "build": "core:fence" }, "G": { "build": "core:pen_gate" }, ".": { "clear": true } } }
   ],
   "item": [
     { "id": "core:mutton", "name": "Mutton", "color": "#a8443a", "stackLimit": 60, "nutrition": 0.2, "spoilPerDay": 0.1, "tags": ["core:food", "core:raw_food", "core:meat"], "render": { "shape": "basket", "icon": "produce" }, "value": 2 },

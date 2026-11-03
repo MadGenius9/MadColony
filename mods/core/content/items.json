@@ -40,7 +40,8 @@
       "nutrition": 0.12,
       "tags": [
         "core:food",
-        "core:raw_food"
+        "core:raw_food",
+        "core:fodder"
       ],
       "render": {
         "shape": "basket",
@@ -56,7 +57,8 @@
       "nutrition": 0.12,
       "tags": [
         "core:food",
-        "core:raw_food"
+        "core:raw_food",
+        "core:fodder"
       ],
       "render": {
         "shape": "basket",
