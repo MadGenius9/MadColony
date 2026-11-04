@@ -551,3 +551,9 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   (`project.siteWhy`, `field.why`), e.g. "the nearest good spot, 7 tiles from the centre; 4 thick brush to
   clear first" or, for a pen, "at least 6 tiles from the homes".
 - **Fires (2026-11-04):** people woken by a fire show "Woken by a fire near the village" as their reason.
+
+## Forestry (2026-11-04)
+- **Draw the grove** (`settlement.grove { x, y, w, h }`) as a faint outline of planted ground; young trees
+  (`node.young`) as saplings. The village panel shows the forestry note (`P.forestNote`: "Planting pine trees in
+  the grove: 12 grown and 8 young within 24 tiles"). The log line "…are planting a grove: only N pine trees are
+  left within 24 tiles of the village" (chronicle kind `core:grove`). The job label "Plant a pine tree".

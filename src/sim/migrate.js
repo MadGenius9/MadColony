@@ -143,6 +143,8 @@ export const MIGRATIONS = {
   42() {},
   // 43 -> 44: the selling policy (selling.js). settlement.sellPolicy is optional: absent means off.
   43() {},
+  // 44 -> 45: forestry (forestry.js). settlement.grove is optional: absent means no grove yet.
+  44() {},
 };
 
 export function migrateState(s, fromFormat, reg = null) {

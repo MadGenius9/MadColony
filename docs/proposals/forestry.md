@@ -1,0 +1,39 @@
+# Forestry: villages plant trees (design note, cloud copy, 2026-11-04)
+
+From the Ideas parking lot ("Tree planting / forestry", the Phase 2b acceptance), proposed in the Phase 10 review.
+The owner said "keep going".
+
+## What exists
+- Trees (`core:pine`: 6 wood a chunk, 2 chunks, 20 days to grow from a sprout) are chopped by the planner's wood
+  wants (gather_nodes).
+- Regrowth (Phase 5b, `regrow.js`):
+  - burned, crushed and torn-up plants leave seeds that sprout;
+  - in the Vast and Living worlds forests spread, but never within 3 tiles of a building, site or zone, so village
+    grounds stay open.
+- Nothing replants the woods round a village, so long runs strip the trees near old villages.
+
+## Design (decisions)
+- **A grove** (`settlement.grove { x, y, w, h, def, since }`, format 45, optional): a rectangle of 7 × 5 tiles.
+  - A full-detail village lays one out when it has fewer than FOREST.min (20) grown trees of its wood tree within
+    FOREST.reach (24) tiles of its centre, and the tree is one it can chop.
+  - The grove goes on free, buildable, claimed ground, 8 to 22 tiles from the centre, at least 2 tiles from any
+    building, site or zone. It is a site search like a field's, with its reason kept (`grove.why`).
+  - One grove per village. It is kept while the village stands.
+- **Planting:**
+  - every other tile of the grove (a chequer, so it stays walkable) gets a young tree;
+  - the giver `core:plant_trees` (in the woodcutting work) sends a woodcutter next to a free spot; after
+    FOREST.work ticks a young tree sprouts there (`regrow.js sprout`; it grows up in the tree's `sproutDays`);
+  - a spot is free when regrowth would let a plant grow there (not built, zoned, water, burning, or a trap for
+    someone);
+  - planting goes on while the village has fewer than FOREST.min + FOREST.extra grown and young trees near it.
+- **No free rewards:** planting costs work and waiting. No item is made or used, so the item ledger is untouched.
+  The trees are chopped as usual once grown.
+- **Reasons:** a log line when the grove is laid out ("…are planting a grove: 12 trees left within 24 tiles"); the
+  planner's note `P.forestNote`, kept only when there is something to say.
+- **Not in it:** other tree kinds (data mods may add them: any node tagged `core:tree` that yields wood); orchards;
+  wood at markets.
+
+## Slices
+1. The grove, planting, the note; tests; classic and World runs (trees near villages before and after).
+
+## Results

@@ -90,6 +90,9 @@
       "givers": [
         {
           "giver": "core:gather_nodes"
+        },
+        {
+          "giver": "core:plant_trees"
         }
       ],
       "color": "#a0703c",

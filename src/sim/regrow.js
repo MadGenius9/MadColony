@@ -61,6 +61,9 @@ function blocked(g, i, def = null) {
   return null;
 }
 
+/** May a young `def` sprout on tile i now (forestry.js)? */
+export const canSprout = (g, i, def) => !blocked(g, i, def);
+
 /** Is there a building, building site or zone within CLEAR tiles of (x, y)? */
 function villageNear(g, x, y) {
   for (let yy = y - CLEAR; yy <= y + CLEAR; yy++) for (let xx = x - CLEAR; xx <= x + CLEAR; xx++) {

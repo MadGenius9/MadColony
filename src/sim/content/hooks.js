@@ -43,6 +43,10 @@ export const GIVER_SPECS = {
     doc: 'Phase 8c: an empty, uncleared monster lair within 60 tiles of the village is cleared by one adult, so no monster grows there again.',
     params: obj({}),
   },
+  'core:plant_trees': {
+    doc: 'Forestry: while the village has a grove (forestry.js) and fewer than 30 grown and young wood trees within 24 tiles, plants a young tree on a free spot of it.',
+    params: obj({}),
+  },
   'core:tend_animals': {
     doc: 'Phase 9: milks, shears (a tame species\' `product`, every `everyDays` from each fed animal) and slaughters animals in the village\'s pens: one above the breeding stock (`keep`) when the pen is full, or when meat is short (livestock.js).',
     params: obj({}),
