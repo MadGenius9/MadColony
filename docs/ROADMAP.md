@@ -1135,7 +1135,7 @@ Ideas kept for later. None of these belongs to a phase yet; they are reviewed to
   draw borders that disagree with the real land rules (who may build and gather where), so the honest
   version changes the territory rule in the sim too (claimed tiles that grow and stop at terrain), with the
   drawing following it. Suggested home: Phase 7, together with roads, or a Phase 2 follow-up with contact.
-- **Tree planting / forestry** (from the Phase 2b acceptance, 2026-10-24). In long Vast-world runs the trees
+- **Tree planting / forestry** (from the Phase 2b acceptance, 2026-10-24; **built in the cloud copy, 2026-11-04: villages plant groves, `docs/proposals/forestry.md`; wood at markets still open**). In long Vast-world runs the trees
   near old villages run out, and wood is not sold at markets. Villages could plant and tend trees on their own
   land (and wood could be traded at markets) so wood stays renewable.
 
