@@ -290,3 +290,5 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   on day 43.04, was 44.41).
 - Site reasons and waking for fires (2026-11-04): `forty` 6a12204e4829dc11, `modern` 0b7058bac8b19e97. The era days
   are unchanged; the saved site reasons change the hashes.
+- Cold storage (2026-11-04): `forty` be8830351383af58 (era days unchanged); `modern` 1755acefca99576a (modern era on
+  day 44.70, was 43.04; on seeds 1–4 the same day or earlier).

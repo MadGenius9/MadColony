@@ -557,3 +557,5 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   (`node.young`) as saplings. The village panel shows the forestry note (`P.forestNote`: "Planting pine trees in
   the grove: 12 grown and 8 young within 24 tiles"). The log line "…are planting a grove: only N pine trees are
   left within 24 tiles of the village" (chronicle kind `core:grove`). The job label "Plant a pine tree".
+- **Cold storage (2026-11-04):** a stack of goods that spoil can say how well it keeps ("Kept cold: spoils at a tenth
+  of the rate" at or below 0 °C, "Kept cool: four tenths" up to 8 °C), from `spoil.js keptAt` and `coldFactor`.

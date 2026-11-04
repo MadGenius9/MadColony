@@ -1117,7 +1117,7 @@ taming, horses as mounts, wagons, and drawing animals in the UI (`docs/ui-todo.m
 
 # Ideas parking lot
 Ideas kept for later. None of these belongs to a phase yet; they are reviewed together after Phase 10.
-- **Cooling** (air conditioning and cold storage, using the room temperature model).
+- **Cooling** (air conditioning and cold storage, using the room temperature model). **Cold storage built in the cloud copy, 2026-11-04:** goods spoil at a tenth of their rate at or below 0 °C and at four tenths up to 8 °C (their room's temperature, else the day's outdoors; `spoil.js`). Air conditioning (powered cooling) still open.
 - **Lighting inside rooms** (once roofs are real and rooms can be dark).
 - **Multiroom building interiors** (free-form homes and workshops with corridors and several rooms).
 - **Multiple races** (peoples with their own needs, looks and preferences).
@@ -1135,7 +1135,7 @@ Ideas kept for later. None of these belongs to a phase yet; they are reviewed to
   draw borders that disagree with the real land rules (who may build and gather where), so the honest
   version changes the territory rule in the sim too (claimed tiles that grow and stop at terrain), with the
   drawing following it. Suggested home: Phase 7, together with roads, or a Phase 2 follow-up with contact.
-- **Tree planting / forestry** (from the Phase 2b acceptance, 2026-10-24; **built in the cloud copy, 2026-11-04: villages plant groves, `docs/proposals/forestry.md`; wood at markets still open**). In long Vast-world runs the trees
+- **Tree planting / forestry** (from the Phase 2b acceptance, 2026-10-24; **built in the cloud copy, 2026-11-04: villages plant groves, `docs/proposals/forestry.md`. Wood at markets: checked the same day: markets do price wood and it is traded (World seed 11: 23 trades with wood by day 120); it sits at the top price, since demand is high and the villages that can spare it are out of those markets' reach**). In long Vast-world runs the trees
   near old villages run out, and wood is not sold at markets. Villages could plant and tend trees on their own
   land (and wood could be traded at markets) so wood stays renewable.
 

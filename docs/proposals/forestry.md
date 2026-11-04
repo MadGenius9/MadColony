@@ -72,3 +72,22 @@ The owner said "keep going".
 - **Tests:** `tests/cloud-forestry.test.js`, 4 tests: a grove with its reason when short of trees; planting on
   every other tile, grown up after about 30 days, save and load identical; a bad grove refused, old saves without
   one; distant villages plant two a day up to the limit.
+
+## Follow-ups the same day (2026-11-04)
+- **Wood at markets** (the parking-lot entry's other half): checked on World seed 11 to day 120, and it works.
+  - 23 markets by day 120; each prices wood, at its top price (2, the maximum factor).
+  - Demand is high (1,400–3,600 units wanted in reach) and supply in reach is 0.
+  - 13 villages have wood to spare, and wood is traded: 23 trades with wood by day 120.
+  - So the roadmap's "wood is not sold at markets" is out of date. Wood is scarce where the markets are, and its
+    price says so. Nothing changed.
+- **Cold storage** (the parking lot's "Cooling", its storage half; `spoil.js`): at the day start a stack's
+  temperature is its room's if it lies indoors, else the day's mean outdoors (a carried load: outdoors). At or
+  below 0 °C goods spoil at a tenth of their rate; up to 8 °C at four tenths.
+  - Test (`tests/cloud-cold.test.js`): 60 venison left out for 6 days keep far more in an endless winter than in an
+    endless summer.
+  - **Classic runs** (intended change, proposed): `forty` be8830351383af58 (workshops on day 6.64, unchanged);
+    `modern` 1755acefca99576a (modern era on day 44.70, was 43.04).
+  - On seeds 1–4 (50 days), the modern era came the same day or earlier: 36.3 against 38.3, 37.3 against 37.7,
+    38.5 against 39.0, 31.0 against 31.0. The later date on seed 4242 is that seed's own course.
+  - Full suite 334 passed.
+  - Air conditioning (powered cooling) is still open.
