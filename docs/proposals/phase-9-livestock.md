@@ -308,3 +308,19 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
   deaths).
 - **Classic hashes unchanged** (no wolves near those colonies). Full suite 316 passed. Tests:
   `tests/cloud-raids.test.js` (the note and the urgent weapon order; seed 7 survives to day 16).
+
+### Slice 6, kept: the settlement plan explains its choices (owner, 2026-11-04: "you pick")
+- **Decision:** the plan explains where things go; it does not change play, except for one rule with a reason:
+  pens keep away from homes. The street experiment above showed that reserving land costs progress and buys
+  nothing in this simulation.
+- **Built:**
+  - `construction.js findSite` returns the reason with the site, and `createProject` keeps it as
+    `project.siteWhy`, for example "the nearest good spot, 7 tiles from the centre; 4 thick brush to clear
+    first";
+  - `farming.js findFieldSite` likewise (`field.why`: "the nearest fertile ground, 10 tiles from the centre");
+  - an option `keepFrom { points, gap, cost, what }`: a site nearer than `gap` to one of the points costs `cost`
+    a tile more. Pens use it: 6 tiles from the homes, at 2 a tile ("…; at least 6 tiles from the homes", or "as
+    far from the homes as room allows").
+- **Classic runs:** the same era days; the hashes change by the saved reasons alone (proposed `forty`
+  6a12204e4829dc11, `modern` 0b7058bac8b19e97, after the fire change below too).
+- **Tests:** `tests/cloud-plan.test.js` (reasons on every new site and field, saved; a pen away from the homes).

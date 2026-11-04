@@ -173,3 +173,27 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
   - zip packages and icons;
   - the selling policy's UI;
   - the proposed baselines: `forty` 9f293a56bce0c53c, `modern` 8e0ecba41839e932.
+
+### After review: sleepers wake for a fire next door (owner, 2026-11-04: "yes they should wake up")
+- **Built:**
+  - `fire.js`: a sleeper fights a fire threatening the village within `wakeReach` (12 tiles; `fightReach` stays 30
+    for those awake). Their sleep gives way, and the reason reads "Woken by a fire near the village". Someone
+    whose energy is critical still sleeps.
+  - `ai.js`: tiredness no longer interrupts a firefight unless it is critical. Without this, woken people were sent
+    back to bed within a few ticks, woke again, and so on. Hunger and thirst still interrupt as before.
+- **Midnight fire** (seeds 7, 8, 9: buildings that stood before the fire and still stand, of 61):
+
+  | Seed | With firefighting | Without |
+  |---|---|---|
+  | 7 | 46 | 25 |
+  | 8 | 52 | 34 |
+  | 9 | 45 | 35 |
+
+  Before waking, seed 7 was 34 against 28.
+- **Changed tests:**
+  - "firefighting saves buildings" counts the buildings that stood before the fire, not rebuilt parts (the village
+    without firefighting rebuilt more during a long fire, which hid a 16-against-26 loss);
+  - "saved mid-fight": the first save waits, at most 40 ticks, until someone is fighting again (at tick 40 everyone
+    was choosing a new tile).
+  - A new test: a fire next door wakes sleepers, who fight it.
+- **Checks:** full suite 328 passed; era days unchanged.

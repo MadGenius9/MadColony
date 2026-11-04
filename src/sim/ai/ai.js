@@ -94,6 +94,7 @@ function interruptReason(g, c) {
     if (!b || !pressing(g, c, def, b)) continue;
     if (job.unmet?.[def.id] !== undefined && g.s.tick - job.unmet[def.id] < UNMET_RETRY) continue;
     if (def.behavior === 'core:eat' && !g.planOf(c).anyFood) continue; // nothing to eat; keep working
+    if (job.type === 'firefight' && def.behavior === 'core:sleep' && !critical(c, def)) continue; // a fire keeps people up (woken ones too)
     if (job.need) {
       // Already satisfying a need: only while still on the way to it (never mid-meal, mid-drink or asleep;
       // a sleeper wakes for hunger in the sleep driver), and only for a need clearly more pressing than the

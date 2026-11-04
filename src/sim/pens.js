@@ -9,7 +9,7 @@ import { createProject, findSite } from './construction.js';
 import { herdsWithin } from './animals.js';
 import { settlementOf } from './research.js';
 
-export const PEN = Object.freeze({ minPeople: 6, reach: 60, wood: 30, radius: 26 });
+export const PEN = Object.freeze({ minPeople: 6, reach: 60, wood: 30, radius: 26, homeGap: 6 });
 
 /** The pens of village sid (projects of a pen template), in id order. */
 export const pensOf = (g, sid) => g.owned('projects', sid).filter((p) => p.pen && g.reg.get('template', p.templateId)?.kind === 'pen');
@@ -49,7 +49,8 @@ export function planPens(g, P, sid, cols) {
   const what = `${near.d.tame.plural} (a herd of ${near.h.n} ${near.d.plural || near.d.name}, ${Math.round(near.dist)} tiles away)`;
   if ((P.stock['core:wood'] || 0) < PEN.wood) { P.penNote = `Waiting for ${PEN.wood} wood to build a pen for ${what}`; return; }
   const tpl = g.reg.all('template').find((t) => t.kind === 'pen');
-  const site = tpl && findSite(g, tpl, { center: ctr, sid, radius: PEN.radius });
+  const homes = g.owned('projects', sid).filter((x) => g.reg.get('template', x.templateId)?.kind === 'home').map((x) => ({ x: x.x, y: x.y }));
+  const site = tpl && findSite(g, tpl, { center: ctr, sid, radius: PEN.radius, keepFrom: { points: homes, gap: PEN.homeGap, cost: 2, what: 'the homes' } }); // animals are kept away from homes
   if (!site) { P.penNote = `No room for a pen for ${what}`; return; }
   const p = createProject(g, tpl, site, { urgency: 0.35, why: `A pen for ${what}`, owner: sid });
   p.pen = { sp: near.h.sp };

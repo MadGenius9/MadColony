@@ -547,3 +547,7 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   `sellOutlook(g, item)` for each controlled item they hold: each village's law, price ×, the watch's attention
   and what a unit adds, and the seizure chance. Trades made by the policy carry the reason "Your selling policy
   (…)".
+- **Settlement plan (2026-11-04):** a building site's hover card and the field panel show why it is there
+  (`project.siteWhy`, `field.why`), e.g. "the nearest good spot, 7 tiles from the centre; 4 thick brush to
+  clear first" or, for a pen, "at least 6 tiles from the homes".
+- **Fires (2026-11-04):** people woken by a fire show "Woken by a fire near the village" as their reason.

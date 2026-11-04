@@ -11,6 +11,7 @@
 //   is scorched (no terrain change: on big worlds a terrain change rebuilds the whole-map water and territory data).
 // - Firefighting (slice 6c): a burning tile within `threat` tiles of a village's burnable built part, field or
 //   stockpile threatens that village; its awake, able adults (health above half, not fleeing a fight) within
+//   (sleepers too, woken, when it is within `wakeReach` tiles: a fire next door wakes people; owner, 2026-11-04)
 //   `fightReach` go next to the nearest threatening tile and beat it out (`fightWork` ticks, twice as fast with a
 //   well, pump or water within `fightWater` tiles: they carry water), and the tile goes out (scorched; what stands
 //   there is kept). They do not flee; they take the usual burns beside a fire. A distant village puts out each tile
@@ -26,7 +27,7 @@ import { hpOf } from './health.js';
 import { godRulesOf } from './god.js';
 import { weatherAtTile, weatherRules } from './weather.js';
 
-export const FIRE_DEFAULTS = Object.freeze({ step: 25, spread: 0.3, burnTicks: 300, maxTiles: 600, burnPerStep: 3, scorchDays: 30, cropFlammable: 0.6, threat: 3, fightReach: 30, fightWork: 50, fightWater: 15, distantPut: 0.35 });
+export const FIRE_DEFAULTS = Object.freeze({ step: 25, spread: 0.3, burnTicks: 300, maxTiles: 600, burnPerStep: 3, scorchDays: 30, cropFlammable: 0.6, threat: 3, fightReach: 30, fightWork: 50, fightWater: 15, distantPut: 0.35, wakeReach: 12 });
 export const fireRules = (g) => ({ ...FIRE_DEFAULTS, ...(godRulesOf(g)?.wrath?.fire || {}) });
 
 const hash = (str) => {
@@ -217,10 +218,10 @@ const COMBAT = new Set(['fight', 'flee', 'arm', 'fend', 'slay']); // combat.js C
  *  not seeing to a need or carrying someone or something, and with no urgent need (below its urgent line: the needs
  *  interrupt would end the firefight at once and the fire would end the meal; they would take turns). Shelter does
  *  not count (nobody seeks it: it stays low for the homeless, who fight fires like anyone). */
-function canFight(g, c) {
-  if (c.sleeping || c.health?.down || hpOf(c) <= 50 || c.carriedBy || c.carry) return false;
+function canFight(g, c, wake = false) {
+  if ((c.sleeping && !wake) || c.health?.down || hpOf(c) <= 50 || c.carriedBy || c.carry) return false;
   const j = c.job;
-  if (j && (COMBAT.has(j.type) || j.need || j.stage === 'carry' || j.water)) return false;
+  if (j && (COMBAT.has(j.type) || (j.need && !(wake && c.sleeping)) || j.stage === 'carry' || j.water)) return false; // sleep gives way to a fire near
   for (const def of g.reg.all('need')) if (def.behavior !== 'core:shelter' && (c.needs[def.id] ?? 1) < def.urgentBelow) return false;
   const st = stageOf(g, c);
   if (st && st.untilDays !== undefined) return false; // children do not
@@ -231,16 +232,17 @@ function canFight(g, c) {
 function fightFire(g, c, F) {
   if (!F.fightReach) return null; // fightReach 0: firefighting is off
   const list = threats(g, F).get(c.settlementId || g.s.playerSettlement);
-  if (!list?.length || !canFight(g, c)) return null;
+  if (!list?.length || !canFight(g, c, true)) return null;
+  const reach = c.sleeping ? Math.min(F.fightReach, F.wakeReach ?? 0) : F.fightReach; // a sleeper wakes only for a fire near
   let best = -1, bd = Infinity;
   for (const i of list) {
     if (!Object.hasOwn(g.s.disasters.fires, i) || g.isBlocked(`fire:${c.settlementId || g.s.playerSettlement}:${i}`)) continue; // no way there lately
     const x = i % g.W, y = (i - x) / g.W, d = Math.max(Math.abs(x - c.x), Math.abs(y - c.y));
-    if (d <= F.fightReach && d < bd) { bd = d; best = i; }
+    if (d <= reach && d < bd) { bd = d; best = i; }
   }
   if (best < 0) return null;
   const x = best % g.W, y = (best - x) / g.W;
-  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: 'A fire threatens the village', label: 'Fight the fire', targetKey: `fire:${c.settlementId || g.s.playerSettlement}:${best}` });
+  return newJob('firefight', { tile: best, x, y, water: waterNear(g, x, y, F.fightWater), prog: 0 }, { why: c.sleeping ? 'Woken by a fire near the village' : 'A fire threatens the village', label: 'Fight the fire', targetKey: `fire:${c.settlementId || g.s.playerSettlement}:${best}` });
 }
 
 /** ai.js tickColonist (only while something burns): fight a fire that threatens the village (firefighting), else

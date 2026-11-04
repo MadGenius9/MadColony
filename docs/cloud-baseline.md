@@ -288,3 +288,5 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   homes); `modern` unchanged, 987ed5c0f0482498.
 - Professions (slice 3): `forty` 9f293a56bce0c53c (workshops on day 6.64), `modern` 8e0ecba41839e932 (modern era
   on day 43.04, was 44.41).
+- Site reasons and waking for fires (2026-11-04): `forty` 6a12204e4829dc11, `modern` 0b7058bac8b19e97. The era days
+  are unchanged; the saved site reasons change the hashes.

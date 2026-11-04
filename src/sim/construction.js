@@ -121,14 +121,30 @@ export function findSite(g, tpl, opts = {}) {
         // Entrances (clear / floor cells on the template edge, and door fronts) must connect to the colony.
         if (!probe[rot].some((c) => g.regionOf(x0 + c.x, y0 + c.y) === homeRegion || g.nodeAt(x0 + c.x, y0 + c.y))) continue;
         const mx = x0 + rw / 2, my = y0 + rh / 2;
-        const score = octile(cx, cy, mx, my) + penalty * 1.5 + (opts.rng ? opts.rng.next() * 1.5 : 0);
+        let away = 0; // opts.keepFrom { points, gap, cost }: a site nearer than gap to one of the points costs more (pens and homes)
+        if (opts.keepFrom) for (const q of opts.keepFrom.points) { const d = Math.max(Math.abs(q.x - mx), Math.abs(q.y - my)); if (d < opts.keepFrom.gap) away += (opts.keepFrom.gap - d) * opts.keepFrom.cost; }
+        const score = octile(cx, cy, mx, my) + penalty * 1.5 + away + (opts.rng ? opts.rng.next() * 1.5 : 0);
         evaluated++;
-        if (!best || score < best.score) best = { x: x0, y: y0, rot, score };
+        if (!best || score < best.score) best = { x: x0, y: y0, rot, score, away };
       }
     }
     if (best && evaluated > 0 && r > best.score + 3) break;
   }
+  if (best) best.why = siteWhy(g, layout[best.rot], best, cx, cy, opts); // the settlement plan's reason (Phase 9)
   return best;
+}
+
+/** Why a site was chosen, in words (the settlement plan, Phase 9; saved with the project as `siteWhy`): its distance
+ *  from the centre, what must be cleared first, and what it was kept away from. */
+function siteWhy(g, cells, best, cx, cy, opts) {
+  const [rw, rh] = [Math.max(...cells.map((c) => c.x)) + 1, Math.max(...cells.map((c) => c.y)) + 1];
+  const parts = [`the nearest good spot, ${Math.round(octile(cx, cy, best.x + rw / 2, best.y + rh / 2))} tiles from the centre`];
+  const clear = {};
+  for (const c of cells) { const n = g.nodeAt(best.x + c.x, best.y + c.y), d = n && g.nodeDef(n); if (d) clear[d.name] = (clear[d.name] || 0) + 1; }
+  const cl = Object.entries(clear).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([k, n]) => `${n} ${k.toLowerCase()}`);
+  if (cl.length) parts.push(`${cl.join(' and ')} to clear first`);
+  if (opts.keepFrom) parts.push(best.away ? `as far from ${opts.keepFrom.what} as room allows` : `at least ${opts.keepFrom.gap} tiles from ${opts.keepFrom.what}`);
+  return parts.join('; ');
 }
 
 /** Goods a new project may count on for stockedOnly pieces: the owner's stacks minus what jobs have reserved
@@ -197,6 +213,7 @@ export function createProject(g, tpl, site, meta = {}) {
     cells: cells.map((c) => [c.x, c.y, c.ch]), parts: [], status: 'active', urgency: meta.urgency ?? 1,
     why: meta.why || '', created: s.tick, homeId: null, slots: [],
   };
+  if (site.why) project.siteWhy = site.why; // the settlement plan: why here (findSite)
   s.projects[id] = project;
   g.ownAdd('projects', project);
   for (const c of cells) {

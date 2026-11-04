@@ -629,6 +629,9 @@ test('firefighting: saved mid-fight, the game continues identically', () => {
     homeFire(g);
     for (let k = 1; k <= 6; k++) {
       g.step(40);
+      // The first save mid-fight: if all are between tiles just now (one was put out), on until someone fights again
+      // (at most 40 ticks; both runs do the same).
+      for (let n = 0; k === 1 && n < 40 && !g.colonists().some((c) => c.job?.type === 'firefight'); n++) g.tick();
       if (k === 1) assert.ok(g.colonists().some((c) => c.job?.type === 'firefight'), 'someone is mid-fight at the first save');
       if (cut.includes(k)) g = reload(g);
     }
@@ -642,12 +645,13 @@ test('firefighting saves buildings: the same fire with and without it', () => {
   const left = (seed, registry) => {
     const g = newGame({ seed, sandbox: true, ...(registry ? { registry } : {}) });
     runDays(g, 4);
+    const before = Object.values(g.s.structures).filter((s) => s.built).map((s) => s.id);
     homeFire(g);
     for (let t = 0; t < 4800 && Object.keys(g.s.disasters.fires).length; t += 25) g.step(25);
-    return Object.values(g.s.structures).filter((s) => s.built).length;
+    return before.filter((id) => g.s.structures[id]?.built).length; // what stood before the fire and still stands (not rebuilt parts)
   };
-  // A midnight fire: only those awake fight it, so one seed alone depends on who sleeps where (Phase 10's family
-  // housing moved seed 7 from 56 against 26 to 34 against 28). Three seeds: more stands on each, far more in all.
+  // A midnight fire on three seeds: more of what stood is saved on each, far more in all. (Sleepers within
+  // wakeReach wake for it since 2026-11-04; before, one seed alone depended on who slept where.)
   let saved = 0;
   for (const seed of [7, 8, 9]) {
     const a = left(seed, null), b = left(seed, noFirefighting());
@@ -751,4 +755,16 @@ test('review fixes: the homeless fight fires; a tree does not sprout under someo
   for (let t = 0; t < 120; t++) { c.x = x; c.y = y; c.mv = null; h.tick(); }
   assert.equal(h.nodeIdAt(i), null, 'no tree grew under them');
   assert.ok(h.s.disasters.seeds?.[i], 'the seed waits');
+});
+
+test('firefighting: a fire next door wakes sleepers, who fight it (owner, 2026-11-04)', () => {
+  const g = newGame({ seed: 7, sandbox: true });
+  runDays(g, 4); // midnight: most are asleep
+  const asleep = Object.values(g.s.colonists).filter((c) => c.sleeping).map((c) => c.id);
+  assert.ok(asleep.length >= 2, 'people asleep');
+  homeFire(g);
+  const woke = new Set();
+  for (let t = 0; t < 400; t++) { g.tick(); for (const c of Object.values(g.s.colonists)) if (c.job?.type === 'firefight' && c.job.why === 'Woken by a fire near the village') woke.add(c.id); }
+  assert.ok(woke.size >= 2, `sleepers woke to fight it (${woke.size})`);
+  assert.ok([...woke].every((id) => asleep.includes(id)));
 });

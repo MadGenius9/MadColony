@@ -126,7 +126,7 @@ export function findFieldSite(g, w, h, crop, center, sid) {
       }
       if (!ok || !reach) continue;
       const score = octile(cx, cy, x0 + w / 2, y0 + h / 2) + penalty;
-      if (!best || score < best.score) best = { x: x0, y: y0, score };
+      if (!best || score < best.score) best = { x: x0, y: y0, score, why: `the nearest fertile ground, ${Math.round(octile(cx, cy, x0 + w / 2, y0 + h / 2))} tiles from the centre` }; // the settlement plan's reason (Phase 9)
     }
     if (best && r > best.score + 3) break;
   }
@@ -136,6 +136,7 @@ export function findFieldSite(g, w, h, crop, center, sid) {
 export function createField(g, crop, site, w, h, owner) {
   const id = g.newId('f');
   const f = { id, settlement: owner || g.s.playerSettlement, crop: crop.id, x: site.x, y: site.y, w, h, created: g.s.tick };
+  if (site.why) f.why = site.why; // why here (findFieldSite)
   g.s.fields[id] = f;
   g.ownAdd('fields', f);
   for (const [x, y] of fieldCells(f)) g.setZone(g.i(x, y), id);
