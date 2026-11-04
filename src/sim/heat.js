@@ -41,6 +41,14 @@ export function seasonalTemp(g, tick = g.s.tick) {
 }
 /** Outdoor temperature (°C) at a tick: day 1 starts in spring; the coldest point is in the middle of winter. */
 export function outdoorTemp(g, tick = g.s.tick) {
+  // The same tick and season law give the same answer: kept once a tick (derived; asked by every sleeper each tick).
+  const law = g.s.worldLaws?.set?.['core:season'] || '';
+  if (g._oT && g._oT.tick === tick && g._oT.law === law && g._oT.reg === g.reg) return g._oT.t;
+  const t = outdoorTempAt(g, tick);
+  g._oT = { tick, law, reg: g.reg, t };
+  return t;
+}
+function outdoorTempAt(g, tick) {
   const c = climateOf(g);
   const day = seasonDay(g, tick, c);
   const mean = (c.summer + c.winter) / 2, amp = (c.summer - c.winter) / 2;
@@ -70,10 +78,11 @@ const isBoundary = (g, x, y) => { const st = g.structAt(x, y); if (!st || !st.bu
  *  per-tile array on every wall change cost 12 MB and several ms a time on the largest maps.) */
 export function rooms(g) {
   if (g._rooms && g._rooms.v === g.pathVersion) return g._rooms;
-  // Walls and doors change only when a building is added, removed, finished or renovated (structRev, builtRev):
-  // with neither moved, the walls are as before, without going over them all again (the scale target: a big world's
-  // paths change many times a day, from felled trees and the like).
-  const sk = `${g.structRev || 0}|${g.builtRev || 0}`;
+  // Walls and doors change only when one is added, removed, finished or renovated (g.wallRev, bumped there:
+  // game.js structsChanged and structRedefined, construction.js completeStructure). With it unmoved the walls are
+  // as before, without going over them all again (the scale target: a big world's paths change many times a day,
+  // and its buildings are added and finished many times an hour; until 2026-11-04 any building's change counted).
+  const sk = `${g.wallRev || 0}`;
   if (g._rooms && g._rooms.sk === sk) { g._rooms.v = g.pathVersion; return g._rooms; }
   // Rooms depend only on where built walls and doors stand. Most path changes (a tree felled, a rock
   // mined, a bed built) leave those alone: then the old rooms are kept. When walls do change, only the
@@ -87,9 +96,7 @@ export function rooms(g) {
   const walls = [];
   let same = !!R0;
   for (const st of g.structsWhere('wallDoor', (b) => { const cat = g.bDef(b)?.category; return cat === 'wall' || cat === 'door'; })) {
-    if (!st.built) continue;
-    const cat = g.bDef(st)?.category;
-    if (cat !== 'wall' && cat !== 'door') continue;
+    if (!st.built) continue; // the list holds walls and doors only (its condition)
     const i = st.y * W + st.x;
     walls.push(i);
     if (!work.wall[i]) same = false;

@@ -368,6 +368,7 @@ export class Game {
   /** Keep structsWhere lists current as structures come and go (copy on write: a list someone holds is
    *  never changed under them). A new structure goes last, as in s.structures. */
   structsChanged(st, added) {
+    if (this.wallish(st.def)) this.wallRev = (this.wallRev || 0) + 1; // rooms (heat.js) are worked out again only when walls change
     if (!this._sw) return;
     for (const e of this._sw.values()) {
       if (!e.pred(st)) continue;
@@ -377,7 +378,10 @@ export class Game {
   /** A structure became another building in place (a renovation, construction.js): the structsWhere lists it
    *  was in or joins are rebuilt (in Object.values order, as on first use); the others are unchanged. Their
    *  conditions read only the building kind, so each list is tested with the old kind and the new one. */
+  /** Is building `defId` a wall or a door (what bounds a room, heat.js)? */
+  wallish(defId) { const cat = this.reg.get('building', defId)?.category; return cat === 'wall' || cat === 'door'; }
   structRedefined(st, oldDef) {
+    if (this.wallish(oldDef) || this.wallish(st.def)) this.wallRev = (this.wallRev || 0) + 1;
     this.tileChanged(st.x, st.y); // walkable or standable may differ now
     if (!this._sw) return;
     const now = st.def;

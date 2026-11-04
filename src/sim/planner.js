@@ -1397,13 +1397,27 @@ function planHeating(g, P, sid, D) {
 
 /** Running water (after Plumbing): a pump and a water tower, a tap by the stockpile and by each finished
  *  home, and pipes joining them. One step per plan; the power planner wires the pump to a generator. */
+// Per registry (it never changes once built): the buildings with each water role and the templates that build each
+// building, in registry order, so planPlumbing's first unlocked one is the same as a search of the whole lists.
+const WATER_DEFS = new WeakMap();
+function waterDefs(reg) {
+  let w = WATER_DEFS.get(reg);
+  if (!w) {
+    w = { role: {}, tpl: new Map() };
+    for (const role of ['pump', 'storage', 'tap', 'pipe']) w.role[role] = reg.all('building').filter((b) => b.water?.[role]);
+    for (const t of reg.all('template')) for (const l of Object.values(t.legend)) if (l.build) { if (!w.tpl.has(l.build)) w.tpl.set(l.build, []); const a = w.tpl.get(l.build); if (a.at(-1) !== t) a.push(t); }
+    WATER_DEFS.set(reg, w);
+  }
+  return w;
+}
+
 function planPlumbing(g, P, sid) {
-  const s = g.s, reg = g.reg;
+  const s = g.s, reg = g.reg, W = waterDefs(reg);
   const own = (e) => (e?.settlement || s.playerSettlement) === sid;
-  const pick = (role) => reg.all('building').find((b) => b.water?.[role] && isUnlocked(g, sid, 'building', b.id));
+  const pick = (role) => W.role[role].find((b) => isUnlocked(g, sid, 'building', b.id));
   const pumpD = pick('pump'), towerD = pick('storage'), tapD = pick('tap'), pipeD = pick('pipe');
   if (!pumpD || !towerD || !tapD || !pipeD) return;
-  const tplFor = (d) => reg.all('template').find((t) => Object.values(t.legend).some((l) => l.build === d.id) && templateUnlocked(g, sid, t));
+  const tplFor = (d) => (W.tpl.get(d.id) || []).find((t) => templateUnlocked(g, sid, t));
   const structs = g.owned('structures', sid).filter(own);
   const of = (d) => structs.filter((st) => st.def === d.id);
   if (!of(pumpD).length) { const r = ensureStation(g, P, pumpD.id, 0.45, 'Running water: a pump', sid); if (r.state === 'blocked') P.waterNote = r.reason; return; }
@@ -1412,7 +1426,7 @@ function planPlumbing(g, P, sid) {
   const targets = [];
   const center = settlementOf(g, sid)?.center;
   if (center) targets.push({ x: center.x, y: center.y, name: 'the stockpile' });
-  for (const h of Object.values(s.homes || {})) {
+  for (const h of g.owned('homes', sid)) { // its own homes, in Object.values order (not every home in the world)
     if (!own(h) || !h.complete || targets.length >= 4) continue;
     const parts = (s.projects[h.projectId]?.parts || []).map((id) => s.structures[id]).filter(Boolean);
     if (parts.length) targets.push({ x: Math.round(parts.reduce((a, p) => a + p.x, 0) / parts.length), y: Math.round(parts.reduce((a, p) => a + p.y, 0) / parts.length), name: h.name });

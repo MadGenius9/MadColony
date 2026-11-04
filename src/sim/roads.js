@@ -5,7 +5,7 @@
 // World run's time with 1,200 roads). Roads are laid where people already walk, so their paths use them anyway.
 import { findPath } from './path.js';
 import { createProject, tileUsable } from './construction.js';
-import { hasPact, completedTradesBetween } from './villages.js';
+import { hasPact, completedTradesBetween, completedTradeCounts } from './villages.js';
 import { TICKS_PER_DAY } from './constants.js';
 import { isUnlocked } from './research.js';
 
@@ -170,11 +170,11 @@ function planTradeRoad(g, sid, st, tpl, mine) {
   const c = st.center || s.center;
   // Toward one partner only: the one it has traded with most (ties: the lower id), so roads do not fan out to every
   // pact partner (a World run laid 2,000 road tiles in 175 days that way).
-  let pick = null;
+  let pick = null, done = null; // trades counted once for this look (completedTradeCounts: the same counts)
   for (const o of Object.keys(s.settlements).sort()) {
     const ot = s.settlements[o];
     if (o === sid || ot.fallen || !ot.center || !hasPact(g, sid, o)) continue;
-    const n = completedTradesBetween(g, sid, o);
+    const n = completedTradesBetween(g, sid, o, (done ||= completedTradeCounts(g)));
     if (n < TRADE_ROAD.trades || Math.hypot(ot.center.x - c.x, ot.center.y - c.y) > TRADE_ROAD.range) continue;
     if (!pick || n > pick.n) pick = { o, n };
   }

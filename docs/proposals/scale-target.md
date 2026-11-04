@@ -221,3 +221,32 @@ After each one the classic hashes were the proposed ones and the World seed 11 r
 
 The p95 is still above 16.7 ms. What is left inside slow ticks is villagers' decisions, the rest of the planner
 and distant villages' hours: spread-out costs with no single cause left above a few percent.
+
+## The grown world, again (2026-11-04): exact-preserving fixes
+- **Measured on** the saved grown world (868 people, day 300; `pct.mjs`, two days after a day of warm-up), with the
+  code as of Phase 10: p95 19.9 ms, p99 38.9 ms.
+- **Profile of the slow ticks:** the planner about 30%, people's choices about 20%, distant villages' hours 14%; the
+  rooms rebuild (heat.js) about 9%; registry look-ups 8.7% on their own; `completedTradesBetween` (trade roads)
+  3.5%; `planPlumbing` 2.6%.
+- **Fixed, all exact** (the grown world hashes the same after two days with the old and the new code, bed1a71f…;
+  classic hashes unchanged):
+  - `heat.js rooms`: worked out again only when walls or doors change (`g.wallRev`, bumped in game.js
+    `structsChanged` / `structRedefined` and construction.js `completeStructure`). Before, every building added or
+    finished anywhere counted, and each rebuild looked at every wall twice.
+  - `roads.js planTradeRoad`: trades counted once a look (`completedTradeCounts`), not once a partner.
+  - `planner.js planPlumbing`: its own homes (`g.owned('homes', sid)`), not every home in the world; the water
+    buildings and their templates kept per registry, in registry order.
+  - `people.js considerBirths`: its own homes, not every home in the world.
+  - `heat.js outdoorTemp`: kept for the tick and season law (every sleeper asks each tick).
+- **After** (old and new taken in turn, twice):
+
+  | | p95 | p99 | p99.9 | Mean |
+  |---|---|---|---|---|
+  | Old | 20.7, 18.6 ms | 39.0, 35.3 ms | 87.5, 81.6 ms | 7.06, 6.34 ms |
+  | New | 17.4, 18.4 ms | 31.4, 34.5 ms | 73.1, 59.6 ms | 6.05, 6.34 ms |
+
+  - Slow ticks (over 16.7 ms) in the profiled day: 247 before, 158 after.
+- **Still above the 16.7 ms p95 target.** What is left is spread out: the planner's demand resolution, people's
+  work choices, distant villages' hourly labour. Bigger gains need the deeper work the owner queued as Phase 18
+  (for example planning fewer villages per tick), which changes timing and so needs its baselines reviewed. Not
+  started here.

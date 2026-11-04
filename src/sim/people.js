@@ -128,7 +128,7 @@ function considerBirths(g, sid) {
   if ((g.ensurePlan(sid)?.foodDays ?? 0) < BIRTH.minFoodDays) return;
   const first = stages(g)[0];
   if (!first || first === adultStage(g)) return;
-  const homes = Object.values(s.homes).filter((h) => h.complete && (h.settlement || s.playerSettlement) === sid).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const homes = g.owned('homes', sid).filter((h) => h.complete && (h.settlement || s.playerSettlement) === sid).sort((a, b) => (a.id < b.id ? -1 : 1)); // its own homes (sorted, as before)
   // Spare beds an active 'Expand housing' goal asks for are kept spare: a birth must not use them.
   const keep = sid === s.playerSettlement ? s.goals.filter((gl) => gl.type === 'core:expand_housing' && gl.status === 'active').reduce((m, gl) => Math.max(m, gl.params?.extra || 0), 0) : 0;
   if (keep > 0) {

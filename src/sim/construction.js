@@ -271,6 +271,7 @@ export function completeStructure(g, st, c) {
   const def = g.bDef(st);
   st.built = true;
   g.builtRev = (g.builtRev || 0) + 1; // derived: lod.js trap memo
+  if (def.category === 'wall' || def.category === 'door') g.wallRev = (g.wallRev || 0) + 1; // rooms change (heat.js)
   for (const cost of def.cost) {
     const have = st.delivered[cost.item] || 0;
     g.consume(cost.item, Math.min(have, cost.qty), 'construct');
