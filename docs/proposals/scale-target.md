@@ -250,3 +250,13 @@ and distant villages' hours: spread-out costs with no single cause left above a 
   work choices, distant villages' hourly labour. Bigger gains need the deeper work the owner queued as Phase 18
   (for example planning fewer villages per tick), which changes timing and so needs its baselines reviewed. Not
   started here.
+- **One more, the same day:** `mood.js villageFacts` looked for a recent death by going over every dead person in
+  the world, for each village a tick's mood step asked about. Each village's latest death tick is now kept until
+  someone dies (`g.deadRev`, bumped where the dead are added: death.js). The grown world still hashes bed1a71f…
+  after two days; classic hashes unchanged; full suite 335 passed.
+- **Looked at and left:**
+  - the pipe search (`pipePath`, 3.4%): a failing search reads stacks, fields, crops, zones and claims, so there is
+    no exact key for remembering it;
+  - the power state (3.4%): rebuilt once a tick over every network; making it incremental is a redesign;
+  - `stacksByItem` (2.1%): a per-tick snapshot that callers rely on within the tick; keeping that exactly saves
+    little.

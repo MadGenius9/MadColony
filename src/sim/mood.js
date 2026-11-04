@@ -49,12 +49,25 @@ function bedsOf(g, sid) {
   return e.n;
 }
 
-/** Facts about every village for one pass: { sid: { laws, war, death, crowded } }. O(villages^2 + dead + buildings). */
+// Each village's latest death tick (the dead's `tick`, -1e9 when missing), kept until someone dies (g.deadRev,
+// death.js: the only place the dead are added) or another game state is read; derived, never saved. "A death in the
+// last deathDays" is then one look-up (it went over every dead person in the world, for each village asked about).
+const DEATHS = new WeakMap();
+function latestDeaths(g) {
+  let c = DEATHS.get(g.s);
+  if (!c || c.rev !== (g.deadRev || 0) || c.g !== g) {
+    const m = new Map();
+    for (const d of Object.values(g.s.dead || {})) if (d.settlementId) { const t = d.tick ?? -1e9; if (!m.has(d.settlementId) || t > m.get(d.settlementId)) m.set(d.settlementId, t); }
+    c = { rev: g.deadRev || 0, g, m }; DEATHS.set(g.s, c);
+  }
+  return c.m;
+}
+
+/** Facts about every village for one pass: { sid: { laws, war, death, crowded } }. O(villages^2 + buildings). */
 export function villageFacts(g, only = null) {
   const s = g.s, out = {}, all = Object.keys(s.settlements || {}).sort(), sids = only ? [only] : all;
   const laws = g.reg.all('civLaw');
-  const recent = new Set();
-  for (const d of Object.values(s.dead || {})) if (s.tick - (d.tick ?? -1e9) < MOOD.deathDays * TICKS_PER_DAY && d.settlementId) recent.add(d.settlementId);
+  const latest = latestDeaths(g), recentOf = (sid) => latest.has(sid) && s.tick - latest.get(sid) < MOOD.deathDays * TICKS_PER_DAY;
 
   for (const sid of sids) {
     if (s.settlements[sid].fallen) continue;
@@ -65,7 +78,7 @@ export function villageFacts(g, only = null) {
     out[sid] = {
       code, lean: leaningsOf(g, sid),
       war: all.some((o) => o !== sid && isEnemy(g, sid, o)),
-      death: recent.has(sid),
+      death: recentOf(sid),
       crowded: g.owned('colonists', sid).length > bedsOf(g, sid),
     };
   }

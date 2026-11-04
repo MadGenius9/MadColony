@@ -125,6 +125,7 @@ export function killColonist(g, c, kind = null, opts = {}) {
   if (c.people) rec.people = c.people; // Peoples and traits
   if (c.traits?.length) rec.traits = [...c.traits];
   (s.dead ||= {})[c.id] = rec;
+  g.deadRev = (g.deadRev || 0) + 1; // derived: mood.js keeps each village's latest death until this changes
   delete s.colonists[c.id];
   g.ownReset('colonists');
   afterDeath(g, c, rec); // a body to bury, or a grave at once in a distant village (burial.js)
