@@ -44,7 +44,7 @@
 // Slice 6: explorers with explore.around aim at the undiscovered chunk in reach with the most undiscovered land
 // round it (a summed-area table per launch, O(chunks)); with pruneTradesDays, finished trades and stale log keys
 // are pruned daily (pruneTrades, pruneLogKeys; O(trades + caravans + colonists) and O(keys) once a day).
-import { CHUNK, TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
+import { CHUNK, TICKS_PER_DAY, TICKS_PER_HOUR, HOUR_SLOT } from './constants.js';
 import { spreadContact } from './illness.js';
 import { makeContact, changeRelation, relationOf, relationPeek, relationStatus, legRemaining } from './villages.js';
 import { octile } from './util.js';
@@ -390,7 +390,7 @@ export function tickContact(g) {
   if (!C) return;
   const R = contactRules(g);
   if (!R) return;
-  if (s.tick % TICKS_PER_HOUR === 0) {
+  if (s.tick % TICKS_PER_HOUR === HOUR_SLOT.contact) { // its own tick of the hour (Phase 18)
     for (const sid of Object.keys(s.settlements).sort()) {
       if (s.settlements[sid].fallen) continue; // ruins send nobody out (fallen.js)
       let v = C.v[sid];

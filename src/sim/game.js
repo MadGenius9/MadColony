@@ -5,7 +5,7 @@ import { tickPeople, ensureAdult } from './people.js';
 import { tickHeat, rooms } from './heat.js';
 import { tickWater } from './water.js';
 import { Rng } from './rng.js';
-import { TICKS_PER_DAY, TICKS_PER_HOUR, PLAN_INTERVAL, CARRY_LIMIT, BLOCK_COOLDOWN, WATER_REACH_WALK, SAVE_FORMAT, GAME_API_VERSION, CHUNK, BIG_WORLD_TILES } from './constants.js';
+import { TICKS_PER_DAY, TICKS_PER_HOUR, HOUR_SLOT, PLAN_INTERVAL, CARRY_LIMIT, BLOCK_COOLDOWN, WATER_REACH_WALK, SAVE_FORMAT, GAME_API_VERSION, CHUNK, BIG_WORLD_TILES } from './constants.js';
 import { rings, clamp } from './util.js';
 import { generateWorld, WORLD_SIZES } from './worldgen.js';
 import { runPlanner, emptyPlan, planNow } from './planner.js';
@@ -66,7 +66,7 @@ import { tickGroves } from './forestry.js'; // forestry: distant villages plant 
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
-const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil], ['tickLeaders', tickLeaders], ['tickCouncil', tickCouncil], ['tickRebellion', tickRebellion], ['fadeTraffic', fadeTraffic], ['tickLivestockDay', tickLivestockDay], ['tickPartners', tickPartners], ['tickSelling', tickSelling], ['tickGroves', tickGroves]];
+const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil], ['tickLeaders', tickLeaders], ['tickCouncil', tickCouncil], ['tickRebellion', tickRebellion], ['fadeTraffic', fadeTraffic], ['tickLivestockDay', tickLivestockDay], ['tickPartners', tickPartners], ['tickSelling', tickSelling]];
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
 const NONE = Object.freeze([]); // an empty list shared by lookups that find nothing (never changed)
@@ -1552,7 +1552,8 @@ export class Game {
     s.tick++;
     if (s.god) applyCommands(this);
     if (s.disasters) { tickFire(this); if (s.disasters?.storms) tickStorms(this); if (s.disasters?.weather) tickWeather(this); }
-    if (s.tick % 100 === 0 && (s.disasters?.seeds || natureRules(this)?.spread)) tickRegrowth(this); // regrowth (regrow.js): nothing without seeds or a spread rule // tornadoes move (storm.js); fires spread and burn out (fire.js, Phase 5b; nothing until a fire starts) // god powers due on this tick, in id order (god.js; nothing until a power is used)
+    if (s.tick % TICKS_PER_HOUR === HOUR_SLOT.groves) tickGroves(this); // distant villages' groves, each at its hour of the day (forestry.js)
+    if (s.tick % TICKS_PER_HOUR === HOUR_SLOT.regrowth && (s.disasters?.seeds || natureRules(this)?.spread)) tickRegrowth(this); // its own tick of the hour (Phase 18) // regrowth (regrow.js): nothing without seeds or a spread rule // tornadoes move (storm.js); fires spread and burn out (fire.js, Phase 5b; nothing until a fire starts) // god powers due on this tick, in id order (god.js; nothing until a power is used)
     if (this.big) runPlanner(this, true); // big worlds: each village on its own staggered schedule
     else if (s.tick % PLAN_INTERVAL === 0 || this.planDirty) { this.planDirty = false; runPlanner(this); }
     if (s.tick % 10 === 0) tickFarming(this, 10);

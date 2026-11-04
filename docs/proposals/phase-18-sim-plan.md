@@ -75,3 +75,45 @@ the owner's review). 4, 5 and 7 are exact and can come at any time. 6 only with 
 ## Not in this plan
 Rendering and UI (home: Phase 17's build); growth enablement (the owner's decision, and the roadmap says not to
 enable faster growth to mask an unmet target).
+
+## Results: slices 1–2, the hour's and the day's peaks (built and tested, 2026-11-04; owner: "finish the rest of the phases")
+- **Built:**
+  - **Hourly jobs at their own tick of the hour** (`constants.js HOUR_SLOT`): the villages' hourly pass at 0,
+    room heat at 10/60 (every 50 ticks), education at 20, farming's 50-tick pass at 30/80 (frost, plants
+    regrowing), regrowth at 40, contact at 60, unburied bodies at 80, distant groves at 90.
+  - **Semantics:** each job still runs exactly once an hour (or once every 50 ticks), at a fixed tick, so the game
+    needs no catch-up. A save in the middle of the hour loads and runs on identically (the spread tests); inputs
+    are read on the job's own tick.
+  - **Distant villages' groves:** each village plants at its own hour of the day (from its id), trying at most 8
+    spots. As one daily job it took 120–155 ms.
+  - **Rebellion:** relations indexed once a pass (it went over every relation for every member every day: 28–66
+    ms). Exact.
+  - **Forestry's planting job:** the cheap spot checks while walking, the trap check once at planting
+    (`regrow.js spotOpen`). Found because one world's run went 12–14 ms a tick while a full-detail village planted:
+    the trap check every tick was 37% of the time.
+- **The grown world** (868 people; old and new taken in turn):
+
+  | | Before | After |
+  |---|---|---|
+  | Hour's first tick, mean | 40 ms | 15.3 ms |
+  | Hour's first tick, p95 | 55–70 ms | 31.7 ms |
+  | Hour's first tick, p99 | 68.5–78 ms | 34.4 ms |
+  | Day's first ticks, mean | 23 ms | 16.9 ms |
+  | Day's first ticks, p95 | 97–114 ms | 54 ms |
+  | Day's first ticks, max | 138–140 ms | 74 ms |
+  | Overall p95 | 21.7, 20.4 ms | 21.6, 19.9 ms |
+  | Overall p99 | 40.5, 37.8 ms | 36.2, 34.8 ms |
+  | Overall p99.9 | 70, 76 ms | 62, 62 ms |
+  | Overall max | 100, 116 ms | 95, 71 ms |
+  | Overall mean | 7.3, 7.1 ms | 7.6, 7.2 ms |
+
+  - The gate "spike cost at least 50% lower": met for the hour's first tick (mean −62%, p95 −43 to −55%). Close for
+    the day's (p95 −44 to −53%, max −46%).
+  - **Steady-state p95 is not met:** about 20 ms against 16.7, flagged as the gate asks. The ordinary ticks are now
+    what decide it: people's choices, the planner, distant villages' hours.
+- **Classic runs** (the order of events changed; proposed, for review):
+  - `forty` e340696c71f36c9d (workshops on day 6.44, was 6.64);
+  - `modern` 1194e9931714f31c (modern era on day 41.51, was 44.70).
+  - Full suite 338 passed. The forestry test now plants at the village's own hour.
+- **Next (slice 3, fewer plans per tick):** not started. The planner is still about 28% of the slow ticks; the next
+  step is a measured cap on plans a tick.

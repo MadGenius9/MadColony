@@ -292,3 +292,7 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
   are unchanged; the saved site reasons change the hashes.
 - Cold storage (2026-11-04): `forty` be8830351383af58 (era days unchanged); `modern` 1755acefca99576a (modern era on
   day 44.70, was 43.04; on seeds 1–4 the same day or earlier).
+
+## Phase 18 proposed baselines (2026-11-04)
+- Hourly jobs at their own ticks (slices 1–2): `forty` e340696c71f36c9d (workshops on day 6.44); `modern`
+  1194e9931714f31c (modern era on day 41.51, was 44.70).

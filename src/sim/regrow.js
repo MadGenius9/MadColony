@@ -63,6 +63,9 @@ function blocked(g, i, def = null) {
 
 /** May a young `def` sprout on tile i now (forestry.js)? */
 export const canSprout = (g, i, def) => !blocked(g, i, def);
+/** The same without the trap check (a probe of the walkable areas): for choosing spots and while walking there;
+ *  forestry.js asks canSprout once, at the moment of planting. */
+export const spotOpen = (g, i) => !blocked(g, i, null);
 
 /** Is there a building, building site or zone within CLEAR tiles of (x, y)? */
 function villageNear(g, x, y) {

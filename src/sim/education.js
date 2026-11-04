@@ -12,7 +12,7 @@
 //
 // College: when a settlement lacks qualified staff (doctors, teachers, industrial specialists) and has a
 // lecture hall, one schooled adult at a time is sent to train; an instructor at the lectern speeds it up.
-import { TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
+import { TICKS_PER_DAY, TICKS_PER_HOUR, HOUR_SLOT } from './constants.js';
 import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { interactionSpot } from './construction.js';
 import { octile } from './util.js';
@@ -119,7 +119,7 @@ function hasHall(g, sid) {
 }
 
 export function tickEducation(g) {
-  if (g.s.tick % 100) return;
+  if (g.s.tick % TICKS_PER_HOUR !== HOUR_SLOT.education) return; // its own tick of the hour (Phase 18)
   const s = g.s;
   const schooled = g.reg.get('qualification', 'core:schooled');
   const practised = practiceQuals(g);

@@ -1,5 +1,5 @@
 // Crop growth, wild regrowth, and autonomous field planning.
-import { TICKS_PER_DAY } from './constants.js';
+import { TICKS_PER_DAY, HOUR_SLOT } from './constants.js';
 import { clamp, octile } from './util.js';
 import { fieldCells } from './game.js';
 import { seasonalTemp, outdoorTemp, climateOf } from './heat.js';
@@ -52,7 +52,7 @@ export function tickFarming(g, dt) {
     for (const id of withered.sort()) destroyCrop(g, id);
     g.log(`${withered.length} crop${withered.length === 1 ? '' : 's'} withered in the drought.`, 'warn', 'withered', 2400);
   }
-  if (g.s.tick % 50 === 0) {
+  if (g.s.tick % 50 === HOUR_SLOT.farming) { // off the hour's first tick (Phase 18): ticks 30 and 80
     // Hard frost kills plants that are not ripe yet (the seed is lost; the field is sown again in spring).
     const now = outdoorTemp(g);
     const killed = {};

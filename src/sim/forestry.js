@@ -4,19 +4,19 @@
 // core:plant_trees, job 'plant'), while it has fewer than FOREST.min + FOREST.extra grown and young ones near. A
 // young tree grows up in its `sproutDays` (farming.js, regrow.js). Planting costs work and waiting; no item is
 // made or used. A distant village (nobody walks there) plants FOREST.farPerDay young trees a day in its grove, in
-// aggregate, by the same limit (tickGroves, a daily job).
-import { sprout, canSprout } from './regrow.js';
+// aggregate, by the same limit (tickGroves, at its own hour of the day).
+import { sprout, canSprout, spotOpen } from './regrow.js';
 import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { mayDoWork } from './people.js';
 import { octile } from './util.js';
-import { TICKS_PER_DAY } from './constants.js';
+import { TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
 
 // Looking for room for a grove is a wide search: a village looks on one day in SITE_EVERY only (from its id, so no
 // state is kept and a loaded game looks on the same days).
 export const SITE_EVERY = 3;
 export const siteDay = (g, sid) => { let h = 2166136261; for (const ch of String(sid)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (Math.floor(g.s.tick / TICKS_PER_DAY) + ((h >>> 0) % SITE_EVERY)) % SITE_EVERY === 0; };
 
-export const FOREST = Object.freeze({ min: 30, extra: 15, reach: 24, w: 9, h: 7, from: 8, to: 22, gap: 2, work: 80, farPerDay: 2 });
+export const FOREST = Object.freeze({ min: 30, extra: 15, reach: 24, w: 9, h: 7, from: 8, to: 22, gap: 2, work: 80, farPerDay: 2, tries: 8 });
 
 /** The wood tree a village would plant: a node tagged core:tree that yields wood (the one listed first). */
 export function woodTree(g) {
@@ -104,7 +104,7 @@ export const FOREST_GIVERS = {
       const out = [];
       for (const p of groveSpots(gr)) {
         const i = g.i(p.x, p.y), key = `plant:${i}`;
-        if (g.isReserved(key, c.id) || g.isBlocked(key) || !canSprout(g, i, gr.def)) continue;
+        if (g.isReserved(key, c.id) || g.isBlocked(key) || !spotOpen(g, i)) continue; // the trap check waits for the planting itself
         out.push({ x: p.x, y: p.y, urgency: 0.45, label: `Plant a ${g.reg.get('node', gr.def).name.toLowerCase()}`, make() {
           const job = newJob('plant', { x: p.x, y: p.y, def: gr.def, done: 0 }, { why: 'Trees for the village\'s wood', label: `Plant a ${g.reg.get('node', gr.def).name.toLowerCase()}`, workType: wt.id, targetKey: key });
           return g.reserveExcl(job, key, c.id) ? job : null;
@@ -121,33 +121,40 @@ export const FOREST_DRIVERS = {
     valid(g, c, j) { return g.reg.has('node', j.def); },
     tick(g, c, j) {
       const i = g.i(j.x, j.y);
-      if (!canSprout(g, i, j.def)) return { fail: 'The spot is taken', cooldown: 600 };
+      if (!spotOpen(g, i)) return { fail: 'The spot is taken', cooldown: 600 }; // cheap, every tick; the trap check once, below
       const r = travel(g, c, j, j.x, j.y, 'adj', 'the grove');
       if (r !== true) return r === false ? 'running' : r;
       c.status.action = 'Planting a tree';
       j.done += workSpeed(g, c, 'core:chop', 'core:woodcutting');
       if (j.done < FOREST.work) return 'running';
       practice(g, c, 'core:chop', 'core:woodcutting');
-      if (!canSprout(g, i, j.def)) return { fail: 'The spot is taken', cooldown: 600 };
+      if (!canSprout(g, i, j.def)) return { fail: 'A tree there would shut someone in', cooldown: 600 };
       sprout(g, j.def, i);
       return 'done';
     },
   },
 };
 
-/** Daily (game.js DAILY_JOBS): distant villages plant in their groves, in aggregate (FOREST.farPerDay a day). */
+/** Each hour's tick HOUR_SLOT.groves (game.js): the distant villages whose hour of the day it is (from their id)
+ *  plant in their groves, in aggregate (FOREST.farPerDay a day, trying at most FOREST.tries spots: each try asks
+ *  whether a tree there would shut anyone in). Once a day per village, spread over the day: as one daily job it
+ *  took 120–155 ms in the grown world. */
 export function tickGroves(g) {
+  const hour = Math.floor((g.s.tick % TICKS_PER_DAY) / TICKS_PER_HOUR);
   for (const sid of Object.keys(g.s.settlements || {}).sort()) {
     const st = g.s.settlements[sid], gr = st.grove;
-    if (!gr || st.detail !== 'abstract' || st.fallen || !g.reg.has('node', gr.def)) continue;
+    if (!gr || st.detail !== 'abstract' || st.fallen || !g.reg.has('node', gr.def) || hourOf(sid) !== hour) continue;
     const n = treesNear(g, sid, gr.def);
-    let left = Math.min(FOREST.farPerDay, FOREST.min + FOREST.extra - n.grown - n.young);
+    let left = Math.min(FOREST.farPerDay, FOREST.min + FOREST.extra - n.grown - n.young), tries = FOREST.tries;
     for (const p of groveSpots(gr)) {
-      if (left <= 0) break;
+      if (left <= 0 || tries <= 0) break;
       const i = g.i(p.x, p.y);
+      if (g.nodeIdAt(i)) continue; // a tree there already: no try spent
+      tries--;
       if (!canSprout(g, i, gr.def)) continue;
       sprout(g, gr.def, i);
       left--;
     }
   }
 }
+export const hourOf = (sid) => { let h = 2166136261; for (const ch of String(sid)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (h >>> 0) % 24; };

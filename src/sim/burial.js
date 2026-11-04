@@ -9,7 +9,7 @@
 // Mourning: close family of the dead (people sharing their home, their parents and children) grieve for
 // BURIAL.griefDays: work at BURIAL.griefWork speed (c.grief, read by jobs.js workSpeed). There is no other effect (no mood system).
 // No random numbers are drawn. Everything is saved (save format 16).
-import { TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
+import { TICKS_PER_DAY, TICKS_PER_HOUR, HOUR_SLOT } from './constants.js';
 import { isDown } from './health.js';
 import { newJob, travel } from './ai/jobs.js';
 import { rings, octile } from './util.js';
@@ -94,7 +94,7 @@ export function mourn(g, c) {
  *  gone), are laid to rest by the village. In id order. */
 export function tickBurial(g) {
   const s = g.s;
-  if (!s.bodies || s.tick % TICKS_PER_HOUR) return;
+  if (!s.bodies || s.tick % TICKS_PER_HOUR !== HOUR_SLOT.burial) return; // its own tick of the hour (Phase 18)
   for (const id of Object.keys(s.bodies).sort(byId)) {
     const b = s.bodies[id];
     if (b.carriedBy && s.colonists[b.carriedBy]?.job?.bodyId === id) continue; // on the way to the graveyard

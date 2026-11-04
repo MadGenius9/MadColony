@@ -61,16 +61,21 @@ test('forestry: a grove is saved; a bad one is refused; old saves have none', ()
 });
 
 test('forestry: a distant village plants in its grove in aggregate, two young trees a day, up to the limit', async () => {
-  const { tickGroves } = await import('../src/sim/forestry.js');
+  const { tickGroves, hourOf } = await import('../src/sim/forestry.js');
+  // At the village's own hour of the day (tickGroves plants for the villages whose hour it is).
+  const atHour = (g, sid) => { const day = Math.floor(g.s.tick / TICKS_PER_DAY) + 1; g.s.tick = day * TICKS_PER_DAY + hourOf(sid) * 100 + 90; };
   const { g, sid, def } = stripped();
   const st = g.s.settlements[sid], was = st.detail;
   st.detail = 'abstract'; // as a distant village (nobody walks there)
   planNow(g, sid);
   assert.ok(st.grove, 'it lays out a grove too');
   const y0 = treesNear(g, sid, def).young;
-  tickGroves(g); g.tick();
+  atHour(g, sid); tickGroves(g);
   assert.equal(treesNear(g, sid, def).young - y0, FOREST.farPerDay, 'two a day');
-  for (let d = 0; d < 20; d++) { tickGroves(g); g.tick(); }
+  g.s.tick += 100; // the next hour: not its hour
+  tickGroves(g);
+  assert.equal(treesNear(g, sid, def).young - y0, FOREST.farPerDay, 'only at its own hour of the day');
+  for (let d = 0; d < 20; d++) { atHour(g, sid); tickGroves(g); }
   const n = treesNear(g, sid, def);
   assert.ok(n.grown + n.young <= FOREST.min + FOREST.extra, 'no more than the limit');
   if (was === undefined) delete st.detail; else st.detail = was;

@@ -5,7 +5,7 @@
 // target. Sleeping somewhere cold restores energy more slowly. Rooms are derived from the buildings and
 // never saved; each room's temperature is saved under its first tile (`s.rooms`).
 import { interactionSpot } from './construction.js';
-import { TICKS_PER_HOUR, TICKS_PER_DAY } from './constants.js';
+import { TICKS_PER_HOUR, TICKS_PER_DAY, HOUR_SLOT } from './constants.js';
 import { powerAt, isBroken, busyHooks, fuelLoaded } from './power.js';
 
 export const HEAT = {
@@ -195,7 +195,7 @@ export function heaterOn(g, st) {
 
 /** Update room temperatures; heaters burn fuel while on. */
 export function tickHeat(g) {
-  if (g.s.tick % HEAT.tick) return;
+  if (g.s.tick % HEAT.tick !== HOUR_SLOT.heat) return; // off the hour's first tick (Phase 18): ticks 10 and 60
   const R = rooms(g);
   const out = outdoorTemp(g);
   const prev = g.s.rooms || {};

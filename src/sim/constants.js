@@ -4,6 +4,9 @@ export const SAVE_FORMAT = 45; // 2: settlements, ownership, research; 3: per-se
 
 export const TICKS_PER_HOUR = 100;
 export const TICKS_PER_DAY = 24 * TICKS_PER_HOUR;
+// Phase 18, slice 1: the hourly jobs each run at their own tick of the hour (once an hour, as before), so the hour's
+// first tick no longer carries them all (it averaged 40 ms in the grown world). The villages' hourly pass keeps 0.
+export const HOUR_SLOT = Object.freeze({ villages: 0, education: 20, regrowth: 40, contact: 60, burial: 80, groves: 90, farming: 30, heat: 10 }); // farming (called every 10 ticks) and heat run every 50 ticks: at 30/80 and 10/60
 export const MOVE_TICKS = 4; // ticks to cross one tile orthogonally at normal speed
 export const PLAN_INTERVAL = 60; // colony planner runs every N ticks
 export const CARRY_LIMIT = 40; // max units one colonist carries at once
