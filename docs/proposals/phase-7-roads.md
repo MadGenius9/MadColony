@@ -143,6 +143,9 @@ intent like taps, or a god-power-like tool).
   sets out, is cut by the share of its straight way that runs within 2 tiles of a built road (sampled every 2
   tiles), as a road step: all along a road, 0.6 of the time. Test in `cloud-roads.test.js`. Classic hashes
   unchanged (no caravans there); full suite 335 passed.
+  - World seed 11, to day 160: 429 of 581 caravans ran partly along roads, saving about 3% of all caravan time.
+    The road share was measured the day each caravan was seen, so this is an estimate. Each village lays only its
+    own stretch (up to 120 tiles in all), so roads cover little of a long route.
 
 ### Slice 4: handcarts (built and tested, 2026-11-02)
 - **Built:**
