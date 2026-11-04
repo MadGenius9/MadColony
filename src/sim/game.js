@@ -62,10 +62,11 @@ import { countTraffic, fadeTraffic, ROAD, cartOf } from './roads.js'; // Phase 7
 import { tickLivestock, tickLivestockDay } from './livestock.js'; // Phase 9: livestock
 import { tickPartners } from './family.js'; // Phase 10: partnerships
 import { tickSelling } from './selling.js'; // Phase 10: the selling policy for controlled goods
+import { tickGroves } from './forestry.js'; // forestry: distant villages plant in aggregate
 import { organicScenario, attachClaims, startClaims, growClaims, claimsAdded, claimTerritory, landInfo, warmClaims, claimOkOrganic, claimsDirtySince } from './territory.js';
 // The day-start jobs (Game.dailyJobs), in the order they always ran. Kingdoms: members leave when relations with the
 // capital sour (nothing unless a kingdom exists); markets set the day's prices (nothing unless a market is built).
-const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil], ['tickLeaders', tickLeaders], ['tickCouncil', tickCouncil], ['tickRebellion', tickRebellion], ['fadeTraffic', fadeTraffic], ['tickLivestockDay', tickLivestockDay], ['tickPartners', tickPartners], ['tickSelling', tickSelling]];
+const DAILY_JOBS = [['tickFounding', tickFounding], ['tickKingdoms', tickKingdoms], ['tickTithes', tickTithes], ['tickCivLaws', tickCivLaws], ['tickUnrest', tickUnrest], ['tickPetitions', tickPetitions], ['tickFollowUps', tickFollowUps], ['tickMemories', tickMemories], ['updateMarkets', updateMarkets], ['growClaims', growClaims], ['tickAging', tickAging], ['tickIllness', tickIllness], ['tickRivalry', tickRivalry], ['tickFallen', tickFallen], ['tickSpoil', tickSpoil], ['tickLeaders', tickLeaders], ['tickCouncil', tickCouncil], ['tickRebellion', tickRebellion], ['fadeTraffic', fadeTraffic], ['tickLivestockDay', tickLivestockDay], ['tickPartners', tickPartners], ['tickSelling', tickSelling], ['tickGroves', tickGroves]];
 
 const COLONIST_COLORS = ['#e8c547', '#5cc8e8', '#e86a5c', '#9be85c', '#c78be8', '#e8a15c', '#5ce8b4', '#e85ca8', '#8ca0ff', '#ffd0a0'];
 const NONE = Object.freeze([]); // an empty list shared by lookups that find nothing (never changed)

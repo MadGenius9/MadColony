@@ -27,7 +27,7 @@ test('spread: the day-start jobs run one a tick, in order, once a day', () => {
   const seen = [];
   while (g.s.tick % TICKS_PER_DAY !== TICKS_PER_DAY - 1) g.tick(); // the next tick is the day's first
   g._dayTimes = {};
-  for (let t = 0; t < 30; t++) { // 21 day-start jobs since Phase 10 (one a tick): all within the first 30 ticks
+  for (let t = 0; t < 30; t++) { // 23 day-start jobs since Phase 10 and forestry (one a tick): all within the first 30 ticks
     const before = Object.keys(g._dayTimes).length;
     g.tick();
     const keys = Object.keys(g._dayTimes);

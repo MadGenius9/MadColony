@@ -59,3 +59,20 @@ test('forestry: a grove is saved; a bad one is refused; old saves have none', ()
   old.saveFormat = 44;
   assert.equal(loadGame(g.reg, JSON.stringify(old)).s.settlements[sid].grove, undefined);
 });
+
+test('forestry: a distant village plants in its grove in aggregate, two young trees a day, up to the limit', async () => {
+  const { tickGroves } = await import('../src/sim/forestry.js');
+  const { g, sid, def } = stripped();
+  const st = g.s.settlements[sid], was = st.detail;
+  st.detail = 'abstract'; // as a distant village (nobody walks there)
+  planNow(g, sid);
+  assert.ok(st.grove, 'it lays out a grove too');
+  const y0 = treesNear(g, sid, def).young;
+  tickGroves(g); g.tick();
+  assert.equal(treesNear(g, sid, def).young - y0, FOREST.farPerDay, 'two a day');
+  for (let d = 0; d < 20; d++) { tickGroves(g); g.tick(); }
+  const n = treesNear(g, sid, def);
+  assert.ok(n.grown + n.young <= FOREST.min + FOREST.extra, 'no more than the limit');
+  if (was === undefined) delete st.detail; else st.detail = was;
+  assert.deepEqual(conservationErrors(g), []);
+});

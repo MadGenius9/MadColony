@@ -3,13 +3,14 @@
 // since, why }`, format 45), and its woodcutters plant young trees on every other tile of it (giver
 // core:plant_trees, job 'plant'), while it has fewer than FOREST.min + FOREST.extra grown and young ones near. A
 // young tree grows up in its `sproutDays` (farming.js, regrow.js). Planting costs work and waiting; no item is
-// made or used.
+// made or used. A distant village (nobody walks there) plants FOREST.farPerDay young trees a day in its grove, in
+// aggregate, by the same limit (tickGroves, a daily job).
 import { sprout, canSprout } from './regrow.js';
 import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { mayDoWork } from './people.js';
 import { octile } from './util.js';
 
-export const FOREST = Object.freeze({ min: 20, extra: 10, reach: 24, w: 7, h: 5, from: 8, to: 22, gap: 2, work: 80 });
+export const FOREST = Object.freeze({ min: 30, extra: 15, reach: 24, w: 9, h: 7, from: 8, to: 22, gap: 2, work: 80, farPerDay: 2 });
 
 /** The wood tree a village would plant: a node tagged core:tree that yields wood (the one listed first). */
 export function woodTree(g) {
@@ -72,7 +73,7 @@ export function planForestry(g, P, sid) {
   delete P.forestNote;
   const st = g.s.settlements?.[sid];
   const def = woodTree(g);
-  if (!st || st.detail === 'abstract' || !def || !st.center) return;
+  if (!st || st.fallen || !def || !st.center) return; // distant villages too: they plant in aggregate (tickGroves)
   const n = treesNear(g, sid, def.id);
   if (st.grove) {
     if (n.grown + n.young < FOREST.min + FOREST.extra) P.forestNote = `Planting ${def.name.toLowerCase()}s in the grove: ${n.grown} grown and ${n.young} young within ${FOREST.reach} tiles`;
@@ -126,3 +127,20 @@ export const FOREST_DRIVERS = {
     },
   },
 };
+
+/** Daily (game.js DAILY_JOBS): distant villages plant in their groves, in aggregate (FOREST.farPerDay a day). */
+export function tickGroves(g) {
+  for (const sid of Object.keys(g.s.settlements || {}).sort()) {
+    const st = g.s.settlements[sid], gr = st.grove;
+    if (!gr || st.detail !== 'abstract' || st.fallen || !g.reg.has('node', gr.def)) continue;
+    const n = treesNear(g, sid, gr.def);
+    let left = Math.min(FOREST.farPerDay, FOREST.min + FOREST.extra - n.grown - n.young);
+    for (const p of groveSpots(gr)) {
+      if (left <= 0) break;
+      const i = g.i(p.x, p.y);
+      if (!canSprout(g, i, gr.def)) continue;
+      sprout(g, gr.def, i);
+      left--;
+    }
+  }
+}
