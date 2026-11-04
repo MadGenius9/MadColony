@@ -195,3 +195,34 @@ function planTradeRoad(g, sid, st, tpl, mine) {
   }
   return 0;
 }
+
+// ---------- caravans on roads (slice 3's open point, 2026-11-04) ----------
+// A distant caravan travels abstractly (lod.js), its time fixed when it sets out from the straight distance. The
+// share of that line, sampled every CARAVAN_ROAD.every tiles, that runs within CARAVAN_ROAD.near tiles of a built
+// road shortens it as a road step does: time × (1 − share × (1 − step)).
+export const CARAVAN_ROAD = Object.freeze({ every: 2, near: 2 });
+
+/** How much of the straight way from a to b lies along built roads (0 to 1), and the road's step: { share, step }. */
+export function roadShare(g, a, b) {
+  const len = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+  if (len < 1) return { share: 0, step: 1 };
+  let on = 0, n = 0, step = 1;
+  for (let k = 0; k <= len; k += CARAVAN_ROAD.every) {
+    const x = Math.round(a.x + ((b.x - a.x) * k) / len), y = Math.round(a.y + ((b.y - a.y) * k) / len);
+    n++;
+    let hit = null;
+    for (let dy = -CARAVAN_ROAD.near; dy <= CARAVAN_ROAD.near && !hit; dy++) for (let dx = -CARAVAN_ROAD.near; dx <= CARAVAN_ROAD.near && !hit; dx++) {
+      if (!g.inB(x + dx, y + dy)) continue;
+      const id = g.structIdAt(g.i(x + dx, y + dy)), st = id && g.s.structures[id];
+      if (st?.built && g.bDef(st)?.road) hit = g.bDef(st).road;
+    }
+    if (hit) { on++; step = Math.min(step, hit.step); }
+  }
+  return { share: on / n, step };
+}
+
+/** Caravan ticks from a to b given roads on the way (lod.js). */
+export function caravanRoadTicks(g, a, b, ticks) {
+  const r = roadShare(g, a, b);
+  return r.share > 0 ? Math.max(1, Math.round(ticks * (1 - r.share * (1 - r.step)))) : ticks;
+}

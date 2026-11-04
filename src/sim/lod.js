@@ -36,6 +36,7 @@ import { huntWeapon } from './hunt.js';
 import { modsOf } from './peoples.js';
 import { rationOf, hoursOf, huntAllowed, treeProtected } from './civlaws.js';
 import { noteMeal, onBreak } from './mood.js';
+import { caravanRoadTicks } from './roads.js';
 
 export { deliverLeg }; // shared by the trade job and caravans
 
@@ -818,7 +819,7 @@ function addCaravan(g, t, leg, from, to, item, qty, dur, a, b) {
   const s = g.s;
   s.caravans ||= {};
   const id = g.newId('v');
-  const eta = s.tick + caravanTicks(a, b);
+  const eta = s.tick + caravanRoadTicks(g, a, b, caravanTicks(a, b)); // quicker along roads (roads.js)
   s.caravans[id] = { id, trade: t.id, leg, from, to, item, qty, ...(dur !== undefined ? { dur } : {}), x: a.x, y: a.y, tx: b.x, ty: b.y, depart: s.tick, eta };
   g.log(`A caravan from ${nameOf(g, from)} set out for ${nameOf(g, to)} with ${qty} ${g.reg.get('item', item)?.name || item}.`, 'trade', `caravan:${t.id}:${leg}`, 600);
 }

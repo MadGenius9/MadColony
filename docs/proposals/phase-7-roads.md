@@ -139,6 +139,10 @@ intent like taps, or a god-power-like tool).
   - World seed 11, 200 days: 2,106 road tiles in 56 villages (most of them trade roads), 249 people, **3.0 ms a
     tick on day 200** (the usual for this world), save and load identical.
 - **Not done:** distant villages' caravans faster on roads (they travel abstractly); wagons (slice 4).
+  **Caravans on roads done 2026-11-04:** `roads.js roadShare`, `caravanRoadTicks`. A caravan's time, fixed when it
+  sets out, is cut by the share of its straight way that runs within 2 tiles of a built road (sampled every 2
+  tiles), as a road step: all along a road, 0.6 of the time. Test in `cloud-roads.test.js`. Classic hashes
+  unchanged (no caravans there); full suite 335 passed.
 
 ### Slice 4: handcarts (built and tested, 2026-11-02)
 - **Built:**

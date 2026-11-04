@@ -143,3 +143,19 @@ test('roads: villages with a trade pact and trades between them lay their part o
   assert.match(line.msg, /laying a road toward .* \(\d+ sections?; a trade pact, \d+ trades\)/);
   assert.ok(g.owned('colonists', a).length < 8, 'no minimum of people for a trade road');
 });
+
+test('roads: a caravan along a road arrives sooner (distant villages travel abstractly)', async () => {
+  const { roadShare, caravanRoadTicks } = await import('../src/sim/roads.js');
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const row = openRow(g, 8);
+  assert.ok(row, 'open ground');
+  const a = row[0], b = row.at(-1);
+  assert.deepEqual(roadShare(g, a, b), { share: 0, step: 1 }, 'no road: as before');
+  assert.equal(caravanRoadTicks(g, a, b, 1000), 1000);
+  for (const p of row) { const st = g.addStructure('core:road', p.x, p.y, { settlement: g.s.playerSettlement, built: false }); g.ledgerAdd('created', 'core:stone', 1, 'test'); st.delivered = { 'core:stone': 1 }; completeStructure(g, st, null); }
+  const r = roadShare(g, a, b);
+  assert.equal(r.share, 1, 'all along the road');
+  assert.equal(caravanRoadTicks(g, a, b, 1000), 600, 'a road step: 0.6 of the time');
+  assert.deepEqual(conservationErrors(g), []);
+});
