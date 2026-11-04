@@ -8,11 +8,12 @@
 import { createProject, findSite } from './construction.js';
 import { herdsWithin } from './animals.js';
 import { settlementOf } from './research.js';
+import { siteDay } from './forestry.js';
 
 export const PEN = Object.freeze({ minPeople: 6, reach: 60, wood: 30, radius: 26, homeGap: 6 });
 
 /** The pens of village sid (projects of a pen template), in id order. */
-export const pensOf = (g, sid) => g.owned('projects', sid).filter((p) => p.pen && g.reg.get('template', p.templateId)?.kind === 'pen');
+export const pensOf = (g, sid) => g.owned('projects', sid).filter((p) => p.pen && p.status !== 'cancelled' && g.reg.get('template', p.templateId)?.kind === 'pen'); // a pen destroyed (ruin.js) is no pen
 
 /** How far pen p is from closed: { closed, missing } (fence sections and the gate not standing built). */
 export function penState(g, p) {
@@ -48,6 +49,7 @@ export function planPens(g, P, sid, cols) {
   if (!near) { P.penNote = 'No herd to tame near the village'; return; }
   const what = `${near.d.tame.plural} (a herd of ${near.h.n} ${near.d.plural || near.d.name}, ${Math.round(near.dist)} tiles away)`;
   if ((P.stock['core:wood'] || 0) < PEN.wood) { P.penNote = `Waiting for ${PEN.wood} wood to build a pen for ${what}`; return; }
+  if (!siteDay(g, sid)) { P.penNote = `Looking for room for a pen for ${what}`; return; } // the site search, one day in three (forestry.js siteDay)
   const tpl = g.reg.all('template').find((t) => t.kind === 'pen');
   const homes = g.owned('projects', sid).filter((x) => g.reg.get('template', x.templateId)?.kind === 'home').map((x) => ({ x: x.x, y: x.y }));
   const site = tpl && findSite(g, tpl, { center: ctr, sid, radius: PEN.radius, keepFrom: { points: homes, gap: PEN.homeGap, cost: 2, what: 'the homes' } }); // animals are kept away from homes

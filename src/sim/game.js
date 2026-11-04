@@ -375,11 +375,11 @@ export class Game {
       e.list = added ? [...e.list, st] : e.list.filter((x) => x !== st);
     }
   }
+  /** Is building `defId` a wall or a door (what bounds a room, heat.js)? */
+  wallish(defId) { const cat = this.reg.get('building', defId)?.category; return cat === 'wall' || cat === 'door'; }
   /** A structure became another building in place (a renovation, construction.js): the structsWhere lists it
    *  was in or joins are rebuilt (in Object.values order, as on first use); the others are unchanged. Their
    *  conditions read only the building kind, so each list is tested with the old kind and the new one. */
-  /** Is building `defId` a wall or a door (what bounds a room, heat.js)? */
-  wallish(defId) { const cat = this.reg.get('building', defId)?.category; return cat === 'wall' || cat === 'door'; }
   structRedefined(st, oldDef) {
     if (this.wallish(oldDef) || this.wallish(st.def)) this.wallRev = (this.wallRev || 0) + 1;
     this.tileChanged(st.x, st.y); // walkable or standable may differ now

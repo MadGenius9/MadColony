@@ -76,3 +76,12 @@ test('forestry: a distant village plants in its grove in aggregate, two young tr
   if (was === undefined) delete st.detail; else st.detail = was;
   assert.deepEqual(conservationErrors(g), []);
 });
+
+test('review fixes: a grove off the map is refused on load', () => {
+  const { g, sid } = stripped();
+  for (let d = 0; d < 3 && !g.s.settlements[sid].grove; d++) { planNow(g, sid); g.step(TICKS_PER_DAY); }
+  assert.ok(g.s.settlements[sid].grove, 'a grove (on its village\'s looking day)');
+  const bad = JSON.parse(serializeGame(g));
+  bad.state.settlements[sid].grove.x = -5;
+  assert.throws(() => loadGame(g.reg, JSON.stringify(bad)), /invalid grove/);
+});

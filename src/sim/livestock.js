@@ -174,6 +174,7 @@ export const LIVESTOCK_DRIVERS = {
           return r === false ? 'running' : r;
         }
         if (c.mv) { c.mv.t++; if (c.mv.t < c.mv.dur) return 'running'; c.mv = null; }
+        if (penAnimals(g, p).length >= Math.min(TAME.pair, capOf(g, p))) return 'done'; // someone else filled it meanwhile
         const a = tameInto(g, t.id, p, c);
         if (!a) return 'done';
         g.log(`${c.name} caught a ${d.name.toLowerCase()} for the pen.`, 'good');
@@ -211,7 +212,17 @@ export function tickLivestockDay(g) {
   for (const a of Object.values(S.list).sort((x, y) => Number(x.id.slice(1)) - Number(y.id.slice(1)))) { if (!byPen.has(a.pen)) byPen.set(a.pen, []); byPen.get(a.pen).push(a); }
   for (const pid of [...byPen.keys()].sort()) {
     const p = g.s.projects[pid], list = byPen.get(pid);
-    if (!p) continue;
+    if (!p || p.status === 'cancelled') { // the pen is gone (a disaster, ruin.js): its animals run off, booked once
+      for (const a of list) {
+        delete S.list[a.id];
+        const L = ledger(g, a.sid, a.sp).died; L.escaped = (L.escaped || 0) + 1;
+      }
+      if (list.length) g.log(`${list.length} ${g.reg.get('animal', list[0].sp)?.tame?.plural || 'animals'} of ${g.s.settlements?.[list[0].sid]?.name || list[0].sid} ran off: their pen is gone.`, 'warn');
+      continue;
+    }
+    const prevActor = g.actor;
+    g.actor = p.settlement || null; // what the pen gives (products, carcasses) is its village's, and lands at its stockpile
+    try {
     let grass = seasonOf(g) === 'Winter' ? 0 : grazeOf(g, p);
     const far = g.s.settlements?.[p.settlement]?.detail === 'abstract';
     if (far) fillTrough(g, p, penEats(g, p, list.length)); // a distant village feeds from its stock, in aggregate
@@ -238,6 +249,7 @@ export function tickLivestockDay(g) {
     S.list[id] = { id, sp: d.id, sid: p.settlement, pen: pid, x: at.x, y: at.y, hp: d.health || 1 };
     ledger(g, p.settlement, d.id).born++;
     g.log(`A young ${d.tame.name.toLowerCase()} was born in the pen of ${g.s.settlements?.[p.settlement]?.name || p.settlement}.`, 'good');
+    } finally { g.actor = prevActor; }
   }
 }
 
@@ -405,7 +417,8 @@ export function validateLivestock(s, bad) {
   if (!S || typeof S !== 'object' || !isInt(S.next) || S.next < 1 || typeof S.list !== 'object' || typeof S.ledger !== 'object') { bad('state.livestock is malformed'); return; }
   for (const [k, a] of Object.entries(S.list)) {
     const ok = a && a.id === k && /^l\d{1,9}$/.test(k) && Number(k.slice(1)) < S.next && typeof a.sp === 'string' && typeof a.sid === 'string' && typeof a.pen === 'string'
-      && isInt(a.x) && isInt(a.y) && a.x >= 0 && a.y >= 0 && a.x < W && a.y < H && typeof a.hp === 'number' && a.hp > 0 && (a.led === undefined || typeof a.led === 'string');
+      && isInt(a.x) && isInt(a.y) && a.x >= 0 && a.y >= 0 && a.x < W && a.y < H && typeof a.hp === 'number' && a.hp > 0 && (a.led === undefined || typeof a.led === 'string')
+      && (a.hungry === undefined || (isInt(a.hungry) && a.hungry >= 0)) && (a.next === undefined || (isInt(a.next) && a.next >= 0));
     if (!ok) { bad(`tame animal "${String(k).slice(0, 40)}" is malformed`); return; }
   }
   for (const [sid, by] of Object.entries(S.ledger)) for (const [sp, L] of Object.entries(by || {})) {

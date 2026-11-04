@@ -324,3 +324,28 @@ diseases, and selling livestock in markets (it can follow, through trade goods).
 - **Classic runs:** the same era days; the hashes change by the saved reasons alone (proposed `forty`
   6a12204e4829dc11, `modern` 0b7058bac8b19e97, after the fire change below too).
 - **Tests:** `tests/cloud-plan.test.js` (reasons on every new site and field, saved; a pen away from the homes).
+
+### Review fixes (2026-11-04, from a code review of everything since Phase 9 began)
+- **Bug fixed:** a distant AI village's pen products (milk, wool), slaughter carcasses, and any village's starved
+  animals' carcasses were made with no village as the actor, so they became the player's stacks, often on the
+  player's stockpile. `tickLivestockDay` now acts as each pen's village.
+- **Bug fixed:** a pen destroyed by a disaster (ruin.js: cancelled, its parts gone) still counted as the village's
+  pen. It blocked a new one, and its animals were still "inside" and fed.
+  - `pensOf` now skips cancelled pens.
+  - Their animals run off: livestock ledger `escaped`, with a warning.
+  - Putting them back into a wild herd would need the near-herd bookkeeping of animals.js, so they leave the game.
+- **Taming:** a catch rechecks the pen's count, so two hunters at two herds cannot overshoot the pair.
+- **Site searches:** a village looks for room for a pen or a grove on one day in three only (`forestry.js siteDay`,
+  from its id: no state, so a loaded game looks on the same days). Before, a village with no room searched on every
+  plan.
+- **Saves:** a grove must lie on the map; a tame animal's `hungry` and `next` must be whole numbers when present.
+- **Checked and fine** by the review: wallRev and deadRev on every path; the exact-preserving speedups; taming and
+  slaughter exactly once; no job name clashes; saves 41–45.
+- **Tests:** 3 more (an AI village's pen gives to its own stock; a destroyed pen's animals run off, booked once; bad
+  save fields refused). Full suite 338 passed; classic hashes unchanged.
+- **300-day World run** (seed 7, before these fixes):
+  - 327 people in 64 villages; 2.9 ms a tick on day 300;
+  - the day-150 save continued identically; no conservation errors; people and animal ledgers exact throughout;
+  - 26 coats worn, 38 couples, 36 groves;
+  - no livestock in that world;
+  - 14 died of thirst. A thirst chain is known from Phase 2b, but more than other runs show; noted for Phase 16.

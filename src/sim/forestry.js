@@ -9,6 +9,12 @@ import { sprout, canSprout } from './regrow.js';
 import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { mayDoWork } from './people.js';
 import { octile } from './util.js';
+import { TICKS_PER_DAY } from './constants.js';
+
+// Looking for room for a grove is a wide search: a village looks on one day in SITE_EVERY only (from its id, so no
+// state is kept and a loaded game looks on the same days).
+export const SITE_EVERY = 3;
+export const siteDay = (g, sid) => { let h = 2166136261; for (const ch of String(sid)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (Math.floor(g.s.tick / TICKS_PER_DAY) + ((h >>> 0) % SITE_EVERY)) % SITE_EVERY === 0; };
 
 export const FOREST = Object.freeze({ min: 30, extra: 15, reach: 24, w: 9, h: 7, from: 8, to: 22, gap: 2, work: 80, farPerDay: 2 });
 
@@ -80,6 +86,7 @@ export function planForestry(g, P, sid) {
     return;
   }
   if (n.grown >= FOREST.min) return;
+  if (!siteDay(g, sid)) { P.forestNote = `Only ${n.grown} ${def.name.toLowerCase()}s left within ${FOREST.reach} tiles: looking for room for a grove`; return; }
   const site = groveSite(g, sid);
   if (!site) { P.forestNote = `Only ${n.grown} ${def.name.toLowerCase()}s left within ${FOREST.reach} tiles, and no open ground for a grove`; return; }
   st.grove = { x: site.x, y: site.y, w: FOREST.w, h: FOREST.h, def: def.id, since: g.s.tick, why: site.why };

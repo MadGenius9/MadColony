@@ -239,3 +239,47 @@ test('distant villages: the pen is fed from the village stock, gives its product
   assert.ok(livestockCensus(g).ok);
   assert.deepEqual(conservationErrors(g), []);
 });
+
+test('review fixes: a distant AI village\'s pen gives to its own stock; a destroyed pen\'s animals run off, booked once', async () => {
+  const { destroyProject } = await import('../src/sim/ruin.js');
+  const g = newGame({ seed: 7, scenario: 'core:neighbours', villages: 2 });
+  runDays(g, 1);
+  const ai = Object.keys(g.s.settlements).filter((k) => g.s.settlements[k].ai).sort()[0], st = g.s.settlements[ai];
+  const tpl = g.reg.get('template', 'core:animal_pen');
+  const site = findSite(g, tpl, { center: st.center, sid: ai });
+  assert.ok(site, 'room for a pen at the AI village');
+  const p = createProject(g, tpl, site, { owner: ai, why: 'test' });
+  p.pen = { sp: 'core:wild_cattle' };
+  for (const id of p.parts) {
+    const b = g.s.structures[id], cost = g.bDef(b).cost;
+    for (const c of cost) g.ledgerAdd('created', c.item, c.qty, 'test');
+    b.delivered = Object.fromEntries(cost.map((c) => [c.item, c.qty]));
+    completeStructure(g, b, null);
+  }
+  stock(g, p, 'core:wild_cattle', 2);
+  const was = st.detail;
+  st.detail = 'abstract';
+  law(g, 'summer');
+  for (let d = 0; d < 3; d++) tickLivestockDay(g);
+  const milk = Object.values(g.s.stacks).filter((x) => x.item === 'core:milk');
+  assert.ok(milk.length > 0, 'milk made');
+  assert.ok(milk.every((x) => x.settlement === ai), 'and it is the AI village\'s, not the player\'s');
+  if (was === undefined) delete st.detail; else st.detail = was;
+  destroyProject(g, p.id);
+  assert.deepEqual(pensOf(g, ai), [], 'a destroyed pen is no pen (a new one can be laid out)');
+  tickLivestockDay(g);
+  assert.equal(penAnimals(g, p).length, 0, 'its animals ran off');
+  assert.equal(g.s.livestock.ledger[ai]['core:wild_cattle'].died.escaped, 2);
+  assert.ok(livestockCensus(g).ok);
+  assert.deepEqual(conservationErrors(g), []);
+});
+
+test('review fixes: a tame animal with a bad hunger or next field is refused on load', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const p = builtPen(g, 'core:wild_cattle');
+  stock(g, p, 'core:wild_cattle', 1);
+  const save = JSON.parse(serializeGame(g));
+  Object.values(save.state.livestock.list)[0].hungry = 'x';
+  assert.throws(() => loadGame(g.reg, JSON.stringify(save)), /tame animal/);
+});
