@@ -30,7 +30,7 @@ import { seasonOf, climateOf } from './heat.js';
 import { TICKS_PER_DAY } from './constants.js';
 
 export const TAME = Object.freeze({ catch: 3, giveUp: 1500, pair: 2, every: 10 });
-export const FEED = Object.freeze({ starve: 5, days: 3, graze: 6 });
+export const FEED = Object.freeze({ starve: 5, days: 3, graze: 6, meatSpare: 2 });
 
 const hash = (str) => {
   let h = 2166136261;
@@ -260,7 +260,9 @@ export function toSlaughter(g, p, P) {
   const keep = d?.tame?.keep ?? 2;
   if (list.length <= keep) return null;
   const full = list.length >= capOf(g, p);
-  const meatShort = P && meatOnHand(g, P) < meatWanted(g.owned('colonists', p.settlement).length, P.foodDays);
+  // For meat only once the pen has grown FEED.meatSpare beyond its breeding stock (Phase 16 balance: culling at once
+  // for meat kept every pen at its pair in the World runs).
+  const meatShort = list.length >= keep + FEED.meatSpare && P && meatOnHand(g, P) < meatWanted(g.owned('colonists', p.settlement).length, P.foodDays);
   return full || meatShort ? list[list.length - 1] : null;
 }
 

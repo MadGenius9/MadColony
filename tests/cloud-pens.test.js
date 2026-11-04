@@ -283,3 +283,14 @@ test('review fixes: a tame animal with a bad hunger or next field is refused on 
   Object.values(save.state.livestock.list)[0].hungry = 'x';
   assert.throws(() => loadGame(g.reg, JSON.stringify(save)), /tame animal/);
 });
+
+test('balance: a pen is culled for meat only once it has grown two beyond its breeding pair', () => {
+  const g = newGame({ seed: 4242 });
+  runDays(g, 1);
+  const p = builtPen(g, 'core:wild_cattle');
+  stock(g, p, 'core:wild_cattle', 3);
+  const short = { foodDays: 0 }; // no meat on hand: short
+  assert.equal(toSlaughter(g, p, short), null, 'three: kept to grow');
+  stock(g, p, 'core:wild_cattle', 1);
+  assert.equal(toSlaughter(g, p, short)?.id, penAnimals(g, p).at(-1).id, 'four: the youngest for meat');
+});

@@ -503,7 +503,9 @@ poles, machine workbench, maintenance, the machine status panel. Design note:
   17.37. Results: design note, "Slice 3".
 
 **Phase 3 is paused after slice 3:** Phase 2b (done) and Phase 2c come first; Phase 3 resumes with slices
-4–6 after Phase 2c. **Still open in Phase 3:** slice 4 (power
+4–6 after Phase 2c. (Cloud copy, 2026-11-04: power storage is in fact built: batteries in `machines.json`, save
+format 14, the planner's battery bank. Slices 5–6 wait for the design note at home; distant villages craft at
+powered stations without checking power, noted for slice 6.) **Still open in Phase 3:** slice 4 (power
 storage), slice 5 (factories with delivery areas), slice 6 (abstract production for distant villages; also
 generator sizing for distant villages). Machines come 11–16 days after Electricity in the seed 4242 run
 (iron is short), not "a few days" as planned.
@@ -938,7 +940,9 @@ events) and Mood done.
   bounded effects.
 - **Not in it:** a religion system; duplicates of inherited traits.
 
-### Phase 16: playtesting and balance (planned)
+### Phase 16: playtesting and balance (planned; cloud balance notes 2026-11-04)
+Cloud copy: balance changes and findings from the long runs in `docs/proposals/phase-16-balance-notes.md`; the
+playtest itself needs the home build.
 Depends on: Phase 11's playable build (home), and Phases 12–15.
 - **Play the features together:**
   - can players follow events, find interventions worth making, and see results without micromanaging?
@@ -1178,8 +1182,11 @@ the rescue copy's missing UI means it never existed.
 - **Not claimed:** playable, faster, approved visual design or implemented by this roadmap entry.
 
 ### Phase 18: deep simulation and rendering optimization (planned)
-Cloud copy, 2026-11-04: a simulation-side plan from measurements on the grown world, with candidate slices, in
-`docs/proposals/phase-18-sim-plan.md` (planning only, as this entry allows).
+Cloud copy, 2026-11-04: a simulation-side plan from measurements on the grown world, in
+`docs/proposals/phase-18-sim-plan.md`. On the owner's "finish the rest of the phases", slices 1–2 are built:
+hourly jobs at their own ticks, distant groves by village hour, rebellion relations indexed. The hour's first tick
+mean fell from 40 to 15 ms, the day start's p95 from 97 to 54 ms. Steady-state p95 is about 20 ms, still above
+16.7 (flagged). The browser baseline matrix and rendering are home work.
 Profile first; optimize real bottlenecks without hiding work or reducing the game's depth. Establish a
 reproducible baseline on the target home hardware/browser before choosing implementation slices, and
 measure the new UI throughout Phase 17 rather than postponing all performance checks to the end.
@@ -1219,7 +1226,9 @@ measure the new UI throughout Phase 17 rather than postponing all performance ch
   equivalent speed gains. Any approximation or changed game rule needs a separate explicit decision.
   Fix or explain/review regressions above the existing 10% guardrail in unaffected baseline cases.
 
-### Phase 19: integrated acceptance and safe promotion (planned)
+### Phase 19: integrated acceptance and safe promotion (planned; cloud assessment 2026-11-04)
+Cloud copy: PR #1 assessed in `docs/proposals/phase-19-promotion-assessment.md`. Do not merge it as it stands: main's
+reorganized ROADMAP.md conflicts with this one, and the home build, the home tests and the baselines come first.
 Prove the replacement UI and optimized simulation work together before retiring the old build or changing
 main. This is a final gate for Phases 17–18, not a claim that Phase 16 or earlier integration is complete.
 
