@@ -1108,7 +1108,7 @@ taming, horses as mounts, wagons, and drawing animals in the UI (`docs/ui-todo.m
 **Still planned:** a wider college curriculum. (Partnerships, family housing and four professions by practice were built in the cloud copy's Phase 10, 2026-11-03; old age in Phase 5.)
 
 ## Other technical items (Phases 1 and 10)
-- A scripting API for behaviour mods. Today, data mods can only compose registered behaviours; uploaded JavaScript is never run.
+- A scripting API for behaviour mods. Today, data mods can only compose registered behaviours; uploaded JavaScript is never run. **Decision (owner, 2026-11-04): stay data-only for now** (option 1 of three: data only; scripts for local mods with a warning; sandboxed scripts). New behaviours are added to the engine as registered givers and needs that data mods can use. A sandbox may come later if modders ask for it.
 - Zip mod packages and mod-supplied image icons for imported (browser) mods.
 - Path caching for much larger maps: Phase 1 made `findPath` about 3× faster; a path cache and the
   coarse-route corridor (parked) move to Phase 7.

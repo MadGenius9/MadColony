@@ -23,7 +23,8 @@ API for mods, zip mod packages. Then a review of the Ideas parking lot before an
 - **Here:** partnerships and family housing (slices 1–2); more professions (slice 3); the engine half of an
   automatic selling policy for controlled goods, off by default and changing no current game (slice 4).
 - **Home:**
-  - the scripting API: what may run, in what sandbox, with which hooks; this needs the owner's decision;
+  - the scripting API: decided (owner, 2026-11-04): data-only for now. The engine adds registered behaviours
+    that data mods can use; a sandbox may come later if modders ask for it;
   - zip packages and mod icons (the browser importer and the packer are home code);
   - the selling policy's UI.
 
