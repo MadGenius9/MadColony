@@ -260,3 +260,10 @@ and distant villages' hours: spread-out costs with no single cause left above a 
   - the power state (3.4%): rebuilt once a tick over every network; making it incremental is a redesign;
   - `stacksByItem` (2.1%): a per-tick snapshot that callers rely on within the tick; keeping that exactly saves
     little.
+- **And one more:** `education.js staffing` asked every hour, for each village with a lecture hall, about every
+  qualification (the four professions too) and went over the village's buildings for each. Now:
+  - its training callers ask only for the qualifications a college teaches (`staffing(g, sid, true)`);
+  - "has a school" and "has a machine" are kept until a building is added, removed or finished (as HALLS).
+
+  Exact (the grown world still hashes bed1a71f…; classic hashes unchanged; full suite 335 passed).
+- **What remains for Phase 18 (planning):** `docs/proposals/phase-18-sim-plan.md`.

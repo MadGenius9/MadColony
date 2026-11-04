@@ -57,19 +57,35 @@ export function grantQual(g, c, id, how) {
 }
 
 // ---------------- staffing ----------------
+// Whether village sid has a built teacher's place (a school) and a built powered machine station, kept until a
+// building is added, removed or finished (structRev, builtRev, as HALLS); derived, never saved. Staffing asked
+// both of every village every hour, each a pass over its buildings.
+const KINDS = new WeakMap();
+function builtKinds(g, sid) {
+  const key = `${g.structRev || 0}|${g.builtRev || 0}`;
+  let c = KINDS.get(g.s);
+  if (!c || c.key !== key) { c = { key, by: new Map() }; KINDS.set(g.s, c); }
+  if (!c.by.has(sid)) {
+    const mine = g.owned('structures', sid);
+    c.by.set(sid, {
+      school: mine.some((st) => st.built && roleOf(g, st) === 'teacher'),
+      machine: mine.some((st) => st.built && g.bDef(st)?.power?.use > 0 && g.bDef(st).category === 'station' && !g.bDef(st).heat && !g.bDef(st).water),
+    });
+  }
+  return c.by.get(sid);
+}
 /** How many qualified people a settlement should have per qualification, and how many it has. */
-export function staffing(g, sid) {
+export function staffing(g, sid, courseOnly = false) {
   const s = g.s;
   const people = g.owned('colonists', sid);
   const adults = people.filter((c) => isAdult(g, c) && !isDown(c));
-  const mine = g.owned('structures', sid);
   const out = [];
   for (const q of g.reg.all('qualification')) {
-    if (!q.workTypes?.length) continue;
+    if (!q.workTypes?.length || (courseOnly && !q.course)) continue; // courseOnly: those a college teaches (the callers that keep only them)
     let want = 0;
     if (q.staffing === 'perPeople') want = Math.ceil(people.length / (q.per || 8));
-    else if (q.staffing === 'school') want = mine.some((st) => st.built && roleOf(g, st) === 'teacher') ? 1 : 0;
-    else if (q.staffing === 'machines') want = mine.some((st) => st.built && g.bDef(st)?.power?.use > 0 && g.bDef(st).category === 'station' && !g.bDef(st).heat && !g.bDef(st).water) ? 1 : 0;
+    else if (q.staffing === 'school') want = builtKinds(g, sid).school ? 1 : 0;
+    else if (q.staffing === 'machines') want = builtKinds(g, sid).machine ? 1 : 0;
     const have = adults.filter((c) => hasQual(c, q.id)).length;
     out.push({ qual: q.id, name: q.name, want, have, short: Math.max(0, want - have) });
   }
@@ -127,7 +143,7 @@ function assignTrainee(g, sid) {
     else return;
   }
   if (!hasHall(g, sid)) return;
-  const short = staffing(g, sid).filter((x) => x.short > 0 && g.reg.get('qualification', x.qual)?.course);
+  const short = staffing(g, sid, true).filter((x) => x.short > 0 && g.reg.get('qualification', x.qual)?.course);
   if (!short.length) return;
   const q = g.reg.get('qualification', short[0].qual);
   const cands = g.owned('colonists', sid).filter((c) => isAdult(g, c) && !isDown(c) && !hasQual(c, q.id) && (q.requires || []).every((r) => hasQual(c, r)));

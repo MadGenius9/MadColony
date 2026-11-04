@@ -1279,7 +1279,7 @@ function planEducation(g, P, sid) {
     else P.eduTechs.push(...open(teacher.id));
   }
   const lectern = role('lectern');
-  const short = staffing(g, sid).filter((x) => x.short > 0 && reg.get('qualification', x.qual)?.course);
+  const short = staffing(g, sid, true).filter((x) => x.short > 0 && reg.get('qualification', x.qual)?.course);
   if (short.length && lectern) {
     if (isUnlocked(g, sid, 'building', lectern.id)) ensureStation(g, P, lectern.id, 0.45, `Training: the colony lacks a ${short[0].name}`, sid);
     else if (r?.done?.some((t) => (reg.get('tech', t)?.unlocks?.buildings || []).includes(teacher?.id))) P.eduTechs.push(...open(lectern.id));

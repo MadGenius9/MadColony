@@ -1178,6 +1178,8 @@ the rescue copy's missing UI means it never existed.
 - **Not claimed:** playable, faster, approved visual design or implemented by this roadmap entry.
 
 ### Phase 18: deep simulation and rendering optimization (planned)
+Cloud copy, 2026-11-04: a simulation-side plan from measurements on the grown world, with candidate slices, in
+`docs/proposals/phase-18-sim-plan.md` (planning only, as this entry allows).
 Profile first; optimize real bottlenecks without hiding work or reducing the game's depth. Establish a
 reproducible baseline on the target home hardware/browser before choosing implementation slices, and
 measure the new UI throughout Phase 17 rather than postponing all performance checks to the end.
