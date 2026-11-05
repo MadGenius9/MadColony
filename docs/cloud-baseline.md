@@ -296,3 +296,6 @@ a3f4673dd1c9392c, `modern` 3982dd57aa2eadad, the same as slice 4.
 ## Phase 18 proposed baselines (2026-11-04)
 - Hourly jobs at their own ticks (slices 1–2): `forty` e340696c71f36c9d (workshops on day 6.44); `modern`
   1194e9931714f31c (modern era on day 41.51, was 44.70).
+- Distant villages' plan slots spread over the cycle (slice 3, 2026-11-05): classic runs unchanged (`forty`
+  e340696c71f36c9d, `modern` 1194e9931714f31c; classic worlds are not big, so their planning is as before). Big
+  worlds (Vast, World) plan their distant villages at different ticks, so their runs and hashes change.

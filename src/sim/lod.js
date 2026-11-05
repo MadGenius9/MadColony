@@ -64,6 +64,11 @@ export const stagger = (sid) => hash(sid) % LOD.hour;
 /** Big worlds: the tick (mod PLAN_INTERVAL) on which a full AI village is planned, so villages don't all
  *  plan in the same tick. */
 export const planOffset = (sid, interval) => hash('plan:' + sid) % interval;
+/** The tick (mod LOD.checkEvery) on which an abstract village is planned: one of its own hours (tick mod
+ *  LOD.hour = stagger, so the plan still comes just before that hour's work in the same tick), picked by a hash
+ *  among the checkEvery / hour hours of the cycle (Phase 18 slice 3). Before, every abstract village planned in
+ *  the cycle's first hour, so 60 villages shared 100 ticks and two or three plans often fell in one tick. */
+export const abstractPlanSlot = (sid) => stagger(sid) + LOD.hour * (hash('aplan:' + sid) % Math.max(1, Math.floor(LOD.checkEvery / LOD.hour)));
 
 export function detailOf(g, sid) { return g.s.settlements?.[sid]?.detail === 'abstract' ? 'abstract' : 'full'; }
 export const isAbstract = (g, sid) => g.s.settlements?.[sid]?.detail === 'abstract';

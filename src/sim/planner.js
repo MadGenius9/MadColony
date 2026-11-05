@@ -29,7 +29,7 @@ import { fieldCells } from './game.js';
 import { isUnlocked, requiredTechs, planResearch, settlementOf, milestoneStatus, eligibleTechs, techInScenario } from './research.js';
 import { marketRules } from './markets.js';
 import { legRemaining, relationPeek, relationStatus } from './villages.js';
-import { LOD, stagger, planOffset } from './lod.js';
+import { LOD, planOffset, abstractPlanSlot } from './lod.js';
 import { travelRules, reachTest, nodesInReach, SLOW_WORK } from './ai/trips.js';
 import { planRoads, cartWants } from './roads.js'; // Phase 7
 import { garmentWants } from './clothing.js'; // Phase 9
@@ -87,7 +87,7 @@ export function bestAvailableWeapon(g, sid, stock = {}) {
  *  Big worlds call it every tick with dueOnly = true and each village is planned on its own schedule, so the
  *  cost is spread over the ticks: the player's village every PLAN_INTERVAL ticks (as on classic worlds, and
  *  also when g.planDirty), a full AI village every PLAN_INTERVAL ticks at its own offset, an abstract
- *  village (lod.js) every LOD.checkEvery ticks at its stagger; any village without a plan, or listed in
+ *  village (lod.js) every LOD.checkEvery ticks at its slot (abstractPlanSlot); any village without a plan, or listed in
  *  g.replanSids (completeTech, a switch to full detail, gathering rights), at once. Villages in
  *  g.replanLater (a switch to abstract; the abstract villages after loading a save without saved plans)
  *  plan at their own slot (planOffset) or at their next abstract hour (lod.js), whichever comes first, so
@@ -115,7 +115,7 @@ export function runPlanner(g, dueOnly = false) {
     if (asked?.has(sid)) due = true;
     else if (later?.has(sid)) due = s.tick % PLAN_INTERVAL === planOffset(sid, PLAN_INTERVAL);
     else if (!prev[sid] || !g.big) due = true;
-    else if (s.settlements?.[sid]?.detail === 'abstract') due = s.tick % LOD.checkEvery === stagger(sid) % LOD.checkEvery;
+    else if (s.settlements?.[sid]?.detail === 'abstract') due = s.tick % LOD.checkEvery === abstractPlanSlot(sid); // (lod.js; Phase 18 slice 3)
     else if (all) due = true;
     else if (sid === player) due = s.tick % PLAN_INTERVAL === 0 || dirty;
     else due = s.tick % PLAN_INTERVAL === planOffset(sid, PLAN_INTERVAL);

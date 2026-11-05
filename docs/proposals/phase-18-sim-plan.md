@@ -115,5 +115,33 @@ enable faster growth to mask an unmet target).
   - `forty` e340696c71f36c9d (workshops on day 6.44, was 6.64);
   - `modern` 1194e9931714f31c (modern era on day 41.51, was 44.70).
   - Full suite 338 passed. The forestry test now plants at the village's own hour.
-- **Next (slice 3, fewer plans per tick):** not started. The planner is still about 28% of the slow ticks; the next
-  step is a measured cap on plans a tick.
+- **Next (slice 3, fewer plans per tick):** see below.
+
+## Results: slice 3, plans spread over the cycle (built and tested, 2026-11-05)
+- **Found first** (the grown world, 2 days; ordinary ticks, not the hour's or day's first): ticks with no plan
+  averaged 3.8–4.0 ms; with one distant village's plan 10 ms; with two 19–20 ms; with three 25–26 ms. 65 of 121 slow
+  ticks (over 16.7 ms) had two or more plans. The cause: a distant village planned when `tick % 600 ===
+  stagger(sid)`, and its stagger is under 100, so about 60 villages shared the first 100 ticks of each 600.
+- **Built:** `lod.js abstractPlanSlot(sid)`: one of the village's own hours in the cycle (tick mod 100 is still its
+  stagger, so the plan still comes just before that hour's work in the same tick), chosen by a hash among the 6
+  hours. Each distant village still plans exactly once every 600 ticks. A cap on plans a tick was not needed after
+  this: two plans in one tick became rare.
+- **Measured** (old and new taken in turn, twice):
+
+  | | Before | After |
+  |---|---|---|
+  | Slow ordinary ticks with 2+ plans | 65 | 18 |
+  | Overall p99 | 22.1, 23.2 ms | 21.5, 19.9 ms |
+  | Overall p99.9 | 37.6, 40.6 ms | 31.9, 33.0 ms |
+  | Overall max | 49.2, 51.0 ms | 50.1, 48.1 ms |
+  | Overall p95 | 13.5, 14.3 ms | 14.6, 13.9 ms |
+  | Overall mean | 4.9, 5.07 ms | 5.23, 4.97 ms |
+
+  The machine was faster this session than on 2026-11-04 (p95 about 14 ms here against 20 then), so compare only
+  within this table. Mean and p95 did not change beyond noise; the rare slow ticks did.
+- **One distant plan alone** costs about 3.4 ms (planning each of 60 villages five times under the profiler):
+  plumbing's pipe search 22% (16% `pipePath`, mostly searches that find no room and are repeated each plan),
+  demand resolution 12%, the stockpile plan 8%, roads 6%. Caching a failed pipe search exactly needs every input
+  of `tileUsable` to record its changes (stacks, crops, fields, zones and claims do not); not done.
+- **Tests:** `tests/cloud-planslots.test.js` (the slot is one of the village's hours, villages spread out; on a
+  Vast world every distant village plans once a cycle, at its slot). Classic hashes unchanged.

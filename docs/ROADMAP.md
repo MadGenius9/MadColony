@@ -147,7 +147,10 @@ it must show. The proposed new baselines are in `docs/cloud-baseline.md` and wai
   memories and traditions (cloud parts). `docs/proposals/phase-11-integration.md` to `phase-15-memories.md`.
 - **Phase 16:** balance notes from long runs in `docs/proposals/phase-16-balance-notes.md`; the playtest needs
   the home build.
-- **Phase 18, slices 1–2:** the daily and hourly peaks spread. `docs/proposals/phase-18-sim-plan.md`.
+- **Phase 18, slices 1–3:** the daily and hourly peaks spread; distant villages' plans spread over the cycle
+  (the rare slowest ticks about 15–20% faster). `docs/proposals/phase-18-sim-plan.md`.
+- **The simulation in a worker** (proposed; engine side built): a slow tick or a save no longer has to freeze the
+  picture. `docs/proposals/sim-worker.md`.
 - **Save formats** up to 45, each with a migration step; old saves load.
 
 ---
@@ -229,7 +232,8 @@ Cloud copy, 2026-11-04: a simulation-side plan from measurements on the grown wo
 `docs/proposals/phase-18-sim-plan.md`. On the owner's "finish the rest of the phases", slices 1–2 are built:
 hourly jobs at their own ticks, distant groves by village hour, rebellion relations indexed. The hour's first tick
 mean fell from 40 to 15 ms, the day start's p95 from 97 to 54 ms. Steady-state p95 is about 20 ms, still above
-16.7 (flagged). The browser baseline matrix and rendering are home work.
+16.7 (flagged). Slice 3 (2026-11-05): distant villages' plans spread over the cycle; p99.9 about 39 to 32 ms. The
+browser baseline matrix and rendering are home work.
 Profile first; optimize real bottlenecks without hiding work or reducing the game's depth. Establish a
 reproducible baseline on the target home hardware/browser before choosing implementation slices, and
 measure the new UI throughout Phase 17 rather than postponing all performance checks to the end.
