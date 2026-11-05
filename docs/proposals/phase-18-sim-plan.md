@@ -157,6 +157,8 @@ enable faster growth to mask an unmet target).
   day is unchanged (91f722074d1fbdb1, old and new). Whole-world timing cannot see it (under the machine's noise).
 - **Tried and taken out:** an index of each village's relation records for mood's "at war with anyone" check: it
   is exact, but the check was 18.5 µs a call and became 14.9, not worth 20 lines.
+- **Tried and taken out:** `activeTrades` in contact games comparing two numbers instead of building its key
+  string on each call: exact, but no faster (old 4.66 and 4.89 ms mean, new 4.91 and 4.98, in turn).
 - **What is left is spread out:** no single exact change found here is worth more than 2–4% of the ordinary ticks.
   The candidates in order: trade holds (an index of active trades by village; `stacksByItem` kept up to date,
   slice 5), building kinds cached on hot objects (slice 7), light and power at a workplace cached by their
