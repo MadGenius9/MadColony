@@ -12,6 +12,10 @@ been merged.
   priorities" (MadGenius9, 2026-11-01), which rewrites `docs/ROADMAP.md` (+133 / −688).
   - **The PR cannot merge cleanly:** `cloud-work` changed the same file heavily (Phases 11–19, results of each
     phase).
+  - **Resolved 2026-11-05:** main was merged into `cloud-work` (a merge commit). The roadmap keeps main's
+    structure; the cloud results and the owner's Phases 16–19 were added to it, nothing of main's removed. The
+    old long phase list and the "Detailed notes" section, which main had dropped, stay dropped; their cloud
+    updates (the mods decision, cold storage, forestry) are in the new "Built in the cloud copy" section.
 
 ## What the branch contains (built and tested in the cloud copy; the UI is home work)
 - **Engine:** Phases 5, 5b, 6, 7, 8, 8b, 8c, 9, 10, 11–15 (their cloud parts), forestry, cold storage, the scale
@@ -22,7 +26,8 @@ been merged.
   none.
 
 ## Gates before promotion (to be checked at home)
-1. **The roadmap conflict** (owner decision). Two roadmaps now exist:
+1. **The roadmap conflict** (resolved in the cloud on 2026-11-05 as suggested below; the owner should check
+   the result). Two roadmaps existed:
    - main's reorganized one, a short priority list. It puts "Visual clarity and feedback" next, and has no Phases
      11–19 or their results;
    - the branch's, which extends the old phase list with every phase's results and the owner's Phases 17–19.
@@ -45,7 +50,7 @@ been merged.
 
 ## Recommendation
 Do not merge PR #1 into main as it stands. At home:
-1. resolve the roadmap (gate 1);
+1. check the merged roadmap (gate 1, merged in the cloud);
 2. bring the branch into the home project as the patches CLAUDE.md describes, and run the home tests and the
    browser build;
 3. review the baselines;
