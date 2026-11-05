@@ -569,7 +569,8 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   direct calls with `call`; save with `save` (the main thread stores the text; workers have no `localStorage`).
 - The clock can show the speed actually reached (`frame.tps`, ticks a second) when the machine falls behind.
 - First at home: an inventory of where the UI reads `g` directly; the design note's slice 3.
-- **Not in the messages yet** (add them when the inventory shows the renderer needs them): wild herds
-  (`s.animals`), caravans and contact travellers, bodies waiting for burial (`s.bodies`), fires, storms and weather
-  (`s.disasters`), territory for the world view, and people's facing. The log mirror must keep its own cap: the
+- **Also sent (2026-11-05):** wild herds and bodies waiting for burial with the camera's contents (`area.herds`,
+  `area.bodies`); fires, scorched ground, storms, rain and drought, the plague, caravans and contact travellers in
+  `frame.overlays`, at most 4 times a second (caravans carry their start, end and times, so the UI can move them
+  in between). **Not in the messages yet:** territory for the world view, and people's facing. The log mirror must keep its own cap: the
   game trims routine lines out of the middle (chronicle.js `trimLog`), so it is not a plain append-only list.

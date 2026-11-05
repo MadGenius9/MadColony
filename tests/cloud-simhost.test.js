@@ -126,6 +126,28 @@ test('a tile change out of view does not resend the camera contents early; one i
   assert.ok(h.last('frame').area, 'a quarter second later: the area again');
 });
 
+test('overlays (fires, caravans, travellers) at most 4 times a second; herds and bodies with the camera', () => {
+  const clock = { t: 0 };
+  const h = hostWith(clock); initNeigh(h);
+  const g = h.host.game;
+  assert.ok(h.last('frame').overlays, 'the first frame carries them');
+  h.host.receive({ type: 'step', ticks: 1 });
+  assert.equal(h.last('frame').overlays, undefined, 'clock frozen: not again');
+  const c = g.s.settlements[g.s.playerSettlement].center, i = g.i(c.x, c.y);
+  (g.s.disasters ||= {}).fires = { [i]: g.s.tick };
+  (g.s.bodies ||= {}).b1 = { id: 'b1', cid: 'c0', settlementId: g.s.playerSettlement, x: c.x, y: c.y, tick: g.s.tick };
+  clock.t += 300; h.host.receive({ type: 'step', ticks: 0 });
+  assert.deepEqual(h.last('frame').overlays.fires, { [i]: g.s.tick });
+  h.host.receive({ type: 'camera', x0: c.x - 5, y0: c.y - 5, w: 10, h: 10 });
+  assert.deepEqual(h.last('frame').area.bodies.map((b) => b.id), ['b1']);
+  const herd = Object.values(g.s.animals?.herds || {})[0];
+  if (herd) {
+    h.host.receive({ type: 'camera', x0: herd.x - 2, y0: herd.y - 2, w: 5, h: 5 });
+    assert.ok(h.last('frame').area.herds.some((x) => x.id === herd.id && x.n === herd.n));
+  }
+  assert.equal(h.ask({ type: 'query', kind: 'overlays' }).value.fires[i], g.s.tick);
+});
+
 test('calls, queries and errors', () => {
   const h = hostWith();
   assert.equal(h.ask({ type: 'step', ticks: 1 }).type, 'error', 'nothing before init');

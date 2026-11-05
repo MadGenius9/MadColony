@@ -55,7 +55,7 @@ export function logSince(g, sent) {
 export function areaSnapshot(g, x0, y0, w, h) {
   const X0 = Math.max(0, Math.floor(x0)), Y0 = Math.max(0, Math.floor(y0));
   const X1 = Math.min(g.W, X0 + Math.min(AREA_MAX, Math.max(0, Math.ceil(w)))), Y1 = Math.min(g.H, Y0 + Math.min(AREA_MAX, Math.max(0, Math.ceil(h))));
-  const s = g.s, out = { x0: X0, y0: Y0, x1: X1, y1: Y1, structures: [], stacks: [], crops: [], nodes: [], projects: [], people: [] };
+  const s = g.s, out = { x0: X0, y0: Y0, x1: X1, y1: Y1, structures: [], stacks: [], crops: [], nodes: [], projects: [], people: [], herds: [], bodies: [] };
   const seen = new Set();
   const take = (list, id, coll) => { if (id && !seen.has(id) && coll[id]) { seen.add(id); list.push(coll[id]); } };
   for (let y = Y0; y < Y1; y++) for (let x = X0; x < X1; x++) {
@@ -70,6 +70,9 @@ export function areaSnapshot(g, x0, y0, w, h) {
     if (c.x < X0 || c.y < Y0 || c.x >= X1 || c.y >= Y1) continue;
     out.people.push({ id: c.id, name: c.name, settlementId: c.settlementId, x: c.x, y: c.y, color: c.color, look: c.look, stage: c.stage, sleeping: !!c.sleeping, status: c.status ?? null, job: c.job?.type ?? null });
   }
+  const inside = (e) => e.x >= X0 && e.y >= Y0 && e.x < X1 && e.y < Y1;
+  for (const h of Object.values(s.animals?.herds || {})) if (inside(h)) out.herds.push({ id: h.id, sp: h.sp, x: h.x, y: h.y, n: h.n }); // wild herds by their centre (animals.js)
+  for (const b of Object.values(s.bodies || {})) if (inside(b)) out.bodies.push(b); // the dead waiting for burial (burial.js)
   return out;
 }
 
@@ -81,4 +84,16 @@ export function worldSummary(g) {
     out.push({ id: st.id, name: st.name, color: st.color, center: st.center ? { x: st.center.x, y: st.center.y } : null, detail: st.detail === 'abstract' ? 'abstract' : 'full', people: g.owned('colonists', st.id).length, kingdom: st.kingdom ?? null, fallen: !!st.fallen });
   }
   return out;
+}
+
+/** What lies over the whole world and changes on its own: fires and scorched ground (tile index -> tick), storms,
+ *  rain and drought, the plague, caravans (with their start, end and times, so the UI can move them between
+ *  messages) and contact travellers (explorers by their chunk route, traders centre to centre). Absent parts are
+ *  null. The game's own objects (copy them before handing them on). */
+export function overlays(g) {
+  const s = g.s, D = s.disasters;
+  return {
+    fires: D?.fires ?? null, scorched: D?.scorched ?? null, storms: D?.storms ?? null, weather: D?.weather ?? null, plague: D?.plague ?? null,
+    caravans: s.caravans ?? null, travellers: s.contact?.t ?? null,
+  };
 }
