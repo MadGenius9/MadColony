@@ -29,10 +29,18 @@ export function noteMeal(g, c, item) {
   c.ate = { t: g.s.tick, m: !!d?.tags?.includes('core:meal'), f: !!fav && item === fav };
 }
 
+// The building kinds that are beds (not medical), once per registry (a registry never changes once built): the
+// count below looked each building's kind up twice (Phase 18: 2.5% of a big world's ordinary ticks).
+const BED_DEFS = new WeakMap();
+function bedDefs(reg) {
+  let d = BED_DEFS.get(reg);
+  if (!d) { d = new Set(reg.all('building').filter((b) => b.bed && !b.medical).map((b) => b.id)); BED_DEFS.set(reg, d); }
+  return d;
+}
 /** Built beds (not medical) per village. */
 function countBeds(g, list) {
-  const beds = new Map();
-  for (const b of list) if (b.built && g.bDef(b)?.bed && !g.bDef(b).medical) { const k = b.settlement || g.s.playerSettlement; beds.set(k, (beds.get(k) || 0) + 1); }
+  const beds = new Map(), kinds = bedDefs(g.reg);
+  for (const b of list) if (b.built && kinds.has(b.def)) { const k = b.settlement || g.s.playerSettlement; beds.set(k, (beds.get(k) || 0) + 1); }
   return beds;
 }
 // Built beds per village, kept until a building is added, removed or finished (structRev, builtRev: the key

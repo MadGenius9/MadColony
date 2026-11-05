@@ -145,3 +145,19 @@ enable faster growth to mask an unmet target).
   of `tileUsable` to record its changes (stacks, crops, fields, zones and claims do not); not done.
 - **Tests:** `tests/cloud-planslots.test.js` (the slot is one of the village's hours, villages spread out; on a
   Vast world every distant village plans once a cycle, at its slot). Classic hashes unchanged.
+
+## The ordinary ticks (profile, 2026-11-05)
+- **Where the time goes** (the grown world, one day; ticks that are not the first of an hour or a day, nor a slot
+  of an hourly job; inclusive): people's choices 33% (the search for work 12%, jobs 10%); distant villages' hours
+  20% (labour 11%); mood 17%; the planner 15%; registry look-ups 7.4% on their own; trade holds about 10% together
+  (`activeTrades`, `tradeHeld`, `availQty`, `stacksByItem`); light and power for work speed about 5% each; enemy
+  checks 5%.
+- **Built (exact):** mood's bed count checks a set of bed kinds made once per registry instead of looking each
+  building's kind up twice (`mood.js bedDefs`; that look-up was 2.5% of these ticks). The grown world's hash after a
+  day is unchanged (91f722074d1fbdb1, old and new). Whole-world timing cannot see it (under the machine's noise).
+- **Tried and taken out:** an index of each village's relation records for mood's "at war with anyone" check: it
+  is exact, but the check was 18.5 µs a call and became 14.9, not worth 20 lines.
+- **What is left is spread out:** no single exact change found here is worth more than 2–4% of the ordinary ticks.
+  The candidates in order: trade holds (an index of active trades by village; `stacksByItem` kept up to date,
+  slice 5), building kinds cached on hot objects (slice 7), light and power at a workplace cached by their
+  revisions. The larger lever stays the worker (`docs/proposals/sim-worker.md`): it takes the ticks off the frame.
