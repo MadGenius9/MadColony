@@ -119,13 +119,15 @@ messages, not against `g`.
     most a second of ticks when the machine falls behind (`frame.tps` says what was reached).
   - `src/sim/worker.js`: the Web Worker (four lines); `tools/node-worker.mjs` runs it in a Node thread.
   - Deviations from the plan: a command's power is named `power` (the message's own kind is `type`); positions are
-  x, y only; no territory yet (listed in `docs/ui-todo.md`). Added the same day: herds and bodies in `area`,
-  and `frame.overlays` (fires, storms, weather, plague, caravans, travellers; at most 4 a second).
+  x, y only (facing: later). Added the same day: herds and bodies in `area`; `frame.overlays` (fires, storms,
+  weather, plague, caravans, travellers; at most 4 a second); `frame.territory` with the hourly `world` (only the
+  rectangle that changed: on a Vast world after 2 days of growth 404×514 tiles of 1536×1152, equal to the game's
+  grid).
 - **Review** (an independent read of the slice): found that a `call` naming `__proto__` as its village could set a
   law on `Object.prototype` (and so on every village); also an area resent for changes out of view, a loop that
   stopped silently on an error, log lines that could be lost after a trim, a terrain mirror wrong past 256 kinds,
   a stale `tps`. All fixed, each with a test.
-- **Tested** (`tests/cloud-simhost.test.js`, 12 tests): the host runs the same game as ticking it directly,
+- **Tested** (`tests/cloud-simhost.test.js`, 13 tests): the host runs the same game as ticking it directly,
   commands included; a save written through the host loads through it and continues identically; frames send the
   id list only when it changes, every log line once and in order, the whole terrain first and then only changed
   chunks; the camera's contents are copies the game never sees; unknown calls, queries and messages are refused;

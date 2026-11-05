@@ -7,6 +7,7 @@
 // Cost (grown world, 868 people): movers O(people + animals + monsters), about 0.05 ms; changed chunks O(chunks)
 // (3,072 on the World preset); log O(new lines); an area O(its tiles), 2-16 ms for 64x40 to 256x160 tiles.
 import { CHUNK } from './constants.js';
+import { claimsDirtySince } from './territory.js';
 
 const AREA_MAX = 256; // the largest area side sent at once, in tiles (256x160 measured at 16 ms; zoomed further out
                       // the world view draws summaries)
@@ -96,4 +97,26 @@ export function overlays(g) {
     fires: D?.fires ?? null, scorched: D?.scorched ?? null, storms: D?.storms ?? null, weather: D?.weather ?? null, plague: D?.plague ?? null,
     caravans: s.caravans ?? null, travellers: s.contact?.t ?? null,
   };
+}
+
+/** Who owns which tiles, for the world view: the part of the owner grid that changed since `since` (the marker
+ *  returned last time; null: everything), as { ids, x0, y0, w, h, grid } with grid[(y - y0) * w + (x - x0)] an
+ *  index into ids (0xffff: nobody), plus the next marker; or { territory: null } when nothing changed. Organic
+ *  games send the rectangle their claims changed in (territory.js claimsDirtySince); nearest-centre games the
+ *  whole map when a village is founded or moves (their grid's sig). Reads derived caches only. */
+export function territorySince(g, since = null) {
+  const T = g.territoryGrid();
+  let r;
+  if (g._cl) {
+    const d = claimsDirtySince(g, since === null ? -1 : since);
+    if (!d) return { territory: null, next: since };
+    if (d.x1 < d.x0 || d.y1 < d.y0) return { territory: null, next: d.rev };
+    r = { x0: d.x0, y0: d.y0, x1: d.x1, y1: d.y1, next: d.rev };
+  } else {
+    if (since === T.sig) return { territory: null, next: since };
+    r = { x0: 0, y0: 0, x1: g.W - 1, y1: g.H - 1, next: T.sig };
+  }
+  const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1, grid = new Uint16Array(w * h);
+  for (let y = 0; y < h; y++) grid.set(T.grid.subarray((r.y0 + y) * g.W + r.x0, (r.y0 + y) * g.W + r.x0 + w), y * w);
+  return { territory: { ids: T.ids.slice(), x0: r.x0, y0: r.y0, w, h, grid }, next: r.next };
 }

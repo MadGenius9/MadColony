@@ -26,7 +26,7 @@ import { evaluateOffer } from './villages.js';
 import { canFound } from './founding.js';
 import { explainColonist } from './explain.js';
 import { TICKS_PER_HOUR } from './constants.js';
-import { moversFrame, changedChunks, logSince, areaSnapshot, worldSummary, overlays } from './view.js';
+import { moversFrame, changedChunks, logSince, areaSnapshot, worldSummary, overlays, territorySince } from './view.js';
 
 export const TICKS_PER_SECOND = 60; // at 1x, as the browser has always run
 const STEP_MS = 1000 / 60;          // the host's loop: one step a frame
@@ -75,12 +75,12 @@ export const QUERIES = {
  */
 export function createSimHost({ post, now = () => performance.now(), schedule = (f, ms) => setTimeout(f, ms), cancel = (h) => clearTimeout(h), copy = true }) {
   let g = null, speed = 0, timer = null, owed = 0, lastWall = 0;
-  let moversKey = null, chgN = null, logSent = new WeakSet(), pal = 0, idxKind = null, camera = null, areaAt = -Infinity, areaDue = false, worldHour = -1, overAt = -Infinity;
+  let moversKey = null, chgN = null, logSent = new WeakSet(), pal = 0, idxKind = null, camera = null, areaAt = -Infinity, areaDue = false, worldHour = -1, overAt = -Infinity, terrMark = null;
   let tps = 0, tpsTicks = 0, tpsFrom = 0;
 
   // With copy on, the clone owns the moved buffers (the originals are detached), so nothing is left to transfer.
   const send = (msg, transfer = []) => (copy ? post(structuredClone(msg, { transfer }), []) : post(msg, transfer));
-  const resetMarkers = () => { moversKey = null; chgN = null; logSent = new WeakSet(); pal = 0; idxKind = null; areaDue = true; worldHour = -1; overAt = -Infinity; };
+  const resetMarkers = () => { moversKey = null; chgN = null; logSent = new WeakSet(); pal = 0; idxKind = null; areaDue = true; worldHour = -1; overAt = -Infinity; terrMark = null; };
   /** Whether chunk k of a changedChunks result overlaps the camera. */
   const inView = (c, k) => {
     if (!camera) return false;
@@ -115,7 +115,11 @@ export function createSimHost({ post, now = () => performance.now(), schedule = 
     const wall = now();
     if (camera && (areaDue || wall - areaAt >= AREA_EVERY_MS)) { msg.area = areaSnapshot(g, camera.x0, camera.y0, camera.w, camera.h); areaAt = wall; areaDue = false; }
     const hour = Math.floor(g.s.tick / TICKS_PER_HOUR);
-    if (hour !== worldHour) { msg.world = worldSummary(g); worldHour = hour; }
+    if (hour !== worldHour) {
+      msg.world = worldSummary(g); worldHour = hour;
+      const tr = territorySince(g, terrMark); terrMark = tr.next; // territory with the world view: at most hourly
+      if (tr.territory) { msg.territory = tr.territory; transfer.push(tr.territory.grid.buffer); }
+    }
     if (wall - overAt >= OVERLAYS_EVERY_MS) { msg.overlays = overlays(g); overAt = wall; }
     send(msg, transfer);
   }

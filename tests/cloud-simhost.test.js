@@ -148,6 +148,20 @@ test('overlays (fires, caravans, travellers) at most 4 times a second; herds and
   assert.equal(h.ask({ type: 'query', kind: 'overlays' }).value.fires[i], g.s.tick);
 });
 
+test('territory: the whole owner grid first, then only when it changes, at most hourly', async () => {
+  const { territorySince } = await import('../src/sim/view.js');
+  const h = hostWith(); initNeigh(h);
+  const g = h.host.game, first = h.last('frame').territory;
+  assert.ok(first && first.w === g.W && first.h === g.H, 'the whole map first');
+  const T = g.territoryGrid(), c = g.s.settlements[g.s.playerSettlement].center;
+  assert.equal(first.ids[first.grid[c.y * first.w + c.x]], g.s.playerSettlement, 'the village owns its centre');
+  assert.equal(first.grid.length, T.grid.length);
+  const again = territorySince(g, territorySince(g, null).next);
+  assert.equal(again.territory, null, 'nothing changed: nothing sent');
+  h.host.receive({ type: 'step', ticks: 1 });
+  assert.equal(h.last('frame').territory, undefined, 'not within the hour');
+});
+
 test('calls, queries and errors', () => {
   const h = hostWith();
   assert.equal(h.ask({ type: 'step', ticks: 1 }).type, 'error', 'nothing before init');

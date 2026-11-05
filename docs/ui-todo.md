@@ -572,5 +572,6 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
 - **Also sent (2026-11-05):** wild herds and bodies waiting for burial with the camera's contents (`area.herds`,
   `area.bodies`); fires, scorched ground, storms, rain and drought, the plague, caravans and contact travellers in
   `frame.overlays`, at most 4 times a second (caravans carry their start, end and times, so the UI can move them
-  in between). **Not in the messages yet:** territory for the world view, and people's facing. The log mirror must keep its own cap: the
+  in between). Territory with the hourly `world` message as `frame.territory` ({ ids, x0, y0, w, h, grid }: the
+  changed rectangle of the owner grid, the whole map first). **Not in the messages yet:** people's facing. The log mirror must keep its own cap: the
   game trims routine lines out of the middle (chronicle.js `trimLog`), so it is not a plain append-only list.
