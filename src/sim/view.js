@@ -8,7 +8,8 @@
 // (3,072 on the World preset); log O(new lines); an area O(its tiles), 2-16 ms for 64x40 to 256x160 tiles.
 import { CHUNK } from './constants.js';
 
-const AREA_MAX = 512; // the largest area side sent at once, in tiles
+const AREA_MAX = 256; // the largest area side sent at once, in tiles (256x160 measured at 16 ms; zoomed further out
+                      // the world view draws summaries)
 
 /** Everything that moves: people, wild monsters, tame animals. `ids` is the id list, sent only when it differs
  *  from `prevKey` (the key from the last call); `pos` holds x, y per mover in that order. */
@@ -33,20 +34,19 @@ export function changedChunks(g, since = null) {
   return { n: ch.n, all: false, chunks, size: CHUNK, cw: g.CW };
 }
 
-/** Log lines written since the entry `last` (the object returned as `last` by the previous call). The log is
- *  trimmed from its old end, so the search runs back from the newest line. If `last` is gone (trimmed, or a
- *  different game), the lines after its tick are sent. */
-export function logSince(g, last = null) {
+/** Log lines not sent yet. `sent` is a WeakSet the caller keeps between frames; the lines returned are added to
+ *  it. New lines are always appended at the log's end, and trimLog (chronicle.js) removes old lines from anywhere
+ *  before them (the oldest routine line first, events past their cap), so the unsent lines are exactly the ones
+ *  after the newest line already sent: the search runs back from the end until it meets one. If none of the sent
+ *  lines is left (a fresh WeakSet, or more new lines than the log keeps), every line is new. A mirror of the log
+ *  must apply its own cap: what the game keeps is not always a suffix of what was sent. */
+export function logSince(g, sent) {
   const log = g.s.log || [];
-  if (!log.length) return { entries: [], last: null };
-  const newest = log[log.length - 1];
-  if (last === newest) return { entries: [], last };
-  let i = log.length - 1;
-  if (last) {
-    while (i >= 0 && log[i] !== last) i--;
-    if (i < 0) { i = log.length - 1; while (i >= 0 && log[i].t > last.t) i--; }
-  } else i = -1;
-  return { entries: log.slice(i + 1), last: newest };
+  let i = log.length;
+  while (i > 0 && !sent.has(log[i - 1])) i--;
+  const entries = log.slice(i);
+  for (const e of entries) sent.add(e);
+  return entries;
 }
 
 /** What lies in the rectangle (x0, y0, w, h), clipped to the map and to AREA_MAX a side: structures, stacks, crops

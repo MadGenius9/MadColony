@@ -73,9 +73,9 @@ test('frames: the id list only when it changes, each log line once, the whole te
   for (let k = 0; k < 40; k++) { h.host.receive({ type: 'step', ticks: 30 }); logged.push(...h.last('frame').log); }
   assert.equal(h.last('frame').movers.ids, null, 'same people, so no id list');
   assert.equal(h.last('frame').tick, g.s.tick);
-  // Every line the game kept was sent, once, in order (the log is trimmed from its old end, never reordered).
+  // Every line the game kept was sent, in order (trimming removes lines, never reorders them).
   const kept = g.s.log.map((e) => JSON.stringify(e)), sent = logged.map((e) => JSON.stringify(e));
-  assert.deepEqual(sent.slice(sent.length - kept.length), kept);
+  let j = 0; for (const k of kept) { while (j < sent.length && sent[j] !== k) j++; assert.ok(j++ < sent.length, 'kept but never sent: ' + k.slice(0, 120)); }
   assert.equal(new Set(logged.map((e) => e.id).filter(Boolean)).size, logged.filter((e) => e.id).length, 'no event twice');
   // A tile change arrives as its chunk's terrain, not the whole map.
   h.host.receive({ type: 'step', ticks: 0 });
@@ -103,10 +103,27 @@ test('the camera gets what lies in view, as copies the game never sees', () => {
   assert.deepEqual(st, g.s.structures[st.id]);
   st.x = -99; a.people[0].x = -99;
   assert.notEqual(g.s.structures[st.id].x, -99);
-  // Clipped to the map, and to 512 tiles a side.
+  // Clipped to the map, and to 256 tiles a side.
   const big = areaSnapshot(g, -50, -50, 5000, 5000);
   assert.deepEqual([big.x0, big.y0], [0, 0]);
-  assert.ok(big.x1 <= Math.min(g.W, 512) && big.y1 <= Math.min(g.H, 512));
+  assert.ok(big.x1 <= Math.min(g.W, 256) && big.y1 <= Math.min(g.H, 256));
+});
+
+test('a tile change out of view does not resend the camera contents early; one in view does', () => {
+  const clock = { t: 0 };
+  const h = hostWith(clock); initNeigh(h);
+  const g = h.host.game, c = g.s.settlements[g.s.playerSettlement].center;
+  h.host.receive({ type: 'camera', x0: c.x - 10, y0: c.y - 10, w: 20, h: 20 });
+  assert.ok(h.last('frame').area);
+  const far = { x: c.x < g.W / 2 ? g.W - 1 : 0, y: c.y < g.H / 2 ? g.H - 1 : 0 };
+  g.markDirty(far.x, far.y); h.host.receive({ type: 'step', ticks: 0 });
+  assert.ok(h.last('frame').terrain && !h.last('frame').area, 'out of view: terrain, no area');
+  g.markDirty(c.x, c.y); h.host.receive({ type: 'step', ticks: 0 });
+  assert.ok(h.last('frame').area, 'in view: the area');
+  h.host.receive({ type: 'step', ticks: 0 });
+  assert.ok(!h.last('frame').area, 'nothing new, clock frozen: no area');
+  clock.t += 300; h.host.receive({ type: 'step', ticks: 0 });
+  assert.ok(h.last('frame').area, 'a quarter second later: the area again');
 });
 
 test('calls, queries and errors', () => {
@@ -145,18 +162,48 @@ test('speed: 60 ticks a second at 1x, and a slow machine never owes more than a 
   assert.equal(h.timers.length, 0, `no new timers after a pause (had ${n})`);
 });
 
-test('logSince after a trim: lines newer than the last one sent', () => {
+test('logSince: each line once, also when trimming removes lines sent before', () => {
   const g = newGame(NEIGH);
   g.step(50);
-  const r1 = logSince(g, null);
+  const sent = new WeakSet();
+  assert.equal(logSince(g, sent).length, g.s.log.length, 'everything at first');
   g.log('one'); g.log('two');
-  const r2 = logSince(g, r1.last);
-  assert.deepEqual(r2.entries.map((e) => e.msg), ['one', 'two']);
-  g.s.log.splice(0, g.s.log.length - 1); // the last line sent is gone
-  g.log('three');
-  const r3 = logSince(g, r2.last);
-  assert.ok(r3.entries.map((e) => e.msg).includes('three'));
-  assert.deepEqual(logSince(g, r3.last).entries, []);
+  assert.deepEqual(logSince(g, sent).map((e) => e.msg), ['one', 'two']);
+  g.log('three', 'info', 'k1'); g.log('four', 'info', 'k2'); // two lines in the same tick
+  g.s.log.splice(g.s.log.length - 4, 2); // the newest lines sent ('one', 'two') are trimmed out of the middle
+  g.log('five');
+  assert.deepEqual(logSince(g, sent).map((e) => e.msg), ['three', 'four', 'five']);
+  assert.deepEqual(logSince(g, sent), []);
+});
+
+test('messages cannot reach a prototype: ids are checked, and prototype keys refused', () => {
+  const h = hostWith(); initNeigh(h);
+  const g = h.host.game;
+  for (const args of [['__proto__', 'core:work_hours', 'long'], ['constructor', 'core:work_hours', 'long'], ['nobody', 'core:work_hours', 'long']]) {
+    assert.equal(h.ask({ type: 'call', fn: 'setCivLaw', args }).type, 'error', JSON.stringify(args));
+  }
+  assert.equal(h.ask({ type: 'call', fn: 'setCivLaw', args: [g.s.playerSettlement, '__proto__', 'x'] }).type, 'error');
+  assert.equal(h.ask({ type: 'command', power: 'omen', args: JSON.parse('{"__proto__": {"x": 1}}') }).type, 'error');
+  assert.equal(h.ask({ type: 'query', kind: 'entity', coll: 'settlements', eid: '__proto__' }).type, 'error');
+  assert.equal(h.ask({ type: 'query', kind: 'colonist', cid: 'toString' }).value, null);
+  assert.equal(({}).code, undefined, 'Object.prototype untouched');
+  assert.equal(h.ask({ type: 'query', kind: 'entity', coll: 'settlements', eid: g.s.playerSettlement }).value.id, g.s.playerSettlement);
+});
+
+test('an error while the game runs pauses it and says so', () => {
+  const clock = { t: 0 };
+  const h = hostWith(clock); initNeigh(h);
+  const g = h.host.game;
+  h.host.receive({ type: 'speed', speed: 1 });
+  clock.t += 100; h.timers.shift()();
+  const tick = g.s.tick;
+  g.tick = () => { throw new Error('boom'); };
+  clock.t += 100; h.timers.shift()();
+  const err = h.last('error');
+  assert.equal(err.of, 'tick');
+  assert.match(err.message, /boom/);
+  assert.equal(h.timers.length, 0, 'no timer left: the game is paused');
+  assert.equal(g.s.tick, tick);
 });
 
 test('in a real worker thread: the same save as the host in this thread, and frames at the game speed', async () => {

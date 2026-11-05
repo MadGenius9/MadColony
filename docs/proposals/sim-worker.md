@@ -30,7 +30,7 @@ Scripts in the scratchpad (`workerprobe.mjs`, `viewprobe.mjs`), cloud machine, b
 | Copy the whole state (`structuredClone`) | — | 480–500 ms |
 | Write the save (`serializeGame` + JSON) | 20 MB | 560 ms |
 | Terrain (typed array of palette indexes) | 3 MB | 0.6 ms to copy |
-| Positions of everyone who moves (873 people and animals, 3 floats each) | 10 KB | 0.05 ms |
+| Positions of everyone who moves (873 people and animals, 3 floats each in this probe; the host sends 2) | 10 KB | 0.05 ms |
 | Everything in a 64×40-tile view (521 buildings, 83 stacks, 61 crops, 130 nodes, 22 people) | 144 KB as JSON | 2 ms to gather and copy |
 | The same, 128×80 tiles | 282 KB | 4 ms |
 | The same, 256×160 tiles | 830 KB | 16 ms |
@@ -60,12 +60,13 @@ The worker owns the `Game`. The main thread owns the canvas, the DOM, sound and 
   `localStorage`; IndexedDB works in both).
 
 **Messages from the worker to the main thread** (at most one a frame, about 60 a second):
-- `frame`: the tick and clock; the positions and facing of everyone who moves in a transferable typed array,
+- `frame`: the tick and clock; the positions of everyone who moves in a transferable typed array (facing: later),
   with the id list only when it changed; tiles that changed since the last frame; log and chronicle entries
-  since the last frame; favour and the speed actually reached (ticks a second).
+  since the last frame (each once, kept by a set of the lines sent); favour and the speed actually reached (ticks
+  a second).
 - `area`: what lies in the camera's rectangle (buildings, stacks, crops, nodes and the people's display fields),
-  sent when the camera moves to new ground and otherwise at most about 4 times a second. At the measured 4–16
-  ms that is 1.6–6% of the worker's time.
+  sent when the camera moves or the ground in view changes, and otherwise at most about 4 times a second; at most
+  256 tiles a side. At the measured 4–16 ms that is 1.6–6% of the worker's time.
 - `world`: for the zoomed-out world view, the village summaries and territory the world view already draws,
   once an hour of game time and on change.
 - `result`: the answer to a `call`, `query` or `save`, with its id.
@@ -112,17 +113,25 @@ messages, not against `g`.
     map and to 512 tiles a side) and `worldSummary`. They change nothing; the sender copies what they return once.
   - `src/sim/simhost.js`: `createSimHost({ post, now, schedule, cancel, copy })` with the messages above, plus
     `step` (run N ticks now; tests and single-stepping). Calls and queries come from fixed lists (`CALLS`,
-    `QUERIES`). The loop runs 60 ticks a second times the speed, at most 12 ms of ticking per frame, and owes at
+    `QUERIES`); a village argument must name an existing village, and prototype keys (`__proto__`, `constructor`,
+  `prototype`) are refused anywhere in a message. An error while the game runs pauses it and sends an `error`
+  (`of: 'tick'`). The loop runs 60 ticks a second times the speed, at most 12 ms of ticking per frame, and owes at
     most a second of ticks when the machine falls behind (`frame.tps` says what was reached).
   - `src/sim/worker.js`: the Web Worker (four lines); `tools/node-worker.mjs` runs it in a Node thread.
-  - A deviation from the plan: a command's power is named `power` (the message's own kind is `type`).
-- **Tested** (`tests/cloud-simhost.test.js`, 8 tests): the host runs the same game as ticking it directly,
+  - Deviations from the plan: a command's power is named `power` (the message's own kind is `type`); positions are
+  x, y only; no herds, caravans, bodies, disasters or territory yet (listed in `docs/ui-todo.md`).
+- **Review** (an independent read of the slice): found that a `call` naming `__proto__` as its village could set a
+  law on `Object.prototype` (and so on every village); also an area resent for changes out of view, a loop that
+  stopped silently on an error, log lines that could be lost after a trim, a terrain mirror wrong past 256 kinds,
+  a stale `tps`. All fixed, each with a test.
+- **Tested** (`tests/cloud-simhost.test.js`, 11 tests): the host runs the same game as ticking it directly,
   commands included; a save written through the host loads through it and continues identically; frames send the
   id list only when it changes, every log line once and in order, the whole terrain first and then only changed
   chunks; the camera's contents are copies the game never sees; unknown calls, queries and messages are refused;
   60 ticks a second at 1×, at most a second owed after a stall, no timers after a pause; in a real worker thread
   the save equals the in-thread host's, positions arrive as a typed array and half a second at 1× runs 15–40 ticks
-  in at least 10 frames. Full suite: 347 passed. Hashes unchanged (nothing in the game changed).
+  in at least 10 frames; prototype keys and unknown villages are refused; an error while running pauses the game;
+  a change out of view does not resend the area. Full suite: 350 passed. Hashes unchanged (nothing in the game changed).
 - **Measured on the grown world** (in this thread, cloud machine): a frame costs 0.36 ms (p50), 0.58 ms (p95);
   a frame with a 128×80 camera's contents about 5 ms (p95 7 ms), at most 4 times a second. Loading the save and
   the first frame (the whole terrain) took 2.5 s.
