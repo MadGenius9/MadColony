@@ -559,3 +559,13 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   left within 24 tiles of the village" (chronicle kind `core:grove`). The job label "Plant a pine tree".
 - **Cold storage (2026-11-04):** a stack of goods that spoil can say how well it keeps ("Kept cold: spoils at a tenth
   of the rate" at or below 0 °C, "Kept cool: four tenths" up to 8 °C), from `spoil.js keptAt` and `coldFactor`.
+
+## The simulation in a worker (2026-11-05, proposed; `docs/proposals/sim-worker.md`)
+- Not player-visible by itself: the UI can run the game in a Web Worker (`src/sim/worker.js`) and talk to it with
+  the messages in `src/sim/simhost.js`, or run the same host in the main thread first (`createSimHost`).
+- What the UI does with it: draw from the `frame` messages (people's positions as a typed array, changed terrain
+  chunks, new log lines, the clock), the `area` contents of the camera rectangle it sends with `camera`, and the
+  hourly `world` village summaries; ask hover cards and panels with `query`; issue powers with `command` and the
+  direct calls with `call`; save with `save` (the main thread stores the text; workers have no `localStorage`).
+- The clock can show the speed actually reached (`frame.tps`, ticks a second) when the machine falls behind.
+- First at home: an inventory of where the UI reads `g` directly; the design note's slice 3.

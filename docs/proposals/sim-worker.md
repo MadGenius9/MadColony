@@ -1,6 +1,6 @@
 # The simulation in a background thread (design note, cloud copy, 2026-11-05)
 
-**Status: proposed.** Not in the roadmap yet. It belongs under Phase 18 (deep simulation and rendering
+**Status: proposed; slices 1–2 (the engine side) built and tested 2026-11-05, see Results.** Not in the roadmap yet. It belongs under Phase 18 (deep simulation and rendering
 optimization) and Phase 17 (the new UI). The owner asked whether MadColony should be a Windows game to run
 better (2026-11-05). The answer given: the speed limit is the simulation's work, not the browser, and a Windows
 wrapper (Tauri or Electron) would run the same code at the same speed. What helps smoothness most is to run the
@@ -50,7 +50,7 @@ The worker owns the `Game`. The main thread owns the canvas, the DOM, sound and 
 - `init`: the mod packages (plain data, as `buildRegistry` already takes), the enabled ids, and either new-game
   options or a save's text.
 - `speed` (0 for pause, 1, 2, 4, ...): the worker runs 60 ticks a second at 1×, as the browser does today.
-- `command`: a god command, passed to `issueCommand` (it applies at the next tick, as now).
+- `command`: a god command (`power`, `args`), passed to `issueCommand` (it applies at the next tick, as now).
 - `call`: one of the direct calls in `docs/integration-contract.md` §3b (laws, attacks, trade offers, founding),
   by name from a fixed list, with its arguments; the result comes back with the call's id.
 - `camera`: the visible tile rectangle and zoom.
@@ -104,3 +104,27 @@ messages, not against `g`.
 - **Memory:** the mirror holds only what is in view and the world view's summaries, a few MB at most.
 - **Browser support:** module workers are in every current browser. A Tauri or Electron wrapper later runs them
   the same way.
+
+## Results: slices 1–2 (built and tested, 2026-11-05)
+- **Built:**
+  - `src/sim/view.js`: the readers `moversFrame`, `changedChunks` (from the existing per-chunk change counts,
+    `g._chg`), `logSince` (by the last line sent, safe when the log is trimmed), `areaSnapshot` (clipped to the
+    map and to 512 tiles a side) and `worldSummary`. They change nothing; the sender copies what they return once.
+  - `src/sim/simhost.js`: `createSimHost({ post, now, schedule, cancel, copy })` with the messages above, plus
+    `step` (run N ticks now; tests and single-stepping). Calls and queries come from fixed lists (`CALLS`,
+    `QUERIES`). The loop runs 60 ticks a second times the speed, at most 12 ms of ticking per frame, and owes at
+    most a second of ticks when the machine falls behind (`frame.tps` says what was reached).
+  - `src/sim/worker.js`: the Web Worker (four lines); `tools/node-worker.mjs` runs it in a Node thread.
+  - A deviation from the plan: a command's power is named `power` (the message's own kind is `type`).
+- **Tested** (`tests/cloud-simhost.test.js`, 8 tests): the host runs the same game as ticking it directly,
+  commands included; a save written through the host loads through it and continues identically; frames send the
+  id list only when it changes, every log line once and in order, the whole terrain first and then only changed
+  chunks; the camera's contents are copies the game never sees; unknown calls, queries and messages are refused;
+  60 ticks a second at 1×, at most a second owed after a stall, no timers after a pause; in a real worker thread
+  the save equals the in-thread host's, positions arrive as a typed array and half a second at 1× runs 15–40 ticks
+  in at least 10 frames. Full suite: 347 passed. Hashes unchanged (nothing in the game changed).
+- **Measured on the grown world** (in this thread, cloud machine): a frame costs 0.36 ms (p50), 0.58 ms (p95);
+  a frame with a 128×80 camera's contents about 5 ms (p95 7 ms), at most 4 times a second. Loading the save and
+  the first frame (the whole terrain) took 2.5 s.
+- **Not done (home):** slice 3 (the UI's direct reads moved to the mirror and queries) and slice 4 (browser
+  frame times with and without the worker). Nothing is playable through the worker until then.

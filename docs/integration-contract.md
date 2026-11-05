@@ -290,3 +290,6 @@ last 500 lines. There is no settlement field on an entry; see section 6.
 3. Should `explainColonist` return the trait/people sources and the mood work factor? That would close
    mismatches 3 and 6 in the sim instead of in the UI.
 4. Does the home UI already scale sprites by `look.height` and `look.build`? The Cragborn and Reedkin depend on it.
+5. **The simulation in a worker** (proposed 2026-11-05, `docs/proposals/sim-worker.md`): the engine side is built
+   (`src/sim/simhost.js`, `view.js`, `worker.js`). The direct calls in 3b are reachable through its `call` message
+   (`CALLS`). Should the UI move to it, first behind the in-thread host, then in the worker?
