@@ -583,5 +583,8 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   fighters may run short of water and food on the way" when the target is beyond `COMBAT.raidReach` (80 tiles).
 - A fighter's status can read "Interrupted: Water is critical (no enemy near)" on a march or a retreat; the job
   text comes from the sim already.
+- Someone fleeing in their own village with critical thirst stops at water within 3 tiles (combat.js
+  `WELL_NEAR`), even with enemies about: status "Interrupted: Water is critical and the well is right here", then
+  the usual drink job.
 - People of a village simulated at a distance are no longer fought one by one; nothing to show, but a hover card
   on such a person need not offer them as a target.

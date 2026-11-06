@@ -9,7 +9,7 @@ import { DRIVERS, newJob, dropCarry, skillLevel } from './jobs.js';
 import { NEED_BEHAVIORS } from './needs.js';
 import { GIVERS, equipCandidate } from './givers.js';
 import { tickHealth, isDown, hpOf, maybeAccident, HEALTH } from '../health.js';
-import { COMBAT_DRIVERS, COMBAT_JOBS, COMBAT, combatDecision, nearestEnemy } from '../combat.js';
+import { COMBAT_DRIVERS, COMBAT_JOBS, COMBAT, combatDecision, nearestEnemy, drinkHere } from '../combat.js';
 import { tripChecker, farFromHome } from './trips.js';
 import { fireDanger } from '../fire.js';
 import { FIRE_DRIVERS } from '../firefight.js';
@@ -91,6 +91,7 @@ function interruptReason(g, c) {
   if (COMBAT_JOBS.has(job.type)) {
     const onTheWay = (job.type === 'fight' && !job.targetId) || job.type === 'flee';
     if (!onTheWay) return null;
+    if (job.type === 'flee' && drinkHere(g, c)) return 'Interrupted: Water is critical and the well is right here';
     for (const def of g.reg.all('need')) {
       if ((def.behavior !== 'core:drink' && def.behavior !== 'core:eat') || !critical(c, def)) continue;
       if (nearestEnemy(g, c, COMBAT.engageRange)) return null;

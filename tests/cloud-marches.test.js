@@ -68,3 +68,25 @@ test('people of a village simulated at a distance are not fought one by one', as
   const job = { type: 'fight', targetId: theirs.id, stage: 'fight', res: [] };
   assert.equal(COMBAT_DRIVERS.fight.tick(g, mine, job), 'done');
 });
+
+test('someone fleeing at home with critical thirst drinks at the well right beside them first', async () => {
+  const { drinkHere } = await import('../src/sim/combat.js');
+  const { findWater } = await import('../src/sim/ai/needs.js');
+  const { g, p, a } = hostile();
+  const c = g.owned('colonists', p)[0];
+  c.equip.weapon = null; // unarmed: they would flee
+  c.job = null;
+  const w = findWater(g, c);
+  assert.ok(w, 'there is water to drink at home');
+  c.x = w.x; c.y = w.y;
+  assert.equal(g.territoryAt(c.x, c.y), p, 'standing in their own village');
+  const foe = g.owned('colonists', a)[0];
+  foe.x = c.x + 1; foe.y = c.y; // an enemy right beside them
+  const drink = g.reg.all('need').find((d) => d.behavior === 'core:drink');
+  while ((g.s.tick + c.id.length * 3) % COMBAT.scanEvery) g.s.tick++;
+  for (const d of g.reg.all('need')) c.needs[d.id] = 1;
+  assert.equal(drinkHere(g, c), false, 'not thirsty: no reason to stop');
+  c.needs[drink.id] = (drink.criticalBelow ?? drink.urgentBelow / 2) / 2;
+  assert.equal(drinkHere(g, c), true);
+  assert.equal(combatDecision(g, c), null, 'they drink instead of fleeing');
+});

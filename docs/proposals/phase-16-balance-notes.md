@@ -60,6 +60,17 @@ was changed (each a small, measured step), and what is left for the playtest at 
 - **The survey** (all fixes above except this one): seed 3, 17 deaths (7 of thirst, a warlike world: 42 wars);
   seed 21, 13 deaths (8 sickness, 3 cold, none of thirst); seed 42, 19 deaths (15 sickness).
 
+- **Someone fleeing at home stops to drink at the well right beside them** (the owner, 2026-11-06: "Yes they
+  should stop at the well"). combat.js `drinkHere`: with critical thirst, in their own village's land, and water (a
+  well, a tap or a shore, as findWater finds it) within `WELL_NEAR` (3) tiles, a flee is not started and one under
+  way is interrupted, even with enemies about; once drinking, they finish the drink. Tested in
+  `tests/cloud-marches.test.js`.
+  - **Measured:** the Rushmead save (World, day 182) no longer loses anyone even without this change (the fixes
+    above changed that war). Seed 3 (150 days, 42 wars): thirst deaths 6 → 4, but all deaths 8 → 12: Snowmere's
+    besieged now drink and then starve (hunger 0 → 4), and the world then takes another course (a war on day 124
+    that did not happen before). One seed, so an association: sieges still kill, now by hunger as well.
+  - **For the owner:** should someone fleeing at home also eat from the stockpile right beside them, the same way?
+
 ## Found, not changed (for the playtest)
 - **Thirst under siege.** In the 300-day World run (seed 7), 14 died of thirst; in a later run of the same seed, 2,
   both in Rushmead. It was traced on a save from day 182:

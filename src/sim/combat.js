@@ -14,6 +14,7 @@ import { kingdomOf, membersOf, sameKingdom, theKingdom } from './kingdoms.js';
 import { octile } from './util.js';
 import { modsOf } from './peoples.js';
 import { lawIs } from './worldlaws.js';
+import { findWater } from './ai/needs.js';
 
 export const COMBAT = {
   scanEvery: 5, // ticks between a colonist's threat checks
@@ -290,7 +291,7 @@ export function combatDecision(g, c) {
   const w = weaponOf(g, c);
   const reach = Math.max(COMBAT.engageRange, (w.wants?.range || w.range) + 2);
   const enemy = nearestEnemy(g, c, reach);
-  const fleeJob = (why) => (octile(c.x, c.y, home.x, home.y) > 2 ? newJob('flee', { x: home.x, y: home.y, why }, { why, label: why }) : null);
+  const fleeJob = (why) => (octile(c.x, c.y, home.x, home.y) > 2 && !drinkHere(g, c) ? newJob('flee', { x: home.x, y: home.y, why }, { why, label: why }) : null); // water right here first
   if (ord.order === 'retreat') {
     if (!enemy && parched(g, c)) return null; // no enemy near: drink or eat first, then fall back
     if (enemy || g.territoryAt(c.x, c.y) !== sid) return fleeJob('Falling back home (retreat order)');
@@ -330,6 +331,19 @@ export function withinRaidReach(g, a, b) {
 const wanting = (g, c, beh) => g.reg.all('need').some((d) => d.behavior === beh && (c.needs[d.id] ?? 1) < (d.seekBelow ?? 0));
 /** Is thirst or hunger critical (the level ai.js interrupts a march or a retreat for, with no enemy near)? */
 const parched = (g, c) => g.reg.all('need').some((d) => (d.behavior === 'core:drink' || d.behavior === 'core:eat') && (c.needs[d.id] ?? 1) < (d.criticalBelow ?? d.urgentBelow / 2));
+
+/** Tiles from water (a well, a tap or a shore) that count as "right beside" it for drinkHere. */
+export const WELL_NEAR = 3;
+/** Someone fleeing in their own village with critical thirst and water right beside them stops to drink, even with
+ *  enemies about (the owner, 2026-11-06: in a siege people fled past the well and died of thirst at home). Reads
+ *  only; findWater asks only while thirst is critical, so it costs nothing otherwise. */
+export function drinkHere(g, c) {
+  const drinking = c.job?.type === 'drink'; // already at it: let them finish the drink, not just reach the critical line
+  if (!drinking && !g.reg.all('need').some((d) => d.behavior === 'core:drink' && (c.needs[d.id] ?? 1) < (d.criticalBelow ?? d.urgentBelow / 2))) return false;
+  if (g.territoryAt(c.x, c.y) !== sidOf(g, c)) return false;
+  const w = findWater(g, c);
+  return !!w && octile(c.x, c.y, w.x, w.y) <= WELL_NEAR;
+}
 
 /** Fit, armed fighters a settlement has right now. */
 export function fightersOf(g, sid, bySid = null) {
