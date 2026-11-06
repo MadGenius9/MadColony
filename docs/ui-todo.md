@@ -573,5 +573,7 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   `area.bodies`); fires, scorched ground, storms, rain and drought, the plague, caravans and contact travellers in
   `frame.overlays`, at most 4 times a second (caravans carry their start, end and times, so the UI can move them
   in between). Territory with the hourly `world` message as `frame.territory` ({ ids, x0, y0, w, h, grid }: the
-  changed rectangle of the owner grid, the whole map first). **Not in the messages yet:** people's facing. The log mirror must keep its own cap: the
+  changed rectangle of the owner grid, the whole map first). Movers carry 5 numbers each (`MOVER_STRIDE`):
+  x, y, the tile the step started from and its progress, so the UI can draw people between tiles and face them
+  the way they walk. The log mirror must keep its own cap: the
   game trims routine lines out of the middle (chronicle.js `trimLog`), so it is not a plain append-only list.

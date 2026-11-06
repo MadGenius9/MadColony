@@ -7,7 +7,7 @@ import { readAllMods } from '../tools/fsmods.js';
 import { newGame, stateText, serializeGame, TICKS_PER_DAY } from './cloud-helpers.js';
 import { issueCommand } from '../src/sim/god.js';
 import { createSimHost, TICKS_PER_SECOND } from '../src/sim/simhost.js';
-import { logSince, areaSnapshot } from '../src/sim/view.js';
+import { logSince, areaSnapshot, MOVER_STRIDE } from '../src/sim/view.js';
 
 const PACKAGES = readAllMods();
 const NEIGH = { seed: 7, scenario: 'core:neighbours', size: 'medium', villages: 2, sandbox: true };
@@ -66,12 +66,22 @@ test('frames: the id list only when it changes, each log line once, the whole te
   const h = hostWith(); initNeigh(h);
   const g = h.host.game;
   const first = h.last('frame');
-  assert.ok(first.movers.ids.length >= 1 && first.movers.pos.length === first.movers.ids.length * 2);
+  assert.ok(first.movers.ids.length >= 1 && first.movers.pos.length === first.movers.ids.length * MOVER_STRIDE);
   assert.equal(first.terrain.all, true);
   assert.equal(first.terrain.idx.length, g.W * g.H);
   const logged = [...first.log];
   for (let k = 0; k < 40; k++) { h.host.receive({ type: 'step', ticks: 30 }); logged.push(...h.last('frame').log); }
   assert.equal(h.last('frame').movers.ids, null, 'same people, so no id list');
+  // Each person's numbers: where they are, where their step started and how far through it they are.
+  const ids = first.movers.ids, pos = h.last('frame').movers.pos;
+  ids.forEach((id, k) => {
+    if (!id.startsWith('c:')) return;
+    const c = g.s.colonists[id.slice(2)], o = k * MOVER_STRIDE;
+    if (!c) return;
+    assert.deepEqual([pos[o], pos[o + 1]], [c.x, c.y]);
+    if (c.mv) { assert.deepEqual([pos[o + 2], pos[o + 3]], [c.mv.fx, c.mv.fy]); assert.ok(Math.abs(pos[o + 4] - Math.min(1, c.mv.t / c.mv.dur)) < 1e-6); }
+    else assert.deepEqual([pos[o + 2], pos[o + 3], pos[o + 4]], [c.x, c.y, 1]);
+  });
   assert.equal(h.last('frame').tick, g.s.tick);
   // Every line the game kept was sent, in order (trimming removes lines, never reorders them).
   const kept = g.s.log.map((e) => JSON.stringify(e)), sent = logged.map((e) => JSON.stringify(e));

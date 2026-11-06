@@ -13,10 +13,21 @@ const AREA_MAX = 256; // the largest area side sent at once, in tiles (256x160 m
                       // the world view draws summaries)
 
 /** Everything that moves: people, wild monsters, tame animals. `ids` is the id list, sent only when it differs
- *  from `prevKey` (the key from the last call); `pos` holds x, y per mover in that order. */
+ *  from `prevKey` (the key from the last call); `pos` holds MOVER_STRIDE numbers per mover in that order: x, y
+ *  (the tile it is on or stepping onto), fx, fy (the tile its current step started from; x, y when standing) and
+ *  the step's progress 0..1 (1 when standing), from the step in progress (`mv`, ai/jobs.js), so the UI can draw it
+ *  between tiles and face it the way it walks. */
+export const MOVER_STRIDE = 5;
 export function moversFrame(g, prevKey = null) {
   const s = g.s, ids = [], xy = [];
-  const add = (kind, list) => { for (const e of Object.values(list || {})) { ids.push(kind + ':' + e.id); xy.push(e.x, e.y); } };
+  const add = (kind, list) => {
+    for (const e of Object.values(list || {})) {
+      ids.push(kind + ':' + e.id);
+      const mv = e.mv;
+      if (mv && mv.dur > 0) xy.push(e.x, e.y, mv.fx, mv.fy, Math.min(1, mv.t / mv.dur));
+      else xy.push(e.x, e.y, e.x, e.y, 1);
+    }
+  };
   add('c', s.colonists);
   add('m', s.monsters?.list);
   add('t', s.livestock?.list);

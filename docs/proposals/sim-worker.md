@@ -119,7 +119,8 @@ messages, not against `g`.
     most a second of ticks when the machine falls behind (`frame.tps` says what was reached).
   - `src/sim/worker.js`: the Web Worker (four lines); `tools/node-worker.mjs` runs it in a Node thread.
   - Deviations from the plan: a command's power is named `power` (the message's own kind is `type`); positions are
-  x, y only (facing: later). Added the same day: herds and bodies in `area`; `frame.overlays` (fires, storms,
+  at first x, y only; since 2026-11-06 five numbers (x, y, the step's start and its progress: facing and drawing
+  between tiles). Added the same day: herds and bodies in `area`; `frame.overlays` (fires, storms,
   weather, plague, caravans, travellers; at most 4 a second); `frame.territory` with the hourly `world` (only the
   rectangle that changed: on a Vast world after 2 days of growth 404×514 tiles of 1536×1152, equal to the game's
   grid).
