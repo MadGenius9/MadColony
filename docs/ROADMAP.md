@@ -142,7 +142,8 @@ it must show. The proposed new baselines are in `docs/cloud-baseline.md` and wai
   `docs/proposals/phase-10-leftovers.md`. **Owner decision, 2026-11-04:** mods stay data-only for now (no
   scripting API; new behaviours are added to the engine as registered givers and needs that data mods can use).
 - **Forestry:** villages short of trees plant groves. `docs/proposals/forestry.md`.
-- **Cold storage:** goods spoil slower at or below 8 °C (`spoil.js`). Air conditioning is still open.
+- **Cold storage:** goods spoil slower at or below 8 °C (`spoil.js`). Air conditioning: checked, not worth building
+  now (under 4% of meat spoils; `docs/proposals/phase-16-balance-notes.md`).
 - **Phases 11–15:** integration and reliability, the chronicle, petitions, intervention follow-through, village
   memories and traditions (cloud parts). `docs/proposals/phase-11-integration.md` to `phase-15-memories.md`.
 - **Phase 16:** balance notes from long runs in `docs/proposals/phase-16-balance-notes.md`; the playtest needs

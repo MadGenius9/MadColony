@@ -37,6 +37,12 @@ was changed (each a small, measured step), and what is left for the playtest at 
 - **Coats did not visibly cut deaths from cold** (6–8 a run, in different worlds); whether the frozen were in
   distant villages, which get no coats, is not known.
 
+- **Air conditioning / a cold store: checked 2026-11-06, not worth building now.** Only meat spoils (game and
+  livestock meat, 10–20% a day), and goods are kept in outdoor stockpiles, so cooling would need a walled cold
+  store, a hauling rule and a planner rule. The grown world (868 people, day 300) lost 86 cuts of meat (65 venison,
+  21 horse meat) and 27 carcasses to spoilage in 300 days, against about 2,300 cuts made: under 4%. Cold weather
+  already slows it (`spoil.js`). Worth revisiting only if more foods are made to spoil.
+
 ## For the playtest at home (needs the UI)
 Can players follow events and find interventions worth making? Long runs with save and load; deleted or destroyed
 subjects; expired petitions; repeated interventions; event retention; missing-mod recovery; hints for the new
