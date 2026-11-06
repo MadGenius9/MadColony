@@ -90,3 +90,24 @@ test('someone fleeing at home with critical thirst drinks at the well right besi
   assert.equal(drinkHere(g, c), true);
   assert.equal(combatDecision(g, c), null, 'they drink instead of fleeing');
 });
+
+test('someone fleeing at home with critical hunger eats the food right beside them first', async () => {
+  const { eatHere } = await import('../src/sim/combat.js');
+  const { g, p, a } = hostile();
+  const c = g.owned('colonists', p)[0];
+  c.equip.weapon = null;
+  c.job = null;
+  const home = g.s.settlements[p].center;
+  c.x = home.x + 3; c.y = home.y; // in their village, away from the centre (so a flee would start)
+  assert.equal(g.territoryAt(c.x, c.y), p);
+  for (const s of Object.values(g.s.stacks)) if (g.reg.get('item', s.item)?.nutrition && (s.settlement || p) === p) s.qty = 0; // only the food placed below
+  g.ledgerAdd('created', 'core:potato', 5, 'test');
+  g.placeItems('core:potato', 5, c.x + 1, c.y);
+  const foe = g.owned('colonists', a)[0];
+  foe.x = c.x - 1; foe.y = c.y;
+  const hunger = g.reg.all('need').find((d) => d.behavior === 'core:eat');
+  for (const d of g.reg.all('need')) c.needs[d.id] = 1;
+  assert.equal(eatHere(g, c), false, 'not hungry');
+  c.needs[hunger.id] = (hunger.criticalBelow ?? hunger.urgentBelow / 2) / 2;
+  assert.equal(eatHere(g, c), true);
+});

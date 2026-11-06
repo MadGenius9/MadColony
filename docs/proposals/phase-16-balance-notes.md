@@ -69,7 +69,9 @@ was changed (each a small, measured step), and what is left for the playtest at 
     above changed that war). Seed 3 (150 days, 42 wars): thirst deaths 6 → 4, but all deaths 8 → 12: Snowmere's
     besieged now drink and then starve (hunger 0 → 4), and the world then takes another course (a war on day 124
     that did not happen before). One seed, so an association: sieges still kill, now by hunger as well.
-  - **For the owner:** should someone fleeing at home also eat from the stockpile right beside them, the same way?
+  - **And food** (the owner, the same day: "they should grab food too"): combat.js `eatHere`, the same rule for
+    critical hunger and the food they would eat (findFood: meals first) within `WELL_NEAR` tiles; it is eaten on
+    the spot. Measured: see the next line once the replay is in.
 
 ## Found, not changed (for the playtest)
 - **Thirst under siege.** In the 300-day World run (seed 7), 14 died of thirst; in a later run of the same seed, 2,

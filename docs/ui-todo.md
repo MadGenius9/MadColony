@@ -585,6 +585,7 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   text comes from the sim already.
 - Someone fleeing in their own village with critical thirst stops at water within 3 tiles (combat.js
   `WELL_NEAR`), even with enemies about: status "Interrupted: Water is critical and the well is right here", then
-  the usual drink job.
+  the usual drink job. The same for food (combat.js `eatHere`): "Interrupted: Food is critical and there is food
+  right here".
 - People of a village simulated at a distance are no longer fought one by one; nothing to show, but a hover card
   on such a person need not offer them as a target.
