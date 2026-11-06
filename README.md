@@ -21,7 +21,12 @@ Then open http://localhost:8080. (Opening `index.html` directly from disk won't 
 npm test
 ```
 
-Runs the headless test suite (in this cloud copy: 102 tests in `tests/cloud-*.test.js`).
+Runs the headless test suite (in this cloud copy: 359 tests in `tests/cloud-*.test.js`).
+
+With the project served, http://localhost:8080/tools/viewer/ opens **World Watch**, a test viewer (cloud copy,
+2026-11-06) that runs the simulation in a Web Worker and draws only from its messages (`src/sim/simhost.js`): the
+map, villages and an inspector, the chronicle, god powers, laws and three save slots in the browser. It is a test
+tool, not the game's UI (`docs/proposals/sim-worker.md`).
 
 ```bash
 npm run sim -- 10 --log
