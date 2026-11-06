@@ -16,6 +16,23 @@ was changed (each a small, measured step), and what is left for the playtest at 
 - **Sleepers wake for a fire next door** (owner, 2026-11-04), and tiredness does not end a firefight.
 - **Groves:** villages short of trees plant them (forestry).
 
+- **Long marches no longer kill whole villages by thirst** (combat.js, ai.js; 2026-11-06). Found in the browser
+  viewer's 8-minute soak (Vast, seed 7, 189 days): 60 dead, 27 of thirst and 19 of hunger, nearly all in villages at
+  war, whole villages within a day or two. Traced on a save from day 120 (Millbrook): a distant village with water
+  every hour went to full detail for a war, ordered an attack on a village 216 tiles away, and its four fighters set
+  off (one already at 15% water and 23% food); thirst runs from full to empty in about 17 hours, so they fought,
+  fell back, and collapsed 110 tiles from home. Three changes:
+  - an AI village marches only on a village within `COMBAT.raidReach` (80 tiles, centre to centre); a war declared
+    on one farther away stands, but they defend (the player may still order a long march: the attack plan now
+    warns of it);
+  - fighters drink and eat (below the level they would go looking) before they march off;
+  - on a march or a retreat with no enemy within engaging range, critical thirst or hunger stops them (the retreat
+    order waits until they have drunk or eaten).
+  - **Measured, the same world replayed in Node (identical to the browser run):** deaths in 190 days 60 → 35;
+    thirst 27 → 8; hunger 19 → 4; people on day 190 189 → 226. Seed 11 (150 days) is unchanged: 20 → 19 dead,
+    thirst 9 → 10; its thirst deaths are all at home (Kestrel Tor under attack on day 131; New First Hearth 2,
+    one a day for six days). Classic hashes unchanged. Tests: `tests/cloud-marches.test.js`.
+
 ## Found, not changed (for the playtest)
 - **Thirst under siege.** In the 300-day World run (seed 7), 14 died of thirst; in a later run of the same seed, 2,
   both in Rushmead. It was traced on a save from day 182:

@@ -9,7 +9,7 @@ import { DRIVERS, newJob, dropCarry, skillLevel } from './jobs.js';
 import { NEED_BEHAVIORS } from './needs.js';
 import { GIVERS, equipCandidate } from './givers.js';
 import { tickHealth, isDown, hpOf, maybeAccident, HEALTH } from '../health.js';
-import { COMBAT_DRIVERS, COMBAT_JOBS, combatDecision } from '../combat.js';
+import { COMBAT_DRIVERS, COMBAT_JOBS, COMBAT, combatDecision, nearestEnemy } from '../combat.js';
 import { tripChecker, farFromHome } from './trips.js';
 import { fireDanger } from '../fire.js';
 import { FIRE_DRIVERS } from '../firefight.js';
@@ -86,7 +86,18 @@ const carrying = (c, job) => !!c.carry || ((job.type === 'rescue' || job.type ==
 
 function interruptReason(g, c) {
   const job = c.job;
-  if (COMBAT_JOBS.has(job.type)) return null; // needs wait while fighting or fleeing
+  // Needs wait while fighting or fleeing; but on a march or a retreat with no enemy close by, a critical thirst or
+  // hunger stops them (people on long marches died of thirst on the way, Phase 16 notes).
+  if (COMBAT_JOBS.has(job.type)) {
+    const onTheWay = (job.type === 'fight' && !job.targetId) || job.type === 'flee';
+    if (!onTheWay) return null;
+    for (const def of g.reg.all('need')) {
+      if ((def.behavior !== 'core:drink' && def.behavior !== 'core:eat') || !critical(c, def)) continue;
+      if (nearestEnemy(g, c, COMBAT.engageRange)) return null;
+      return `Interrupted: ${def.name} is critical (no enemy near)`;
+    }
+    return null;
+  }
   // A colonist mid-step finishes the step first. travel() starts the next step in the same tick the last one
   // ends, so the check runs on the step's last tick (when travel() would otherwise start the next one).
   if (c.mv && c.mv.t + 1 < c.mv.dur) return null;

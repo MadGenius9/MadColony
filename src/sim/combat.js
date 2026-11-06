@@ -21,6 +21,10 @@ export const COMBAT = {
   fleeRange: 5,
   fitHp: 50, // health needed to join a fight
   retreatHp: 40, // fighters below this fall back
+  // An AI village marches only on a village whose centre is within this many tiles. People walk about 18 tiles an
+  // hour and go from full to empty water in about 17 hours, so a raid out and back must stay well inside that:
+  // on planet-sized worlds AI villages marched 200+ tiles, ran dry on the way and died of thirst (Phase 16 notes).
+  raidReach: 80,
   ammoLoad: 12, // rounds a fighter tries to carry
   unarmed: { name: 'fists', damage: 3, range: 1.5, cooldown: 50, accuracy: 0.7 },
   woundRelation: -2, // relation cost per wound inflicted
@@ -284,6 +288,7 @@ export function combatDecision(g, c) {
   const enemy = nearestEnemy(g, c, reach);
   const fleeJob = (why) => (octile(c.x, c.y, home.x, home.y) > 2 ? newJob('flee', { x: home.x, y: home.y, why }, { why, label: why }) : null);
   if (ord.order === 'retreat') {
+    if (!enemy && parched(g, c)) return null; // no enemy near: drink or eat first, then fall back
     if (enemy || g.territoryAt(c.x, c.y) !== sid) return fleeJob('Falling back home (retreat order)');
     return null;
   }
@@ -301,6 +306,7 @@ export function combatDecision(g, c) {
   if (ord.order === 'attack' && ord.target && w.armed && fit && isEnemy(g, sid, ord.target)) {
     const aj = armJob(g, c);
     if (aj) return aj;
+    if (wanting(g, c, 'core:drink') || wanting(g, c, 'core:eat')) return null; // drink and eat before marching off
     const tc = settlementOf(g, ord.target)?.center;
     if (tc && octile(c.x, c.y, tc.x, tc.y) > 3) return newJob('fight', { targetId: null, tx: tc.x, ty: tc.y, against: ord.target }, { why: `Attacking ${settlementOf(g, ord.target)?.name}`, label: 'March on the enemy' });
   }
@@ -309,6 +315,17 @@ export function combatDecision(g, c) {
 
 /** The health colonist c needs to fight: COMBAT.fitHp, or their trait's (brave: lower; timid: above 100, never). */
 export function fitHpOf(g, c) { return modsOf(g, c).fightHp ?? COMBAT.fitHp; }
+
+/** Is village b's centre within an AI raid's reach of village a's (COMBAT.raidReach)? */
+export function withinRaidReach(g, a, b) {
+  const p = settlementOf(g, a)?.center, q = settlementOf(g, b)?.center;
+  return !!p && !!q && Math.hypot(p.x - q.x, p.y - q.y) <= COMBAT.raidReach;
+}
+
+/** Is this need (eat or drink) below the level where its owner goes looking for it? Fighters see to that first. */
+const wanting = (g, c, beh) => g.reg.all('need').some((d) => d.behavior === beh && (c.needs[d.id] ?? 1) < (d.seekBelow ?? 0));
+/** Is thirst or hunger critical (the level ai.js interrupts a march or a retreat for, with no enemy near)? */
+const parched = (g, c) => g.reg.all('need').some((d) => (d.behavior === 'core:drink' || d.behavior === 'core:eat') && (c.needs[d.id] ?? 1) < (d.criticalBelow ?? d.urgentBelow / 2));
 
 /** Fit, armed fighters a settlement has right now. */
 export function fightersOf(g, sid, bySid = null) {
@@ -339,6 +356,7 @@ export function tickMilitary(g) {
     if (st.detail === 'abstract') continue; // raids are only launched by villages simulated in full (lod.js)
     for (const other of Object.keys(g.s.settlements)) {
       if (!isEnemy(g, st.id, other) || relationPeek(g, st.id, other).value > -50 || allianceOf(g, st.id, other) || sameKingdom(g, st.id, other)) continue;
+      if (!withinRaidReach(g, st.id, other)) continue; // too far to march on
       const theirs = fightersOf(g, other, bySid).length;
       if (mine.length >= 2 && mine.length >= theirs * 1.5) { setOrder(g, st.id, 'attack', other); strikeFirst(g, st.id, other); break; }
     }
@@ -374,6 +392,10 @@ export function evaluateAttack(g, sid, target) {
     res.lines.push(`${g.reg.get('item', it)?.name || it}: ${carried} carried, ${ammoStock(g, sid, it)} in store.`);
   }
   if (ours.length && ours.length < theirs.length) res.risks.push(`They have more fighters than you: expect to lose.`);
+  if (!withinRaidReach(g, sid, target)) { // a long march (COMBAT.raidReach): the player may still order it
+    const p = settlementOf(g, sid)?.center, q = settlementOf(g, target)?.center;
+    if (p && q) res.risks.push(`${name} is ${Math.round(Math.hypot(p.x - q.x, p.y - q.y))} tiles away: a long march, and your fighters may run short of water and food on the way.`);
+  }
   if (res.declares) {
     res.risks.push(`This declares war: relations with ${name} drop from ${rel.value} to ${WAR.declareTo} (hostile).`);
     if (g.s.treaties?.[[sid, target].sort().join('|')]) res.risks.push('Your trade pact with them ends.');
@@ -410,7 +432,7 @@ export function declareWar(g, sid, target, reason) {
   if (g.s.treaties?.[k]) { delete g.s.treaties[k]; rel.history.push({ tick: g.s.tick, delta: 0, reason: 'Trade pact ended: war' }); }
   rel.warEv = g.log(`${reason}.`, 'warn', null, 0, { kind: 'core:war_declared', sids: [sid, target], rel: before }) || undefined;
   if (!rel.warEv) delete rel.warEv;
-  setOrder(g, sid, 'attack', target);
+  if (withinRaidReach(g, sid, target)) setOrder(g, sid, 'attack', target); // a war too far to march: they defend
   strikeFirst(g, sid, target);
 }
 
