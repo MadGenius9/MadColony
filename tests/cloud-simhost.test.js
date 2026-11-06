@@ -183,6 +183,8 @@ test('village and god reports for an inspector, without changing the game', () =
   assert.ok(v.people.every((x) => typeof x.mood === 'number' && ['content', 'fine', 'unhappy', 'miserable'].includes(x.level)));
   assert.ok(Array.isArray(v.goods) && Array.isArray(v.laws) && Array.isArray(v.met) && Array.isArray(v.petitions));
   assert.equal(h.ask({ type: 'query', kind: 'village', sid: 'nobody' }).value, null);
+  assert.equal(v.player, true);
+  assert.ok(v.code.length >= 1 && v.code.every((L) => L.options.some((o) => o.id === L.option)));
   const god = h.ask({ type: 'query', kind: 'god' }).value;
   assert.ok(god.laws.length >= 1 && god.laws.every((L) => L.values.length >= 2));
   assert.ok(god.animals.length >= 1 && Array.isArray(god.cards) && Array.isArray(god.petitions));

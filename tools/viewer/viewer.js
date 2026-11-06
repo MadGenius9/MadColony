@@ -295,6 +295,7 @@ setInterval(poll, 1000);
 
 function renderInspector() {
   const v = report, el = $('inspector');
+  if (v && el.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return; // not while choosing
   if (!v) { el.innerHTML = '<div class="empty">Click a village on the map or in the list.</div>'; return; }
   for (const d of el.querySelectorAll('details')) (d.open ? openDetails.add(d.dataset.k) : openDetails.delete(d.dataset.k));
   const sec = (k, title, body) => `<details data-k="${k}"${openDetails.has(k) ? ' open' : ''}><summary>${esc(title)}</summary><div>${body}</div></details>`;
@@ -316,11 +317,22 @@ function renderInspector() {
       <dt>Unrest</dt><dd>${v.unrest.on ? `<span style="color:var(--danger)">yes: ${v.unrest.unhappy} of ${v.unrest.adults} adults unhappy</span>` : `${v.unrest.unhappy} of ${v.unrest.adults} adults unhappy`}</dd>
     </dl>
     ${pray}${notes}
+    ${v.player && !v.fallen ? sec('rule', 'Your village: laws and war', ruleBox(v)) : ''}
     ${sec('people', `People (${v.people.length})`, `<div class="people">${ppl || '<span class="muted">Nobody lives here.</span>'}</div>`)}
     ${sec('goods', 'Goods', `<div class="chips">${goods}</div>`)}
     ${sec('laws', 'Laws', `<div class="chips">${laws}</div>`)}
     ${sec('memories', 'Memories and traditions', `<div class="chips">${mem}</div>`)}
     ${sec('met', 'Neighbours', `<div class="chips">${met}</div>`)}`;
+}
+let attackHtml = '', attackTarget = null;
+function ruleBox(v) {
+  const laws = v.code.map((L) => `<label for="cl-${esc(L.id)}">${esc(L.name)}</label>
+    <select id="cl-${esc(L.id)}" data-civlaw="${esc(L.id)}"${L.own ? '' : ' disabled title="Set by the kingdom\'s capital"'}>${L.options.map((o) => `<option value="${esc(o.id)}"${o.id === L.option ? ' selected' : ''}>${esc(o.name)}</option>`).join('')}</select>`).join('');
+  const targets = v.met.filter((o) => !villages.find((x) => x.id === o.id)?.fallen);
+  return `<div class="laws">${laws}</div>
+    <div class="sub">A law can change once every 5 days. Laws change mood: see each person's reasons.</div>
+    ${targets.length ? `<div class="row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="attackTarget">${targets.map((o) => `<option value="${esc(o.id)}">${esc(o.name)}${o.war ? ' (at war)' : ''}</option>`).join('')}</select><button type="button" id="checkAttack" class="danger">Plan an attack</button></div>` : '<div class="sub">No village met yet to attack.</div>'}
+    <div id="attackCard" data-target="${esc(attackTarget || '')}">${attackHtml}</div>`;
 }
 function personBox(r) {
   if (!r?.colonist) return '';
@@ -341,6 +353,31 @@ $('inspector').addEventListener('click', (e) => {
   if (fo) { const k = movers.ids.indexOf('c:' + fo.dataset.follow); if (k >= 0) { const o = k * MOVER_STRIDE; centerOn(movers.pos[o], movers.pos[o + 1], 8); } return; }
   const b = e.target.closest('.person');
   if (b) { personFor = personFor === b.dataset.cid ? null : b.dataset.cid; person = null; poll(); }
+});
+$('inspector').addEventListener('change', async (e) => {
+  const s = e.target.closest('[data-civlaw]');
+  if (!s || !report) return;
+  const r = await ask({ type: 'call', fn: 'setCivLaw', args: [report.id, s.dataset.civlaw, s.value, 'by the player'] });
+  toast(r?.ok ? r.message : `Not changed: ${r?.message || r?.reason || 'unknown reason'}`, !r?.ok);
+  poll();
+});
+$('inspector').addEventListener('click', async (e) => {
+  if (e.target.id === 'checkAttack' && report) {
+    const target = $('attackTarget').value;
+    const ev = await ask({ type: 'call', fn: 'evaluateAttack', args: [report.id, target] });
+    const list = (xs, cls = '') => (xs?.length ? `<ul${cls}>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+    attackTarget = target;
+    attackHtml = `<div class="card${ev?.valid ? '' : ' bad'}"><p><strong>Attack ${esc(villages.find((x) => x.id === target)?.name || target)}</strong> · our fighters ${ev?.ours ?? '?'}, theirs ${ev?.theirs ?? '?'}${ev?.declares ? ' · this declares war' : ''}</p>
+      ${list(ev?.lines, ' style="color:var(--ink)"')}${list(ev?.risks)}${list(ev?.problems)}
+      <div class="row">${ev?.valid ? '<button type="button" class="danger" id="orderAttack">Order the attack</button>' : ''}<button type="button" id="cancelAttack">Cancel</button></div></div>`;
+    $('attackCard').innerHTML = attackHtml; $('attackCard').dataset.target = target;
+  }
+  if (e.target.id === 'cancelAttack') { attackHtml = ''; $('attackCard').innerHTML = ''; }
+  if (e.target.id === 'orderAttack' && report) {
+    const r = await ask({ type: 'call', fn: 'orderAttack', args: [report.id, attackTarget] });
+    attackHtml = ''; $('attackCard').innerHTML = '';
+    toast(r?.ok ? r.message : `Not ordered: ${r?.message || r?.reason}`, !r?.ok);
+  }
 });
 $('inspector').addEventListener('toggle', (e) => { const d = e.target; if (d.dataset?.k) (d.open ? openDetails.add(d.dataset.k) : openDetails.delete(d.dataset.k)); }, true);
 
@@ -385,7 +422,7 @@ function showTab(name) {
 }
 document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
 function select(sid, center = false) {
-  if (selected !== sid) { report = null; personFor = null; person = null; }
+  if (selected !== sid) { report = null; personFor = null; person = null; attackHtml = ''; attackTarget = null; }
   selected = sid; renderVillages(); renderInspector(); showTab('village'); poll();
   const v = villages.find((x) => x.id === sid);
   if (center && v?.center) { view.x = v.center.x - cssW() / view.scale / 2; view.y = v.center.y - cssH() / view.scale / 2; if (view.scale < 3) zoomAt(4 / view.scale); else sendCamera(); }

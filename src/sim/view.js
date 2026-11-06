@@ -9,7 +9,7 @@
 import { CHUNK } from './constants.js';
 import { claimsDirtySince } from './territory.js';
 import { leaderOf } from './leaders.js';
-import { codeOf } from './civlaws.js';
+import { codeOf, civLawOf, lawHolder } from './civlaws.js';
 import { unrestOf } from './unrest.js';
 import { memoriesOf } from './memories.js';
 import { petitionsOf } from './petitions.js';
@@ -175,6 +175,10 @@ export function villageReport(g, sid) {
   return {
     id: sid, name: st.name, color: st.color, detail: st.detail === 'abstract' ? 'abstract' : 'full', fallen: !!st.fallen,
     kingdom: st.kingdom ? s.kingdoms?.[st.kingdom]?.name || st.kingdom : null, people, leader: leaderOf(g, sid), laws: codeOf(g, sid),
+    player: sid === s.playerSettlement,
+    // Every law with its options and the one in force, and whether this village sets it (a kingdom's capital sets
+    // its members' kingdom laws): for the player's Laws controls.
+    code: g.reg.all('civLaw').map((L) => ({ id: L.id, name: L.name, option: civLawOf(g, sid, L.id), own: lawHolder(g, sid, L.id) === sid, options: L.options.map((o) => ({ id: o.id, name: o.name })) })),
     unrest: unrestOf(g, sid), ...memoriesOf(g, sid), petitions: petitionsOf(g, sid), notes, goods, met,
   };
 }
