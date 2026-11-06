@@ -21,6 +21,7 @@ import { endJob } from './ai/ai.js';
 import { workSpeed, practice } from './ai/jobs.js';
 import { GROUND_REST_RATE } from './ai/needs.js';
 import { tickHealth, isDown } from './health.js';
+import { treatFar } from './medical.js';
 import { isAdult, mayDoWork, needsCare } from './people.js';
 import { isEnemy, orderOf } from './combat.js';
 import { spreadContact } from './illness.js';
@@ -342,6 +343,7 @@ function hourNeeds(g, sid, cols, store, structs) {
   const water = hasWater(g, sid, structs);
   const reserve = g.plans?.[sid]?.seedReserve || {};
   const energyDef = reg.all('need').find((n) => n.behavior === 'core:sleep');
+  treatFar(g, sid, cols, store, structs); // the sick and wounded treated from the village's own supplies (medical.js)
   for (const c of cols) {
     // Asleep this hour: at night, or by day when worn out (below seekBelow), as a detailed colonist would go
     // to rest then; otherwise energy would drift to zero for anyone resting only on the ground at night.

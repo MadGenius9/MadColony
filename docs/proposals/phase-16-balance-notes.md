@@ -49,6 +49,17 @@ was changed (each a small, measured step), and what is left for the playtest at 
 
   What is left is mostly the siege case below (a village under attack at home).
 
+- **Villages simulated at a distance treat their sick** (medical.js `treatFar`, from lod.js; 2026-11-06). A survey
+  of three more planets (Vast, 150 days; seeds 3, 21, 42) found sickness the top cause of death in two; on seed 42,
+  15 of 19 deaths, 13 of them grey fever in distant villages during one epidemic (days 110–126). Distant villages
+  fell ill and spread illness like full ones but were never treated, though 39 of 60 distant villages in the grown
+  world held medicine. Now, each hour, each untreated illness, infection or wound there takes one dose of the right
+  supply from the village's own stores (not reserved, not promised to a trade), while anyone is on their feet to
+  give it: the same supplies and effect as the treat job, summed up. Seed 42, 150 days: deaths 19 → 6, sickness
+  15 → 5. Classic hashes unchanged. Tests: `tests/cloud-farcare.test.js`.
+- **The survey** (all fixes above except this one): seed 3, 17 deaths (7 of thirst, a warlike world: 42 wars);
+  seed 21, 13 deaths (8 sickness, 3 cold, none of thirst); seed 42, 19 deaths (15 sickness).
+
 ## Found, not changed (for the playtest)
 - **Thirst under siege.** In the 300-day World run (seed 7), 14 died of thirst; in a later run of the same seed, 2,
   both in Rushmead. It was traced on a save from day 182:

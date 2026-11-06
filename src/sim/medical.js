@@ -79,6 +79,43 @@ export function treatmentNeeds(g, c) {
   }
   return out;
 }
+/** A village simulated at a distance (lod.js, once an hour): its sick, infected and wounded are treated as a doctor
+ *  there would, summed up: each untreated case that a supply treats (treatmentNeeds) takes one unit of it from the
+ *  village's own stores (stacks in id order, free of reservations and trade promises, then its cabinets), while anyone
+ *  there is on their feet to give it. The same supplies and the same effect as the treat job (treated; tended for
+ *  HEALTH.tendHours); no walking. Before, distant villages never used the medicine they held (39 of 60 villages in a
+ *  grown world held some) and an epidemic killed there what it did not kill in villages simulated in full (Phase 16
+ *  notes). Returns the number treated. O(people x their injuries + stacks per treatment). */
+export function treatFar(g, sid, cols, store, structs) {
+  if (!cols.some((c) => !isDown(c))) return 0;
+  let n = 0;
+  for (const p of cols) {
+    for (const { inj, need } of treatmentNeeds(g, p)) {
+      if (!takeSupplyFar(g, need === 'medicine' ? 'core:medicine' : 'core:bandage', store, structs)) continue;
+      inj.treated = true;
+      p.health.tendedUntil = Math.max(p.health.tendedUntil || 0, g.s.tick + HEALTH.tendHours * TICKS_PER_HOUR);
+      n++;
+    }
+  }
+  return n;
+}
+function takeSupplyFar(g, tag, store, structs) {
+  for (const st of store.stacks()) {
+    if (st.dur !== undefined || !medTag(g, st.item).includes(tag) || store.avail(st) < 1 || store.free(st.item) < 1) continue;
+    const got = g.takeFromStack(st.id, 1);
+    if (got && got.qty >= 1) { g.consume(got.item, 1, 'treatment'); return true; }
+  }
+  for (const b of structs) {
+    if (!b.built || !g.bDef(b)?.supplies) continue;
+    const f = (b.fuel || []).find((x) => x.qty > 0 && medTag(g, x.item).includes(tag));
+    if (!f) continue;
+    f.qty -= 1; b.fuel = b.fuel.filter((x) => x.qty > 0);
+    g.consume(f.item, 1, 'treatment');
+    return true;
+  }
+  return false;
+}
+
 /** Medical beds of a settlement, and who occupies them. */
 export function medicalBeds(g, sid) {
   const beds = g.owned('structures', sid).filter((st) => st.built && g.bDef(st)?.medical);
