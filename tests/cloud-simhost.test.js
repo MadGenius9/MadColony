@@ -172,6 +172,23 @@ test('territory: the whole owner grid first, then only when it changes, at most 
   assert.equal(h.last('frame').territory, undefined, 'not within the hour');
 });
 
+test('village and god reports for an inspector, without changing the game', () => {
+  const h = hostWith(); initNeigh(h);
+  const g = h.host.game, p = g.s.playerSettlement;
+  h.host.receive({ type: 'step', ticks: TICKS_PER_DAY });
+  const before = stateText(g);
+  const v = h.ask({ type: 'query', kind: 'village', sid: p }).value;
+  assert.equal(v.id, p);
+  assert.deepEqual(v.people.map((x) => x.id), g.villagers(p).map((c) => c.id));
+  assert.ok(v.people.every((x) => typeof x.mood === 'number' && ['content', 'fine', 'unhappy', 'miserable'].includes(x.level)));
+  assert.ok(Array.isArray(v.goods) && Array.isArray(v.laws) && Array.isArray(v.met) && Array.isArray(v.petitions));
+  assert.equal(h.ask({ type: 'query', kind: 'village', sid: 'nobody' }).value, null);
+  const god = h.ask({ type: 'query', kind: 'god' }).value;
+  assert.ok(god.laws.length >= 1 && god.laws.every((L) => L.values.length >= 2));
+  assert.ok(god.animals.length >= 1 && Array.isArray(god.cards) && Array.isArray(god.petitions));
+  assert.equal(stateText(g), before, 'reading changes nothing');
+});
+
 test('calls, queries and errors', () => {
   const h = hostWith();
   assert.equal(h.ask({ type: 'step', ticks: 1 }).type, 'error', 'nothing before init');

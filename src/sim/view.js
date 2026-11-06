@@ -8,6 +8,19 @@
 // (3,072 on the World preset); log O(new lines); an area O(its tiles), 2-16 ms for 64x40 to 256x160 tiles.
 import { CHUNK } from './constants.js';
 import { claimsDirtySince } from './territory.js';
+import { leaderOf } from './leaders.js';
+import { codeOf } from './civlaws.js';
+import { unrestOf } from './unrest.js';
+import { memoriesOf } from './memories.js';
+import { petitionsOf } from './petitions.js';
+import { outcomeCards } from './followup.js';
+import { activeLaws } from './worldlaws.js';
+import { relationPeek, relationStatus } from './villages.js';
+import { isEnemy } from './combat.js';
+import { moodLevel } from './mood.js';
+import { ageYears } from './life.js';
+import { partnerOf } from './family.js';
+import { sicknessOf } from './illness.js';
 
 const AREA_MAX = 256; // the largest area side sent at once, in tiles (256x160 measured at 16 ms; zoomed further out
                       // the world view draws summaries)
@@ -130,4 +143,49 @@ export function territorySince(g, since = null) {
   const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1, grid = new Uint16Array(w * h);
   for (let y = 0; y < h; y++) grid.set(T.grid.subarray((r.y0 + y) * g.W + r.x0, (r.y0 + y) * g.W + r.x0 + w), y * w);
   return { territory: { ids: T.ids.slice(), x0: r.x0, y0: r.y0, w, h, grid }, next: r.next };
+}
+
+/** One village for an inspector: who lives there (age, mood, job, traits, partner, sickness), its leader, laws away
+ *  from their default, unrest, memories and traditions, open prayers, its plan's notes, the goods it holds most of
+ *  and every village it has met. Built from the readers the UI uses (docs/integration-contract.md section 4); null
+ *  for an unknown village. Copies (the sender copies them again). */
+export function villageReport(g, sid) {
+  const s = g.s, st = typeof sid === 'string' && Object.hasOwn(s.settlements || {}, sid) ? s.settlements[sid] : null;
+  if (!st) return null;
+  const people = g.villagers(sid).map((c) => {
+    const p = partnerOf(g, c);
+    return {
+      id: c.id, name: c.name, age: Math.floor(ageYears(g, c)), mood: Math.round(c.mood ?? 0), level: moodLevel(c.mood ?? 0),
+      job: c.job?.type ?? null, doing: c.status?.action || c.status?.goal || '', traits: (c.traits || []).map((id) => g.reg.get('trait', id)?.name || id),
+      people: g.reg.get('people', c.people)?.name || null, partner: p?.name || null, sick: !!sicknessOf(c),
+    };
+  });
+  const stock = new Map();
+  for (const k of g.owned('stacks', sid)) stock.set(k.item, (stock.get(k.item) || 0) + k.qty);
+  const goods = [...stock].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 14).map(([id, n]) => ({ id, name: g.reg.get('item', id)?.name || id, n }));
+  const met = [];
+  for (const o of Object.keys(s.settlements).sort()) {
+    if (o === sid) continue;
+    const rel = relationPeek(g, sid, o);
+    if (!rel.contact) continue;
+    met.push({ id: o, name: s.settlements[o].name, value: Math.round(rel.value || 0), status: relationStatus(rel), war: isEnemy(g, sid, o) });
+  }
+  const P = g.plans?.[sid] || {}, notes = {};
+  for (const [k, v] of Object.entries(P)) if (k.endsWith('Note') && typeof v === 'string' && v) notes[k] = v;
+  return {
+    id: sid, name: st.name, color: st.color, detail: st.detail === 'abstract' ? 'abstract' : 'full', fallen: !!st.fallen,
+    kingdom: st.kingdom ? s.kingdoms?.[st.kingdom]?.name || st.kingdom : null, people, leader: leaderOf(g, sid), laws: codeOf(g, sid),
+    unrest: unrestOf(g, sid), ...memoriesOf(g, sid), petitions: petitionsOf(g, sid), notes, goods, met,
+  };
+}
+
+/** The god's view for a side panel: open prayers, the latest outcome cards, world laws (active ones, and every law
+ *  with its values for a switch), deaths by cause, and the animal and monster kinds a power can send. */
+export function godReport(g) {
+  return {
+    petitions: petitionsOf(g), cards: outcomeCards(g).slice(0, 8), active: activeLaws(g),
+    laws: g.reg.all('worldLaw').map((L) => ({ id: L.id, name: L.name, values: L.values.map((v) => ({ id: v.id, name: v.name })) })),
+    deaths: { ...(g.s.stats?.deaths || {}) }, dead: Object.keys(g.s.dead || {}).length, people: Object.keys(g.s.colonists).length,
+    animals: g.reg.all('animal').map((d) => ({ id: d.id, name: d.name, herd: d.herd })), monsters: g.reg.all('monster').map((d) => ({ id: d.id, name: d.name })),
+  };
 }

@@ -26,7 +26,7 @@ import { evaluateOffer } from './villages.js';
 import { canFound } from './founding.js';
 import { explainColonist } from './explain.js';
 import { TICKS_PER_HOUR } from './constants.js';
-import { moversFrame, changedChunks, logSince, areaSnapshot, worldSummary, overlays, territorySince } from './view.js';
+import { moversFrame, changedChunks, logSince, areaSnapshot, worldSummary, overlays, territorySince, villageReport, godReport } from './view.js';
 
 export const TICKS_PER_SECOND = 60; // at 1x, as the browser has always run
 const STEP_MS = 1000 / 60;          // the host's loop: one step a frame
@@ -64,6 +64,8 @@ export const QUERIES = {
   area: (g, m) => areaSnapshot(g, m.x0, m.y0, m.w, m.h),
   world: (g) => worldSummary(g),
   overlays: (g) => overlays(g),
+  village: (g, m) => villageReport(g, m.sid),
+  god: (g) => godReport(g),
 };
 
 /**
