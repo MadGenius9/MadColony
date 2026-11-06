@@ -71,7 +71,24 @@ was changed (each a small, measured step), and what is left for the playtest at 
     that did not happen before). One seed, so an association: sieges still kill, now by hunger as well.
   - **And food** (the owner, the same day: "they should grab food too"): combat.js `eatHere`, the same rule for
     critical hunger and the food they would eat (findFood: meals first) within `WELL_NEAR` tiles; it is eaten on
-    the spot. Measured: see the next line once the replay is in.
+    the spot.
+  - **Fighters with critical thirst or hunger fall back, as wounded ones do** (combat.js; same day). Traced on seed
+    3, day 108: New First Hearth's fighters spent hours in melee with a target that kept moving and healing, ten
+    tiles from water, and seven died of thirst over days 110–113; replayed with the change, nobody there died in
+    six days. A small extension of the owner's rule, flagged for review.
+  - **Everything together** (the same worlds replayed):
+
+    | | Deaths | Thirst | Hunger |
+    |---|---|---|---|
+    | Seed 3, 150 days: before today's changes | 8 | 6 | 0 |
+    | Seed 3: well only | 12 | 4 | 4 |
+    | Seed 3: well and food | 13 | 9 | 0 |
+    | Seed 3: well, food, fighters fall back | 13 | 4 | 1 |
+    | Seed 7, 190 days: before today's changes | 60 | 27 | 19 |
+    | Seed 7: all changes | 23 | 10 | 5 |
+
+    Each change sends the world down another course after the first war it touches, so single runs are noisy;
+    seed 7's total fell from 60 to 23, and seed 3 stays near its low starting count.
 
 ## Found, not changed (for the playtest)
 - **Thirst under siege.** In the 300-day World run (seed 7), 14 died of thirst; in a later run of the same seed, 2,
