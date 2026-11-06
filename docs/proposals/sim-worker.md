@@ -151,3 +151,11 @@ messages, not against `g`.
   the Living world; at Max speed the Living world ran 1,749 ticks a second (about 29× real time) while frames kept
   coming. Bless and lightning went through preview, confirm and the command queue. No console errors; the page
   fits a 400-pixel-wide screen.
+- **Added the same day (2026-11-06):** tabs for villages, god and chronicle; a village inspector from the new `query`
+  kinds `village` and `god` (view.js `villageReport`, `godReport`): simulation detail, leader, unrest, plan notes,
+  people with mood, job, traits, partner and sickness (a person's goal, mood reasons and needs on click), goods,
+  laws, memories and traditions, neighbours; for the player's village, law switches (`setCivLaw`) and an attack plan
+  (`evaluateAttack`, then `orderAttack`). The god tab: prayers with the powers that answer them, outcome cards,
+  world-law switches, deaths by cause, and 17 powers (shape land with 11 brushes, animals and monsters by kind,
+  smite from a person's card). Saves in three browser slots (IndexedDB; a Living world save at day 12 is 0.7 MB).
+  These panels are a working sketch of what Phase 17's inspector needs, built only from the messages.
