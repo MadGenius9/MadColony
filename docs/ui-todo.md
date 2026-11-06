@@ -577,3 +577,11 @@ All reads are in `src/sim/chronicle.js`; none changes the game except follow and
   x, y, the tile the step started from and its progress, so the UI can draw people between tiles and face them
   the way they walk. The log mirror must keep its own cap: the
   game trims routine lines out of the middle (chronicle.js `trimLog`), so it is not a plain append-only list.
+
+## Marches and fights (Phase 16 balance, 2026-11-06)
+- The attack dialog's risks (`evaluateAttack(...).risks`) can include "X is N tiles away: a long march, and your
+  fighters may run short of water and food on the way" when the target is beyond `COMBAT.raidReach` (80 tiles).
+- A fighter's status can read "Interrupted: Water is critical (no enemy near)" on a march or a retreat; the job
+  text comes from the sim already.
+- People of a village simulated at a distance are no longer fought one by one; nothing to show, but a hover card
+  on such a person need not offer them as a target.

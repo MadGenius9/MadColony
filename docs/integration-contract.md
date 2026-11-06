@@ -293,3 +293,5 @@ last 500 lines. There is no settlement field on an entry; see section 6.
 5. **The simulation in a worker** (proposed 2026-11-05, `docs/proposals/sim-worker.md`): the engine side is built
    (`src/sim/simhost.js`, `view.js`, `worker.js`). The direct calls in 3b are reachable through its `call` message
    (`CALLS`). Should the UI move to it, first behind the in-thread host, then in the worker?
+   Since 2026-11-06 it also has `follow` (the chronicle's follow list) and the `query` kinds `village` and `god`
+   (`src/sim/view.js villageReport`, `godReport`), used by the test viewer in `tools/viewer/`.
