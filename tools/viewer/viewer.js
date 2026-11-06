@@ -309,7 +309,9 @@ function renderInspector() {
   const met = v.met.length ? v.met.map((o) => `<span class="chip${o.war ? ' war' : ''}">${esc(o.name)} · ${o.war ? 'at war' : esc(o.status)} ${o.value > 0 ? '+' : ''}${o.value}</span>`).join('') : '<span class="muted">Has not met another village.</span>';
   const goods = v.goods.length ? v.goods.map((x) => `<span class="chip">${esc(x.name)} ${x.n}</span>`).join('') : '<span class="muted">Nothing in store.</span>';
   const pray = v.petitions.map((p) => `<p style="margin:0">Praying: <strong>${esc(p.name)}</strong> (${p.daysLeft} d left)</p>`).join('');
+  const vf = (god?.follow || []).includes('v:' + v.id);
   el.innerHTML = `<h2><span>${esc(v.name)}</span><span>${v.people.length} people</span></h2>
+    <div class="row" style="display:flex;gap:6px"><button type="button" data-followv="${esc(v.id)}" data-on="${vf ? '0' : '1'}">${vf ? '★ Following' : '☆ Follow in the chronicle'}</button></div>
     <dl class="facts">
       <dt>Simulated</dt><dd>${v.fallen ? 'fallen to ruins' : v.detail === 'abstract' ? 'at a distance (summed up hourly)' : 'in full, person by person'}</dd>
       <dt>Leader</dt><dd>${v.leader ? `${esc(v.leader.name)}${v.leader.rule ? ` (${esc(v.leader.rule)})` : ''}` : '<span class="muted">none</span>'}</dd>
@@ -344,9 +346,16 @@ function personBox(r) {
     ${e.blocker ? `<div style="color:var(--danger)"><strong>Stuck:</strong> ${esc(e.blocker)}</div>` : ''}
     <div><strong>Mood</strong> ${m.value ?? 0} (${esc(m.level || '')}, heading to ${m.target ?? 0})</div>
     <div class="chips">${thoughts}</div><div class="chips">${needs}</div>
-    <div class="row" style="display:flex;gap:6px"><button type="button" class="danger" data-smite="${esc(r.colonist.id)}">Smite</button><button type="button" data-follow="${esc(r.colonist.id)}">Find on map</button></div></div>`;
+    <div class="row" style="display:flex;gap:6px"><button type="button" data-followp="${esc(r.colonist.id)}">${(god?.follow || []).includes('p:' + r.colonist.id) ? '★ Following' : '☆ Follow'}</button><button type="button" class="danger" data-smite="${esc(r.colonist.id)}">Smite</button><button type="button" data-follow="${esc(r.colonist.id)}">Find on map</button></div></div>`;
 }
 $('inspector').addEventListener('click', (e) => {
+  const fv = e.target.closest('[data-followv]'), fp = e.target.closest('[data-followp]');
+  if (fv || fp) {
+    const subject = fv ? 'v:' + fv.dataset.followv : 'p:' + fp.dataset.followp;
+    const on = !(god?.follow || []).includes(subject);
+    ask({ type: 'call', fn: 'follow', args: [subject, on] }).then((r) => { toast(r?.ok ? (on ? 'Following: their events are starred in the chronicle.' : 'No longer following.') : r?.message || 'Could not follow.', !r?.ok); poll(); });
+    return;
+  }
   const sm = e.target.closest('[data-smite]');
   if (sm) { showTab('god'); previewPower('smite', { colonistId: sm.dataset.smite }); return; }
   const fo = e.target.closest('[data-follow]');
@@ -431,14 +440,30 @@ $('villages').addEventListener('click', (e) => { const b = e.target.closest('.vr
 
 function addLog(entries) {
   for (const e of entries) log.push(e);
-  if (log.length > 300) log = log.slice(-300);
-  $('logcount').textContent = `${log.length} lines`;
-  $('log').innerHTML = log.slice(-120).reverse().map((e) => {
-    const d = Math.floor(e.t / TICKS_PER_DAY) + 1, h = Math.floor((e.t % TICKS_PER_DAY) / 100);
-    const cls = e.cat === 'warn' ? 'warn' : e.cat === 'death' ? 'death' : e.id ? 'ev' : '';
-    return `<div class="${cls}"><time>d${d} ${String(h).padStart(2, '0')}h</time><span>${esc(e.msg)}</span></div>`;
-  }).join('');
+  if (log.length > 600) log = log.slice(-600); // the viewer keeps its own cap (the game trims its log its own way)
+  renderLog();
 }
+const followed = (e) => (god?.follow || []).some((f) => (f[0] === 'v' && e.sids?.includes(f.slice(2))) || (f[0] === 'p' && e.cids?.includes(f.slice(2))));
+function renderLog() {
+  const f = $('logFilter').value;
+  const keep = (e) => (f === 'events' ? !!e.id : f === 'village' ? !!selected && e.sids?.includes(selected) : f === 'followed' ? followed(e) : true);
+  const shown = log.filter(keep);
+  $('logcount').textContent = `${shown.length} of ${log.length} lines`;
+  $('log').innerHTML = shown.slice(-150).reverse().map((e) => {
+    const d = Math.floor(e.t / TICKS_PER_DAY) + 1, h = Math.floor((e.t % TICKS_PER_DAY) / 100);
+    const cls = [e.cat === 'warn' ? 'warn' : e.cat === 'death' ? 'death' : e.id ? 'ev' : '', e.at || e.sids?.length ? 'go' : '', followed(e) ? 'fol' : ''].join(' ');
+    const at = e.at ? `${e.at.x},${e.at.y}` : '';
+    return `<div class="${cls}" data-at="${esc(at)}" data-sid="${esc(e.sids?.[0] || '')}"><time>d${d} ${String(h).padStart(2, '0')}h</time><span>${esc(e.msg)}</span></div>`;
+  }).join('') || '<div class="empty" style="display:block">Nothing to show with this filter yet.</div>';
+}
+$('logFilter').addEventListener('change', renderLog);
+$('log').addEventListener('click', (e) => {
+  const row = e.target.closest('.go');
+  if (!row) return;
+  if (row.dataset.at) { const [x, y] = row.dataset.at.split(',').map(Number); centerOn(x, y, 6); }
+  else if (row.dataset.sid) { const v = villages.find((x) => x.id === row.dataset.sid); if (v?.center) centerOn(v.center.x, v.center.y, 4); }
+  if (row.dataset.sid) { selected = row.dataset.sid; renderVillages(); poll(); }
+});
 
 let toastTimer = 0;
 function toast(text, bad = false) { const t = $('toast'); t.textContent = text; t.className = 'toast' + (bad ? ' err' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.textContent = ''; }, 6000); }

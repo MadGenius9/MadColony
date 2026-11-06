@@ -191,5 +191,6 @@ export function godReport(g) {
     laws: g.reg.all('worldLaw').map((L) => ({ id: L.id, name: L.name, values: L.values.map((v) => ({ id: v.id, name: v.name })) })),
     deaths: { ...(g.s.stats?.deaths || {}) }, dead: Object.keys(g.s.dead || {}).length, people: Object.keys(g.s.colonists).length,
     animals: g.reg.all('animal').map((d) => ({ id: d.id, name: d.name, herd: d.herd })), monsters: g.reg.all('monster').map((d) => ({ id: d.id, name: d.name })),
+    follow: [...(g.s.chronicle?.follow || [])], // what the player follows in the chronicle ('v:id', 'p:id', 'f:id')
   };
 }

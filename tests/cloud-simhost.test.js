@@ -189,6 +189,9 @@ test('village and god reports for an inspector, without changing the game', () =
   assert.ok(god.laws.length >= 1 && god.laws.every((L) => L.values.length >= 2));
   assert.ok(god.animals.length >= 1 && Array.isArray(god.cards) && Array.isArray(god.petitions));
   assert.equal(stateText(g), before, 'reading changes nothing');
+  assert.equal(h.ask({ type: 'call', fn: 'follow', args: ['v:' + p, true] }).value.ok, true);
+  assert.deepEqual(h.ask({ type: 'query', kind: 'god' }).value.follow, ['v:' + p]);
+  assert.equal(h.ask({ type: 'call', fn: 'follow', args: ['nonsense', true] }).value.ok, false);
 });
 
 test('calls, queries and errors', () => {

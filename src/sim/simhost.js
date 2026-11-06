@@ -25,6 +25,7 @@ import { evaluateAttack, orderAttack } from './combat.js';
 import { evaluateOffer } from './villages.js';
 import { canFound } from './founding.js';
 import { explainColonist } from './explain.js';
+import { follow } from './chronicle.js';
 import { TICKS_PER_HOUR } from './constants.js';
 import { moversFrame, changedChunks, logSince, areaSnapshot, worldSummary, overlays, territorySince, villageReport, godReport } from './view.js';
 
@@ -45,6 +46,7 @@ export const CALLS = {
   orderAttack: { fn: orderAttack, sids: [0, 1] },
   evaluateOffer: { fn: evaluateOffer, sids: [0] },
   canFound: { fn: canFound, sids: [0] },
+  follow: { fn: follow, sids: [] }, // (subject 'v:id' | 'p:id' | 'f:id', on): the chronicle's follow list (chronicle.js)
 };
 
 /** Names that reach an object's prototype when used as a key (`s.settlements['__proto__']`): refused anywhere in
