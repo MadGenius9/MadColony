@@ -55,3 +55,16 @@ test('the attack plan warns of a long march', async () => {
   g.s.settlements[a].center = { x: c.x + COMBAT.raidReach + 5, y: c.y };
   assert.ok(evaluateAttack(g, p, a).risks.some((r) => r.includes('long march')));
 });
+
+test('people of a village simulated at a distance are not fought one by one', async () => {
+  const { nearestEnemy, COMBAT_DRIVERS } = await import('../src/sim/combat.js');
+  const { g, p, a } = hostile();
+  const mine = g.owned('colonists', p)[0], theirs = g.owned('colonists', a)[0];
+  theirs.x = mine.x + 1; theirs.y = mine.y; // right beside
+  assert.equal(nearestEnemy(g, mine, 5)?.id, theirs.id, 'in full detail: an enemy');
+  g.s.settlements[a].detail = 'abstract';
+  assert.equal(nearestEnemy(g, mine, 5), null, 'summed up hourly at a distance: not fought');
+  // A fight already under way with such a person ends (saves made before the change).
+  const job = { type: 'fight', targetId: theirs.id, stage: 'fight', res: [] };
+  assert.equal(COMBAT_DRIVERS.fight.tick(g, mine, job), 'done');
+});

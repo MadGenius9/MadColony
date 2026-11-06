@@ -119,13 +119,16 @@ export function coverBetween(g, sx, sy, tx, ty) {
   return best;
 }
 
-/** Nearest enemy (not collapsed) within `range` tiles of c, or null. */
+/** Nearest enemy (not collapsed) within `range` tiles of c, or null. Only people simulated in full can be fought
+ *  one by one: a distant (abstract) village's people are summed up hourly and healed there (lod.js), so a fight
+ *  with one never ended and the fighter died of thirst in it (Phase 16 notes). A village under attack by one
+ *  simulated in full is brought to full detail at the next level-of-detail check (lod.js attackedByFull). */
 export function nearestEnemy(g, c, range = COMBAT.engageRange) {
   const sid = sidOf(g, c);
   // The settlements it is at war with, once per call (O(villages) relation lookups instead of one per colonist);
   // none: no enemy anywhere. The same answer as testing every colonist's settlement.
   let foes = null;
-  for (const o of Object.keys(g.s.settlements || {})) if (isEnemy(g, sid, o)) (foes ||= new Set()).add(o);
+  for (const o of Object.keys(g.s.settlements || {})) if (g.s.settlements[o].detail !== 'abstract' && isEnemy(g, sid, o)) (foes ||= new Set()).add(o);
   if (!foes) return null;
   // Only the enemies' people (their village indexes; was everyone in the world, for every fighter: the scale
   // target). Ties go to the lower id number: the first in Object.values(s.colonists) order, as before.
@@ -179,6 +182,7 @@ export const COMBAT_DRIVERS = {
       }
       const t = g.s.colonists[j.targetId];
       if (!t || isDown(t) || !isEnemy(g, sidOf(g, c), sidOf(g, t))) return 'done';
+      if (settlementOf(g, sidOf(g, t))?.detail === 'abstract') return 'done'; // summed up at a distance: not fought (nearestEnemy)
       const w = weaponOf(g, c);
       const d = Math.hypot(t.x - c.x, t.y - c.y);
       if (j.cover) { // moving into a covered firing spot
