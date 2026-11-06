@@ -55,7 +55,7 @@ function ask(msg) {
   return new Promise((resolve) => { pending.set(id, resolve); send({ ...msg, id }); });
 }
 
-async function start() {
+async function start(saveText = null) {
   $('start').disabled = true;
   $('start').textContent = 'Creating…';
   setSplash('Creating the world…', 'Planet-sized worlds take a few seconds to generate.');
@@ -68,7 +68,9 @@ async function start() {
     log = []; area = null; overlays = null; villages = []; selected = null; movers = { ids: [], pos: new Float32Array(0) };
     const sc = SCENARIOS[$('scenario').value];
     const seed = Math.max(1, Math.floor(Number($('seed').value) || 7));
-    send({ type: 'init', packages, enabled: ['core'], opts: { seed, sandbox: $('sandbox').checked, ...sc }, id: nextId++ });
+    report = null; god = null; personFor = null; delete $('laws').dataset.built;
+    if (saveText) send({ type: 'init', packages, enabled: ['core'], save: saveText, id: nextId++ });
+    else send({ type: 'init', packages, enabled: ['core'], opts: { seed, sandbox: $('sandbox').checked, ...sc }, id: nextId++ });
   } catch (e) {
     setSplash('Could not load the game data', String(e.message || e));
     $('start').disabled = false; $('start').textContent = 'Create world';
@@ -82,7 +84,7 @@ function onMessage(m) {
     terrCanvas = new OffscreenCanvasOr(W, H); terrImg = terrCanvas.ctx.createImageData(W, H);
     owners = null; ownerIds = [];
     $('splash').hidden = true;
-    $('start').disabled = false; $('start').textContent = 'New world';
+    $('start').disabled = false; $('start').textContent = 'New world'; $('saveBtn').disabled = false;
     fitView();
     setSpeed(1);
     return;
@@ -107,7 +109,7 @@ function onFrame(f) {
   if (f.area) area = f.area;
   if (f.overlays) overlays = f.overlays;
   if (f.log?.length) addLog(f.log);
-  const behind = speed > 0 && f.tps > 0 && f.tps < 60 * speed * 0.85;
+  const behind = speed > 0 && speed <= 16 && f.tps > 0 && f.tps < 60 * speed * 0.85; // Max means as fast as it goes
   $('clock').innerHTML = `<span>${esc(f.clock)}</span><span class="${behind ? 'behind' : ''}">${speed ? `${f.tps || '…'} ticks/s` : 'paused'}</span>`;
   $('favour').textContent = f.favour === null ? '' : `favour ${Math.floor(f.favour)}`;
 }
@@ -277,15 +279,114 @@ function renderVillages() {
   $('vcount').textContent = `${list.filter((v) => !v.fallen).length} standing · ${list.reduce((n, v) => n + v.people, 0)} people`;
   $('villages').innerHTML = list.map((v) => `<button type="button" class="vrow${v.id === selected ? ' sel' : ''}${v.fallen ? ' fallen' : ''}" data-sid="${esc(v.id)}">
     <span class="sw" style="background:${esc(v.color || '#888888')}"></span><span class="nm">${esc(v.name)}</span><span class="ct">${v.people}${v.detail === 'abstract' ? ' · far' : ''}</span></button>`).join('') || '<div class="empty">No villages.</div>';
-  renderDetail();
+  $('selName').textContent = villages.find((x) => x.id === selected)?.name || '(none selected)';
 }
-function renderDetail() {
-  const v = villages.find((x) => x.id === selected);
-  if (!v) { $('detail').innerHTML = 'Click a village on the map or in the list.'; return; }
-  $('detail').innerHTML = `<strong>${esc(v.name)}</strong> · ${v.people} people · ${v.fallen ? 'fallen to ruins' : v.detail === 'abstract' ? 'simulated at a distance' : 'simulated in full'}${v.kingdom ? ` · in a kingdom` : ''}`;
+
+// ---------------------------------------------------------------- the inspector and the god panel (asked once a second)
+let report = null, god = null, person = null, personFor = null, openDetails = new Set(['people']);
+const NOTE_NAMES = { moodNote: 'Mood', huntNote: 'Food from hunting', monsterNote: 'Monsters', forestNote: 'Trees', waterNote: 'Water', penNote: 'Livestock', cartNote: 'Carts', clothNote: 'Clothing' };
+async function poll() {
+  if (!worker || !W) return;
+  if (selected) { report = await ask({ type: 'query', kind: 'village', sid: selected }); renderInspector(); }
+  if (personFor) { person = await ask({ type: 'query', kind: 'colonist', cid: personFor }); renderInspector(); }
+  god = await ask({ type: 'query', kind: 'god' }); renderGod();
 }
+setInterval(poll, 1000);
+
+function renderInspector() {
+  const v = report, el = $('inspector');
+  if (!v) { el.innerHTML = '<div class="empty">Click a village on the map or in the list.</div>'; return; }
+  for (const d of el.querySelectorAll('details')) (d.open ? openDetails.add(d.dataset.k) : openDetails.delete(d.dataset.k));
+  const sec = (k, title, body) => `<details data-k="${k}"${openDetails.has(k) ? ' open' : ''}><summary>${esc(title)}</summary><div>${body}</div></details>`;
+  const ppl = v.people.map((c) => `<button type="button" class="person" data-cid="${esc(c.id)}">
+      <span class="nm">${esc(c.name)}${c.sick ? ' · sick' : ''}</span><span class="mood ${esc(c.level)}">${c.mood > 0 ? '+' : ''}${c.mood}</span>
+      <span class="doing">${esc(c.age)} · ${esc(c.doing || c.job || 'idle')}${c.partner ? ` · with ${esc(c.partner)}` : ''}${c.traits.length ? ` · ${esc(c.traits.join(', '))}` : ''}</span></button>
+      ${personFor === c.id && person ? personBox(person) : ''}`).join('');
+  const notes = Object.entries(v.notes).map(([k, n]) => `<p class="muted" style="margin:0"><strong>${esc(NOTE_NAMES[k] || cap(k.replace(/Note$/, '')))}:</strong> ${esc(n)}</p>`).join('');
+  const laws = v.laws.length ? v.laws.map((L) => `<span class="chip">${esc(L.name)}: ${esc(L.optionName || L.option)}</span>`).join('') : '<span class="muted">Every law at its default.</span>';
+  const mem = [...v.memories.map((m) => `<span class="chip">${esc(m.name)} · ${m.daysLeft} d</span>`), ...v.traditions.map((x) => `<span class="chip" title="${esc(x.about)}">Tradition: ${esc(x.name)}</span>`)].join('') || '<span class="muted">Nothing remembered yet.</span>';
+  const met = v.met.length ? v.met.map((o) => `<span class="chip${o.war ? ' war' : ''}">${esc(o.name)} · ${o.war ? 'at war' : esc(o.status)} ${o.value > 0 ? '+' : ''}${o.value}</span>`).join('') : '<span class="muted">Has not met another village.</span>';
+  const goods = v.goods.length ? v.goods.map((x) => `<span class="chip">${esc(x.name)} ${x.n}</span>`).join('') : '<span class="muted">Nothing in store.</span>';
+  const pray = v.petitions.map((p) => `<p style="margin:0">Praying: <strong>${esc(p.name)}</strong> (${p.daysLeft} d left)</p>`).join('');
+  el.innerHTML = `<h2><span>${esc(v.name)}</span><span>${v.people.length} people</span></h2>
+    <dl class="facts">
+      <dt>Simulated</dt><dd>${v.fallen ? 'fallen to ruins' : v.detail === 'abstract' ? 'at a distance (summed up hourly)' : 'in full, person by person'}</dd>
+      <dt>Leader</dt><dd>${v.leader ? `${esc(v.leader.name)}${v.leader.rule ? ` (${esc(v.leader.rule)})` : ''}` : '<span class="muted">none</span>'}</dd>
+      ${v.kingdom ? `<dt>Kingdom</dt><dd>${esc(v.kingdom)}</dd>` : ''}
+      <dt>Unrest</dt><dd>${v.unrest.on ? `<span style="color:var(--danger)">yes: ${v.unrest.unhappy} of ${v.unrest.adults} adults unhappy</span>` : `${v.unrest.unhappy} of ${v.unrest.adults} adults unhappy`}</dd>
+    </dl>
+    ${pray}${notes}
+    ${sec('people', `People (${v.people.length})`, `<div class="people">${ppl || '<span class="muted">Nobody lives here.</span>'}</div>`)}
+    ${sec('goods', 'Goods', `<div class="chips">${goods}</div>`)}
+    ${sec('laws', 'Laws', `<div class="chips">${laws}</div>`)}
+    ${sec('memories', 'Memories and traditions', `<div class="chips">${mem}</div>`)}
+    ${sec('met', 'Neighbours', `<div class="chips">${met}</div>`)}`;
+}
+function personBox(r) {
+  if (!r?.colonist) return '';
+  const e = r.explain || {}, m = e.mood || {};
+  const thoughts = (m.thoughts || []).map((x) => `<span class="chip">${esc(x.name)} ${x.value > 0 ? '+' : ''}${x.value}</span>`).join('');
+  const needs = Object.entries(r.colonist.needs || {}).map(([k, val]) => `<span class="chip">${esc(k.replace(/^core:/, ''))} ${Math.round(val * 100)}%</span>`).join('');
+  return `<div class="explain">
+    ${e.goal ? `<div><strong>Goal:</strong> ${esc(e.goal)}</div>` : ''}${e.action ? `<div><strong>Doing:</strong> ${esc(e.action)}</div>` : ''}
+    ${e.blocker ? `<div style="color:var(--danger)"><strong>Stuck:</strong> ${esc(e.blocker)}</div>` : ''}
+    <div><strong>Mood</strong> ${m.value ?? 0} (${esc(m.level || '')}, heading to ${m.target ?? 0})</div>
+    <div class="chips">${thoughts}</div><div class="chips">${needs}</div>
+    <div class="row" style="display:flex;gap:6px"><button type="button" class="danger" data-smite="${esc(r.colonist.id)}">Smite</button><button type="button" data-follow="${esc(r.colonist.id)}">Find on map</button></div></div>`;
+}
+$('inspector').addEventListener('click', (e) => {
+  const sm = e.target.closest('[data-smite]');
+  if (sm) { showTab('god'); previewPower('smite', { colonistId: sm.dataset.smite }); return; }
+  const fo = e.target.closest('[data-follow]');
+  if (fo) { const k = movers.ids.indexOf('c:' + fo.dataset.follow); if (k >= 0) { const o = k * MOVER_STRIDE; centerOn(movers.pos[o], movers.pos[o + 1], 8); } return; }
+  const b = e.target.closest('.person');
+  if (b) { personFor = personFor === b.dataset.cid ? null : b.dataset.cid; person = null; poll(); }
+});
+$('inspector').addEventListener('toggle', (e) => { const d = e.target; if (d.dataset?.k) (d.open ? openDetails.add(d.dataset.k) : openDetails.delete(d.dataset.k)); }, true);
+
+function renderGod() {
+  if (!god) return;
+  const n = god.petitions.length;
+  $('prayerBadge').hidden = !n; $('prayerBadge').textContent = n;
+  $('prayerCount').textContent = n ? `${n} open` : '';
+  $('prayers').innerHTML = n ? god.petitions.map((p) => `<div class="item"><div><strong>${esc(p.village)}</strong> prays: ${esc(p.name)}</div>
+      <div class="meta">${p.daysLeft} days left · answered by ${esc((p.answers || []).map((a) => (a.brush ? `Shape land (${a.brush})` : POWER_NAMES[a.power] || a.power)).join(' or ') || 'a power')}</div>
+      <div class="row"><button type="button" data-goto="${esc(p.sid)}">Show village</button></div></div>`).join('') : '<div class="empty">No village is praying right now.</div>';
+  $('cards').innerHTML = god.cards.length ? god.cards.map((c) => {
+    const rows = Object.entries(c.changes || {}).map(([sid, ch]) => {
+      const name = villages.find((v) => v.id === sid)?.name || sid;
+      const cells = Object.keys(ch.before || {}).map((k) => { const a = ch.before[k], b = ch.after?.[k]; const cls = b > a ? 'up' : b < a ? 'down' : ''; return `<span>${esc(name)} · ${esc(k)}</span><span class="${cls}">${fmtN(a)} → ${fmtN(b)}</span>`; }).join('');
+      return cells + (ch.died ? `<span>${esc(name)} · died</span><span class="down">${ch.died}</span>` : '');
+    }).join('');
+    return `<div class="item"><div>${esc(c.effect || c.type)}</div><div class="meta">${esc(POWER_NAMES[c.type] || c.type)} on day ${Math.floor(c.t / TICKS_PER_DAY) + 1} · changes that followed (not all caused by it)</div><div class="change">${rows}</div></div>`;
+  }).join('') : '<div class="empty">Three days after a power, its outcome appears here.</div>';
+  if (!$('laws').dataset.built) {
+    $('laws').innerHTML = god.laws.map((L) => `<label for="law-${esc(L.id)}">${esc(L.name)}</label><select id="law-${esc(L.id)}" data-law="${esc(L.id)}">${L.values.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join('')}</select>`).join('');
+    $('laws').dataset.built = '1';
+    fillKinds();
+  }
+  for (const L of god.laws) { const sel = document.getElementById('law-' + L.id); const act = god.active.find((a) => a.id === L.id); if (sel && document.activeElement !== sel) sel.value = act ? act.value : L.values[0].id; }
+  $('deadCount').textContent = god.dead ? `${god.dead} of ${god.dead + god.people} ever lived` : '';
+  const causes = Object.entries(god.deaths).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  $('deaths').innerHTML = causes.length ? `<div class="chips">${causes.map(([k, n]) => `<span class="chip">${esc(k)} ${n}</span>`).join('')}</div>` : 'Nobody has died yet.';
+}
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtN = (x) => (typeof x === 'number' ? (Math.round(x * 10) / 10).toString() : '–');
+function fillKinds() {
+  $('animalKind').innerHTML = god.animals.map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+  $('monsterKind').innerHTML = god.monsters.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
+}
+$('laws').addEventListener('change', (e) => { const s = e.target.closest('[data-law]'); if (s) previewPower('law', { law: s.dataset.law, value: s.value }); });
+$('prayers').addEventListener('click', (e) => { const b = e.target.closest('[data-goto]'); if (b) { select(b.dataset.goto, true); } });
+function centerOn(x, y, scale) { if (scale && view.scale < scale) view.scale = scale; view.x = x - cssW() / view.scale / 2; view.y = y - cssH() / view.scale / 2; sendCamera(); }
+function showTab(name) {
+  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+  for (const p of ['village', 'god', 'log']) $('pane-' + p).hidden = p !== name;
+}
+document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
 function select(sid, center = false) {
-  selected = sid; renderVillages();
+  if (selected !== sid) { report = null; personFor = null; person = null; }
+  selected = sid; renderVillages(); renderInspector(); showTab('village'); poll();
   const v = villages.find((x) => x.id === sid);
   if (center && v?.center) { view.x = v.center.x - cssW() / view.scale / 2; view.y = v.center.y - cssH() / view.scale / 2; if (view.scale < 3) zoomAt(4 / view.scale); else sendCamera(); }
 }
@@ -311,9 +412,18 @@ function setSpeed(v) { if (!worker) return; send({ type: 'speed', speed: v }); m
 $('speeds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setSpeed(Number(b.dataset.speed)); });
 
 // ---------------------------------------------------------------- god powers: preview, then confirm
-const POWER_NAMES = { bless: 'Bless', inspire: 'Inspire', plague: 'Plague', rain: 'Rain', drought: 'Drought', lightning: 'Lightning', fire: 'Fire', meteor: 'Meteor' };
+const POWER_NAMES = { bless: 'Bless', inspire: 'Inspire', plague: 'Plague', rain: 'Rain', drought: 'Drought', lightning: 'Lightning', fire: 'Fire', meteor: 'Meteor', tornado: 'Tornado', quake: 'Quake', banish: 'Banish', animals: 'Animals', monster: 'Monster', smite: 'Smite', law: 'World law', shape: 'Shape land' };
 let aimHover = null;
+/** The arguments of a power aimed at tile t (the extra ones some powers take). */
+function tileArgs(power, t) {
+  const a = { x: t.x, y: t.y };
+  if (power === 'animals') { const d = god?.animals.find((x) => x.id === $('animalKind').value); a.species = $('animalKind').value; a.count = Math.max(2, Math.min(d?.herd?.[1] ?? 4, 4)); a.mode = 'herd'; }
+  if (power === 'monster') a.species = $('monsterKind').value;
+  if (power === 'shape') { a.brush = $('brush').value; a.r = 4; }
+  return a;
+}
 async function previewPower(power, args) {
+  showTab('god');
   const r = await ask({ type: 'preview', power, args });
   const p = r?.preview;
   const bad = !r?.ok && !r?.needsConfirm;
@@ -377,7 +487,11 @@ canvas.addEventListener('pointerup', (e) => {
   drag = null;
   const t = toTile(e.offsetX, e.offsetY);
   if (t.x < 0 || t.y < 0 || t.x >= W || t.y >= H) return;
-  if (aiming) { const power = aiming; aiming = null; showHint(null); previewPower(power, { x: t.x, y: t.y }); return; }
+  if (aiming) { const power = aiming; aiming = null; showHint(null); previewPower(power, tileArgs(power, t)); return; }
+  if (area && view.scale >= 2.5) { // zoomed in: a person under the pointer opens their card
+    const near = area.people.find((c) => Math.abs(c.x - t.x) <= 0.5 && Math.abs(c.y - t.y) <= 0.5);
+    if (near) { select(near.settlementId); personFor = near.id; openDetails.add('people'); poll(); return; }
+  }
   const k = owners ? owners[t.y * W + t.x] : 0xffff;
   let sid = k !== 0xffff ? ownerIds[k] : null;
   if (!sid) { // nearest village centre within 24 tiles (games without organic territory)
@@ -390,7 +504,45 @@ canvas.addEventListener('pointercancel', (e) => { touches.delete(e.pointerId); d
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.offsetX, e.offsetY); }, { passive: false });
 $('zin').onclick = () => zoomAt(1.6); $('zout').onclick = () => zoomAt(1 / 1.6); $('zfit').onclick = () => W && fitView();
 window.addEventListener('resize', () => { resize(); sendCamera(); });
-$('start').onclick = start;
+$('start').onclick = () => start();
+
+// ---------------------------------------------------------------- saves, in this browser only (IndexedDB)
+function idb() {
+  return new Promise((res, rej) => { const r = indexedDB.open('world-watch', 1); r.onupgradeneeded = () => r.result.createObjectStore('saves'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+}
+async function idbDo(mode, fn) {
+  const db = await idb();
+  return new Promise((res, rej) => { const tx = db.transaction('saves', mode), q = fn(tx.objectStore('saves')); tx.oncomplete = () => res(q?.result); tx.onerror = () => rej(tx.error); });
+}
+async function slotLabels() {
+  try {
+    for (const o of $('slot').options) {
+      const s = await idbDo('readonly', (st) => st.get('slot' + o.value));
+      o.textContent = s ? `${o.value}: ${s.label}` : `${o.value}: empty`;
+    }
+  } catch { /* storage blocked: the slots stay unlabelled */ }
+}
+$('saveBtn').onclick = async () => {
+  if (!worker || !W) return;
+  $('saveBtn').disabled = true;
+  try {
+    const text = await ask({ type: 'save' });
+    if (typeof text !== 'string') throw new Error('the game could not be saved');
+    const label = `${$('clock').textContent.split(',')[0]} · ${$('scenario').selectedOptions[0].textContent.split(':')[0]}`;
+    await idbDo('readwrite', (st) => st.put({ text, label, at: Date.now() }, 'slot' + $('slot').value));
+    toast(`Saved to slot ${$('slot').value} (${(text.length / 1e6).toFixed(1)} MB, in this browser only).`);
+    slotLabels();
+  } catch (e) { toast(`Not saved: ${e.message || e}`, true); }
+  $('saveBtn').disabled = false;
+};
+$('loadBtn').onclick = async () => {
+  try {
+    const s = await idbDo('readonly', (st) => st.get('slot' + $('slot').value));
+    if (!s) { toast(`Slot ${$('slot').value} is empty.`, true); return; }
+    start(s.text);
+  } catch (e) { toast(`Could not load: ${e.message || e}`, true); }
+};
+slotLabels();
 
 function setSplash(h, p) { const s = $('splash'); s.hidden = false; s.innerHTML = `<h1>${esc(h)}</h1><p>${esc(p)}</p>`; }
 

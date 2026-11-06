@@ -105,6 +105,36 @@ button.on { background: var(--ink); color: var(--panel); border-color: var(--ink
 .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; box-shadow: 0 0 0 1px var(--muted); }
 .toast { font-size: 12.5px; color: var(--ok); min-height: 1.2em; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 6px; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--favour); }
+.badge { display: inline-block; min-width: 1.5em; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: var(--favour); color: var(--favour-ink); font: 600 11px/1.5 var(--mono); }
+.sub { font-size: 12px; color: var(--muted); }
+.muted { color: var(--muted); }
+.list { display: grid; gap: 8px; }
+.item { border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; display: grid; gap: 4px; font-size: 13px; min-width: 0; }
+.item .meta { font: 11.5px var(--mono); color: var(--muted); }
+.item .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.item button { padding: 3px 8px; font-size: 12px; }
+.change { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font: 12px var(--mono); font-variant-numeric: tabular-nums; }
+.change .up { color: var(--ok); } .change .down { color: var(--danger); }
+.laws { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; font-size: 13px; }
+.people { display: grid; gap: 2px; }
+.person { display: grid; grid-template-columns: minmax(0, 1fr) 4.2em; gap: 2px 8px; text-align: left; border: 0; background: transparent; padding: 5px 6px; border-radius: 5px; width: 100%; }
+.person:hover { background: var(--ground); }
+.person .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person .doing { grid-column: 1 / -1; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mood { font: 12px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.mood.content { color: var(--ok); } .mood.unhappy, .mood.miserable { color: var(--danger); }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; font-size: 13px; }
+.facts dt { color: var(--muted); } .facts dd { margin: 0; }
+details { border-top: 1px solid var(--line); padding-top: 6px; }
+details summary { cursor: pointer; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 4px 0; }
+details > div { padding: 4px 0 6px; display: grid; gap: 4px; font-size: 13px; }
+.explain { background: var(--ground); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; display: grid; gap: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: 11.5px var(--mono); border: 1px solid var(--line); border-radius: 10px; padding: 1px 7px; }
+.chip.war { color: var(--danger); border-color: var(--danger); }
 .toast.err { color: var(--danger); }
 .empty { color: var(--muted); font-size: 13px; }
 @media (max-width: 760px) {
@@ -130,6 +160,12 @@ button.on { background: var(--ink); color: var(--panel); border-color: var(--ink
       <label class="inline" for="seed">Seed <input id="seed" type="number" value="7" min="1" max="999999999"></label>
       <label class="inline" for="sandbox"><input id="sandbox" type="checkbox" checked> Free powers</label>
       <button id="start" class="primary" type="button">Create world</button>
+    </div>
+    <div class="group">
+      <label class="inline" for="slot">Slot
+        <select id="slot"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+      <button id="saveBtn" type="button" disabled>Save</button>
+      <button id="loadBtn" type="button">Load</button>
     </div>
     <div class="group" id="speeds" aria-label="Speed">
       <button type="button" data-speed="0">Pause</button>
@@ -158,46 +194,99 @@ button.on { background: var(--ink); color: var(--panel); border-color: var(--ink
     </div>
 
     <aside class="side">
-      <section class="sec">
-        <h2><span>Villages</span><span id="vcount"></span></h2>
-        <div class="villages" id="villages"><div class="empty">Create a world to see its villages.</div></div>
-      </section>
-      <section class="sec">
-        <h2><span>Selected</span></h2>
-        <div class="detail" id="detail">Click a village on the map or in the list.</div>
-      </section>
-      <section class="sec">
-        <h2><span>God powers</span><span id="favour"></span></h2>
-        <div class="powers" id="villagePowers">
-          <button type="button" data-power="bless" data-target="village">Bless</button>
-          <button type="button" data-power="inspire" data-target="village">Inspire</button>
-          <button type="button" data-power="plague" data-target="village" class="danger">Plague</button>
-        </div>
-        <div class="powers" id="tilePowers">
-          <button type="button" data-power="rain" data-target="tile">Rain</button>
-          <button type="button" data-power="drought" data-target="tile" class="danger">Drought</button>
-          <button type="button" data-power="lightning" data-target="tile" class="danger">Lightning</button>
-          <button type="button" data-power="fire" data-target="tile" class="danger">Fire</button>
-          <button type="button" data-power="meteor" data-target="tile" class="danger">Meteor</button>
-        </div>
-        <div id="powerCard"></div>
-        <div class="toast" id="toast" role="status"></div>
-      </section>
-      <section class="sec">
-        <h2><span>Map</span></h2>
-        <div class="legend">
-          <span><i style="background:#fff4d6"></i>people</span>
-          <span><i style="background:#e0533d"></i>monsters</span>
-          <span><i style="background:#c9a36b"></i>tame animals</span>
-          <span><i style="background:#f0b429"></i>caravans</span>
-          <span><i style="background:#ff7a1a"></i>fire</span>
-        </div>
-        <label class="inline" for="showTerr"><input id="showTerr" type="checkbox" checked> Territory</label>
-      </section>
-      <section class="sec">
-        <h2><span>Chronicle</span><span id="logcount"></span></h2>
-        <div class="log" id="log"><div class="empty" style="display:block">Events appear here as they happen.</div></div>
-      </section>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-village" aria-selected="true" data-tab="village">Villages</button>
+        <button type="button" role="tab" id="tab-god" aria-selected="false" data-tab="god">God<span class="badge" id="prayerBadge" hidden></span></button>
+        <button type="button" role="tab" id="tab-log" aria-selected="false" data-tab="log">Chronicle</button>
+      </div>
+
+      <div class="pane" id="pane-village">
+        <section class="sec">
+          <h2><span>Villages</span><span id="vcount"></span></h2>
+          <div class="villages" id="villages"><div class="empty">Create a world to see its villages.</div></div>
+        </section>
+        <section class="sec" id="inspector">
+          <div class="empty">Click a village on the map or in the list.</div>
+        </section>
+      </div>
+
+      <div class="pane" id="pane-god" hidden>
+        <section class="sec">
+          <h2><span>Powers</span><span id="favour"></span></h2>
+          <div class="sub">On the selected village <span id="selName" class="muted"></span></div>
+          <div class="powers">
+            <button type="button" data-power="bless" data-target="village">Bless</button>
+            <button type="button" data-power="inspire" data-target="village">Inspire</button>
+            <button type="button" data-power="plague" data-target="village" class="danger">Plague</button>
+          </div>
+          <div class="sub">On a spot you click</div>
+          <div class="powers">
+            <button type="button" data-power="rain" data-target="tile">Rain</button>
+            <button type="button" data-power="drought" data-target="tile" class="danger">Drought</button>
+            <button type="button" data-power="lightning" data-target="tile" class="danger">Lightning</button>
+            <button type="button" data-power="fire" data-target="tile" class="danger">Fire</button>
+            <button type="button" data-power="meteor" data-target="tile" class="danger">Meteor</button>
+            <button type="button" data-power="tornado" data-target="tile" class="danger">Tornado</button>
+            <button type="button" data-power="quake" data-target="tile" class="danger">Quake</button>
+            <button type="button" data-power="banish" data-target="tile">Banish monster</button>
+          </div>
+          <div class="powers">
+            <label class="inline" for="animalKind">Send
+              <select id="animalKind"></select></label>
+            <button type="button" data-power="animals" data-target="tile">Animals</button>
+            <label class="inline" for="monsterKind">
+              <select id="monsterKind"></select></label>
+            <button type="button" data-power="monster" data-target="tile" class="danger">Monster</button>
+          </div>
+          <div class="powers">
+            <label class="inline" for="brush">Shape land
+              <select id="brush">
+                <option value="forest">plant forest</option><option value="stone">place stone</option><option value="ore">place ore</option>
+                <option value="raise">raise</option><option value="lower">lower</option><option value="flatten">flatten</option>
+                <option value="water">dig water</option><option value="mountain">mountain</option><option value="marsh">marsh</option>
+                <option value="desert">desert</option><option value="snow">snow</option>
+              </select></label>
+            <button type="button" data-power="shape" data-target="tile">Shape</button>
+          </div>
+          <div id="powerCard"></div>
+          <div class="toast" id="toast" role="status"></div>
+        </section>
+        <section class="sec">
+          <h2><span>Prayers</span><span id="prayerCount"></span></h2>
+          <div class="list" id="prayers"><div class="empty">No village is praying right now.</div></div>
+        </section>
+        <section class="sec">
+          <h2><span>What followed your powers</span></h2>
+          <div class="list" id="cards"><div class="empty">Three days after a power, its outcome appears here.</div></div>
+        </section>
+        <section class="sec">
+          <h2><span>World laws</span></h2>
+          <div class="laws" id="laws"></div>
+        </section>
+        <section class="sec">
+          <h2><span>The dead</span><span id="deadCount"></span></h2>
+          <div class="detail" id="deaths">Nobody has died yet.</div>
+        </section>
+      </div>
+
+      <div class="pane" id="pane-log" hidden>
+        <section class="sec">
+          <h2><span>Chronicle</span><span id="logcount"></span></h2>
+          <div class="log" id="log"><div class="empty" style="display:block">Events appear here as they happen.</div></div>
+        </section>
+        <section class="sec">
+          <h2><span>Map</span></h2>
+          <div class="legend">
+            <span><i style="background:#fff4d6"></i>people</span>
+            <span><i style="background:#e0533d"></i>monsters</span>
+            <span><i style="background:#c9a36b"></i>tame animals</span>
+            <span><i style="background:#f0b429"></i>caravans</span>
+            <span><i style="background:#d7e8ff"></i>explorers, traders</span>
+            <span><i style="background:#ff7a1a"></i>fire</span>
+          </div>
+          <label class="inline" for="showTerr"><input id="showTerr" type="checkbox" checked> Territory</label>
+        </section>
+      </div>
     </aside>
   </div>
 </div>
