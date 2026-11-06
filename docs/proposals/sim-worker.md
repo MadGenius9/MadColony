@@ -141,3 +141,13 @@ messages, not against `g`.
   the first frame (the whole terrain) took 2.5 s.
 - **Not done (home):** slice 3 (the UI's direct reads moved to the mirror and queries) and slice 4 (browser
   frame times with and without the worker). Nothing is playable through the worker until then.
+
+## A test viewer in the browser (2026-11-06)
+- **Built:** `tools/viewer/` (World Watch): a page that runs the game in the worker and draws only what the messages
+  carry (terrain, territory, movers between tiles, the camera's contents, overlays, the chronicle), with speed
+  controls and eight god powers (preview, then confirm). A test tool, not the game's UI: at home it opens at
+  `/tools/viewer/` once the project is served; the owner also has it as a private web page.
+- **Measured in headless Chromium** (cloud machine): 59–60 ticks a second at 1× on a quick world, the Vast planet and
+  the Living world; at Max speed the Living world ran 1,749 ticks a second (about 29× real time) while frames kept
+  coming. Bless and lightning went through preview, confirm and the command queue. No console errors; the page
+  fits a 400-pixel-wide screen.
