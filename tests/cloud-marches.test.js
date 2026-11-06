@@ -111,3 +111,20 @@ test('someone fleeing at home with critical hunger eats the food right beside th
   c.needs[hunger.id] = (hunger.criticalBelow ?? hunger.urgentBelow / 2) / 2;
   assert.equal(eatHere(g, c), true);
 });
+
+test('a fighter whose thirst or hunger is critical falls back, as a wounded one does', async () => {
+  const { COMBAT_DRIVERS } = await import('../src/sim/combat.js');
+  const { g, p, a } = hostile();
+  const c = g.owned('colonists', a).find((x) => x.equip.weapon);
+  const foe = g.owned('colonists', p)[0];
+  foe.x = c.x + 1; foe.y = c.y;
+  c.job = null;
+  while ((g.s.tick + c.id.length * 3) % COMBAT.scanEvery) g.s.tick++;
+  for (const d of g.reg.all('need')) c.needs[d.id] = 1;
+  assert.equal(combatDecision(g, c)?.type, 'fight', 'watered and fed: they fight');
+  const drink = g.reg.all('need').find((d) => d.behavior === 'core:drink');
+  c.needs[drink.id] = (drink.criticalBelow ?? drink.urgentBelow / 2) / 2;
+  assert.notEqual(combatDecision(g, c)?.type, 'fight', 'parched: they do not start a fight');
+  const job = { type: 'fight', targetId: foe.id, stage: 'fight', res: [] };
+  assert.deepEqual(COMBAT_DRIVERS.fight.tick(g, c, job), { fail: 'Parched or starving: falling back' });
+});

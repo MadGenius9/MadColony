@@ -176,6 +176,7 @@ export const COMBAT_DRIVERS = {
   fight: {
     tick(g, c, j) {
       if (hpOf(c) < COMBAT.retreatHp) return { fail: 'Wounded: falling back' };
+      if (parched(g, c)) return { fail: 'Parched or starving: falling back' }; // as a wound does (combatDecision: unfit)
       if (!j.targetId) { // marching toward an enemy village
         const r = go(g, c, j, j.tx, j.ty, 'on', 'the enemy');
         c.status.action = `Marching on ${settlementOf(g, j.against)?.name || 'the enemy'}`;
@@ -298,7 +299,9 @@ export function combatDecision(g, c) {
     return null;
   }
   const m = modsOf(g, c), hp = hpOf(c);
-  const fit = hp >= fitHpOf(g, c); // brave people fight on while hurt; timid ones never join (peoples.js)
+  // brave people fight on while hurt; timid ones never join (peoples.js); critical thirst or hunger counts as unfit,
+  // like a wound: fights can last hours, and fighters died of thirst in them (Phase 16 notes)
+  const fit = hp >= fitHpOf(g, c) && !parched(g, c);
   if (enemy) {
     if (w.armed && fit) {
       if (w.outOfAmmo && Math.hypot(enemy.x - c.x, enemy.y - c.y) > 4) { const aj = armJob(g, c); if (aj) return aj; }
