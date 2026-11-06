@@ -33,6 +33,22 @@ was changed (each a small, measured step), and what is left for the playtest at 
     thirst 9 → 10; its thirst deaths are all at home (Kestrel Tor under attack on day 131; New First Hearth 2,
     one a day for six days). Classic hashes unchanged. Tests: `tests/cloud-marches.test.js`.
 
+- **No endless fights with people of a village simulated at a distance** (combat.js, 2026-11-06). Traced on seed 11
+  (day 138): hunters of New First Hearth 2 met people of Ravenhold, an enemy simulated at a distance, and fought
+  them for 10+ hours; those people are summed up and healed every hour, so they never went down, and the hunters
+  died of thirst in the fight (one a day for six days). Only enemies simulated in full are now engaged, and a fight
+  already under way with such a person ends. A village under attack is still brought to full detail.
+- **Both changes together, replayed:**
+
+  | | Deaths | Thirst | Hunger | People at the end |
+  |---|---|---|---|---|
+  | Seed 7, 190 days, before | 60 | 27 | 19 | 189 |
+  | Seed 7, after | 30 | 9 | 5 | 226 (after the first change) |
+  | Seed 11, 150 days, before | 20 | 9 | 2 | 199 |
+  | Seed 11, after | 16 | 5 | 1 | 202 (after the first change) |
+
+  What is left is mostly the siege case below (a village under attack at home).
+
 ## Found, not changed (for the playtest)
 - **Thirst under siege.** In the 300-day World run (seed 7), 14 died of thirst; in a later run of the same seed, 2,
   both in Rushmead. It was traced on a save from day 182:
