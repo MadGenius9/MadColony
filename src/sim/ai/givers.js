@@ -17,6 +17,14 @@ import { isDown, careNeed } from '../health.js';
 import { findFood, findWater } from './needs.js';
 import { fieldCells } from '../game.js';
 import { reachTest, nodesInReach, SLOW_WORK } from './trips.js';
+import { BURIAL_GIVERS } from '../burial.js';
+import { droughtAt } from '../weatherat.js';
+import { HUNT_GIVERS } from '../hunt.js';
+import { SLAY_GIVERS } from '../slay.js';
+import { treeProtected } from '../civlaws.js';
+import { moreLoads } from '../roads.js';
+import { LIVESTOCK_GIVERS, FEED_GIVERS, TEND_GIVERS } from '../livestock.js';
+import { FOREST_GIVERS } from '../forestry.js';
 
 /** Contact games: a leg to a far village goes by caravan (contact.js), which loads only goods on the stockpile or
  *  near the centre (lod.js caravanReach). If those cannot cover what is still owed, one colonist at a time per
@@ -43,7 +51,7 @@ function farLegHaul(g, c, t, idx, leg, wt, out) {
     make: () => {
       const dest = findStockDest(g, st.item, st.x, st.y, st.dur, c);
       if (!dest) { g.planOf(c).stockFull = true; return null; }
-      const qty = Math.min(remaining - seen, g.availQty(st.id, true), g.carryLimit(st.item), dest.room);
+      const qty = Math.min(remaining - seen, g.availQty(st.id, true), g.carryLimit(st.item, c), dest.room);
       if (qty <= 0) return null;
       const job = newJob('haul', { stackId: st.id, item: st.item, qty, stage: 'src', dest: { kind: 'stock', x: dest.x, y: dest.y } },
         { why: `Goods for the caravan to ${to}`, label: `Haul ${def?.name} to the stockpile for the caravan to ${to}`, targetKey: key, workType: wt.id });
@@ -111,6 +119,7 @@ export const GIVERS = {
         const claim = g.footAt(node.x, node.y) || g.fieldAt(node.x, node.y);
         if (claim && !g.mine(claim, c)) continue; // on another settlement's land
         if (!g.gatherOk(mySid, node)) continue; // another settlement's land, unless it granted gathering rights
+        if (!clr && treeProtected(g, mySid, node)) continue; // a protected forest (civlaws.js); building sites are still cleared
         let urg = -1, why = '', max = 1, wantItem = null, goal = null;
         if (clr) { urg = clr.urgency; why = clr.why; max = 99; }
         for (const y of def.yields) {
@@ -166,11 +175,12 @@ export const GIVERS = {
           make: () => {
             const dest = findStockDest(g, st.item, st.x, st.y, st.dur, c);
             if (!dest) { g.planOf(c).stockFull = true; g.blockTarget(key, 'Stockpile is full', 200); return null; }
-            const qty = Math.min(avail, g.carryLimit(st.item), dest.room);
+            const qty = Math.min(avail, g.carryLimit(st.item, c), dest.room);
             const job = newJob('haul', { stackId: st.id, item: st.item, qty, stage: 'src', dest: { kind: 'stock', x: dest.x, y: dest.y } },
               { why: onFoot ? 'Clearing a building site' : onField ? 'Clearing a field' : 'Keeping the colony tidy', label: `Haul ${def?.name} to stockpile`, targetKey: key, workType: wt.id });
             if (!g.reserveQty(job, st.id, qty)) return null;
             if (!g.reserveExcl(job, `tile:${dest.x},${dest.y}`, c.id)) { g.release(job); return null; }
+            if (c.equip.cart) moreLoads(g, job, st, Math.min(g.carryLimit(st.item, c), dest.room) - qty, c); // a cart takes nearby piles too (roads.js)
             return job;
           },
         });
@@ -210,7 +220,7 @@ export const GIVERS = {
             out.push({
               x: stack.x, y: stack.y, far: { x: stack.x, y: stack.y, carry: true }, dist: bestD * 0.6, urgency, label: `Deliver ${g.reg.get('item', cost.item)?.name} to ${def.name}`,
               make: () => {
-                const qty = Math.min(need, g.availQty(stack.id), g.carryLimit(cost.item));
+                const qty = Math.min(need, g.availQty(stack.id), g.carryLimit(cost.item, c));
                 if (qty <= 0) return null;
                 const job = newJob('haul', { stackId: stack.id, item: cost.item, qty, stage: 'src', dest: { kind: 'site', sid } },
                   { why: p.why || `Build ${p.name}`, label: `Deliver ${g.reg.get('item', cost.item)?.name} to ${def.name}`, targetKey: key, workType: wt.id, goal: p.goal });
@@ -269,6 +279,7 @@ export const GIVERS = {
         for (const [x, y] of fieldCells(f)) {
           if (g.cropAt(x, y) || g.nodeAt(x, y) || g.stackAt(x, y)) continue;
           if (g.isReserved(`sow:${x},${y}`, c.id)) continue;
+          if (droughtAt(g, x, y)) continue; // waiting out the drought (weather.js)
           if (g.terrainAt(x, y).fertility < (crop.minFertility ?? 0.5)) continue;
           free.push([x, y]);
         }
@@ -380,7 +391,7 @@ export const GIVERS = {
       // Contact scenarios (contact.tendRange): no one walks out to a patient far from home (a scout who
       // collapsed on a long walk would pull carer after carer away from the village).
       const tendRange = contactRules(g)?.tendRange, home = tendRange !== undefined ? settlementOf(g, mySid)?.center : null;
-      for (const p of Object.values(g.s.colonists)) {
+      for (const p of g.villagers(mySid)) { // the village's people only (was everyone in the world)
         if (p.id === c.id || (p.settlementId || g.s.playerSettlement) !== mySid) continue;
         if (home && octile(home.x, home.y, p.x, p.y) > tendRange) continue;
         const need = careNeed(g, p);
@@ -437,7 +448,7 @@ export const GIVERS = {
         out.push({
           x: stack.x, y: stack.y, far: { x: stack.x, y: stack.y, carry: true }, urgency: loaded === 0 ? 1.1 : 0.8, label: `${g.bDef(st).supplies ? 'Stock' : 'Refuel'} the ${g.bDef(st).name}`,
           make: () => {
-            const qty = Math.min(room, g.availQty(stack.id), g.carryLimit(stack.item));
+            const qty = Math.min(room, g.availQty(stack.id), g.carryLimit(stack.item, c));
             if (qty <= 0) return null;
             const iname = g.reg.get('item', stack.item)?.name || stack.item;
             const job = newJob('refuel', { stationId: st.id, stackId: stack.id, item: stack.item, qty, stage: 'src' },
@@ -464,7 +475,7 @@ export const GIVERS = {
       if (CR?.scoutNeeds !== undefined) {
         for (const nd of g.reg.all('need')) if ((nd.behavior === 'core:eat' || nd.behavior === 'core:drink' || nd.behavior === 'core:sleep') && (c.needs[nd.id] ?? 1) <= CR.scoutNeeds) return [];
       }
-      if (g.colonists().some((o) => o.settlementId === sid && o.job?.type === 'scout')) return [];
+      if (g.owned('colonists', sid).some((o) => o.settlementId === sid && o.job?.type === 'scout')) return []; // the village's people only
       const unmet = Object.values(g.s.settlements).filter((o) => o.id !== sid && o.center && !relationPeek(g, sid, o.id).contact
         && (CR?.scoutRange === undefined || octile(st.center.x, st.center.y, o.center.x, o.center.y) <= CR.scoutRange))
         .sort((a, b) => Math.hypot(a.center.x - st.center.x, a.center.y - st.center.y) - Math.hypot(b.center.x - st.center.x, b.center.y - st.center.y));
@@ -512,7 +523,7 @@ export const GIVERS = {
             // a promise with a deadline: more urgent the closer the deadline gets
             x: stack.x, y: stack.y, urgency: 0.9 + 2 * Math.max(0, Math.min(1, 1 - (t.deadline - g.s.tick) / Math.max(1, t.deadline - t.created))), label: 'Deliver traded goods',
             make: () => {
-              const qty = Math.min(remaining, g.availQty(stack.id, true), g.carryLimit(leg.item));
+              const qty = Math.min(remaining, g.availQty(stack.id, true), g.carryLimit(leg.item, c));
               if (qty <= 0) return null;
               // Destination: a free (or same-item, same-owner) tile in the other settlement's stockpile.
               let dest = null, dd = Infinity;
@@ -550,7 +561,7 @@ export const GIVERS = {
       const tech = g.reg.get('tech', R.tech);
       if (!st0 || !tech) return out;
       if ((st0.research.priorities?.[tech.field] ?? 2) <= 0 || st0.research.done.includes(tech.id)) return out; // switched Off since the last plan
-      const busy = [...(g.big ? g.mineList('colonists', c) : g.colonists())].filter((o) => o.id !== c.id && o.job?.type === 'research' && o.settlementId === c.settlementId).length;
+      const busy = g.owned('colonists', c.settlementId || g.s.playerSettlement).filter((o) => o.id !== c.id && o.job?.type === 'research' && o.settlementId === c.settlementId).length; // the village's people only
       if (busy >= (g.policyFor(c.settlementId).maxResearchers ?? 2)) return out;
       for (const station of g.mineList('structures', c)) {
         if (!station.built || !g.bDef(station)?.research || !g.mine(station, c)) continue;
@@ -649,7 +660,9 @@ function pickIngredientsIn(g, c, rec, spot) {
       if (!g.canReach(c, st.x, st.y, 'on')) continue;
       cands.push({ st, a, d: octile(spot.x, spot.y, st.x, st.y) });
     }
-    cands.sort((a, b) => a.d - b.d);
+    // What spoils goes first (Phase 8, spoil.js); otherwise the nearest (the same order as before).
+    const rot = (it) => g.reg.get('item', it)?.spoilPerDay || 0;
+    cands.sort((a, b) => rot(b.st.item) - rot(a.st.item) || a.d - b.d);
     for (const { st, a } of cands) {
       // One pick is one trip: a stack bigger than a colonist can carry is fetched in several trips.
       let left = a;
@@ -689,3 +702,7 @@ export function equipCandidate(g, c) {
 
 Object.assign(GIVERS, MEDICAL_GIVERS); // rescue and treatment (medical.js)
 Object.assign(GIVERS, EDUCATION_GIVERS); // school, teaching and college (education.js)
+Object.assign(GIVERS, BURIAL_GIVERS); // carrying the dead to the graveyard (burial.js)
+Object.assign(GIVERS, HUNT_GIVERS); // hunting (hunt.js, Phase 8)
+Object.assign(GIVERS, LIVESTOCK_GIVERS, FEED_GIVERS, TEND_GIVERS, FOREST_GIVERS); // taming into pens and feeding them (livestock.js, Phase 9)
+Object.assign(GIVERS, SLAY_GIVERS); // hunt parties against monsters, clearing lairs (slay.js, Phase 8c)

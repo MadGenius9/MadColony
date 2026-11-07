@@ -17,6 +17,7 @@ export const GIVER_SPECS = {
     doc: 'Carries goods promised in an agreed trade from this settlement to the other settlement stockpile. Ownership changes hands on delivery.',
     params: obj({}),
   },
+  'core:bury': { doc: 'Carries the body of someone of the same settlement who died to the village graveyard and buries it (body and grave tile are reserved).', params: obj({}) },
   'core:tend': { doc: 'Feeds and tends colonists of the same settlement who have collapsed.', params: obj({}) },
   'core:maintain': { doc: 'Services buildings with a maintenance definition when worn below 60% (urgently when broken).', params: obj({}) },
   'core:refuel': { doc: 'Carries fuel (items with the generator fuel tag) into generators that are not full.', params: obj({}) },
@@ -28,6 +29,34 @@ export const GIVER_SPECS = {
   'core:scout': { doc: 'When the settlement has not met a neighbouring village, one colonist (at most every two days) walks to the edge of that village so the two can meet.', params: obj({}) },
   'core:research': {
     doc: 'Researches the current technology of the colonist settlement at a free research station (fetching its material cost first).',
+    params: obj({}),
+  },
+  'core:hunt_animals': {
+    doc: 'Phase 8: when the village is short of meat and a herd of a huntable species (one with a carcass) is near and above the hunting limit, an armed hunter stalks it, kills one animal and leaves its carcass to be hauled and butchered.',
+    params: obj({}),
+  },
+  'core:slay_monster': {
+    doc: 'Phase 8c: when a monster threatens the village (a Barkmaw near it, or a monster that hurt its people, fields or buildings in the last 3 days) and the village has enough armed, fit adults (the monster\'s fightGroup), they form a hunt party; they close in only together and leave the carcass or drops where it fell.',
+    params: obj({}),
+  },
+  'core:clear_lair': {
+    doc: 'Phase 8c: an empty, uncleared monster lair within 60 tiles of the village is cleared by one adult, so no monster grows there again.',
+    params: obj({}),
+  },
+  'core:plant_trees': {
+    doc: 'Forestry: while the village has a grove (forestry.js) and fewer than 30 grown and young wood trees within 24 tiles, plants a young tree on a free spot of it.',
+    params: obj({}),
+  },
+  'core:tend_animals': {
+    doc: 'Phase 9: milks, shears (a tame species\' `product`, every `everyDays` from each fed animal) and slaughters animals in the village\'s pens: one above the breeding stock (`keep`) when the pen is full, or when meat is short (livestock.js).',
+    params: obj({}),
+  },
+  'core:feed_animals': {
+    doc: 'Phase 9: keeps a pen\'s trough at 3 days of fodder (items tagged core:fodder) for the animals its grass does not feed (all of them in winter, from a day before), carried in from the nearest stack (livestock.js).',
+    params: obj({}),
+  },
+  'core:tame_animals': {
+    doc: 'Phase 9: while the village has a closed pen (pens.js) with room, an adult catches a near wild animal of its species and leads it in (livestock.js); a loose one on the way is led in first.',
     params: obj({}),
   },
   'core:bills': {

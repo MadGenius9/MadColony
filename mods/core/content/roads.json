@@ -1,0 +1,18 @@
+{
+  "$comment": "Roads (docs/proposals/phase-7-roads.md, src/sim/roads.js): a road is a one-tile, walkable building laid by work; a step onto a built road takes road.step of a plain step. Roads change no terrain, so path searches and the water maps never see them. Handcarts (Wheelwrighting) let a hauler carry more; loaded, they are slow off the road.",
+  "building": [
+    { "id": "core:road", "name": "Dirt road", "category": "furniture", "passable": true, "cost": [{ "item": "core:stone", "qty": 1 }], "work": 20, "skill": "core:construction", "road": { "step": 0.6 }, "color": "#9a8463", "render": { "shape": "pipe" } }
+  ],
+  "tech": [
+    { "id": "core:wheelwrighting", "name": "Wheelwrighting", "field": "core:industry", "era": "core:industry", "prerequisites": ["core:ironworking"], "description": "Iron-rimmed wheels: a hauler with a handcart carries a bigger load (up to a full stack); loaded, it is quickest on roads.", "research": 2600, "cost": [{ "item": "core:wood", "qty": 20 }, { "item": "core:iron", "qty": 2 }], "unlocks": { "recipes": ["core:make_handcart"] } }
+  ],
+  "item": [
+    { "id": "core:handcart", "name": "Handcart", "color": "#8a6a44", "stackLimit": 1, "value": 20, "equipment": { "slot": "cart", "carry": 3, "offRoad": 1.25, "durability": 400 }, "render": { "shape": "crate" } }
+  ],
+  "recipe": [
+    { "id": "core:make_handcart", "name": "Make handcart", "station": "core:workbench", "workType": "core:craft", "inputs": [{ "item": "core:wood", "qty": 16 }, { "item": "core:iron", "qty": 3 }], "outputs": [{ "item": "core:handcart", "qty": 1 }], "work": 500, "skill": "core:crafting" }
+  ],
+  "template": [
+    { "id": "core:road_run", "name": "Road", "kind": "station", "layout": ["="], "legend": { "=": { "build": "core:road" } } }
+  ]
+}

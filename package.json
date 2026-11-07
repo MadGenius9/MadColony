@@ -6,7 +6,10 @@
   "private": true,
   "scripts": {
     "start": "node tools/serve.js",
+    "pretest": "node tools/check-diff.mjs",
     "test": "node --test \"tests/*.test.js\"",
+    "check-diff": "node tools/check-diff.mjs",
+    "test-diff-guard": "node --test tests/cloud-diff-guard.test.js",
     "sim": "node tools/simulate.js",
     "pack-mod": "node tools/pack-mod.js",
     "build-mod-index": "node tools/build-mod-index.js",

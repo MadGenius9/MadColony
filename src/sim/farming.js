@@ -1,8 +1,12 @@
 // Crop growth, wild regrowth, and autonomous field planning.
-import { TICKS_PER_DAY } from './constants.js';
+import { TICKS_PER_DAY, HOUR_SLOT } from './constants.js';
 import { clamp, octile } from './util.js';
 import { fieldCells } from './game.js';
 import { seasonalTemp, outdoorTemp, climateOf } from './heat.js';
+import { growFactor, weatherRules } from './weather.js';
+import { destroyCrop } from './ruin.js';
+import { REGROW_DEFAULTS } from './regrow.js';
+import { growthOf } from './worldlaws.js';
 
 export const CROP = { minTemp: 5, frost: -3, fullAt: 3 }; // full growth this many °C above minTemp
 
@@ -28,15 +32,27 @@ export const wildGrowth = (g) => clamp((seasonalTemp(g) + 2) / 10, 0.2, 1);
 
 export function tickFarming(g, dt) {
   const season = seasonalTemp(g); // the same for every crop this tick
+  const gf = growthOf(g); // the Fast growth law (worldlaws.js)
+  const wx = !!g.s.disasters?.weather, withered = []; // rain and drought (weather.js); nothing without them
   for (const cr of Object.values(g.s.crops)) {
     if (cr.growth >= 1) continue;
     const def = g.reg.get('crop', cr.def);
     if (!def) continue;
     const fert = clamp(g.terrainAt(cr.x, cr.y).fertility, 0.4, 1.6);
-    cr.growth = Math.min(1, cr.growth + (dt / (def.growDays * TICKS_PER_DAY)) * fert * seasonGrowth(def, season));
+    const w = wx ? growFactor(g, cr.x, cr.y) : 1;
+    if (w === 0) { // drought: no growth, it withers
+      cr.growth -= (dt / TICKS_PER_DAY) * weatherRules(g).drought.wither;
+      if (cr.growth <= 0) withered.push(cr.id);
+      continue;
+    }
+    cr.growth = Math.min(1, cr.growth + (dt / (def.growDays * TICKS_PER_DAY)) * fert * seasonGrowth(def, season) * w * gf); // gf: the Fast growth law
     if (cr.growth >= 1) g.log(`${def.name} are ready to harvest.`, 'food', `ripe:${def.id}`, 600);
   }
-  if (g.s.tick % 50 === 0) {
+  if (withered.length) {
+    for (const id of withered.sort()) destroyCrop(g, id);
+    g.log(`${withered.length} crop${withered.length === 1 ? '' : 's'} withered in the drought.`, 'warn', 'withered', 2400);
+  }
+  if (g.s.tick % 50 === HOUR_SLOT.farming) { // off the hour's first tick (Phase 18): ticks 30 and 80
     // Hard frost kills plants that are not ripe yet (the seed is lost; the field is sown again in spring).
     const now = outdoorTemp(g);
     const killed = {};
@@ -53,8 +69,9 @@ export function tickFarming(g, dt) {
     for (const n of [...empty.values()]) {
       if (!n.empty || g.s.nodes[n.id] !== n) { empty.delete(n.id); continue; }
       const def = g.nodeDef(n);
-      n.regrow = (n.regrow || 0) + (50 * wild) / ((def?.regrowDays || 1) * TICKS_PER_DAY);
-      if (n.regrow >= 1) { n.empty = false; n.regrow = 0; n.chunks = def.chunks; empty.delete(n.id); }
+      const days = n.young ? (def?.sproutDays ?? REGROW_DEFAULTS.sproutDays) : (def?.regrowDays || 1); // young: a new plant grows up (regrow.js)
+      n.regrow = (n.regrow || 0) + (50 * wild * gf * (wx ? growFactor(g, n.x, n.y) : 1)) / (days * TICKS_PER_DAY);
+      if (n.regrow >= 1) { n.empty = false; n.regrow = 0; n.chunks = def.chunks; delete n.young; empty.delete(n.id); }
     }
   }
 }
@@ -109,7 +126,7 @@ export function findFieldSite(g, w, h, crop, center, sid) {
       }
       if (!ok || !reach) continue;
       const score = octile(cx, cy, x0 + w / 2, y0 + h / 2) + penalty;
-      if (!best || score < best.score) best = { x: x0, y: y0, score };
+      if (!best || score < best.score) best = { x: x0, y: y0, score, why: `the nearest fertile ground, ${Math.round(octile(cx, cy, x0 + w / 2, y0 + h / 2))} tiles from the centre` }; // the settlement plan's reason (Phase 9)
     }
     if (best && r > best.score + 3) break;
   }
@@ -119,6 +136,7 @@ export function findFieldSite(g, w, h, crop, center, sid) {
 export function createField(g, crop, site, w, h, owner) {
   const id = g.newId('f');
   const f = { id, settlement: owner || g.s.playerSettlement, crop: crop.id, x: site.x, y: site.y, w, h, created: g.s.tick };
+  if (site.why) f.why = site.why; // why here (findFieldSite)
   g.s.fields[id] = f;
   g.ownAdd('fields', f);
   for (const [x, y] of fieldCells(f)) g.setZone(g.i(x, y), id);

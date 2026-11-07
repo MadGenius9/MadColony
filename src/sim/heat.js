@@ -5,7 +5,7 @@
 // target. Sleeping somewhere cold restores energy more slowly. Rooms are derived from the buildings and
 // never saved; each room's temperature is saved under its first tile (`s.rooms`).
 import { interactionSpot } from './construction.js';
-import { TICKS_PER_HOUR, TICKS_PER_DAY } from './constants.js';
+import { TICKS_PER_HOUR, TICKS_PER_DAY, HOUR_SLOT } from './constants.js';
 import { powerAt, isBroken, busyHooks, fuelLoaded } from './power.js';
 
 export const HEAT = {
@@ -23,15 +23,34 @@ export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
 export function climateOf(g) { return { ...DEFAULT_CLIMATE, ...(g.reg.get('worldgen', g.s.worldgenId)?.climate || {}) }; }
 
 /** The season's average temperature (°C) at a tick, without the day/night swing. */
+/** Part of the key of every cache of temperatures over a time window: the Endless season law changes them all. */
+export const seasonLawKey = (g) => g.s.worldLaws?.set?.['core:season'] || '';
+/** The day of the year's cycle the seasons follow: the real day, or under the Endless season law
+ *  (worldlaws.js) midsummer or midwinter for good (the warmest point is a quarter year in, the coldest three
+ *  quarters). Read straight from the state: O(1). */
+function seasonDay(g, tick, c) {
+  const v = g.s.worldLaws?.set?.['core:season'];
+  if (v === 'summer') return c.yearDays * 0.25;
+  if (v === 'winter') return c.yearDays * 0.75;
+  return tick / TICKS_PER_DAY;
+}
 export function seasonalTemp(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const day = tick / TICKS_PER_DAY;
+  const day = seasonDay(g, tick, c);
   return (c.summer + c.winter) / 2 - ((c.summer - c.winter) / 2) * Math.cos((2 * Math.PI * (day - c.yearDays * 0.75)) / c.yearDays);
 }
 /** Outdoor temperature (°C) at a tick: day 1 starts in spring; the coldest point is in the middle of winter. */
 export function outdoorTemp(g, tick = g.s.tick) {
+  // The same tick and season law give the same answer: kept once a tick (derived; asked by every sleeper each tick).
+  const law = g.s.worldLaws?.set?.['core:season'] || '';
+  if (g._oT && g._oT.tick === tick && g._oT.law === law && g._oT.reg === g.reg) return g._oT.t;
+  const t = outdoorTempAt(g, tick);
+  g._oT = { tick, law, reg: g.reg, t };
+  return t;
+}
+function outdoorTempAt(g, tick) {
   const c = climateOf(g);
-  const day = tick / TICKS_PER_DAY;
+  const day = seasonDay(g, tick, c);
   const mean = (c.summer + c.winter) / 2, amp = (c.summer - c.winter) / 2;
   const season = mean - amp * Math.cos((2 * Math.PI * (day - c.yearDays * 0.75)) / c.yearDays);
   const hour = (tick % TICKS_PER_DAY) / TICKS_PER_HOUR;
@@ -39,7 +58,7 @@ export function outdoorTemp(g, tick = g.s.tick) {
 }
 export function seasonOf(g, tick = g.s.tick) {
   const c = climateOf(g);
-  const d = (((tick / TICKS_PER_DAY) + c.yearDays / 8) % c.yearDays) / c.yearDays; // seasons centred on mid-summer and mid-winter
+  const d = ((seasonDay(g, tick, c) + c.yearDays / 8) % c.yearDays) / c.yearDays; // seasons centred on mid-summer and mid-winter
   return SEASONS[Math.min(3, Math.floor(d * 4))];
 }
 /** The coldest outdoor temperature over the next `days` days (planners look ahead). */
@@ -59,6 +78,12 @@ const isBoundary = (g, x, y) => { const st = g.structAt(x, y); if (!st || !st.bu
  *  per-tile array on every wall change cost 12 MB and several ms a time on the largest maps.) */
 export function rooms(g) {
   if (g._rooms && g._rooms.v === g.pathVersion) return g._rooms;
+  // Walls and doors change only when one is added, removed, finished or renovated (g.wallRev, bumped there:
+  // game.js structsChanged and structRedefined, construction.js completeStructure). With it unmoved the walls are
+  // as before, without going over them all again (the scale target: a big world's paths change many times a day,
+  // and its buildings are added and finished many times an hour; until 2026-11-04 any building's change counted).
+  const sk = `${g.wallRev || 0}`;
+  if (g._rooms && g._rooms.sk === sk) { g._rooms.v = g.pathVersion; return g._rooms; }
   // Rooms depend only on where built walls and doors stand. Most path changes (a tree felled, a rock
   // mined, a bed built) leave those alone: then the old rooms are kept. When walls do change, only the
   // areas touching the changed tiles are flooded again (a room can only change there).
@@ -71,14 +96,12 @@ export function rooms(g) {
   const walls = [];
   let same = !!R0;
   for (const st of g.structsWhere('wallDoor', (b) => { const cat = g.bDef(b)?.category; return cat === 'wall' || cat === 'door'; })) {
-    if (!st.built) continue;
-    const cat = g.bDef(st)?.category;
-    if (cat !== 'wall' && cat !== 'door') continue;
+    if (!st.built) continue; // the list holds walls and doors only (its condition)
     const i = st.y * W + st.x;
     walls.push(i);
     if (!work.wall[i]) same = false;
   }
-  if (same && walls.length === work.walls.length) { R0.v = g.pathVersion; return R0; }
+  if (same && walls.length === work.walls.length) { R0.v = g.pathVersion; R0.sk = sk; return R0; }
   const wall = work.wall;
   const changed = [], now = new Set(walls);
   for (const i of walls) if (!wall[i]) changed.push(i);
@@ -136,7 +159,7 @@ export function rooms(g) {
     list.sort((a, b) => Number(a.key) - Number(b.key));
   }
   for (let k = 0; k < list.length; k++) for (const i of list[k].tiles) roomAt[i] = k;
-  g._rooms = { v: g.pathVersion, work, roomAt, rooms: list };
+  g._rooms = { v: g.pathVersion, sk, work, roomAt, rooms: list };
   return g._rooms;
 }
 /** The room at a tile, or null outdoors. */
@@ -172,7 +195,7 @@ export function heaterOn(g, st) {
 
 /** Update room temperatures; heaters burn fuel while on. */
 export function tickHeat(g) {
-  if (g.s.tick % HEAT.tick) return;
+  if (g.s.tick % HEAT.tick !== HOUR_SLOT.heat) return; // off the hour's first tick (Phase 18): ticks 10 and 60
   const R = rooms(g);
   const out = outdoorTemp(g);
   const prev = g.s.rooms || {};
@@ -204,7 +227,7 @@ export function tickHeat(g) {
 
 /** Is it the heating season (cold now or within `days` days)? */
 export function heatSeason(g, days = 2) {
-  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) + ':' + days;
+  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) + ':' + days + ':' + seasonLawKey(g);
   g._heatSeason ||= {};
   if (g._heatSeason[k] === undefined) { let m = Infinity; const t0 = Math.floor(g.s.tick / (TICKS_PER_DAY / 4)) * (TICKS_PER_DAY / 4); for (let d = 0; d <= days; d += 0.25) m = Math.min(m, seasonalTemp(g, t0 + d * TICKS_PER_DAY)); if (Object.keys(g._heatSeason).length > 8) g._heatSeason = {}; g._heatSeason[k] = m < HEAT.coldSleep + 2; }
   return g._heatSeason[k];

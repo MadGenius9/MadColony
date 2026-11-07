@@ -3,6 +3,8 @@
 import { parseTemplate, rotateCell, rotateVec, rotatedSize, slotCandidates, templateCapacity } from './content/templates.js';
 import { octile } from './util.js';
 import { isUnlocked } from './research.js';
+import { peopleOfSettlement } from './peoples.js';
+import { partnerOf } from './family.js';
 
 const ORDER = { door: 0, furniture: 1, station: 1, wall: 2 };
 
@@ -119,14 +121,30 @@ export function findSite(g, tpl, opts = {}) {
         // Entrances (clear / floor cells on the template edge, and door fronts) must connect to the colony.
         if (!probe[rot].some((c) => g.regionOf(x0 + c.x, y0 + c.y) === homeRegion || g.nodeAt(x0 + c.x, y0 + c.y))) continue;
         const mx = x0 + rw / 2, my = y0 + rh / 2;
-        const score = octile(cx, cy, mx, my) + penalty * 1.5 + (opts.rng ? opts.rng.next() * 1.5 : 0);
+        let away = 0; // opts.keepFrom { points, gap, cost }: a site nearer than gap to one of the points costs more (pens and homes)
+        if (opts.keepFrom) for (const q of opts.keepFrom.points) { const d = Math.max(Math.abs(q.x - mx), Math.abs(q.y - my)); if (d < opts.keepFrom.gap) away += (opts.keepFrom.gap - d) * opts.keepFrom.cost; }
+        const score = octile(cx, cy, mx, my) + penalty * 1.5 + away + (opts.rng ? opts.rng.next() * 1.5 : 0);
         evaluated++;
-        if (!best || score < best.score) best = { x: x0, y: y0, rot, score };
+        if (!best || score < best.score) best = { x: x0, y: y0, rot, score, away };
       }
     }
     if (best && evaluated > 0 && r > best.score + 3) break;
   }
+  if (best) best.why = siteWhy(g, layout[best.rot], best, cx, cy, opts); // the settlement plan's reason (Phase 9)
   return best;
+}
+
+/** Why a site was chosen, in words (the settlement plan, Phase 9; saved with the project as `siteWhy`): its distance
+ *  from the centre, what must be cleared first, and what it was kept away from. */
+function siteWhy(g, cells, best, cx, cy, opts) {
+  const [rw, rh] = [Math.max(...cells.map((c) => c.x)) + 1, Math.max(...cells.map((c) => c.y)) + 1];
+  const parts = [`the nearest good spot, ${Math.round(octile(cx, cy, best.x + rw / 2, best.y + rh / 2))} tiles from the centre`];
+  const clear = {};
+  for (const c of cells) { const n = g.nodeAt(best.x + c.x, best.y + c.y), d = n && g.nodeDef(n); if (d) clear[d.name] = (clear[d.name] || 0) + 1; }
+  const cl = Object.entries(clear).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([k, n]) => `${n} ${k.toLowerCase()}`);
+  if (cl.length) parts.push(`${cl.join(' and ')} to clear first`);
+  if (opts.keepFrom) parts.push(best.away ? `as far from ${opts.keepFrom.what} as room allows` : `at least ${opts.keepFrom.gap} tiles from ${opts.keepFrom.what}`);
+  return parts.join('; ');
 }
 
 /** Goods a new project may count on for stockedOnly pieces: the owner's stacks minus what jobs have reserved
@@ -147,7 +165,7 @@ function freeStock(g, owner, projectId) {
   return free;
 }
 
-function chooseSlot(g, tag, pool, owner, n = 1, spare = null) {
+export function chooseSlot(g, tag, pool, owner, n = 1, spare = null) {
   const cands = slotCandidates(g.reg, tag).filter((b) => isUnlocked(g, owner, 'building', b.id));
   if (!cands.length) return null;
   // A data alternative (stockedOnly, e.g. plank furniture) is used only when its whole cost for all `n`
@@ -162,6 +180,11 @@ function chooseSlot(g, tag, pool, owner, n = 1, spare = null) {
     if (!alt || (b.furnishing?.score || 0) > (alt.furnishing?.score || 0)) alt = b;
   }
   if (alt) { for (const c of alt.cost) free[c.item] -= c.qty * n; return alt; }
+  // The village's people may prefer a building for this slot (peoples.json prefer, e.g. Cragborn stone walls):
+  // taken when unlocked and the whole cost for all n pieces is in the pool.
+  const pref = g.reg.get('people', peopleOfSettlement(g, owner))?.prefer?.[tag];
+  const pb = pref && cands.find((b) => b.id === pref);
+  if (pb && pb.cost.every((c) => (pool[c.item] || 0) >= c.qty * n)) return pb;
   // Prefer what the colony can afford right now, then furnishing score, then load order.
   let best = null, bestScore = -Infinity;
   const regular = cands.some((b) => !b.stockedOnly);
@@ -190,6 +213,7 @@ export function createProject(g, tpl, site, meta = {}) {
     cells: cells.map((c) => [c.x, c.y, c.ch]), parts: [], status: 'active', urgency: meta.urgency ?? 1,
     why: meta.why || '', created: s.tick, homeId: null, slots: [],
   };
+  if (site.why) project.siteWhy = site.why; // the settlement plan: why here (findSite)
   s.projects[id] = project;
   g.ownAdd('projects', project);
   for (const c of cells) {
@@ -247,6 +271,7 @@ export function completeStructure(g, st, c) {
   const def = g.bDef(st);
   st.built = true;
   g.builtRev = (g.builtRev || 0) + 1; // derived: lod.js trap memo
+  if (def.category === 'wall' || def.category === 'door') g.wallRev = (g.wallRev || 0) + 1; // rooms change (heat.js)
   for (const cost of def.cost) {
     const have = st.delivered[cost.item] || 0;
     g.consume(cost.item, Math.min(have, cost.qty), 'construct');
@@ -303,12 +328,19 @@ export function homeBeds(g, home) {
 export function assignHome(g, home) {
   const beds = homeBeds(g, home).filter((b) => b.built);
   const sid = home.settlement || g.s.playerSettlement;
-  const homeless = g.colonists().filter((c) => !c.homeId && (c.settlementId || g.s.playerSettlement) === sid);
+  const all = g.colonists().filter((c) => !c.homeId && (c.settlementId || g.s.playerSettlement) === sid);
+  // Families first (Phase 10, family.js): someone whose partner or parent lives here, then homeless couples (each
+  // followed at once by the other), then the rest, each in the usual order.
+  const here = (c) => partnerOf(g, c)?.homeId === home.id || !!c.parents?.some((id) => g.s.colonists[id]?.homeId === home.id);
+  const couple = (c) => !c.homeId && !partnerOf(g, c)?.homeId && !!partnerOf(g, c);
+  const homeless = [...all.filter(here), ...all.filter((c) => !here(c) && couple(c)), ...all.filter((c) => !here(c) && !couple(c))];
   const names = [];
   for (const bed of beds) {
     if (bed.owner && g.s.colonists[bed.owner]) continue;
     const c = homeless.shift();
     if (!c) break;
+    const p = partnerOf(g, c), k = p ? homeless.indexOf(p) : -1;
+    if (k > 0) { homeless.splice(k, 1); homeless.unshift(p); } // the partner next
     bed.owner = c.id;
     c.bedId = bed.id;
     c.homeId = home.id;

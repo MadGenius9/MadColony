@@ -37,7 +37,9 @@ export function machineBusy(g, st, busy = null) {
   for (const h of busyHooks) { const r = h(g, st); if (r !== undefined) return r; }
   if (def?.light && def.power?.use) { const h = g.hour; return h >= 21 || h < 5; } // electric lights draw power after dark
   if (busy) return busy.has(st.id);
-  for (const c of Object.values(g.s.colonists)) if (c.job?.stationId === st.id && c.job.stage === 'work' && !c.mv) return true;
+  // Only its village's people can work it (station jobs check ownership: g.mine); was everyone in the world, for each
+  // machine asked about (the scale target).
+  for (const c of g.owned('colonists', st.settlement || g.s.playerSettlement)) if (c.job?.stationId === st.id && c.job.stage === 'work' && !c.mv) return true;
   return false;
 }
 /** Ids of the stations someone is working at right now (one pass over the colonists). */

@@ -1,0 +1,25 @@
+{
+  "$comment": "Clothing (docs/proposals/phase-9-livestock.md, src/sim/clothing.js): a garment is equipment in the body slot; its warmth (degrees) moves the cold line down for its wearer, and every hour the wearer would be cold without it wears it by one. Leather comes from hides at a tanning rack; wool (from tame sheep, livestock.json) is spun into yarn and woven into a warmer coat.",
+  "item": [
+    { "id": "core:leather", "name": "Leather", "color": "#8b5a2b", "stackLimit": 40, "tags": ["core:material"], "render": { "shape": "sack", "icon": "sack" }, "value": 4 },
+    { "id": "core:leather_coat", "name": "Leather coat", "color": "#7a4e2a", "stackLimit": 1, "value": 18, "equipment": { "slot": "body", "warmth": 6, "durability": 600 }, "render": { "shape": "sack", "icon": "sack" } },
+    { "id": "core:yarn", "name": "Yarn", "color": "#e6dcc4", "stackLimit": 40, "tags": ["core:material"], "render": { "shape": "sack", "icon": "sack" }, "value": 3 },
+    { "id": "core:wool_coat", "name": "Wool coat", "color": "#c8b89a", "stackLimit": 1, "value": 26, "equipment": { "slot": "body", "warmth": 9, "durability": 900 }, "render": { "shape": "sack", "icon": "sack" } }
+  ],
+  "building": [
+    { "id": "core:tanning_rack", "name": "Tanning rack", "category": "station", "passable": false, "cost": [{ "item": "core:wood", "qty": 12 }], "work": 140, "skill": "core:construction", "interaction": [0, 1], "color": "#8a6a4a", "render": { "shape": "table" } },
+    { "id": "core:spinning_wheel", "name": "Spinning wheel", "category": "station", "passable": false, "cost": [{ "item": "core:wood", "qty": 14 }], "work": 160, "skill": "core:construction", "interaction": [0, 1], "color": "#9a7a54", "render": { "shape": "chair" } },
+    { "id": "core:loom", "name": "Loom", "category": "station", "passable": false, "cost": [{ "item": "core:wood", "qty": 20 }], "work": 220, "skill": "core:construction", "interaction": [0, 1], "color": "#8a6a48", "render": { "shape": "workbench" } }
+  ],
+  "template": [
+    { "id": "core:tannery_spot", "name": "Tanning spot", "kind": "station", "provides": ["core:tanning_rack"], "layout": ["T", "."], "legend": { "T": { "build": "core:tanning_rack" }, ".": { "floor": true } } },
+    { "id": "core:spinning_spot", "name": "Spinning corner", "kind": "station", "provides": ["core:spinning_wheel"], "layout": ["S", "."], "legend": { "S": { "build": "core:spinning_wheel" }, ".": { "floor": true } } },
+    { "id": "core:weaving_spot", "name": "Weaving corner", "kind": "station", "provides": ["core:loom"], "layout": ["L", "."], "legend": { "L": { "build": "core:loom" }, ".": { "floor": true } } }
+  ],
+  "recipe": [
+    { "id": "core:tan_hide", "name": "Tan a hide", "station": "core:tanning_rack", "workType": "core:craft", "inputs": [{ "item": "core:hide", "qty": 1 }], "outputs": [{ "item": "core:leather", "qty": 2 }], "work": 180, "skill": "core:crafting" },
+    { "id": "core:make_leather_coat", "name": "Make leather coat", "station": "core:workbench", "workType": "core:craft", "inputs": [{ "item": "core:leather", "qty": 4 }], "outputs": [{ "item": "core:leather_coat", "qty": 1 }], "work": 300, "skill": "core:crafting" },
+    { "id": "core:spin_yarn", "name": "Spin yarn", "station": "core:spinning_wheel", "workType": "core:craft", "inputs": [{ "item": "core:wool", "qty": 2 }], "outputs": [{ "item": "core:yarn", "qty": 1 }], "work": 150, "skill": "core:crafting" },
+    { "id": "core:weave_wool_coat", "name": "Weave wool coat", "station": "core:loom", "workType": "core:craft", "inputs": [{ "item": "core:yarn", "qty": 4 }], "outputs": [{ "item": "core:wool_coat", "qty": 1 }], "work": 360, "skill": "core:crafting" }
+  ]
+}

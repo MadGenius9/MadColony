@@ -1,0 +1,110 @@
+{
+  "$comment": "Village memories and traditions (docs/proposals/phase-15-memories.md, src/sim/memories.js). A memory's source is decided in code by its id (powers: the god powers that cause it); mood while held; days held; stack: at most this many of the kind. A tradition comes from `count` memories of kind `from` over the village's history; its effects: mood, code (law leanings), petitionDays (a multiplier), halve (a memory kind whose mood counts half).",
+  "memory": [
+    {
+      "id": "core:famine_survived",
+      "name": "Survived a famine",
+      "mood": -2,
+      "days": 30,
+      "stack": 2
+    },
+    {
+      "id": "core:monster_defeated",
+      "name": "Defeated a monster",
+      "mood": 3,
+      "days": 20,
+      "stack": 2
+    },
+    {
+      "id": "core:aid_received",
+      "name": "Received aid",
+      "mood": 0,
+      "days": 30,
+      "stack": 2
+    },
+    {
+      "id": "core:disaster_endured",
+      "name": "Endured a disaster",
+      "mood": -3,
+      "days": 20,
+      "stack": 2,
+      "powers": [
+        "lightning",
+        "fire",
+        "meteor",
+        "quake",
+        "tornado",
+        "plague",
+        "drought"
+      ]
+    },
+    {
+      "id": "core:war_endured",
+      "name": "Endured a war",
+      "mood": -2,
+      "days": 30,
+      "stack": 2
+    },
+    {
+      "id": "core:war_won",
+      "name": "Won a war",
+      "mood": 2,
+      "days": 20,
+      "stack": 2
+    }
+  ],
+  "tradition": [
+    {
+      "id": "core:hunters_pride",
+      "name": "Hunters' pride",
+      "about": "They have twice beaten the monsters of the wild.",
+      "from": "core:monster_defeated",
+      "count": 2,
+      "mood": 2
+    },
+    {
+      "id": "core:frugal",
+      "name": "Frugal",
+      "about": "They have known famine twice and ration even in good times.",
+      "from": "core:famine_survived",
+      "count": 2,
+      "code": {
+        "core:rationing": "rationed"
+      }
+    },
+    {
+      "id": "core:devout",
+      "name": "Devout",
+      "about": "The gods have answered them twice; they wait patiently on their prayers.",
+      "from": "core:aid_received",
+      "count": 2,
+      "petitionDays": 1.5
+    },
+    {
+      "id": "core:hardened",
+      "name": "Hardened",
+      "about": "They have endured the gods' wrath twice and bear it more easily.",
+      "from": "core:disaster_endured",
+      "count": 2,
+      "halve": "core:disaster_endured"
+    },
+    {
+      "id": "core:wary",
+      "name": "Wary",
+      "about": "They have been beaten in war twice and keep a militia even in peace.",
+      "from": "core:war_endured",
+      "count": 2,
+      "code": {
+        "core:conscription": "militia"
+      }
+    },
+    {
+      "id": "core:proud_victors",
+      "name": "Proud victors",
+      "about": "They have won two wars and are proud of it.",
+      "from": "core:war_won",
+      "count": 2,
+      "mood": 1
+    }
+  ]
+}

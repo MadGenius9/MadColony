@@ -57,7 +57,13 @@ export function newGodState(g, sandbox = false) {
 // after validate passed on this tick). Optional daily(g, god, rules): runs at every day start while s.god exists. validate, cost and preview must not write state or draw random numbers.
 // Powers are code, registered once when this module (or a later slice's module) loads; they are not per-game
 // state and are never saved (a save holds only commands, by type name). Registering a type twice is an error.
+// Phase 5b: a power with `destructive: true` (or a function (g, args) -> bool) is refused unless its command carries
+// `confirm: true` (the UI's Confirm step, kept in the saved command). Its preview lists `warnings` first; the refusal
+// before confirming still returns the full preview, so the warnings can be shown.
 const POWERS = new Map();
+const isDestructive = (P, g, a) => (typeof P.destructive === 'function' ? !!P.destructive(g, a) : !!P.destructive);
+/** The arguments a power validates: without `confirm` for powers that do not destroy (a UI may always send it). */
+const plainArgs = (P, g, a) => { if (isDestructive(P, g, a) || a?.confirm === undefined) return a; const { confirm, ...rest } = a; void confirm; return rest; };
 
 export function registerPower(type, spec) {
   if (typeof type !== 'string' || !type) throw new Error('registerPower: a power needs a type name');
@@ -122,11 +128,18 @@ export function previewCommand(g, type, args = {}) {
   let text;
   try { text = JSON.stringify(args); } catch { return refuse(type, 'the command arguments must be plain data'); }
   if (text.length > ARGS_MAX_CHARS) return refuse(type, 'the command arguments are too long');
-  const why = P.validate(g, args, r);
+  if (args.confirm !== undefined && args.confirm !== true) return refuse(type, 'confirm must be true');
+  const why = P.validate(g, plainArgs(P, g, args), r);
   if (why) return refuse(type, why);
   const sandbox = !!g.s.god?.sandbox;
   const cost = costOf(g, P, args, r), favour = favourNow(g), free = favour - pendingCost(g, r);
   const preview = { type, cost, favour, sandbox, ...P.preview(g, args, r) };
+  if (isDestructive(P, g, args)) {
+    preview.destructive = true;
+    preview.warnings ||= [];
+    preview.warnings.push('This cannot be undone.');
+    if (args.confirm !== true) return { ok: false, reason: 'this power destroys: confirm it first', preview, type, needsConfirm: true };
+  }
   if (!sandbox && cost > free + EPS) return { ok: false, reason: `not enough favour (${fmt(cost)} needed, ${fmt(Math.max(0, free))} free${free < favour - EPS ? ' after the commands waiting' : ''}; it regenerates ${fmt(r.favour.perDay)} a day)`, preview, type };
   if ((g.s.god?.queue.length || 0) >= GOD_QUEUE_MAX) return { ok: false, reason: 'too many commands are waiting', preview, type };
   return { ok: true, reason: '', preview, type };
@@ -189,7 +202,8 @@ function applyOne(g, god, cmd) {
 
 function applyOneNow(g, god, cmd) {
   const r = godRulesOf(g), P = POWERS.get(cmd.type);
-  let reason = !r ? 'no god-power rules are loaded' : !P ? `unknown power "${String(cmd.type).slice(0, 40)}" (is its mod enabled?)` : !isPlain(cmd.args) ? 'the command arguments are malformed' : P.validate(g, cmd.args, r);
+  let reason = !r ? 'no god-power rules are loaded' : !P ? `unknown power "${String(cmd.type).slice(0, 40)}" (is its mod enabled?)` : !isPlain(cmd.args) ? 'the command arguments are malformed' : P.validate(g, plainArgs(P, g, cmd.args), r);
+  if (!reason && isDestructive(P, g, cmd.args) && cmd.args.confirm !== true) reason = 'it was not confirmed';
   const cost = reason ? 0 : costOf(g, P, cmd.args, r);
   if (!reason && !god.sandbox) {
     const f = favourNow(g);
@@ -201,10 +215,13 @@ function applyOneNow(g, god, cmd) {
     return;
   }
   if (cost > 0) { god.favour = Math.max(0, favourNow(g) - cost); god.favourDay = godDay(g); } // never below 0 (cost may exceed favour by EPS)
+  const pre = g.beforePower?.(cmd); // its villages measured first (followup.js)
   const out = P.apply(g, cmd, r) || {};
   const { msg = `A divine command (${cmd.type}) was carried out.`, ...rest } = out;
   record(god, cmd, { ok: true, cost, msg, ...rest });
-  g.log(msg, 'god');
+  const sid = rest.settlementId || cmd.args?.settlementId;
+  const eid = g.log(msg, 'god', null, 0, { kind: 'core:god_power', at: Number.isFinite(cmd.args?.x) ? cmd.args : null, sids: sid ? [sid] : [] });
+  g.afterPower?.(cmd, rest, eid, pre); // petitions it answers (petitions.js), its follow-up (followup.js)
 }
 
 // ---------- ledger helpers (used by the powers) ----------

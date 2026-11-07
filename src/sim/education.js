@@ -12,11 +12,12 @@
 //
 // College: when a settlement lacks qualified staff (doctors, teachers, industrial specialists) and has a
 // lecture hall, one schooled adult at a time is sent to train; an instructor at the lectern speeds it up.
-import { TICKS_PER_DAY, TICKS_PER_HOUR } from './constants.js';
+import { TICKS_PER_DAY, TICKS_PER_HOUR, HOUR_SLOT } from './constants.js';
 import { newJob, travel, workSpeed, practice } from './ai/jobs.js';
 import { interactionSpot } from './construction.js';
 import { octile } from './util.js';
 import { isDown } from './health.js';
+import { civLawIs } from './civlaws.js';
 
 export const EDU = {
   school: [8, 15], college: [8, 17], // hours
@@ -56,19 +57,35 @@ export function grantQual(g, c, id, how) {
 }
 
 // ---------------- staffing ----------------
+// Whether village sid has a built teacher's place (a school) and a built powered machine station, kept until a
+// building is added, removed or finished (structRev, builtRev, as HALLS); derived, never saved. Staffing asked
+// both of every village every hour, each a pass over its buildings.
+const KINDS = new WeakMap();
+function builtKinds(g, sid) {
+  const key = `${g.structRev || 0}|${g.builtRev || 0}`;
+  let c = KINDS.get(g.s);
+  if (!c || c.key !== key) { c = { key, by: new Map() }; KINDS.set(g.s, c); }
+  if (!c.by.has(sid)) {
+    const mine = g.owned('structures', sid);
+    c.by.set(sid, {
+      school: mine.some((st) => st.built && roleOf(g, st) === 'teacher'),
+      machine: mine.some((st) => st.built && g.bDef(st)?.power?.use > 0 && g.bDef(st).category === 'station' && !g.bDef(st).heat && !g.bDef(st).water),
+    });
+  }
+  return c.by.get(sid);
+}
 /** How many qualified people a settlement should have per qualification, and how many it has. */
-export function staffing(g, sid) {
+export function staffing(g, sid, courseOnly = false) {
   const s = g.s;
   const people = g.owned('colonists', sid);
   const adults = people.filter((c) => isAdult(g, c) && !isDown(c));
-  const mine = g.owned('structures', sid);
   const out = [];
   for (const q of g.reg.all('qualification')) {
-    if (!q.workTypes?.length) continue;
+    if (!q.workTypes?.length || (courseOnly && !q.course)) continue; // courseOnly: those a college teaches (the callers that keep only them)
     let want = 0;
     if (q.staffing === 'perPeople') want = Math.ceil(people.length / (q.per || 8));
-    else if (q.staffing === 'school') want = mine.some((st) => st.built && roleOf(g, st) === 'teacher') ? 1 : 0;
-    else if (q.staffing === 'machines') want = mine.some((st) => st.built && g.bDef(st)?.power?.use > 0 && g.bDef(st).category === 'station' && !g.bDef(st).heat && !g.bDef(st).water) ? 1 : 0;
+    else if (q.staffing === 'school') want = builtKinds(g, sid).school ? 1 : 0;
+    else if (q.staffing === 'machines') want = builtKinds(g, sid).machine ? 1 : 0;
     const have = adults.filter((c) => hasQual(c, q.id)).length;
     out.push({ qual: q.id, name: q.name, want, have, short: Math.max(0, want - have) });
   }
@@ -82,15 +99,35 @@ export function pupils(g, sid) {
 
 // ---------------- daily upkeep ----------------
 /** Practice earns qualifications; founders count as schooled; colleges get a trainee when staff are short. */
+// The qualifications earned by practice, in registry order, once per registry (a registry never changes once built):
+// tickEducation copied the whole list for every person every hour (the scale target).
+const PRACTISED = new WeakMap();
+function practiceQuals(g) {
+  let l = PRACTISED.get(g.reg);
+  if (!l) PRACTISED.set(g.reg, (l = g.reg.all('qualification').filter((q) => q.practice)));
+  return l;
+}
+// Does village sid have a built lecture hall? Kept until a building is added, removed or finished (structRev,
+// builtRev, as power.js and water.js); derived, never saved. Asked of every village every hour.
+const HALLS = new WeakMap();
+function hasHall(g, sid) {
+  const key = `${g.structRev || 0}|${g.builtRev || 0}`;
+  let c = HALLS.get(g.s);
+  if (!c || c.key !== key) { c = { key, by: new Map() }; HALLS.set(g.s, c); }
+  if (!c.by.has(sid)) c.by.set(sid, g.owned('structures', sid).some((b) => b.built && roleOf(g, b) === 'lectern'));
+  return c.by.get(sid);
+}
+
 export function tickEducation(g) {
-  if (g.s.tick % 100) return;
+  if (g.s.tick % TICKS_PER_HOUR !== HOUR_SLOT.education) return; // its own tick of the hour (Phase 18)
   const s = g.s;
   const schooled = g.reg.get('qualification', 'core:schooled');
+  const practised = practiceQuals(g);
   for (const c of Object.values(s.colonists)) {
     if (schooled && isAdult(g, c) && (c.bornTick === undefined || c.bornTick === null) && !hasQual(c, schooled.id)) c.quals = [...qualsOf(c), schooled.id]; // grew up elsewhere
     if (!isAdult(g, c)) continue;
-    for (const q of g.reg.all('qualification')) {
-      if (!q.practice || hasQual(c, q.id)) continue;
+    for (const q of practised) {
+      if (hasQual(c, q.id)) continue;
       if ((c.skills[q.practice.skill] || 0) >= q.practice.level) grantQual(g, c, q.id, 'practice');
     }
   }
@@ -105,9 +142,8 @@ function assignTrainee(g, sid) {
     if (!c || hasQual(c, tr.qual) || !isAdult(g, c)) st.training = null;
     else return;
   }
-  const hall = g.owned('structures', sid).some((b) => b.built && roleOf(g, b) === 'lectern');
-  if (!hall) return;
-  const short = staffing(g, sid).filter((x) => x.short > 0 && g.reg.get('qualification', x.qual)?.course);
+  if (!hasHall(g, sid)) return;
+  const short = staffing(g, sid, true).filter((x) => x.short > 0 && g.reg.get('qualification', x.qual)?.course);
   if (!short.length) return;
   const q = g.reg.get('qualification', short[0].qual);
   const cands = g.owned('colonists', sid).filter((c) => isAdult(g, c) && !isDown(c) && !hasQual(c, q.id) && (q.requires || []).every((r) => hasQual(c, r)));
@@ -160,6 +196,7 @@ export const EDUCATION_GIVERS = {
   'core:attend': {
     find(g, c, params, wt) {
       if (!stageOf(g, c)?.attendsSchool || hasQual(c, 'core:schooled') || !inHours(g, EDU.school)) return [];
+      if (civLawIs(g, sidOf(g, c), 'core:schooling', 'child_labour')) return []; // child labour: no school (civlaws.js)
       return deskCandidates(g, c, wt, 'desk', 'study', 'Go to school', 1.6);
     },
   },
@@ -199,7 +236,7 @@ export const EDUCATION_DRIVERS = {
       if (j.stage === 'go') { const r = go(g, c, j, spot.x, spot.y, g.bDef(desk).name); if (r !== 'arrived') return r === 'moving' ? 'running' : r; j.stage = 'work'; }
       if (!inHours(g, role === 'lectern' ? EDU.college : EDU.school)) return 'done';
       practice(g, c, 'core:teach', 'core:teaching');
-      const n = Object.values(g.s.colonists).filter((o) => (o.job?.type === 'study' || o.job?.type === 'train') && g.s.structures[o.job.deskId]?.projectId === desk.projectId && o.job.stage === 'work').length;
+      const n = g.owned('colonists', sidOf(g, c)).filter((o) => (o.job?.type === 'study' || o.job?.type === 'train') && g.s.structures[o.job.deskId]?.projectId === desk.projectId && o.job.stage === 'work').length;
       c.status.action = role === 'lectern' ? `Instructing (${n} trainee${n === 1 ? '' : 's'})` : `Teaching (${n} pupil${n === 1 ? '' : 's'})`;
       j.idle = n ? 0 : (j.idle || 0) + 1;
       return ++j.session >= EDU.teachSession || j.idle > 120 ? 'done' : 'running';
@@ -240,7 +277,7 @@ export const EDUCATION_DRIVERS = {
 export function educationSummary(g, sid) {
   const kids = pupils(g, sid);
   const atSchool = kids.filter((c) => c.job?.type === 'study');
-  const teachers = Object.values(g.s.colonists).filter((c) => sidOf(g, c) === sid && c.job?.type === 'teach');
+  const teachers = g.villagers(sid).filter((c) => sidOf(g, c) === sid && c.job?.type === 'teach');
   const tr = g.s.settlements[sid]?.training;
   return {
     pupils: kids.length, atSchool: atSchool.length, teachers: teachers.map((t) => t.name),

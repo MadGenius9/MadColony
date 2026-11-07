@@ -3,19 +3,29 @@
 import { EDUCATION_DRIVERS } from '../education.js';
 import { needsCare, mayDoWork } from '../people.js';
 import { MEDICAL_DRIVERS } from '../medical.js';
+import { BURIAL_DRIVERS } from '../burial.js';
 import { octile } from '../util.js';
 import { DRIVERS, newJob, dropCarry, skillLevel } from './jobs.js';
 import { NEED_BEHAVIORS } from './needs.js';
 import { GIVERS, equipCandidate } from './givers.js';
 import { tickHealth, isDown, hpOf, maybeAccident, HEALTH } from '../health.js';
-import { COMBAT_DRIVERS, COMBAT_JOBS, combatDecision } from '../combat.js';
+import { COMBAT_DRIVERS, COMBAT_JOBS, COMBAT, combatDecision, nearestEnemy, drinkHere, eatHere } from '../combat.js';
 import { tripChecker, farFromHome } from './trips.js';
+import { fireDanger } from '../fire.js';
+import { FIRE_DRIVERS } from '../firefight.js';
+import { HUNT_DRIVERS, wolfDanger } from '../hunt.js';
+import { LIVESTOCK_DRIVERS, FEED_DRIVERS, TEND_DRIVERS } from '../livestock.js';
+import { FOREST_DRIVERS } from '../forestry.js';
+import { SLAY_DRIVERS, monsterDanger } from '../slay.js';
+import { hoursOf } from '../civlaws.js';
+import { onBreak } from '../mood.js';
 
-Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS);
+Object.assign(DRIVERS, COMBAT_DRIVERS, MEDICAL_DRIVERS, EDUCATION_DRIVERS, BURIAL_DRIVERS, FIRE_DRIVERS, HUNT_DRIVERS, SLAY_DRIVERS, LIVESTOCK_DRIVERS, FEED_DRIVERS, TEND_DRIVERS, FOREST_DRIVERS);
 
 export function tickColonist(g, c) {
   for (const def of g.reg.all('need')) NEED_BEHAVIORS[def.behavior]?.tick(g, c, def);
   tickHealth(g, c);
+  if (c.job?.workType && !c.job.need && !COMBAT_JOBS.has(c.job.type) && onBreak(g, c)) endJob(g, c, null, 'Miserable: stopped work for a while'); // a break (mood.js) stops work; needs, fights and flight go on
   if (isDown(c)) { // collapsed: lies where they fell until health returns; others bring food and tend them
     if (c.job) endJob(g, c, null, 'Collapsed');
     c.mv = null;
@@ -34,7 +44,7 @@ export function tickColonist(g, c) {
     return;
   }
   // Threats first: fight, flee or march according to the settlement's orders.
-  const cj = combatDecision(g, c);
+  const cj = combatDecision(g, c) || (g.s.disasters ? fireDanger(g, c) : null) || (g.s.animals?.list ? wolfDanger(g, c) : null) || (g.s.monsters ? monsterDanger(g, c) : null); // fire: fire.js (Phase 5b); wolves: hunt.js (Phase 8); monsters: slay.js (Phase 8c)
   if (cj) { if (c.job) endJob(g, c, null, `Danger: ${cj.why}`); startJob(g, c, cj); }
 
   if (c.job) {
@@ -72,11 +82,24 @@ const farHungry = (g, c, def, b) => def.behavior === 'core:eat' && !c.job?.need 
 const pressing = (g, c, def, b) => b.urgent(g, c, def) || farHungry(g, c, def, b);
 // Carrying a patient or goods on a delivery leg: the leg is finished first unless a need is critical, so
 // cargo is not left at the roadside (and nobody is dropped halfway to the clinic).
-const carrying = (c, job) => !!c.carry || (job.type === 'rescue' && job.stage === 'carry') || (job.type === 'tend' && !!job.water);
+const carrying = (c, job) => !!c.carry || ((job.type === 'rescue' || job.type === 'bury') && job.stage === 'carry') || (job.type === 'tend' && !!job.water);
 
 function interruptReason(g, c) {
   const job = c.job;
-  if (COMBAT_JOBS.has(job.type)) return null; // needs wait while fighting or fleeing
+  // Needs wait while fighting or fleeing; but on a march or a retreat with no enemy close by, a critical thirst or
+  // hunger stops them (people on long marches died of thirst on the way, Phase 16 notes).
+  if (COMBAT_JOBS.has(job.type)) {
+    const onTheWay = (job.type === 'fight' && !job.targetId) || job.type === 'flee';
+    if (!onTheWay) return null;
+    if (job.type === 'flee' && drinkHere(g, c)) return 'Interrupted: Water is critical and the well is right here';
+    if (job.type === 'flee' && eatHere(g, c)) return 'Interrupted: Food is critical and there is food right here';
+    for (const def of g.reg.all('need')) {
+      if ((def.behavior !== 'core:drink' && def.behavior !== 'core:eat') || !critical(c, def)) continue;
+      if (nearestEnemy(g, c, COMBAT.engageRange)) return null;
+      return `Interrupted: ${def.name} is critical (no enemy near)`;
+    }
+    return null;
+  }
   // A colonist mid-step finishes the step first. travel() starts the next step in the same tick the last one
   // ends, so the check runs on the step's last tick (when travel() would otherwise start the next one).
   if (c.mv && c.mv.t + 1 < c.mv.dur) return null;
@@ -85,6 +108,7 @@ function interruptReason(g, c) {
     if (!b || !pressing(g, c, def, b)) continue;
     if (job.unmet?.[def.id] !== undefined && g.s.tick - job.unmet[def.id] < UNMET_RETRY) continue;
     if (def.behavior === 'core:eat' && !g.planOf(c).anyFood) continue; // nothing to eat; keep working
+    if (job.type === 'firefight' && def.behavior === 'core:sleep' && !critical(c, def)) continue; // a fire keeps people up (woken ones too)
     if (job.need) {
       // Already satisfying a need: only while still on the way to it (never mid-meal, mid-drink or asleep;
       // a sleeper wakes for hunger in the sleep driver), and only for a need clearly more pressing than the
@@ -254,7 +278,8 @@ function decideInner(g, c, tried) {
   // 3. Equipment the planner wants us to carry
   const eq = equipCandidate(g, c);
   if (eq) { startJob(g, c, eq); return; }
-  // 4. Work
+  // 4. Work (not while on a break: miserable, sulking; mood.js)
+  if (onBreak(g, c)) { c.status.goal = 'On a break'; c.status.action = 'Miserable: sulking'; c.status.idleReason = 'Miserable: stopped work for a while'; c.idle = 40; return; }
   const work = tryWork(g, c);
   if (work === true) return;
   // 5. Nothing to do
@@ -265,6 +290,7 @@ function decideInner(g, c, tried) {
     : c.lastScan?.found
       ? `All ${c.lastScan.found} open task(s) are already taken by others or could not be reserved${work?.tooFar ? ` (${work.tooFar} more too far from home for now)` : ''}`
       : `The colony has no open task this colonist can reach${off.length ? ` (forbidden work: ${off.join(', ')})` : ''}`;
+  if (g.isNight() && hoursOf(g, c.settlementId || g.s.playerSettlement) === 'curfew') c.status.idleReason = `Curfew: no outdoor work at night. ${c.status.idleReason}`; // civlaws.js
   // Big worlds: nothing to do out here, far from home (trips.js), so walk back rather than idle about.
   if (farFromHome(g, c) && headHome(g, c)) return;
   if (!wanderOff(g, c, 'Idle')) c.status.action = 'Idle';

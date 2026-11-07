@@ -1,0 +1,204 @@
+{
+  "$comment": "Civilization laws (docs/proposals/civilization-laws.md): each village keeps a code of them (settlement.code); the first option of each is the default (today's game). kingdom: the capital sets it for every member. mood: how people feel living under it (the Mood phase).",
+  "civLaw": [
+    {
+      "id": "core:work_hours",
+      "name": "Work hours",
+      "about": "When people work.",
+      "options": [
+        {
+          "id": "normal",
+          "name": "Normal",
+          "about": "People work and rest as they need.",
+          "mood": 0
+        },
+        {
+          "id": "long",
+          "name": "Long hours",
+          "about": "People work later into the night and get more done, but go to bed tired.",
+          "mood": -2
+        },
+        {
+          "id": "curfew",
+          "name": "Curfew",
+          "about": "No outdoor work at night (22:00-06:00): people stay in, safer from wolves and monsters.",
+          "mood": -1
+        }
+      ]
+    },
+    {
+      "id": "core:rationing",
+      "name": "Rationing",
+      "about": "How much people eat.",
+      "options": [
+        {
+          "id": "none",
+          "name": "None",
+          "about": "People eat their fill.",
+          "mood": 0
+        },
+        {
+          "id": "rationed",
+          "name": "Rationed",
+          "about": "Smaller meals: hunger falls a fifth more slowly, but work is a tenth slower.",
+          "mood": -3
+        }
+      ]
+    },
+    {
+      "id": "core:schooling",
+      "name": "Schooling",
+      "about": "What children do.",
+      "options": [
+        {
+          "id": "free",
+          "name": "Free",
+          "about": "Children study or forage as they like.",
+          "mood": 0
+        },
+        {
+          "id": "compulsory",
+          "name": "Compulsory",
+          "about": "Children study in school hours and never forage then.",
+          "mood": 1
+        },
+        {
+          "id": "child_labour",
+          "name": "Child labour",
+          "about": "Children also haul and farm, but learn nothing.",
+          "mood": -3
+        }
+      ]
+    },
+    {
+      "id": "core:conscription",
+      "name": "Conscription",
+      "about": "Who bears arms.",
+      "options": [
+        {
+          "id": "none",
+          "name": "None",
+          "about": "Only those the village arms carry weapons.",
+          "mood": 0
+        },
+        {
+          "id": "militia",
+          "name": "Militia",
+          "about": "Every fit adult is armed and counts as a fighter, even in peace.",
+          "mood": -1
+        }
+      ],
+      "kingdom": true
+    },
+    {
+      "id": "core:hunting",
+      "name": "Hunting",
+      "about": "Hunting wild animals.",
+      "options": [
+        {
+          "id": "free",
+          "name": "Free",
+          "about": "Hunters go out when meat is wanted.",
+          "mood": 0
+        },
+        {
+          "id": "restricted",
+          "name": "Restricted",
+          "about": "Hunting only when food runs low (under 3 days).",
+          "mood": 0
+        },
+        {
+          "id": "banned",
+          "name": "Banned",
+          "about": "No hunting, except packs that attack the village.",
+          "mood": -1
+        }
+      ]
+    },
+    {
+      "id": "core:forests",
+      "name": "Forests",
+      "about": "Felling trees near the village.",
+      "options": [
+        {
+          "id": "free",
+          "name": "Free",
+          "about": "Any grown tree may be felled.",
+          "mood": 0
+        },
+        {
+          "id": "protected",
+          "name": "Protected",
+          "about": "No grown tree within 12 tiles of the village centre is felled (building sites are still cleared).",
+          "mood": 1
+        }
+      ]
+    },
+    {
+      "id": "core:borders",
+      "name": "Borders",
+      "about": "Dealings with villages outside the kingdom.",
+      "options": [
+        {
+          "id": "open",
+          "name": "Open",
+          "about": "Trade and traders come and go.",
+          "mood": 1
+        },
+        {
+          "id": "closed",
+          "name": "Closed",
+          "about": "No trade with, or traders from, villages outside the kingdom; illness does not travel in with traders.",
+          "mood": -1
+        }
+      ],
+      "kingdom": true
+    },
+    {
+      "id": "core:tithe",
+      "name": "Tithe",
+      "about": "What members owe the kingdom's capital.",
+      "options": [
+        {
+          "id": "none",
+          "name": "None",
+          "about": "Members owe nothing.",
+          "mood": 0
+        },
+        {
+          "id": "tithe",
+          "name": "Tithe",
+          "about": "Every 10 days each member sends a tenth of its spare goods to the capital.",
+          "mood": -2
+        }
+      ],
+      "kingdom": true
+    },
+    {
+      "id": "core:justice",
+      "name": "Justice",
+      "about": "How smuggling is punished.",
+      "options": [
+        {
+          "id": "usual",
+          "name": "Usual",
+          "about": "Fines and seizures as usual.",
+          "mood": 0
+        },
+        {
+          "id": "lenient",
+          "name": "Lenient",
+          "about": "Half the attention to smuggling, half the seizures.",
+          "mood": 1
+        },
+        {
+          "id": "harsh",
+          "name": "Harsh",
+          "about": "Twice the attention and seizures: smugglers keep away.",
+          "mood": -1
+        }
+      ],
+      "kingdom": true
+    }
+  ]
+}

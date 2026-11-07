@@ -7,10 +7,14 @@
 import { mayFight } from './people.js';
 import { travel, newJob } from './ai/jobs.js';
 import { injure, isDown, hpOf } from './health.js';
+import { warRules } from './war.js';
 import { relationOf, relationPeek, relationStatus, changeRelation, noteRelation, noteMet, allianceOf, alliesOf, endAlliance, ALLIANCE } from './villages.js';
 import { settlementOf } from './research.js';
 import { kingdomOf, membersOf, sameKingdom, theKingdom } from './kingdoms.js';
 import { octile } from './util.js';
+import { modsOf } from './peoples.js';
+import { lawIs } from './worldlaws.js';
+import { findWater, findFood } from './ai/needs.js';
 
 export const COMBAT = {
   scanEvery: 5, // ticks between a colonist's threat checks
@@ -18,11 +22,15 @@ export const COMBAT = {
   fleeRange: 5,
   fitHp: 50, // health needed to join a fight
   retreatHp: 40, // fighters below this fall back
+  // An AI village marches only on a village whose centre is within this many tiles. People walk about 18 tiles an
+  // hour and go from full to empty water in about 17 hours, so a raid out and back must stay well inside that:
+  // on planet-sized worlds AI villages marched 200+ tiles, ran dry on the way and died of thirst (Phase 16 notes).
+  raidReach: 80,
   ammoLoad: 12, // rounds a fighter tries to carry
   unarmed: { name: 'fists', damage: 3, range: 1.5, cooldown: 50, accuracy: 0.7 },
   woundRelation: -2, // relation cost per wound inflicted
 };
-export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm']);
+export const COMBAT_JOBS = new Set(['fight', 'flee', 'arm', 'fend', 'slay']); // fend: against wild animals (hunt.js); slay: monsters (slay.js)
 
 const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
 
@@ -31,7 +39,11 @@ const sidOf = (g, c) => c.settlementId || g.s.playerSettlement;
  *  (tickMilitary retreats), and the daily kingdom check makes one of them leave, after which they may fight. */
 export function isEnemy(g, a, b) {
   if (!a || !b || a === b) return false;
-  return relationStatus(relationPeek(g, a, b)) === 'hostile' && !sameKingdom(g, a, b);
+  const rel = relationPeek(g, a, b);
+  if (relationStatus(rel) !== 'hostile' || sameKingdom(g, a, b)) return false;
+  // War games (war.js): only a war that was started (declared, or an attack ordered) makes enemies; rivals who are
+  // merely hostile neither fight on sight, raid, nor keep each other in full detail.
+  return !rel.aggressor && warRules(g) ? false : true;
 }
 
 /** The military order of a settlement: { order: 'defend' | 'attack' | 'retreat', target? }. */
@@ -108,19 +120,26 @@ export function coverBetween(g, sx, sy, tx, ty) {
   return best;
 }
 
-/** Nearest enemy (not collapsed) within `range` tiles of c, or null. */
+/** Nearest enemy (not collapsed) within `range` tiles of c, or null. Only people simulated in full can be fought
+ *  one by one: a distant (abstract) village's people are summed up hourly and healed there (lod.js), so a fight
+ *  with one never ended and the fighter died of thirst in it (Phase 16 notes). A village under attack by one
+ *  simulated in full is brought to full detail at the next level-of-detail check (lod.js attackedByFull). */
 export function nearestEnemy(g, c, range = COMBAT.engageRange) {
   const sid = sidOf(g, c);
   // The settlements it is at war with, once per call (O(villages) relation lookups instead of one per colonist);
   // none: no enemy anywhere. The same answer as testing every colonist's settlement.
   let foes = null;
-  for (const o of Object.keys(g.s.settlements || {})) if (isEnemy(g, sid, o)) (foes ||= new Set()).add(o);
+  for (const o of Object.keys(g.s.settlements || {})) if (g.s.settlements[o].detail !== 'abstract' && isEnemy(g, sid, o)) (foes ||= new Set()).add(o);
   if (!foes) return null;
-  let best = null, bd = Infinity;
-  for (const o of Object.values(g.s.colonists)) {
+  // Only the enemies' people (their village indexes; was everyone in the world, for every fighter: the scale
+  // target). Ties go to the lower id number: the first in Object.values(s.colonists) order, as before.
+  let best = null, bd = Infinity, bn = Infinity;
+  for (const f of foes) for (const o of g.owned('colonists', f)) {
     if (o === c || !foes.has(sidOf(g, o)) || isDown(o)) continue;
     const d = octile(c.x, c.y, o.x, o.y);
-    if (d <= range && d < bd) { bd = d; best = o; }
+    if (d > range || d > bd) continue;
+    const n = Number(o.id.slice(1));
+    if (d < bd || n < bn) { bd = d; bn = n; best = o; }
   }
   return best;
 }
@@ -157,6 +176,7 @@ export const COMBAT_DRIVERS = {
   fight: {
     tick(g, c, j) {
       if (hpOf(c) < COMBAT.retreatHp) return { fail: 'Wounded: falling back' };
+      if (parched(g, c)) return { fail: 'Parched or starving: falling back' }; // as a wound does (combatDecision: unfit)
       if (!j.targetId) { // marching toward an enemy village
         const r = go(g, c, j, j.tx, j.ty, 'on', 'the enemy');
         c.status.action = `Marching on ${settlementOf(g, j.against)?.name || 'the enemy'}`;
@@ -164,6 +184,7 @@ export const COMBAT_DRIVERS = {
       }
       const t = g.s.colonists[j.targetId];
       if (!t || isDown(t) || !isEnemy(g, sidOf(g, c), sidOf(g, t))) return 'done';
+      if (settlementOf(g, sidOf(g, t))?.detail === 'abstract') return 'done'; // summed up at a distance: not fought (nearestEnemy)
       const w = weaponOf(g, c);
       const d = Math.hypot(t.x - c.x, t.y - c.y);
       if (j.cover) { // moving into a covered firing spot
@@ -262,7 +283,7 @@ export function armJob(g, c) {
 export function combatDecision(g, c) {
   if (isDown(c)) return null;
   if ((g.s.tick + c.id.length * 3) % COMBAT.scanEvery) return null;
-  if (c.job && COMBAT_JOBS.has(c.job.type)) return null;
+  if (c.job && COMBAT_JOBS.has(c.job.type) && c.job.type !== 'fend' && c.job.type !== 'slay' && !(c.job.type === 'flee' && (c.job.wolf || c.job.monster))) return null; // raiders come before wolves and monsters
   const sid = sidOf(g, c);
   const ord = orderOf(g, sid);
   const st = settlementOf(g, sid);
@@ -271,32 +292,75 @@ export function combatDecision(g, c) {
   const w = weaponOf(g, c);
   const reach = Math.max(COMBAT.engageRange, (w.wants?.range || w.range) + 2);
   const enemy = nearestEnemy(g, c, reach);
-  const fleeJob = (why) => (octile(c.x, c.y, home.x, home.y) > 2 ? newJob('flee', { x: home.x, y: home.y, why }, { why, label: why }) : null);
+  const fleeJob = (why) => (octile(c.x, c.y, home.x, home.y) > 2 && !drinkHere(g, c) && !eatHere(g, c) ? newJob('flee', { x: home.x, y: home.y, why }, { why, label: why }) : null); // water or food right here first
   if (ord.order === 'retreat') {
+    if (!enemy && parched(g, c)) return null; // no enemy near: drink or eat first, then fall back
     if (enemy || g.territoryAt(c.x, c.y) !== sid) return fleeJob('Falling back home (retreat order)');
     return null;
   }
-  const fit = hpOf(c) >= COMBAT.fitHp;
+  const m = modsOf(g, c), hp = hpOf(c);
+  // brave people fight on while hurt; timid ones never join (peoples.js); critical thirst or hunger counts as unfit,
+  // like a wound: fights can last hours, and fighters died of thirst in them (Phase 16 notes)
+  const fit = hp >= fitHpOf(g, c) && !parched(g, c);
   if (enemy) {
     if (w.armed && fit) {
       if (w.outOfAmmo && Math.hypot(enemy.x - c.x, enemy.y - c.y) > 4) { const aj = armJob(g, c); if (aj) return aj; }
-      return newJob('fight', { targetId: enemy.id, stage: 'fight' }, { why: `Fighting ${enemy.name}`, label: `Fight ${enemy.name}` });
+      const brave = hp < COMBAT.fitHp ? ' (brave: fighting on while hurt)' : '';
+      return newJob('fight', { targetId: enemy.id, stage: 'fight' }, { why: `Fighting ${enemy.name}${brave}`, label: `Fight ${enemy.name}` });
     }
-    if (octile(c.x, c.y, enemy.x, enemy.y) <= COMBAT.fleeRange) return fleeJob(w.armed ? 'Wounded: avoiding the fight' : 'Unarmed: fleeing from enemies');
+    if (octile(c.x, c.y, enemy.x, enemy.y) <= (m.flee ?? COMBAT.fleeRange)) return fleeJob(!w.armed ? 'Unarmed: fleeing from enemies' : m.fightHp > 100 ? 'Timid: fleeing from the fight' : 'Wounded: avoiding the fight');
     return null;
   }
   if (ord.order === 'attack' && ord.target && w.armed && fit && isEnemy(g, sid, ord.target)) {
     const aj = armJob(g, c);
     if (aj) return aj;
+    if (wanting(g, c, 'core:drink') || wanting(g, c, 'core:eat')) return null; // drink and eat before marching off
     const tc = settlementOf(g, ord.target)?.center;
     if (tc && octile(c.x, c.y, tc.x, tc.y) > 3) return newJob('fight', { targetId: null, tx: tc.x, ty: tc.y, against: ord.target }, { why: `Attacking ${settlementOf(g, ord.target)?.name}`, label: 'March on the enemy' });
   }
   return null;
 }
 
+/** The health colonist c needs to fight: COMBAT.fitHp, or their trait's (brave: lower; timid: above 100, never). */
+export function fitHpOf(g, c) { return modsOf(g, c).fightHp ?? COMBAT.fitHp; }
+
+/** Is village b's centre within an AI raid's reach of village a's (COMBAT.raidReach)? */
+export function withinRaidReach(g, a, b) {
+  const p = settlementOf(g, a)?.center, q = settlementOf(g, b)?.center;
+  return !!p && !!q && Math.hypot(p.x - q.x, p.y - q.y) <= COMBAT.raidReach;
+}
+
+/** Is this need (eat or drink) below the level where its owner goes looking for it? Fighters see to that first. */
+const wanting = (g, c, beh) => g.reg.all('need').some((d) => d.behavior === beh && (c.needs[d.id] ?? 1) < (d.seekBelow ?? 0));
+/** Is thirst or hunger critical (the level ai.js interrupts a march or a retreat for, with no enemy near)? */
+const parched = (g, c) => g.reg.all('need').some((d) => (d.behavior === 'core:drink' || d.behavior === 'core:eat') && (c.needs[d.id] ?? 1) < (d.criticalBelow ?? d.urgentBelow / 2));
+
+/** Tiles from water (a well, a tap or a shore) that count as "right beside" it for drinkHere. */
+export const WELL_NEAR = 3;
+/** Someone fleeing in their own village with critical thirst and water right beside them stops to drink, even with
+ *  enemies about (the owner, 2026-11-06: in a siege people fled past the well and died of thirst at home). Reads
+ *  only; findWater asks only while thirst is critical, so it costs nothing otherwise. */
+export function drinkHere(g, c) {
+  const drinking = c.job?.type === 'drink'; // already at it: let them finish the drink, not just reach the critical line
+  if (!drinking && !g.reg.all('need').some((d) => d.behavior === 'core:drink' && (c.needs[d.id] ?? 1) < (d.criticalBelow ?? d.urgentBelow / 2))) return false;
+  if (g.territoryAt(c.x, c.y) !== sidOf(g, c)) return false;
+  const w = findWater(g, c);
+  return !!w && octile(c.x, c.y, w.x, w.y) <= WELL_NEAR;
+}
+/** The same for food (the owner, 2026-11-06: "they should grab food too"): with critical hunger, in their own
+ *  village's land, and the food they would eat (findFood: meals first) within WELL_NEAR tiles, they eat first; once
+ *  eating they finish the meal (it is eaten on the spot, ai/jobs.js eat). */
+export function eatHere(g, c) {
+  const eating = c.job?.type === 'eat';
+  if (!eating && !g.reg.all('need').some((d) => d.behavior === 'core:eat' && (c.needs[d.id] ?? 1) < (d.criticalBelow ?? d.urgentBelow / 2))) return false;
+  if (g.territoryAt(c.x, c.y) !== sidOf(g, c)) return false;
+  const f = findFood(g, c);
+  return !!f && octile(c.x, c.y, f.x, f.y) <= WELL_NEAR;
+}
+
 /** Fit, armed fighters a settlement has right now. */
 export function fightersOf(g, sid, bySid = null) {
-  return (bySid ? bySid.get(sid) || [] : Object.values(g.s.colonists)).filter((c) => sidOf(g, c) === sid && !isDown(c) && hpOf(c) >= COMBAT.fitHp && !!c.equip?.weapon && mayFight(g, c));
+  return (bySid ? bySid.get(sid) || [] : Object.values(g.s.colonists)).filter((c) => sidOf(g, c) === sid && !isDown(c) && hpOf(c) >= fitHpOf(g, c) && !!c.equip?.weapon && mayFight(g, c));
 }
 
 /** AI villages decide their own orders every 100 ticks: raid a hostile neighbour they clearly outnumber,
@@ -323,6 +387,7 @@ export function tickMilitary(g) {
     if (st.detail === 'abstract') continue; // raids are only launched by villages simulated in full (lod.js)
     for (const other of Object.keys(g.s.settlements)) {
       if (!isEnemy(g, st.id, other) || relationPeek(g, st.id, other).value > -50 || allianceOf(g, st.id, other) || sameKingdom(g, st.id, other)) continue;
+      if (!withinRaidReach(g, st.id, other)) continue; // too far to march on
       const theirs = fightersOf(g, other, bySid).length;
       if (mine.length >= 2 && mine.length >= theirs * 1.5) { setOrder(g, st.id, 'attack', other); strikeFirst(g, st.id, other); break; }
     }
@@ -345,9 +410,11 @@ export function evaluateAttack(g, sid, target) {
   const ours = fightersOf(g, sid), theirs = fightersOf(g, target);
   const res = { valid: true, problems: [], lines: [], risks: [], declares: status !== 'hostile', ours: ours.length, theirs: theirs.length };
   if (sid === target || !settlementOf(g, target)) { res.valid = false; res.problems.push('There is no such village.'); return res; }
+  if (settlementOf(g, target).fallen) { res.valid = false; res.problems.push(`${name} has fallen; only ruins are left.`); return res; } // fallen.js
   if (!rel.contact) { res.valid = false; res.problems.push(`You have not met ${name} yet.`); }
   if (allianceOf(g, sid, target)) { res.valid = false; res.problems.push(`${name} is your ally. End the alliance first.`); }
   if (sameKingdom(g, sid, target)) { res.valid = false; res.problems.push(`${name} is in your kingdom (${kingdomOf(g, sid).name}).`); }
+  if (lawIs(g, 'core:peace', 'on') && !isEnemy(g, sid, target)) { res.valid = false; res.problems.push(`The Peace law holds: no new war may start (you are not at war with ${name}).`); }
   if (!ours.length) { res.valid = false; res.problems.push('Nobody fit is armed. Make weapons first (spears, bows).'); }
   const ranged = ours.filter((c) => g.reg.get('item', c.equip.weapon.item)?.equipment?.ammo);
   res.lines.push(`Your fighters: ${ours.length} armed and fit (${ranged.length} with ranged weapons). Theirs: about ${theirs.length}.`);
@@ -356,6 +423,10 @@ export function evaluateAttack(g, sid, target) {
     res.lines.push(`${g.reg.get('item', it)?.name || it}: ${carried} carried, ${ammoStock(g, sid, it)} in store.`);
   }
   if (ours.length && ours.length < theirs.length) res.risks.push(`They have more fighters than you: expect to lose.`);
+  if (!withinRaidReach(g, sid, target)) { // a long march (COMBAT.raidReach): the player may still order it
+    const p = settlementOf(g, sid)?.center, q = settlementOf(g, target)?.center;
+    if (p && q) res.risks.push(`${name} is ${Math.round(Math.hypot(p.x - q.x, p.y - q.y))} tiles away: a long march, and your fighters may run short of water and food on the way.`);
+  }
   if (res.declares) {
     res.risks.push(`This declares war: relations with ${name} drop from ${rel.value} to ${WAR.declareTo} (hostile).`);
     if (g.s.treaties?.[[sid, target].sort().join('|')]) res.risks.push('Your trade pact with them ends.');
@@ -376,6 +447,24 @@ export function evaluateAttack(g, sid, target) {
   }
   res.risks.push('Wounded colonists collapse and need care; every wound worsens relations further.');
   return res;
+}
+
+/** An AI village declares war (war.js, Phase 5): relations go to WAR.declareTo at most, a trade pact ends, it
+ *  orders an attack, and the attacked village's allies and kingdom are called in (strikeFirst). */
+export function declareWar(g, sid, target, reason) {
+  if (lawIs(g, 'core:peace', 'on') && !isEnemy(g, sid, target)) return false; // the Peace law: no new wars
+  const rel = relationOf(g, sid, target);
+  const before = rel.lastEv; // the last recorded dispute or relations change: an association (chronicle.js), not a cause
+  if (rel.value > WAR.declareTo) changeRelation(g, sid, target, WAR.declareTo - rel.value, reason);
+  else { rel.history.push({ tick: g.s.tick, delta: 0, reason }); if (rel.history.length > 16) rel.history.splice(0, rel.history.length - 16); }
+  delete rel.threat;
+  rel.warSince = g.s.tick; // war.js: AI wars end in a truce when old (save format 20)
+  const k = [sid, target].sort().join('|');
+  if (g.s.treaties?.[k]) { delete g.s.treaties[k]; rel.history.push({ tick: g.s.tick, delta: 0, reason: 'Trade pact ended: war' }); }
+  rel.warEv = g.log(`${reason}.`, 'warn', null, 0, { kind: 'core:war_declared', sids: [sid, target], rel: before }) || undefined;
+  if (!rel.warEv) delete rel.warEv;
+  if (withinRaidReach(g, sid, target)) setOrder(g, sid, 'attack', target); // a war too far to march: they defend
+  strikeFirst(g, sid, target);
 }
 
 /** The player (or a script) orders an attack. Declares war first if needed. */
@@ -407,7 +496,9 @@ export function startsWar(g, x, y) { return !relationPeek(g, x, y).aggressor; }
  *  later attacks, retaliation by `y`, and raids by a village that joined to defend an ally call in nobody. */
 function strikeFirst(g, x, y) {
   if (!startsWar(g, x, y)) return false;
-  relationOf(g, x, y).aggressor = x;
+  const r = relationOf(g, x, y);
+  r.aggressor = x;
+  r.warSince ??= g.s.tick; // war.js: how old the war is
   joinDefence(g, x, y);
   return true;
 }
@@ -441,8 +532,9 @@ export function joinDefence(g, x, y) {
     if (!rel.contact) { rel.contact = true; noteMet(g, rel, `Met through ${via}`); noteRelation(g, z, x, `Met through ${via}`); }
     if (rel.value <= ALLIANCE.joinRelation) continue; // already at war with x
     changeRelation(g, z, x, ALLIANCE.joinRelation - rel.value, `Attacked ${via}`);
-    if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; }
-    g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn');
+    if (!rel.aggressor) { rel.aggressor = x; rel.joinedFor = y; rel.warSince = g.s.tick; }
+    const joined = g.log(`${settlementOf(g, z)?.name || z} joins the war on ${ny}'s side${kin ? ` (${theKingdom(kingdomOf(g, y).name)})` : ''}.`, 'warn', null, 0, { kind: 'core:war_joined', sids: [z, x, y], cause: relationPeek(g, x, y).warEv });
+    if (joined) rel.warEv = joined;
   }
 }
 
@@ -461,10 +553,19 @@ export function offerTruce(g, sid, target) {
   makePeace(g, sid, target, `${settlementOf(g, sid)?.name} and ${settlementOf(g, target)?.name} agreed a truce`);
   return { ok: true, message: 'Truce agreed.' };
 }
-function makePeace(g, a, b, reason) {
+export function makePeace(g, a, b, reason) {
   const rel = relationOf(g, a, b);
   changeRelation(g, a, b, WAR.truceTo - rel.value, reason);
   for (const s of [a, b]) { const o = orderOf(g, s); if (o.order !== 'defend' && (o.target === a || o.target === b || o.order === 'retreat')) setOrder(g, s, 'defend'); }
+}
+
+/** War games: are a and b rivals over land (their lands touch, or their centres are within rivalry.near)? */
+function rivals(g, a, b) {
+  const R = warRules(g)?.rivalry;
+  if (!R) return false;
+  if (relationPeek(g, a, b).touch !== undefined) return true;
+  const ca = g.s.settlements[a]?.center, cb = g.s.settlements[b]?.center;
+  return !!(R.near && ca && cb && Math.hypot(ca.x - cb.x, ca.y - cb.y) <= R.near);
 }
 
 /** Daily: wars where nobody has been hurt for a while cool down; AI villages losing a war ask for a truce. */
@@ -475,7 +576,9 @@ export function tickWars(g, ticksPerDay) {
     const rel = relationPeek(g, a, b);
     if (relationStatus(rel) !== 'hostile') continue;
     const quiet = g.s.tick - (rel.lastClash || 0) > WAR.coolAfterDays * ticksPerDay;
-    if (quiet) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
+    // War games (war.js): only a war cools; rivals who never fought stay hostile.
+    const rivalsOnly = !rel.aggressor && !!warRules(g) && rivals(g, a, b);
+    if (quiet && !rivalsOnly) changeRelation(g, a, b, WAR.coolPerDay, 'Tempers cool: no fighting for a while');
     for (const [me, them] of [[a, b], [b, a]]) {
       const st = settlementOf(g, me);
       if (!st?.ai || settlementOf(g, them)?.ai) continue; // AI villages sue the player; AI-vs-AI wars just cool

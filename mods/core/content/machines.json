@@ -33,7 +33,7 @@
   ],
   "item": [
     {
-      "id": "core:planks",
+      "id": "core:planks", "flammable": 1,
       "name": "Planks",
       "color": "#d2ab72",
       "stackLimit": 60,

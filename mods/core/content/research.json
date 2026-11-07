@@ -612,7 +612,7 @@
       }
     },
     {
-      "id": "core:charcoal",
+      "id": "core:charcoal", "flammable": 1,
       "name": "Charcoal",
       "color": "#3a3836",
       "stackLimit": 75,

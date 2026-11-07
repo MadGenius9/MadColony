@@ -120,7 +120,8 @@ export function validateTemplate(reg, def) {
       if (!reachable(c.cx, c.cy)) errors.push(`cell "${c.ch}" at (${c.cx},${c.cy}) cannot be reached from outside`);
       continue;
     }
-    const isWall = (b && b.category === 'wall') || (k === 'slot' && slotCandidates(reg, c.spec.slot).every((x) => x.category === 'wall') && slotCandidates(reg, c.spec.slot).length > 0);
+    const isWall = (b && (b.category === 'wall' || b.category === 'fence')) || // fences (Phase 9) need no working spot either
+      (k === 'slot' && slotCandidates(reg, c.spec.slot).every((x) => x.category === 'wall') && slotCandidates(reg, c.spec.slot).length > 0);
     if (isWall) continue;
     if (b?.interaction) {
       const [ix, iy] = [c.cx + b.interaction[0], c.cy + b.interaction[1]];

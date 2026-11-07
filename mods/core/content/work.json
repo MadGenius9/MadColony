@@ -7,6 +7,9 @@
       "givers": [
         {
           "giver": "core:tend"
+        },
+        {
+          "giver": "core:bury"
         }
       ],
       "color": "#e06a8a"
@@ -25,12 +28,16 @@
     },
     {
       "id": "core:farm",
+      "outdoor": true,
       "name": "Farming",
       "skill": "core:farming",
       "priority": 0.95,
       "givers": [
         {
           "giver": "core:harvest"
+        },
+        {
+          "giver": "core:tend_animals"
         },
         {
           "giver": "core:sow"
@@ -76,12 +83,16 @@
     },
     {
       "id": "core:chop",
+      "outdoor": true,
       "name": "Woodcutting",
       "skill": "core:woodcutting",
       "priority": 0.8,
       "givers": [
         {
           "giver": "core:gather_nodes"
+        },
+        {
+          "giver": "core:plant_trees"
         }
       ],
       "color": "#a0703c",
@@ -94,6 +105,7 @@
     },
     {
       "id": "core:mine",
+      "outdoor": true,
       "name": "Mining",
       "skill": "core:mining",
       "priority": 0.75,
@@ -112,6 +124,7 @@
     },
     {
       "id": "core:forage",
+      "outdoor": true,
       "name": "Foraging",
       "skill": "core:farming",
       "priority": 0.75,
@@ -124,6 +137,7 @@
     },
     {
       "id": "core:haul",
+      "outdoor": true,
       "name": "Hauling",
       "priority": 0.75,
       "givers": [
@@ -138,6 +152,9 @@
         },
         {
           "giver": "core:haul_stockpile"
+        },
+        {
+          "giver": "core:feed_animals"
         },
         {
           "giver": "core:scout"

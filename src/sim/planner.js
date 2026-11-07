@@ -2,8 +2,11 @@
 // content graph (stock -> in-flight production -> recipes/stations -> gatherable nodes -> crops), and
 // starts projects (homes, stations, fields, stockpile growth). It never moves a colonist itself; it
 // publishes `g.plan` (wants, bills, clear list, equipment needs, goal explanations) for job givers.
+import { huntableNear, farHuntable, meatOnHand, meatWanted, herdsWithin } from './animals.js';
+import { HUNT_REACH } from './hunt.js';
+import { monsterThreats } from './slay.js';
 import { staffing, educationSummary } from './education.js';
-import { isAdult as isAdultP, BIRTH, mayDoWork } from './people.js';
+import { isAdult as isAdultP, BIRTH, mayDoWork, popCap } from './people.js';
 import { storageStatus, hubName } from './storage.js';
 import { medicalSummary } from './medical.js';
 import { isDown as isDownC } from './health.js';
@@ -13,7 +16,9 @@ import { intentsOf } from './civic/intents.js';
 import { PLAN_INTERVAL } from './constants.js';
 import { TICKS_PER_DAY, TICKS_PER_HOUR, NEAR_RADIUS } from './constants.js';
 import { canRipen } from './farming.js';
-import { heatSeason } from './heat.js';
+import { heatSeason, seasonLawKey } from './heat.js';
+import { civLawIs, RATION, huntAllowed, treeProtected } from './civlaws.js';
+import { moodNote } from './mood.js';
 import { isWaterNode, waterNetworks } from './water.js';
 import { GOAL_TYPES, goalIsOngoing, describeGoal } from './goals.js';
 import { createProject, findSite, assignHome, addSlotPart, partsOf, homeFurnished, tileUsable } from './construction.js';
@@ -24,14 +29,18 @@ import { fieldCells } from './game.js';
 import { isUnlocked, requiredTechs, planResearch, settlementOf, milestoneStatus, eligibleTechs, techInScenario } from './research.js';
 import { marketRules } from './markets.js';
 import { legRemaining, relationPeek, relationStatus } from './villages.js';
-import { LOD, stagger, planOffset } from './lod.js';
+import { LOD, planOffset, abstractPlanSlot } from './lod.js';
 import { travelRules, reachTest, nodesInReach, SLOW_WORK } from './ai/trips.js';
+import { planRoads, cartWants } from './roads.js'; // Phase 7
+import { garmentWants } from './clothing.js'; // Phase 9
+import { planPens } from './pens.js'; // Phase 9
+import { planForestry } from './forestry.js'; // forestry
 
 export function emptyPlan() {
   return {
     tick: -1, wants: {}, bills: [], clear: new Map(), equipNeeds: [], seedReserve: {}, goalInfo: {}, notes: [],
     blockers: {}, trace: {}, foodDays: 0, growingDays: 0, stock: {}, mealCount: 0, bedsBuilt: 0, anyFood: true, stockFull: false,
-    stations: {}, housingNote: '', mealNote: '', foodNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
+    stations: {}, housingNote: '', mealNote: '', foodNote: '', huntNote: '', moodNote: '', monsterNote: '', techWanted: new Set(), research: null, renovation: null, tradeNeeds: {}, landNeeds: {}, surplus: {},
   };
 }
 
@@ -78,7 +87,7 @@ export function bestAvailableWeapon(g, sid, stock = {}) {
  *  Big worlds call it every tick with dueOnly = true and each village is planned on its own schedule, so the
  *  cost is spread over the ticks: the player's village every PLAN_INTERVAL ticks (as on classic worlds, and
  *  also when g.planDirty), a full AI village every PLAN_INTERVAL ticks at its own offset, an abstract
- *  village (lod.js) every LOD.checkEvery ticks at its stagger; any village without a plan, or listed in
+ *  village (lod.js) every LOD.checkEvery ticks at its slot (abstractPlanSlot); any village without a plan, or listed in
  *  g.replanSids (completeTech, a switch to full detail, gathering rights), at once. Villages in
  *  g.replanLater (a switch to abstract; the abstract villages after loading a save without saved plans)
  *  plan at their own slot (planOffset) or at their next abstract hour (lod.js), whichever comes first, so
@@ -88,6 +97,7 @@ export function runPlanner(g, dueOnly = false) {
   const s = g.s;
   if (!s.center) return;
   const ids = Object.keys(s.settlements || {});
+  if (!ids.length && s.playerSettlement === null) return; // a world with no people yet: nothing to plan
   if (!ids.length) ids.push(s.playerSettlement || 't1');
   const prev = g.plans || {};
   const plans = dueOnly ? prev : {};
@@ -105,10 +115,11 @@ export function runPlanner(g, dueOnly = false) {
     if (asked?.has(sid)) due = true;
     else if (later?.has(sid)) due = s.tick % PLAN_INTERVAL === planOffset(sid, PLAN_INTERVAL);
     else if (!prev[sid] || !g.big) due = true;
-    else if (s.settlements?.[sid]?.detail === 'abstract') due = s.tick % LOD.checkEvery === stagger(sid) % LOD.checkEvery;
+    else if (s.settlements?.[sid]?.detail === 'abstract') due = s.tick % LOD.checkEvery === abstractPlanSlot(sid); // (lod.js; Phase 18 slice 3)
     else if (all) due = true;
     else if (sid === player) due = s.tick % PLAN_INTERVAL === 0 || dirty;
     else due = s.tick % PLAN_INTERVAL === planOffset(sid, PLAN_INTERVAL);
+    if (s.settlements?.[sid]?.fallen) { plans[sid] = emptyPlan(); later?.delete(sid); continue; } // a ruin plans nothing (fallen.js)
     if (due) { plans[sid] = planSettlement(g, sid); later?.delete(sid); }
     else if (!dueOnly && prev[sid]) plans[sid] = prev[sid];
   }
@@ -118,13 +129,13 @@ export function runPlanner(g, dueOnly = false) {
 
 /** Big worlds: plan one village now (an abstract village whose hour comes before its planning slot). */
 export function planNow(g, sid) {
-  (g.plans ||= {})[sid] = planSettlement(g, sid);
+  (g.plans ||= {})[sid] = g.s.settlements?.[sid]?.fallen ? emptyPlan() : planSettlement(g, sid); // ruins plan nothing (fallen.js)
   g.replanLater?.delete(sid);
 }
 
 function planSettlement(g, sid) {
   const reg = g.reg, s = g.s, pol = g.policyFor(sid);
-  const player = s.playerSettlement || sid;
+  const player = s.playerSettlement === null ? null : s.playerSettlement || sid; // null: no player village yet
   const isPlayer = sid === player;
   const own = (e) => (e?.settlement || player) === sid;
   const center = settlementOf(g, sid)?.center || s.center;
@@ -206,7 +217,7 @@ function planSettlement(g, sid) {
 
   // ---- Food accounting ----
   const hunger = reg.all('need').find((x) => x.behavior === 'core:eat');
-  const needPerDay = n * (hunger?.decayPerDay ?? 1);
+  const needPerDay = n * (hunger?.decayPerDay ?? 1) * (civLawIs(g, sid, 'core:rationing', 'rationed') ? RATION.hunger : 1); // rationing (civlaws.js)
   let foodNutr = 0;
   for (const [it, q] of Object.entries(P.stock)) {
     const nu = reg.get('item', it)?.nutrition || 0;
@@ -214,8 +225,8 @@ function planSettlement(g, sid) {
     if (reg.itemHasTag(it, 'core:meal')) P.mealCount += q;
   }
   let growNutr = 0;
-  for (const cr of Object.values(s.crops)) {
-    if (!own(s.fields[cr.fieldId])) continue;
+  for (const cr of g.cropsBy(sid)) { // its own fields' crops, in the order Object.values(s.crops) gives them (game.js)
+    if (s.crops[cr.id] !== cr || !own(s.fields[cr.fieldId])) continue;
     const d = reg.get('crop', cr.def);
     if (d) for (const h of d.harvest) growNutr += h.qty * (reg.get('item', h.item)?.nutrition || 0);
   }
@@ -230,7 +241,7 @@ function planSettlement(g, sid) {
     mealTarget: Math.ceil((pol.mealsPerColonist ?? 2) * n), mealUrgency: 0.9, mealGoal: null,
     foodDays: pol.foodDays ?? 3, foodUrgency: 0.55, foodGoal: null,
     guards: null, buildCounts: [], eraGoals: [],
-    armAll: !!pol.armColonists || Object.keys(s.settlements || {}).some((o) => o !== sid && relationStatus(relationPeek(g, sid, o)) === 'hostile'), armUrgency: 0.5, armGoal: null,
+    armAll: !!pol.armColonists || civLawIs(g, sid, 'core:conscription', 'militia') || Object.keys(s.settlements || {}).some((o) => o !== sid && relationStatus(relationPeek(g, sid, o)) === 'hostile'), armUrgency: 0.5, armGoal: null, // militia: the Conscription law (civlaws.js)
   };
   if (isPlayer) for (const goal of s.goals) if (goal.status === 'active') GOAL_TYPES[goal.type]?.apply(g, goal, ctx); // player goals steer the player's settlement
   // Era drive (scenario data `eraDrive`; the Living and vast worlds, never classic scenarios): a village with no
@@ -251,7 +262,7 @@ function planSettlement(g, sid) {
   const growBeds = fnd?.growBeds;
   const settled = s.tick - (settlementOf(g, sid)?.founded ?? 0) >= (fnd?.growAfterDays ?? 5) * TICKS_PER_DAY;
   if (growBeds > 0 && settled) {
-    const cap = pol.maxPopulation ?? BIRTH.defaultCap;
+    const cap = popCap(g, sid);
     if (n < cap && P.foodDays >= BIRTH.minFoodDays) {
       const want = Math.min(cap, n + growBeds);
       if (want > ctx.housingTarget) { ctx.housingTarget = want; ctx.housingWhy = `Room to grow: ${n} of ${cap} people and food for ${Math.floor(P.foodDays)} days`; if (!cols.some((c) => !c.homeId)) ctx.housingUrgency = Math.min(ctx.housingUrgency, 0.6); }
@@ -282,6 +293,32 @@ function planSettlement(g, sid) {
     const pool = cols.slice().sort((a, b) => (b.equip.weapon?.item === ctx.guards.item) - (a.equip.weapon?.item === ctx.guards.item) || (a.id < b.id ? -1 : 1));
     for (const c of pool.slice(0, ctx.guards.count)) guardIds.add(c.id);
   }
+  // Hunting (Phase 8, animals.js / hunt.js): while a huntable herd is near the village and meat is short, its two
+  // best hunters (by skill, then id) get a weapon if they have none; the reason is shown (P.huntNote).
+  const ctr = s.settlements?.[sid]?.center || s.center, hunterIds = new Set();
+  const herdsNear = !ctr || !s.animals ? [] : s.settlements?.[sid]?.detail === 'abstract' ? farHuntable(g, ctr.x, ctr.y, HUNT_REACH, sid) : huntableNear(g, ctr.x, ctr.y, HUNT_REACH); // distant villages hunt far herds (lod.js); full ones near or far; both out to HUNT_REACH, as lod.js and hunt.js hunt (40 for distant ones until 2026-10-31)
+  const huntLaw = huntAllowed(g, sid, P.foodDays); // the Hunting law (civlaws.js)
+  const meatShort = huntLaw && meatOnHand(g, P) < meatWanted(cols.length, P.foodDays); // twice as much when food is short
+  // A pack that attacked a full-detail village (h.raids) is hunted down whatever the meat (hunt.js); its hunters
+  // are armed for it, urgently. Distant villages list raiders in farHuntable; full ones look for them here.
+  const raiders = !ctr || !s.animals || s.animals.peaceful || s.settlements?.[sid]?.detail === 'abstract' ? [] : herdsWithin(g, ctr.x, ctr.y, HUNT_REACH)
+    .filter((h) => h.raids?.[sid] > s.tick && reg.get('animal', h.sp)?.diet === 'hunt').map((h) => ({ h, d: reg.get('animal', h.sp), dist: Math.hypot(h.x - ctr.x, h.y - ctr.y), raid: true }))
+    .filter((t) => t.dist <= HUNT_REACH).sort((a, b) => a.dist - b.dist || (a.h.id < b.h.id ? -1 : 1));
+  if ((herdsNear.length && meatShort) || raiders.length) {
+    const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
+    for (const c of pool.slice(0, 2)) hunterIds.add(c.id);
+  }
+  const raid = herdsNear.find((t) => t.raid) || raiders[0];
+  // Monsters (Phase 8c, slay.js): while one threatens the village, its fightGroup best hunters get a weapon if they
+  // have none (a hunt party needs that many armed).
+  const threat = s.monsters && s.settlements?.[sid]?.detail !== 'abstract' ? monsterThreats(g, sid)[0] : null, td = threat && reg.get('monster', threat.sp);
+  if (td) {
+    const pool = cols.filter((c) => isAdultP(g, c) && !c.workOff?.['core:hunt']).sort((a, b) => (b.skills['core:hunting'] || 0) - (a.skills['core:hunting'] || 0) || (a.id < b.id ? -1 : 1));
+    for (const c of pool.slice(0, td.fightGroup)) hunterIds.add(c.id);
+  }
+  P.monsterNote = td ? `A ${td.name} threatens the village: arming ${td.fightGroup} fighters to hunt it` : '';
+  P.moodNote = moodNote(g, cols); // mood.js: how the village feels and why
+  P.huntNote = raid ? `Hunting down the ${raid.d.plural || raid.d.name} that attacked the village (${Math.round(raid.dist)} tiles away)` : !huntLaw ? (civLawIs(g, sid, 'core:hunting', 'banned') ? 'Hunting is banned by law' : 'Hunting is restricted by law: only when food runs low') : !herdsNear.length ? 'No herd near enough to hunt' : !meatShort ? 'Enough meat for now' : `Hunting ${herdsNear[0].d.plural || herdsNear[0].d.name} (a herd of ${herdsNear[0].h.n}, ${Math.round(herdsNear[0].dist)} tiles away)`;
   for (const c of cols) {
     if (!isAdultP(g, c)) continue; // children get no tools or weapons
     const role = roleOf(g, c);
@@ -304,8 +341,21 @@ function planSettlement(g, sid) {
       const better = w && c.equip.weapon && weaponScore(w) > weaponScore(reg.get('item', c.equip.weapon.item)) * 1.15 && (P.stock[w.id] || 0) > 0;
       if (w && (!c.equip.weapon || better) && !fetching('weapon', w.id)) D.push({ item: w.id, qty: 1, urgency: ctx.armUrgency, why: ctx.armGoal ? 'Goal: arm every colonist' : 'Arm the colonists', goal: ctx.armGoal, equipFor: c.id, slot: 'weapon' });
     }
+    if (hunterIds.has(c.id) && !c.equip.weapon && !guardItem && !ctx.armAll) {
+      const wid = bestAvailableWeapon(g, sid, P.stock);
+      if (wid && !fetching('weapon', wid)) D.push({ item: wid, qty: 1, urgency: raid ? 1 : 0.5, why: raid ? `A ${iname(g, wid)} for ${c.name} to hunt down the ${raid.d.plural || raid.d.name}` : `A ${iname(g, wid)} for ${c.name} to hunt with`, equipFor: c.id, slot: 'weapon' });
+    }
   }
   for (const sp of ctx.spares) D.push(sp);
+  for (const d of cartWants(g, sid, cols.filter((c) => isAdultP(g, c)), P.stock)) D.push(d); // handcarts for haulers (roads.js)
+  for (const d of garmentWants(g, sid, cols.filter((c) => isAdultP(g, c)), P.stock)) D.push(d); // coats against the cold (clothing.js)
+  // Carcasses spoil: their meat (or hide) is wanted at once, so they are butchered (Phase 8).
+  for (const [it, q] of Object.entries(P.stock)) {
+    if (q <= 0 || !reg.get('item', it)?.tags?.includes('core:carcass')) continue;
+    const r = reg.all('recipe').find((x) => x.fromStock && x.inputs.some((e) => e.item === it));
+    const out = r?.outputs[0];
+    if (out) D.push({ item: out.item, qty: (P.stock[out.item] || 0) + q * out.qty, urgency: 0.9, why: `Butcher the ${reg.get('item', it).name.toLowerCase()} before it spoils`, recipe: r.id, maxRuns: q });
+  }
   for (const [it, q] of Object.entries(pol.stock || {})) if (reg.get('item', it)) D.push({ item: it, qty: q, urgency: 0.25, why: 'Keep a basic stockpile' });
   // Ammunition for everyone carrying a ranged weapon.
   const ammoNeed = {};
@@ -313,6 +363,9 @@ function planSettlement(g, sid) {
   for (const [it, q] of Object.entries(ammoNeed)) D.push({ item: it, qty: q, urgency: 0.35, why: 'Ammunition for armed colonists' });
   planLighting(g, P, sid);
   planPlumbing(g, P, sid);
+  planRoads(g, P, sid); // Phase 7: roads where people walk most (roads.js)
+  planPens(g, P, sid, cols); // Phase 9: a pen for animals to tame (pens.js)
+  planForestry(g, P, sid); // a grove when trees run short (forestry.js)
   planHeating(g, P, sid, D);
   planMedical(g, P, sid, D, cols);
   planEducation(g, P, sid);
@@ -364,11 +417,11 @@ function planSettlement(g, sid) {
     const byDef = g.big ? null : g.nodesByDef();
     const pool = g.big ? (reach && nodesInReach(g, sid, set)) || g.nodesNear(center.x, center.y, NEAR_RADIUS, set) : defIds.flatMap((d) => byDef.get(d) || []);
     for (const nd of pool) {
-      if (nd.empty || !g.gatherOk(sid, nd)) continue;
+      if (nd.empty || !g.gatherOk(sid, nd) || treeProtected(g, sid, nd)) continue; // protected forests (civlaws.js)
       if (reach && !reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK)) continue; // one chunk's trip
       if (g.reachableFrom(center.x, center.y, nd.x, nd.y, g.nodeDef(nd).passable ? 'on' : 'adj')) { ok = true; break; }
     }
-    if (!ok) ok = (g.big ? pool : Object.values(s.nodes)).some((nd) => set.has(nd.def) && nd.empty && g.gatherOk(sid, nd) && (!reach || reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK))) ? 'regrowing' : false;
+    if (!ok) ok = (g.big ? pool : Object.values(s.nodes)).some((nd) => set.has(nd.def) && nd.empty && !nd.young && g.gatherOk(sid, nd) && (!reach || reach(nd.x, nd.y, (g.nodeDef(nd)?.work || 0) * SLOW_WORK))) ? 'regrowing' : false;
     reachCache.set(k, ok);
     return ok;
   };
@@ -389,6 +442,9 @@ function planSettlement(g, sid) {
     if (depth > 6 || seen.has(key)) { block(goal, `Production chain for ${label} is circular or too deep`); return; }
     const seen2 = new Set(seen); seen2.add(key);
     let allRecipes = spec.item ? (reg.idx.recipesFor[spec.item] || []) : reg.recipesForTag(spec.tag);
+    // Recipes that only use up goods on hand (`fromStock`: butchering a carcass) serve only a want that names them
+    // (Phase 8): meat is raw food, but a village short of food forages and farms, it does not plan to butcher deer.
+    allRecipes = spec.recipe ? allRecipes.filter((r) => r.id === spec.recipe) : allRecipes.filter((r) => !r.fromStock);
     // Fallback recipes (quarrying) are used only while the item cannot be gathered on reachable land.
     if (allRecipes.some((r) => r.fallback)) {
       const nodeIds = spec.item ? (reg.idx.nodesFor[spec.item] || []).map((n) => n.id) : [];
@@ -442,7 +498,7 @@ function planSettlement(g, sid) {
       }
       if (machine) r = machine;
       const out = r.outputs.find((o) => (spec.item ? o.item === spec.item : reg.itemHasTag(o.item, spec.tag)));
-      const runs = Math.ceil(short / out.qty);
+      const runs = Math.min(Math.ceil(short / out.qty), spec.maxRuns ?? Infinity);
       addBill(r, runs, urgency, machine ? `${why}; made on the ${reg.get('building', r.station).name} (faster)` : why, goal);
       const st = ensureStation(g, P, r.station, urgency, why, sid);
       const stName = g.reg.get('building', r.station).name;
@@ -503,7 +559,7 @@ function planSettlement(g, sid) {
       if (inf > 0) trace(d.goal, 1, `${inf} already being made or gathered`, 'working');
       short -= inf;
     }
-    if (short > 0) resolve(d.tag ? { tag: d.tag } : { item: d.item }, short, d.urgency, d.why, d.goal, 0, new Set());
+    if (short > 0) resolve(d.tag ? { tag: d.tag } : { item: d.item, ...(d.recipe ? { recipe: d.recipe, maxRuns: d.maxRuns } : {}) }, short, d.urgency, d.why, d.goal, 0, new Set());
   }
   P.bills = [...billMap.values()].sort((a, b) => b.urgency - a.urgency);
   // ---- Machine count sized to demand (Phase 3 slice 3): a 2nd or 3rd machine when work keeps waiting ----
@@ -745,7 +801,7 @@ function planFields(g, P, ctx, needPerDay, block, sid) {
 function leanSeason(g, sid) {
   const crops = g.reg.all('crop').filter((c) => g.owned('fields', sid).some((f) => (f.settlement || g.s.playerSettlement) === sid && f.crop === c.id));
   if (!crops.length) return null;
-  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) + ':' + crops.map((c) => c.id).join(',');
+  const k = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) + ':' + crops.map((c) => c.id).join(',') + ':' + seasonLawKey(g); // the Endless season law changes it
   if (g._lean?.[sid]?.k === k) return g._lean[sid].v;
   const t0 = Math.floor(g.s.tick / (TICKS_PER_DAY / 2)) * (TICKS_PER_DAY / 2); // from the window's start, so saves continue identically
   const ok = (d) => crops.some((c) => canRipen(g, c, t0 + d * TICKS_PER_DAY));
@@ -1223,7 +1279,7 @@ function planEducation(g, P, sid) {
     else P.eduTechs.push(...open(teacher.id));
   }
   const lectern = role('lectern');
-  const short = staffing(g, sid).filter((x) => x.short > 0 && reg.get('qualification', x.qual)?.course);
+  const short = staffing(g, sid, true).filter((x) => x.short > 0 && reg.get('qualification', x.qual)?.course);
   if (short.length && lectern) {
     if (isUnlocked(g, sid, 'building', lectern.id)) ensureStation(g, P, lectern.id, 0.45, `Training: the colony lacks a ${short[0].name}`, sid);
     else if (r?.done?.some((t) => (reg.get('tech', t)?.unlocks?.buildings || []).includes(teacher?.id))) P.eduTechs.push(...open(lectern.id));
@@ -1341,13 +1397,27 @@ function planHeating(g, P, sid, D) {
 
 /** Running water (after Plumbing): a pump and a water tower, a tap by the stockpile and by each finished
  *  home, and pipes joining them. One step per plan; the power planner wires the pump to a generator. */
+// Per registry (it never changes once built): the buildings with each water role and the templates that build each
+// building, in registry order, so planPlumbing's first unlocked one is the same as a search of the whole lists.
+const WATER_DEFS = new WeakMap();
+function waterDefs(reg) {
+  let w = WATER_DEFS.get(reg);
+  if (!w) {
+    w = { role: {}, tpl: new Map() };
+    for (const role of ['pump', 'storage', 'tap', 'pipe']) w.role[role] = reg.all('building').filter((b) => b.water?.[role]);
+    for (const t of reg.all('template')) for (const l of Object.values(t.legend)) if (l.build) { if (!w.tpl.has(l.build)) w.tpl.set(l.build, []); const a = w.tpl.get(l.build); if (a.at(-1) !== t) a.push(t); }
+    WATER_DEFS.set(reg, w);
+  }
+  return w;
+}
+
 function planPlumbing(g, P, sid) {
-  const s = g.s, reg = g.reg;
+  const s = g.s, reg = g.reg, W = waterDefs(reg);
   const own = (e) => (e?.settlement || s.playerSettlement) === sid;
-  const pick = (role) => reg.all('building').find((b) => b.water?.[role] && isUnlocked(g, sid, 'building', b.id));
+  const pick = (role) => W.role[role].find((b) => isUnlocked(g, sid, 'building', b.id));
   const pumpD = pick('pump'), towerD = pick('storage'), tapD = pick('tap'), pipeD = pick('pipe');
   if (!pumpD || !towerD || !tapD || !pipeD) return;
-  const tplFor = (d) => reg.all('template').find((t) => Object.values(t.legend).some((l) => l.build === d.id) && templateUnlocked(g, sid, t));
+  const tplFor = (d) => (W.tpl.get(d.id) || []).find((t) => templateUnlocked(g, sid, t));
   const structs = g.owned('structures', sid).filter(own);
   const of = (d) => structs.filter((st) => st.def === d.id);
   if (!of(pumpD).length) { const r = ensureStation(g, P, pumpD.id, 0.45, 'Running water: a pump', sid); if (r.state === 'blocked') P.waterNote = r.reason; return; }
@@ -1356,7 +1426,7 @@ function planPlumbing(g, P, sid) {
   const targets = [];
   const center = settlementOf(g, sid)?.center;
   if (center) targets.push({ x: center.x, y: center.y, name: 'the stockpile' });
-  for (const h of Object.values(s.homes || {})) {
+  for (const h of g.owned('homes', sid)) { // its own homes, in Object.values order (not every home in the world)
     if (!own(h) || !h.complete || targets.length >= 4) continue;
     const parts = (s.projects[h.projectId]?.parts || []).map((id) => s.structures[id]).filter(Boolean);
     if (parts.length) targets.push({ x: Math.round(parts.reduce((a, p) => a + p.x, 0) / parts.length), y: Math.round(parts.reduce((a, p) => a + p.y, 0) / parts.length), name: h.name });

@@ -29,3 +29,8 @@ Be exact; do not round away regressions, and do not claim a pass you did not see
 **Shared checkout:** never run `git stash`, `git checkout <file>`, `git reset` or switch branches in the main checkout; other agents' uncommitted work lives there. To compare with an older version, use a temporary `git worktree add <temp dir> <commit>` (or `git archive`) and remove it afterwards.
 
 - Stop only processes you started yourself, by PID. Never kill by name or command line (taskkill /IM, matching tools/serve.js): the user's own game server and other agents' runs share the machine.
+
+**Cloud copy** (this repo, see CLAUDE.md): `tools/cloud-checks.mjs forty` and `tools/cloud-checks.mjs modern` run
+checks 2 and 3 and print a JSON line with a `stateHash` (equal hash = unchanged run); the baseline is
+`docs/cloud-baseline.md`. Every command runs under `timeout` (600 s at most), one heavy run at a time; on a timeout
+read the output tail, rerun once alone, then a smaller version, and report where it got stuck.

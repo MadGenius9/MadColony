@@ -27,5 +27,17 @@
       "name": "Adult",
       "order": 2
     }
+  ],
+  "building": [
+    {
+      "id": "core:grave",
+      "name": "Grave",
+      "category": "furniture",
+      "passable": true,
+      "cost": [],
+      "work": 120,
+      "color": "#7d7468",
+      "render": { "shape": "grave" }
+    }
   ]
 }
